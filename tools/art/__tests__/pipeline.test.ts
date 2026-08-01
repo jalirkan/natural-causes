@@ -135,6 +135,45 @@ describe('cut', () => {
     expect(bmp.data[index(bmp, 0, 0) + 3]).toBe(0);
   });
 
+  it('keys out a framed poster, where the border ring is a drawn rule', () => {
+    // The mid-century register makes the generator draw a rule right around
+    // the image. Seeded at the edge, the fill stops on the frame instantly and
+    // the whole poster survives as one solid rectangle.
+    const bmp = fixture(64);
+    for (let y = 0; y < 64; y++) {
+      for (let x = 0; x < 64; x++) {
+        if (x > 1 && x < 62 && y > 1 && y < 62) continue;
+        const i = index(bmp, x, y);
+        bmp.data[i] = 30;
+        bmp.data[i + 1] = 26;
+        bmp.data[i + 2] = 22;
+      }
+    }
+    keyOutBackground(bmp);
+    // The backdrop inside the frame is gone...
+    expect(bmp.data[index(bmp, 8, 8) + 3], 'backdrop inside the frame').toBe(0);
+    // ...and the subject is still there.
+    expect(bmp.data[index(bmp, 32, 32) + 3], 'subject').toBe(255);
+    const b = opaqueBounds(bmp)!;
+    expect(b.right - b.left, 'subject width, not the whole poster').toBeLessThan(45);
+  });
+
+  it('does not mistake a genuinely large subject for a blocked fill', () => {
+    // The inset retry must not fire just because the subject is big.
+    const bmp = fixture(64, [240, 240, 226]);
+    for (let y = 6; y < 58; y++) {
+      for (let x = 6; x < 58; x++) {
+        const i = index(bmp, x, y);
+        bmp.data[i] = 240;
+        bmp.data[i + 1] = 240;
+        bmp.data[i + 2] = 226;
+      }
+    }
+    keyOutBackground(bmp);
+    expect(bmp.data[index(bmp, 0, 0) + 3], 'true background cleared').toBe(0);
+    expect(bmp.data[index(bmp, 32, 32) + 3], 'large subject survived').toBe(255);
+  });
+
   it('centres the subject on a padded square canvas', () => {
     const out = cut(fixture());
     expect(out.width).toBe(out.height);
@@ -153,8 +192,8 @@ describe('cut', () => {
 
 describe('conform', () => {
   it('law 1: outline weight is proportional to sprite size', () => {
-    expect(outlineWidthFor(96)).toBe(3);
-    expect(outlineWidthFor(384)).toBe(12);
+    expect(outlineWidthFor(96)).toBe(2);
+    expect(outlineWidthFor(384)).toBe(8);
     // The ratio is what is fixed, not the pixel count.
     expect(outlineWidthFor(384) / 384).toBeCloseTo(OUTLINE_RATIO, 5);
     expect(outlineWidthFor(96) / 96).toBeCloseTo(OUTLINE_RATIO, 5);

@@ -26,46 +26,62 @@ const c = (name: string, hex: string): Colour => ({
   ] as const,
 });
 
-/** Universal. Present in every act. */
-export const INK = c('ink', '#17140F');
-export const SHADOW = c('shadow', '#3C3527');
-export const PAPER = c('paper', '#F4F0E2');
-export const BONE = c('bone', '#D8D0B8');
+/**
+ * Universal. Present in every act.
+ *
+ * INK is a warm near-black, not pure black. Pure black plus a heavy uniform
+ * contour is the loudest "modern vector cartoon" signal there is, and it was
+ * most of why the first test batch read as too toony — that outline was
+ * imposed by this pipeline, not produced by the generator.
+ *
+ * PAPER is stock, not white: everything sits on printed paper now.
+ */
+export const INK = c('ink', '#2A2521');
+export const SHADOW = c('shadow', '#6E6353');
+export const PAPER = c('paper', '#EFE7D6');
+export const BONE = c('bone', '#D2C6AC');
 
 /**
  * Threat colours (law 6). These overlay the act palette and mean the same
  * thing in every act: colour carries threat, silhouette carries identity.
  */
 export const THREAT = {
-  contact: c('threat-contact', '#E8452F'),
-  ranged: c('threat-ranged', '#F2B138'),
-  elite: c('threat-elite', '#9B5DE5'),
-  boss: c('threat-boss', '#29B6A8'),
+  contact: c('threat-contact', '#C4472E'),
+  ranged: c('threat-ranged', '#D69A3C'),
+  elite: c('threat-elite', '#7C5C8A'),
+  boss: c('threat-boss', '#2F7370'),
 } as const;
 
 export type ThreatClass = keyof typeof THREAT;
 
-/** Act tints. Three tones each: deep doubles as the act's background. */
+/**
+ * Act tints. Three tones each: deep doubles as the act's background.
+ *
+ * Spot inks on stock, not screen colours. Saturation is the other half of why
+ * the first batch read as children's media — these are the same hues pulled
+ * toward the muted, slightly dirty range that limited-run printing actually
+ * produces.
+ */
 const ACT_TONES = {
   conception: [
-    c('conception-deep', '#5E1F2E'),
-    c('conception-mid', '#A33B4F'),
-    c('conception-light', '#D9727F'),
+    c('conception-deep', '#6B3A44'),
+    c('conception-mid', '#A86A63'),
+    c('conception-light', '#C99B8C'),
   ],
   school: [
-    c('school-deep', '#2E5B4E'),
-    c('school-mid', '#4C7A35'),
-    c('school-light', '#93B84A'),
+    c('school-deep', '#3D5148'),
+    c('school-mid', '#6B7F53'),
+    c('school-light', '#9FA86B'),
   ],
   service: [
-    c('service-deep', '#7E7259'),
-    c('service-mid', '#B8A886'),
-    c('service-light', '#E0D5B8'),
+    c('service-deep', '#6E6248'),
+    c('service-mid', '#A2946F'),
+    c('service-light', '#CFC3A0'),
   ],
   office: [
-    c('office-deep', '#2F4257'),
-    c('office-mid', '#5B7A99'),
-    c('office-light', '#AEC4D6'),
+    c('office-deep', '#3A4A5C'),
+    c('office-mid', '#6B8299'),
+    c('office-light', '#A8B7C4'),
   ],
 } as const;
 

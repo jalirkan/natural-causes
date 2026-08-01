@@ -16,7 +16,7 @@ import { INK, actPalette, nearest, type ActId, type Colour } from './palette';
  * size, never varied for effect). A 96px swarm enemy gets 3px; a 384px boss
  * gets 12px; both read as the same line.
  */
-export const OUTLINE_RATIO = 3 / 96;
+export const OUTLINE_RATIO = 2 / 96;
 
 export function outlineWidthFor(size: number): number {
   return Math.max(1, Math.round(size * OUTLINE_RATIO));

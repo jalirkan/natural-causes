@@ -123,24 +123,49 @@ describe('the shipped test batch', () => {
     }
   });
 
-  it('law 4: only the Office act gets clean geometry; every other act is lumpy', () => {
+  it('law 4: only the Office act gets ruled geometry; every other act is hand-cut', () => {
     for (const act of ACT_IDS) {
       const suffix = styleSuffix(act);
       if (act === 'office') {
-        expect(suffix).toMatch(/rigid geometric|true right angles/);
-        expect(suffix).not.toMatch(/lumpy/);
+        expect(suffix).toMatch(/precise ruled geometry|true right angles/);
+        expect(suffix).not.toMatch(/hand-cut paper/);
       } else {
-        expect(suffix).toMatch(/lumpy asymmetric/);
-        expect(suffix).not.toMatch(/rigid geometric/);
+        expect(suffix).toMatch(/hand-cut paper/);
+        expect(suffix).not.toMatch(/precise ruled geometry/);
       }
     }
   });
 
-  it('the Reorg prompt does not order the generator to be lumpy and rigid at once', () => {
+  it('the Reorg prompt does not order the generator to be irregular and ruled at once', () => {
     const reorg = TEST_BATCH.find((s) => s.id === 'boss-reorg')!;
     const prompt = fullPrompt(reorg);
     expect(prompt).toMatch(/right angles/);
-    expect(prompt).not.toMatch(/lumpy asymmetric hand-drawn/);
+    expect(prompt).not.toMatch(/hand-cut paper/);
+  });
+
+  it('the Reorg prompt names connectors and forbids the failure it already hit', () => {
+    // It came back as a chest of drawers. Both halves of the fix are load
+    // bearing: describe a separated tree joined by connector lines, and name
+    // the furniture it must not be.
+    const reorg = TEST_BATCH.find((s) => s.id === 'boss-reorg')!;
+    expect(reorg.subject).toMatch(/connector lines/);
+    expect(reorg.subject).toMatch(/separated/);
+    expect(reorg.subject).toMatch(/chest of drawers/);
+    expect(reorg.subject).toMatch(/flat/);
+  });
+
+  it('the substitute teacher is a role, not a person to feel sorry for', () => {
+    const sub = TEST_BATCH.find((s) => s.id === 'substitute-teacher')!;
+    expect(sub.subject).toMatch(/indifferent|unbothered/);
+    expect(sub.subject).toMatch(/not sympathetic/);
+    expect(sub.subject).not.toMatch(/apolog/);
+    // The first version's build and mood descriptors are what put the joke on
+    // the man instead of the institution. They may appear only as negations —
+    // "not sad" is the fix, "tired" on its own was the bug.
+    for (const word of ['sad', 'nervous', 'tired', 'heavy', 'fat']) {
+      const asDescriptor = new RegExp(`(?<!not )\\b${word}\\b`);
+      expect(sub.subject, `"${word}" must not describe the figure`).not.toMatch(asDescriptor);
+    }
   });
 
   it('the drone prompt names no operator, force, nationality or insignia', () => {

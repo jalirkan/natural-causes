@@ -39,33 +39,46 @@ const DEFAULTS: Required<CutOptions> = {
   padding: 0.06,
 };
 
-/** The dominant border colour, taken as the median of the image's edge ring. */
-export function detectBackground(bmp: Bitmap): [number, number, number] {
+/**
+ * The dominant colour of a ring `inset` pixels in from the edge.
+ *
+ * `inset` exists because the mid-century register makes the generator draw
+ * framed posters: a dark rule right around the image. The frame is the border
+ * ring, so a fill seeded there stops instantly and the entire poster survives
+ * as one solid rectangle — which is what the Reorg came back as.
+ */
+export function detectBackground(bmp: Bitmap, inset = 0): [number, number, number] {
   const rs: number[] = [];
   const gs: number[] = [];
   const bs: number[] = [];
   const sample = (x: number, y: number) => {
+    if (x < 0 || y < 0 || x >= bmp.width || y >= bmp.height) return;
     const i = index(bmp, x, y);
     rs.push(bmp.data[i]!);
     gs.push(bmp.data[i + 1]!);
     bs.push(bmp.data[i + 2]!);
   };
-  for (let x = 0; x < bmp.width; x++) {
-    sample(x, 0);
-    sample(x, bmp.height - 1);
+  for (let x = inset; x < bmp.width - inset; x++) {
+    sample(x, inset);
+    sample(x, bmp.height - 1 - inset);
   }
-  for (let y = 0; y < bmp.height; y++) {
-    sample(0, y);
-    sample(bmp.width - 1, y);
+  for (let y = inset; y < bmp.height - inset; y++) {
+    sample(inset, y);
+    sample(bmp.width - 1 - inset, y);
   }
   const median = (xs: number[]) => xs.sort((a, b) => a - b)[Math.floor(xs.length / 2)]!;
   return [median(rs), median(gs), median(bs)];
 }
 
-/** Removes the border-connected background, in place. Returns pixels cleared. */
-export function keyOutBackground(bmp: Bitmap, options: CutOptions = {}): number {
+/**
+ * Removes the background connected to a ring `inset` pixels in from the edge.
+ *
+ * Returns pixels cleared. Callers should prefer `keyOutBackground`, which
+ * handles the framed case by trying more than one inset.
+ */
+export function keyOutBackgroundAt(bmp: Bitmap, inset: number, options: CutOptions = {}): number {
   const opts = { ...DEFAULTS, ...options };
-  const [br, bg, bb] = detectBackground(bmp);
+  const [br, bg, bb] = detectBackground(bmp, inset);
   const bgLab = rgbToOklab(br, bg, bb);
 
   const isBackground = (i: number, tolerance: number): boolean => {
@@ -86,13 +99,13 @@ export function keyOutBackground(bmp: Bitmap, options: CutOptions = {}): number 
     stack.push(p);
   };
 
-  for (let x = 0; x < bmp.width; x++) {
-    push(x, 0);
-    push(x, bmp.height - 1);
+  for (let x = inset; x < bmp.width - inset; x++) {
+    push(x, inset);
+    push(x, bmp.height - 1 - inset);
   }
-  for (let y = 0; y < bmp.height; y++) {
-    push(0, y);
-    push(bmp.width - 1, y);
+  for (let y = inset; y < bmp.height - inset; y++) {
+    push(inset, y);
+    push(bmp.width - 1 - inset, y);
   }
 
   let cleared = 0;
@@ -184,6 +197,94 @@ export function keyOutBackground(bmp: Bitmap, options: CutOptions = {}): number 
     }
   }
 
+  return cleared;
+}
+
+/**
+ * Did the fill actually reach the corners?
+ *
+ * This is the test for "was the flood blocked", and it is deliberately not a
+ * test on cleared AREA. Area cannot tell a thin frame apart from a boss that
+ * genuinely fills the frame, and getting that backwards is destructive: the
+ * retry would re-seed from a ring lying inside the sprite and key out the
+ * subject itself.
+ *
+ * Every prompt asks for the subject centred with margin around it, so the
+ * corners are background in every well-formed generation. If they did not
+ * clear, something at the edge stopped the fill.
+ */
+function cornersCleared(bmp: Bitmap): number {
+  const ix = Math.max(1, Math.round(bmp.width * 0.05));
+  const iy = Math.max(1, Math.round(bmp.height * 0.05));
+  const probes: Array<[number, number]> = [
+    [ix, iy],
+    [bmp.width - 1 - ix, iy],
+    [ix, bmp.height - 1 - iy],
+    [bmp.width - 1 - ix, bmp.height - 1 - iy],
+  ];
+  return probes.filter(([x, y]) => bmp.data[index(bmp, x, y) + 3] === 0).length;
+}
+
+/**
+ * Removes the background, coping with a drawn frame around the image.
+ *
+ * Tries the edge first, which is right for an unframed image and cheapest. If
+ * the corners did not clear, the border ring was not background — it was a
+ * rule drawn around a poster — so it retries from further in. Alpha is
+ * restored between attempts, so a failed pass leaves no partial cut behind.
+ */
+export function keyOutBackground(bmp: Bitmap, options: CutOptions = {}): number {
+  const total = bmp.width * bmp.height;
+  const alpha = new Uint8Array(total);
+  for (let p = 0; p < total; p++) alpha[p] = bmp.data[p * CHANNELS + 3]!;
+  const restore = () => {
+    for (let p = 0; p < total; p++) bmp.data[p * CHANNELS + 3] = alpha[p]!;
+  };
+
+  const short = Math.min(bmp.width, bmp.height);
+  const insets = [0, Math.max(2, Math.round(short * 0.02)), Math.max(4, Math.round(short * 0.05))];
+
+  let bestCleared = 0;
+  let bestInset = 0;
+  for (const inset of insets) {
+    const cleared = keyOutBackgroundAt(bmp, inset, options);
+    if (cornersCleared(bmp) >= 3) return cleared + clearOutside(bmp, inset);
+    if (cleared > bestCleared) {
+      bestCleared = cleared;
+      bestInset = inset;
+    }
+    restore();
+  }
+
+  // Nothing reached the corners. Fall back to whichever attempt cleared most,
+  // and let the CHECK stage reject the asset if the result is unusable —
+  // that is what the regeneration loop is for.
+  const cleared = keyOutBackgroundAt(bmp, bestInset, options);
+  return cleared + clearOutside(bmp, bestInset);
+}
+
+/**
+ * Clears the band outside an inset boundary.
+ *
+ * Only called when an inset was actually needed, which means the band is the
+ * frame that blocked the fill. Leaving it behind would keep the sprite's
+ * bounding box at the full image size and wrap the outline pass around a
+ * rectangle. Every prompt puts the subject centred with margin, so nothing
+ * real lives in the outer few percent.
+ */
+function clearOutside(bmp: Bitmap, inset: number): number {
+  if (inset <= 0) return 0;
+  let cleared = 0;
+  for (let y = 0; y < bmp.height; y++) {
+    const edgeRow = y < inset || y >= bmp.height - inset;
+    for (let x = 0; x < bmp.width; x++) {
+      if (!edgeRow && x >= inset && x < bmp.width - inset) continue;
+      const i = index(bmp, x, y);
+      if (bmp.data[i + 3] === 0) continue;
+      bmp.data[i + 3] = 0;
+      cleared++;
+    }
+  }
   return cleared;
 }
 

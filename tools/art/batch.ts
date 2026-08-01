@@ -31,19 +31,35 @@ export const CHROMA_BACKGROUND = '#FF00FF';
  * the model interprets as a vibe.
  */
 const SHARED_STYLE = [
-  'flat 2D cartoon illustration, adult animated comedy style',
-  'thick uniform black outline of even weight around every shape',
-  'flat saturated fills only',
+  // Mid-century institutional, not Adult Swim. The register the game is
+  // satirising is the register it should be drawn in: the visual language of
+  // insurance pamphlets, safety posters and annual reports.
+  'mid-century modern commercial illustration, 1950s 1960s printed institutional graphic design',
+  'limited spot-colour screenprint, two or three flat muted ink colours on off-white paper stock',
+  'visible halftone dot texture, paper grain, slightly misregistered ink edges',
+  'fine even line weight, thin restrained linework, no heavy black outlines',
+  'simplified geometric stylised forms, flat graphic shapes',
+  // Flatness is load-bearing twice over: it is the register, and the first
+  // batch's Reorg read as a dresser because the boxes were drawn in 3D.
+  'strictly flat two-dimensional, no perspective, no depth, no 3D, no isometric view',
   'absolutely no gradients, no shading, no ambient occlusion, no rendered lighting, no glow',
-  'deadpan expression, played completely straight',
+  // Affect is the throughline of everything that worked in the first batch:
+  // the rivals are not looking at you, the Egg has already decided, the drone
+  // is bored. The one asset that emoted at the player was the one that failed.
+  'completely affectless, blank deadpan expression, indifferent, unbothered, not reacting',
   'single subject, centred, entire subject visible with margin around it',
   `plain solid ${CHROMA_BACKGROUND} magenta background, nothing else in frame`,
-  // The subject floats. A cast shadow is connected to the subject, so the CUT
-  // stage cannot tell it apart and it survives into the silhouette — the first
-  // batch put a dark ellipse under the Reorg and thickened every outline
-  // around it. Cheaper to forbid in the prompt than to segment out later.
+  // A cast shadow is connected to the subject, so CUT cannot tell it apart and
+  // it survives into the silhouette — the first batch put a dark ellipse under
+  // the Reorg. Cheaper to forbid here than to segment out later.
   'floating with no ground and no horizon, no drop shadow, no cast shadow, no contact shadow',
-  'no text, no letters, no numbers, no watermark, no signature, no border',
+  'not cute, not childish, not a modern cartoon, not vector clipart',
+  // The register makes the generator draw framed posters, and a frame at the
+  // image edge blocks the CUT stage's flood fill — the Reorg came back as one
+  // solid rectangle because of it. The pipeline now works around a frame, but
+  // not asking for one is still cheaper than removing it.
+  'full bleed, no frame, no border, no rule around the image, no poster edge, no panel',
+  'no text, no letters, no numbers, no watermark, no signature',
 ];
 
 /**
@@ -58,11 +74,11 @@ const SHARED_STYLE = [
  * boxes, and the two would fight inside one prompt.
  */
 const PROPORTION_CLAUSE: Record<ActId, string> = {
-  conception: 'lumpy asymmetric hand-drawn proportions, slightly wrong, never geometric',
-  school: 'lumpy asymmetric hand-drawn proportions, slightly wrong, never geometric',
-  service: 'lumpy asymmetric hand-drawn proportions, slightly wrong, never geometric',
+  conception: 'slightly irregular hand-cut paper shapes, organic and asymmetric, never mechanical',
+  school: 'slightly irregular hand-cut paper shapes, organic and asymmetric, never mechanical',
+  service: 'slightly irregular hand-cut paper shapes, organic and asymmetric, never mechanical',
   office:
-    'rigid geometric shapes with clean straight edges and true right angles, ' +
+    'precise ruled geometry with true right angles and straight edges, drafted rather than drawn, ' +
     'the wrongness coming entirely from the arrangement and never from the shapes',
 };
 
@@ -142,15 +158,24 @@ export const TEST_BATCH: AssetSpec[] = [
     seed: 4004,
     whyThisStage:
       'School is the first place the player is judged by someone who does not know who they are, and the substitute is that experience with a lanyard on.',
+    // Rewritten after the first batch. The old version asked for an
+    // apologetic, anxious figure and got a sad heavy man — which put the joke
+    // on his body and his nerves instead of on his position, and that is
+    // punching down. Same failure shape as D-007, one step over.
+    //
+    // The fix is to make the ROLE the character. The clipboard and the lanyard
+    // are the enemy; the person is what carries them. Nobody feels sorry for a
+    // clipboard, and an adult who has already forgotten you and is untroubled
+    // by it is funnier and colder than one who is sorry about it.
     subject: [
-      'a cartoon adult substitute schoolteacher standing facing forward',
-      'no neck, the head sitting directly on a soft rectangle torso with sloping shoulders',
-      'wearing a mustard yellow sweater vest in a colour that was never in fashion',
-      'holding an oversized bright white clipboard with both hands at chest height like a shield',
-      'a crooked lanyard loop hanging from the neck',
-      'two flat dot eyes at visibly different heights and a small horizontal mouth',
-      'eyebrows raised in permanent mild apology, the expression of someone who arrived twenty minutes ago and has been told none of this',
-      'ordinary, tired, out of place',
+      'a substitute schoolteacher drawn as a mid-century institutional pictogram',
+      'an ordinary adult figure of average unremarkable build, standing squarely and symmetrically facing forward',
+      'a simplified geometric body, plain and generic, more diagram than portrait',
+      'holding a large plain white clipboard flat against the chest with both hands, the clipboard is the brightest and hardest shape in the picture',
+      'a plain lanyard loop around the neck',
+      'the face is almost blank, two small flat dots for eyes and one short straight line for a mouth, no eyebrows',
+      'no expression whatsoever, completely indifferent, unbothered, not looking at the viewer but slightly past and to one side',
+      'institutional and anonymous, not sad, not nervous, not sympathetic',
     ].join(', '),
   },
   {
@@ -188,15 +213,22 @@ export const TEST_BATCH: AssetSpec[] = [
     seed: 6006,
     whyThisStage:
       "The Office is the first stage where the player's life is decided by a diagram that somebody else is allowed to edit.",
+    // Rewritten after the first batch, which read as a chest of drawers.
+    // The cause was "a ziggurat of boxes stacked wider at the base", drawn in
+    // 3D: stacked solid cubes ARE furniture. An org chart is not a stack, it
+    // is a TREE — boxes separated by empty space and joined by visible
+    // connector lines, drawn strictly flat. The connectors are the thing that
+    // makes it a diagram rather than a pile, so they are named first.
     subject: [
-      'a cartoon monster made entirely of a tall swaying organisational chart',
-      'a lumpy ziggurat of rectangular boxes, wider at the base, stacked several rows high',
-      'the boxes at slightly different sizes and slight rotations',
-      'joined by thick straight right-angled connector lines drawn at the same heavy weight as the outlines',
-      'corporate blue-grey and white, clean and rigid, right angles everywhere',
-      'every box has a small flat deadpan face inside it',
+      'a corporate organisational chart drawn as a flat printed diagram, standing upright as if it were a creature',
+      'a branching hierarchy tree of separate plain rectangular outlined boxes, four rows deep, widening toward the bottom',
+      'the boxes are clearly separated from one another with empty space between them, never touching and never stacked',
+      'thin straight vertical and horizontal connector lines join each box down to the boxes below it, the connector lines clearly visible against the background',
+      'each box contains one small flat deadpan face and a short solid blank label bar beneath the face',
       'the faces look at each other or upward, none of them looking at the viewer',
-      'one slightly larger box at the very top is completely empty with no face inside it',
+      'one slightly larger box alone at the very top of the tree is completely empty, no face and no label bar',
+      'strictly flat and two-dimensional like a printed chart on a page',
+      'not a stack of boxes, not a pile of crates, not a chest of drawers, not cubes, not a pyramid, no 3D boxes',
     ].join(', '),
   },
 ];
