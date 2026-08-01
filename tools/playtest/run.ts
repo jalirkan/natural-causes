@@ -7,6 +7,7 @@ import {
   pearson,
   runOnce,
   setHeadingJitter,
+  setInstrument,
   summarise,
   type RunResult,
 } from './bots';
@@ -28,6 +29,13 @@ const spawnArg = argv.find((a) => a.startsWith('--spawn='))?.slice(8);
 const spawnOverride = spawnArg === 'edge' || spawnArg === 'lead' ? spawnArg : undefined;
 const jitter = Number(argv.find((a) => a.startsWith('--jitter='))?.slice(9) ?? 0);
 setHeadingJitter(jitter);
+// Instrument arms (§10.5). Defaults are the re-baselined bot; --inertia=0 and
+// --threat=0 reproduce the old one for the control arms.
+const inertiaArg = argv.find((a) => a.startsWith('--inertia='))?.slice(10);
+const threatArg = argv.find((a) => a.startsWith('--threat='))?.slice(9);
+const tau = inertiaArg === undefined ? 0.22 : Number(inertiaArg);
+const threat = threatArg === undefined ? true : threatArg !== '0';
+setInstrument(tau, threat);
 
 const policies = onlyPolicy ? POLICIES.filter((p) => p.name === onlyPolicy) : POLICIES;
 if (policies.length === 0) {
@@ -49,7 +57,8 @@ out.push(
     `(${runsPerPolicy} per policy, seeds 1000..${1000 + runsPerPolicy - 1}` +
     `${bossPull === undefined ? '' : `, boss pull ${bossPull}`}` +
     `${spawnOverride === undefined ? '' : `, all spawns forced to ${spawnOverride}`}` +
-    `${jitter > 0 ? `, heading jitter ${jitter} rad` : ''})`,
+    `${jitter > 0 ? `, heading jitter ${jitter} rad` : ''}` +
+    `, inertia tau ${tau}s, threat weighting ${threat ? 'on' : 'off'})`,
 );
 out.push('');
 out.push('policy                 runs   win rate (95% CI)      median s   kills   lvl   boss left');
@@ -71,11 +80,12 @@ for (const s of summarise(results)) {
 out.push('');
 out.push('antibody stacks at 300s — working band is median 4-12, careless >= 2x careful');
 out.push('-'.repeat(84));
-out.push('policy                 median    p90    mean');
+out.push('policy                 median    p90    mean   n@300   median@death');
 for (const s of summarise(results)) {
   out.push(
     `${s.policy.padEnd(22)} ${String(s.medianStacksAt300).padStart(6)} ` +
-      `${String(s.p90StacksAt300).padStart(6)} ${String(s.meanStacksAt300).padStart(7)}`,
+      `${String(s.p90StacksAt300).padStart(6)} ${String(s.meanStacksAt300).padStart(7)}` +
+      `${String(s.reached300).padStart(8)}${String(s.medianStacksAtEnd).padStart(15)}`,
   );
 }
 {

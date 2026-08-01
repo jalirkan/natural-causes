@@ -625,3 +625,69 @@ Rejected: **buffing Membrane to compensate** — more damage reduction, or a sma
 speed penalty. Restores the win rate and dissolves the item. Membrane exists to be
 the slow durable pick; a Membrane that is no longer meaningfully slow is a strictly
 additive item, which `G-014` rules out for the whole act.
+
+## G-023 · 2026-08-01 · Chemotaxis gathers the antibodies, and that is the item working
+No exemption. `applyAttractors` pulls antibodies like anything else, and it stays
+that way. Measured at r = +0.462, +0.366 holding speed, 6.7 stacks against 3.3 —
+the largest single effect in the act and the answer to the unknown §7.3 flagged
+but could not predict.
+
+Chemotaxis's `tradesAway` already said it: *pulling a crowd into a tight point is
+exactly how a run ends for a player who has nothing to clear it with.* The
+antibody is that sentence's limit case — the one thing the pull gathers that no
+amount of clearing pays off. The item that lets the player decide where everything
+goes is also the item that calls the one thing they cannot shoot, and it gets
+better and worse in the same pick. That is what `G-014` asks of an item.
+
+**The invisibility was a real defect and it is a separate question from the
+mechanic.** §3.3 made the antibody silent deliberately, and silence is right for a
+background accumulation no choice changes much. It is wrong for one a single item
+doubles, because that is a decision, and a cost the player cannot perceive is not
+a trade. Fixed in the text (`CONCEPTION-ROSTER.md` §4.2), not in the behaviour —
+the pull is already visible on screen, and a player who drops an attractor and
+watches grey Y-shapes converge has been told without a word of narration.
+
+Rejected: **exempting antibodies from attractors.** The obvious fix, one line, and
+it is the third special-case clause this project has been offered and the third it
+should refuse — after `G-015`'s per-item boss clauses and `G-021`'s Midpiece
+carve-out. "The pull tool pulls everything" is a rule a player can hold in their
+head. "The pull tool pulls everything except the enemy you cannot kill" is a
+patch note.
+
+Rejected: **weakening the interaction rather than removing it** — a reduced
+attraction coefficient for antibodies only. Keeps the flavour, keeps the special
+case, and buys a number nobody can perceive at the cost of a rule that was simple.
+It is the compromise that loses both arguments.
+
+## G-024 · 2026-08-01 · G-021 and G-022 keep their rulings and lose their reasons
+Both were decided on mechanisms Run 5 has now measured and contradicted. Neither
+outcome changes; both stated rationales do, and recording that is the same
+discipline `G-019` applied to `G-015` — a decision must not survive on reasoning
+that has since been falsified, even when the decision itself is still right.
+
+**`G-021`** ruled that `midpiece+wake` at median 2 stacks stands, on the reasoning
+that the speed build was buying partial immunity with velocity or with heading
+volatility. Neither survives the partial correlations. The gap is Chemotaxis: the
+outlier is not a build escaping the tax, it is a build not taking the item that
+generates it. The ruling stands and is now easier — there is nothing to opt out
+of, so there is nothing to fix, and lead distance remains the wrong lever for an
+additional reason.
+
+**`G-022`** ruled that Membrane's compounding stands and corrected its
+`tradesAway` to name the antibody. The compounding it described — slower, more
+stacks, slower still — is not the loop that is running. Item speed holding turn is
+−0.133. The ruling stands, because a build that removes 78% of the boss and loses
+is still a build losing; the text correction does not, and is reverted.
+
+Rejected: **reopening both rulings** because their reasons failed. Tempting for
+symmetry with `G-019`, and wrong: `G-019` was reversed because the *outcome* it
+was chosen to produce turned out not to need it. Here the outcomes are unchanged
+and only the explanations moved. Reversing a correct call because the argument for
+it was wrong is as undisciplined as keeping an incorrect one because the argument
+was good.
+
+Rejected: **quietly leaving the superseded reasoning in place** and letting the
+entries stand on rationales that have been measured false. Cheapest, invisible,
+and it is precisely how a document becomes something nobody can reason from. The
+next agent to read `G-022` would inherit a compounding loop that does not exist
+and design against it.

@@ -1,5 +1,6 @@
 import { CONCEPTION } from '../../src/data/acts';
 import { ITEMS, isActive } from '../../src/data/items';
+import type { EnemyDef } from '../../src/data/enemies';
 import { World, type Input, type WorldOptions } from '../../src/sim/world';
 
 /**
@@ -64,6 +65,16 @@ export interface RunResult {
   headingChangeRate: number;
   /** Speed from items alone at 300s. Exogenous — what the build chose. */
   itemSpeedAt300: number;
+  /**
+   * Whether the run survived to the 300s mark at all.
+   *
+   * Without this, a run that dies at 124s reports stacksAt300 = 0 — its
+   * initial value — and a table of medians reads 0 while the means read 20.
+   * Stack statistics are computed over this subset only.
+   */
+  reached300: boolean;
+  /** Stacks when the run actually ended, for every run. */
+  stacksAtEnd: number;
   /** State on arrival at the boss. If a swing is not in the stacks, it is here. */
   hpAt300: number;
   hpFractionAt300: number;
@@ -88,6 +99,38 @@ export interface RunResult {
  * curve has to be fair to.
  */
 /**
+ * Instrument settings (§10.5). Both default ON — the re-baselined bot.
+ *
+ * They are separately switchable because §9.2 requires a control arm per
+ * change, and these two will interact: a bot that holds a heading AND ignores
+ * harmless enemies moves differently from one that does either alone.
+ */
+let headingTau = 0.22;
+let threatWeighting = true;
+export function setInstrument(tau: number, threat: boolean): void {
+  headingTau = tau;
+  threatWeighting = threat;
+}
+
+/**
+ * How much a given enemy should be avoided, in units of "white cell contact".
+ *
+ * The old policy repelled from everything within 260px with no weighting, so a
+ * 0-damage antibody pushed exactly as hard as a 14-damage white cell. Under
+ * G-020 that handed the bot a defensive screen made of harmless obstacles and
+ * moved midpiece+wake from 69% to 100% — an instrument artefact that first
+ * presented as a design result.
+ *
+ * Engulf damage is counted over its whole duration, because that is what the
+ * contact actually costs.
+ */
+function threatOf(def: EnemyDef): number {
+  if (!threatWeighting) return 1;
+  const engulf = def.engulf ? def.engulf.damagePerSecond * def.engulf.seconds : 0;
+  return (def.contactDamage + engulf) / 14;
+}
+
+/**
  * Heading noise, radians of standard deviation per step.
  *
  * The intervention that separates §9.3's two candidate mechanisms. Rotating
@@ -101,16 +144,18 @@ export function setHeadingJitter(radians: number): void {
   headingJitter = radians;
 }
 
-function decideMove(w: World, rng: () => number): Input {
+function decideMove(w: World, rng: () => number, state: BotState): Input {
   let ax = 0;
   let ay = 0;
 
   for (const e of w.enemies) {
+    const threat = threatOf(e.def);
+    if (threat <= 0) continue;
     const dx = w.x - e.x;
     const dy = w.y - e.y;
     const d = Math.hypot(dx, dy);
     if (d > 260 || d < 1) continue;
-    const weight = (260 - d) / 260;
+    const weight = ((260 - d) / 260) * threat;
     ax += (dx / d) * weight;
     ay += (dy / d) * weight;
   }
@@ -179,9 +224,46 @@ function decideMove(w: World, rng: () => number): Input {
   }
 
   const len = Math.hypot(ax, ay);
-  if (len < 0.001) return { moveX: 1, moveY: 0 };
-  let nx = ax / len;
-  let ny = ay / len;
+  let nx: number;
+  let ny: number;
+  if (len < 0.001) {
+    // Coasting on the last heading is part of the inertia change, not a free
+    // extra: with tau at zero the control arm must reproduce the old bot
+    // exactly, and the old bot snapped to +x whenever the forces cancelled.
+    if (headingTau > 0) {
+      nx = state.headingX;
+      ny = state.headingY;
+    } else {
+      state.headingX = 1;
+      state.headingY = 0;
+      return { moveX: 1, moveY: 0 };
+    }
+  } else {
+    nx = ax / len;
+    ny = ay / len;
+  }
+
+  // Heading inertia (§10.5). Without it the bot turned 52-74 rad/s — eight to
+  // twelve full rotations a second — because the desired vector is a sum of
+  // repulsions that flips sign every frame. No human input device produces
+  // that, and it made "spawn on the player's instantaneous heading" equivalent
+  // to "spawn at a random point", which is why §9.3 could not be tested.
+  //
+  // A first-order lag toward the desired direction. Tau is the time constant:
+  // the bot commits to a direction for roughly that long before the crowd can
+  // turn it.
+  if (headingTau > 0) {
+    const alpha = 1 - Math.exp(-DT / headingTau);
+    const bx = state.headingX + (nx - state.headingX) * alpha;
+    const by = state.headingY + (ny - state.headingY) * alpha;
+    const bl = Math.hypot(bx, by);
+    if (bl > 0.001) {
+      nx = bx / bl;
+      ny = by / bl;
+    }
+  }
+  state.headingX = nx;
+  state.headingY = ny;
 
   if (headingJitter > 0) {
     // Box-Muller for a normal deviate, then rotate. Rotation preserves
@@ -200,6 +282,11 @@ function decideMove(w: World, rng: () => number): Input {
 
 /** Level past which a greedy policy should look at its other picks first. */
 const SPREAD_BELOW = 3;
+
+interface BotState {
+  headingX: number;
+  headingY: number;
+}
 
 function chooseOffer(
   policy: BotPolicy,
@@ -241,8 +328,10 @@ export function runOnce(
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 
+  const state: BotState = { headingX: 1, headingY: 0 };
   let steps = 0;
   let stacksAt300 = 0;
+  let reached300 = false;
   let itemSpeedAt300 = world.itemSpeed;
   let hpAt300 = world.hp;
   let hpFractionAt300 = 1;
@@ -259,7 +348,8 @@ export function runOnce(
 
   const maxSteps = MAX_SECONDS / DT;
   while (!world.dead && !world.won && steps < maxSteps) {
-    if (stacksAt300 === 0 && world.time >= CONCEPTION.durationSeconds) {
+    if (!reached300 && world.time >= CONCEPTION.durationSeconds) {
+      reached300 = true;
       stacksAt300 = world.dragStacks;
       itemSpeedAt300 = world.itemSpeed;
       hpAt300 = world.hp;
@@ -272,7 +362,7 @@ export function runOnce(
       continue;
     }
     const inCrowdPhase = world.time < CONCEPTION.durationSeconds;
-    world.step(DT, decideMove(world, rng));
+    world.step(DT, decideMove(world, rng, state));
     steps++;
 
     if (inCrowdPhase) {
@@ -299,6 +389,8 @@ export function runOnce(
     level: world.level,
     dragStacks: world.dragStacks,
     stacksAt300,
+    reached300,
+    stacksAtEnd: world.dragStacks,
     headingChangeRate: crowdSteps > 0 ? +(headingDelta / (crowdSteps * DT)).toFixed(3) : 0,
     itemSpeedAt300: +itemSpeedAt300.toFixed(1),
     hpAt300: +hpAt300.toFixed(1),
@@ -408,7 +500,9 @@ export interface PolicySummary {
   medianKills: number;
   medianLevel: number;
   medianDragStacks: number;
+  reached300: number;
   medianStacksAt300: number;
+  medianStacksAtEnd: number;
   p90StacksAt300: number;
   meanStacksAt300: number;
   meanHeadingChangeRate: number;
@@ -442,9 +536,13 @@ export function summarise(results: RunResult[]): PolicySummary[] {
       medianKills: median(runs.map((r) => r.kills)),
       medianLevel: median(runs.map((r) => r.level)),
       medianDragStacks: median(runs.map((r) => r.dragStacks)),
-      medianStacksAt300: median(runs.map((r) => r.stacksAt300)),
-      p90StacksAt300: percentile(runs.map((r) => r.stacksAt300), 90),
-      meanStacksAt300: +mean(runs.map((r) => r.stacksAt300)).toFixed(1),
+      // Stacks only over runs that reached the mark. A run that died at 124s
+      // has no 300s measurement, and counting it as zero is not a measurement.
+      reached300: runs.filter((r) => r.reached300).length,
+      medianStacksAt300: median(runs.filter((r) => r.reached300).map((r) => r.stacksAt300)),
+      p90StacksAt300: percentile(runs.filter((r) => r.reached300).map((r) => r.stacksAt300), 90),
+      meanStacksAt300: +mean(runs.filter((r) => r.reached300).map((r) => r.stacksAt300)).toFixed(1),
+      medianStacksAtEnd: median(runs.map((r) => r.stacksAtEnd)),
       meanHeadingChangeRate: +mean(runs.map((r) => r.headingChangeRate)).toFixed(3),
       meanItemSpeed: +mean(runs.map((r) => r.itemSpeedAt300)).toFixed(1),
       meanRealisedSpeed: +mean(runs.map((r) => r.meanSpeed)).toFixed(1),

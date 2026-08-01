@@ -270,7 +270,11 @@ Sperm navigate by chemical gradient. Drops an attractor that pulls nearby enemie
 toward a point. Deals no damage.
 
 - **enables** — `Every area weapon in the act at once, by choosing where the crowd will be instead of reacting to it. It is the item that makes Acrosome and Wake into builds rather than options.`
-- **tradesAway** — `Its own damage, which is zero, and its safety margin: pulling a crowd into a tight point is exactly how a run ends for a player who has nothing to clear it with.`
+- **tradesAway** — `Its own damage, which is zero, and its safety margin: pulling a crowd into a tight point is exactly how a run ends for a player who has nothing to clear it with. It does not discriminate either, so it gathers the antibodies too, which are the one thing in the act that cannot be cleared at all.`
+
+*(`tradesAway` extended 2026-08-01 after Run 5 — see §10.2. Chemotaxis is the
+largest measured driver of antibody stacks in the act and its text did not
+mention them.)*
 
 ### 4.3 · Passives
 
@@ -290,10 +294,13 @@ The mitochondrial spiral. More movement speed, less maximum health.
 Reduced contact damage, reduced movement speed.
 
 - **enables** — `Standing inside the crowd on purpose, which is the precondition for the Acrosome build and the only way to farm the rival wave rather than outrun it.`
-- **tradesAway** — `The speed that made zones optional, and then more of it. A spermicide ring that used to be a detour is now a commitment, a white cell crossing the lane has to be fought instead of avoided, and every antibody a faster build swims past is collected instead.`
+- **tradesAway** — `The speed that made zones optional. A spermicide ring that used to be a detour is now a commitment, and a white cell crossing the lane has to be fought instead of avoided.`
 
-*(`tradesAway` corrected 2026-08-01 after Run 4 — see §9.4. Item text is data
-rather than reasoning, so it is fixed in place; the reasoning is appended.)*
+*(Reverted 2026-08-01 after Run 5 to the original text — see §10.3. The antibody
+clause added after Run 4 was written against a mechanism that turned out not to
+be the driver; at a partial correlation of −0.133 the effect is below anything a
+player could perceive, and the clause overstated it. The real driver is
+Chemotaxis and the clause now lives there.)*
 
 ---
 
@@ -887,3 +894,171 @@ shooting gallery. Until then the expiry is the right state for it to be in.
 
 320 HP still untouched, still flagged, and now waiting behind one more question
 than it was.
+
+---
+
+## 10 · Amendment — 2026-08-01, after Run 5
+
+Appended. Run 5 answered both §9.5 questions and neither answer was the one §9.3
+expected. The consequence reaches further than the two questions: it takes the
+stated reason out from under two decisions I made in the last two passes, without
+changing what either decided.
+
+### 10.1 · What Run 5 established, and what it unsettled
+
+**Established.** Chemotaxis is the largest measured driver of antibody stacks —
+r = +0.462, +0.366 holding speed, 6.7 stacks with against 3.3 without. The
+`membrane+acrosome` / `greedy-capacitation` pair is the clean case: near-identical
+item speed (162.3 / 161.8) and turn rate (51.7 / 53.6), 68% apart on stacks, and
+the only difference between the policies is Chemotaxis. Neither speed nor
+volatility survives the partial correlations.
+
+**Unsettled, and this is the part with reach.** The bot turns 52–74 radians per
+second — eight to twelve full rotations. That is not volatile movement, it is
+thrashing, and no input device a human holds produces it. So "spawn on the
+player's instantaneous heading" is already "spawn at a random point 320px away"
+for every policy, the jitter arm had no headroom to add, and §9.3 is untestable
+here rather than refuted.
+
+The consequence is that **every stack count in Runs 4 and 5 is a floor.** A human
+holds a heading for whole seconds, so `G-020` places antibodies much closer to
+where a human will actually be. The bot understates the mechanic by an unknown
+factor.
+
+Fourth instrument defect in five runs, and the third to first present as a design
+finding. That is not bad luck any more — it is a pattern, and §10.5 is about it.
+
+### 10.2 · Chemotaxis keeps the antibodies (`G-023`)
+
+**Intended. No exemption.**
+
+Chemotaxis's `tradesAway` already says the quiet part: *pulling a crowd into a
+tight point is exactly how a run ends for a player who has nothing to clear it
+with.* The antibody is that sentence's limit case — the one enemy the pull
+gathers that no amount of clearing can pay off. That is the stated cost landing
+where it bites hardest, not a bug in it.
+
+It also gives the item a genuine internal tension, which is what `G-014` wants
+from every item and what §7.3 flagged as the thing it could not predict: the item
+that lets you decide where everything goes is also the item that calls the one
+thing you cannot shoot. It gets better and worse in the same pick.
+
+**But the invisibility was a real defect and it is not the same question.** §3.3
+made the antibody silent on purpose — "the player should not be able to say when
+it went wrong" — and that is defensible for a *background* accumulation nothing
+the player does changes much. It is not defensible for an accumulation one
+specific item doubles, because that is a decision, and `G-014`'s premise is that
+costs are stated. A cost the player cannot perceive is not a trade; it is a tax.
+
+The fix is the text, not the mechanic. Chemotaxis's `tradesAway` now names it
+(§4.2). The pull itself is already visible on screen — a player who drops an
+attractor and watches grey Y-shapes converge into it has been told, without a word
+of narration.
+
+### 10.3 · Two item texts were wrong, and one of them because I fixed it two runs ago
+
+Membrane's `tradesAway` is **reverted** to its original wording.
+
+§9.4 added an antibody clause to it on the strength of a compounding loop —
+slower build, more stacks, slower still. Run 5 says that loop is not the driver:
+item speed holding turn is −0.133, which is below anything a player perceives, and
+the 7.4 stacks on `membrane+acrosome` are Chemotaxis's, not Membrane's. The
+clause I added was directionally true and badly overstated, and hedging it would
+be worse than removing it. Item text describes an item, not a policy.
+
+The general hazard, which is the useful part and which I have now walked into
+twice in two runs:
+
+> **Changing an enemy silently rewrites the stated cost of every item that
+> interacts with it, and item text does not update itself.** `G-020` moved where
+> antibodies arrive and that edited the real cost of Membrane and Chemotaxis,
+> neither of which mentioned antibodies at all. When an enemy's behaviour
+> changes, re-read every item's `tradesAway` against it — and attribute the
+> effect before writing the clause, because the obvious candidate was wrong here.
+
+### 10.4 · §8.4's band — the level condition comes off the bot
+
+The 4–12 band was never a measurement. It was a guess I wrote in §7.6 about what
+"a dozen small grey Y-shapes by minute four" would look like, and §8.4 kept it.
+Now the instrument that checks it is known to read low by an unknown factor.
+Picking a different number changes nothing — it would be a second guess against
+the same broken instrument.
+
+Restating §8.4:
+
+- **The dispersion condition survives unchanged.** Careless ≥ 2× careful is a
+  *ratio*, and the bot's thrashing is roughly uniform across policies, so a
+  uniform downward bias very largely cancels. It also remains the condition that
+  detects the failure modes that matter.
+- **The lower bound survives, as a floor.** A median below 3 still means *absent*.
+  An instrument that reads low can prove absence — if even the understating
+  measurement sees nothing, there is nothing.
+- **The upper bound is deleted.** An instrument that reads low cannot detect
+  excess. There is no bot number that can tell us the mechanic is too strong, so
+  the file should stop pretending one exists.
+
+The excess question goes to the only instrument that can answer it. §3.3's target
+was written as a feel — *moving visibly slower*, *should not be able to say when
+it went wrong* — and no bot can assess either. I converted a perceptual claim into
+a number so it would be checkable, and the number was a guess wearing a
+criterion's clothes. That was the error, not the value of the number.
+
+### 10.5 · The instrument, not the hypothesis
+
+§9.3 is unresolved and cannot be resolved here. But the interesting thing is that
+the thrashing and the unweighted threat model are not two defects. They are one
+under-specified component — **the bot's movement policy is not a model of a
+player** — and it has now produced four INSTRUMENT findings in five runs, three of
+which arrived disguised as design findings.
+
+So: **do both fixes as one piece.** Heading inertia and threat weighting land
+together, with one control arm and one re-baseline. Done separately they cost two
+control arms and two full re-readings of every number in this file, for the same
+result. Per §9.2 this is a multi-change pass and it needs a control arm per
+change; that is two arms in one run, not two runs.
+
+And it is a **re-baseline, not a change.** Every movement-dependent number in
+Runs 3, 4 and 5 is measured against an instrument that is about to move: §9.5's
+40% threshold, `G-022`'s 22%, the §8.4 dispersion figure, `random`'s 75%. None of
+them are wrong; all of them are provisional. Nothing should be tuned against them
+until they are re-read.
+
+Note also that both artefacts flatter the build that generates the most
+repulsors near itself, and `membrane+acrosome` is that build. Its 22% is more
+likely optimistic than pessimistic. **If any build crosses §9.5's 40% threshold
+once the instrument is honest, it will be that one — and Chemotaxis is where to
+look first, not Membrane.** That is now the thing §9.5's standing note was
+actually watching for.
+
+### 10.6 · What only Justin can close
+
+Three separate threads have now terminated at "needs a human", and nobody has put
+them in one place. They do not block the instrument work and the instrument work
+does not block them — these are feel questions and no bot number moves them.
+
+| Question | Origin | What to look for |
+|---|---|---|
+| Is the Egg a shooting gallery? | §8.2 expiry on `BOSS_PULL` | Standing at your weapon's range and dodging a spread every 2.45s — does it hold interest, or does the fight want a reason to move? If it does not want one, delete the pull path. |
+| Is the drag the right size? | §10.4, upper bound deleted | By minute four: do you notice you are slower? Can you say when it started? The first should be yes and the second should be no. |
+| Does Chemotaxis read? | §10.2 | Drop an attractor with antibodies nearby. Do you see the Y-shapes come to you, and do you connect that to being slower? |
+| Is any of it funny? | `PLAN.md` | The only question in the project no agent can attempt. |
+
+### 10.7 · Run 6
+
+**One pass, two changes, two control arms** (§9.2). No design changes from me.
+
+- **Heading inertia and threat weighting**, landed together as the instrument
+  re-baseline described in §10.5. A control arm per change, since they will
+  interact — a bot that holds a heading *and* correctly ignores harmless enemies
+  moves differently from one that does either alone.
+- **Re-read, do not re-decide.** The output is the whole table measured again, not
+  new rulings. `G-019` through `G-023` all stand until the re-baseline says
+  otherwise, and if it does, that is a §11.
+- **Expected direction, recorded so it can be wrong:** antibody stacks rise for
+  every policy, `midpiece+wake`'s 100% falls as its defensive screen is taken
+  away, and `membrane+acrosome`'s 22% rises. If stacks *fall* under a bot that
+  holds a heading, §10.1's floor claim is wrong and `G-020` needs re-opening
+  rather than re-reading.
+
+320 HP untouched. `BOSS_PULL` at zero with the §8.2 expiry, now listed in §10.6
+where it can actually be closed.

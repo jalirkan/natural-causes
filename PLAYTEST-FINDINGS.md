@@ -21,6 +21,138 @@ Running record of what the automated bots measured and what it means for design.
 
 ---
 
+# 2026-08-01 · Run 6 — instrument re-baseline. No design changes.
+
+Four arms: control, inertia only, threat weighting only, both. Two item strings
+lifted (§10.2, §10.3) — data, no behaviour.
+
+## The short version
+
+1. **All three §10.7 predictions confirmed in direction**, and §10.1's floor claim
+   is confirmed emphatically. Stacks do not fall; they rise by 5–10× under threat
+   weighting alone and 10–25× under both.
+2. **The two changes have cleanly separable effects.** Threat weighting drives the
+   stacks. Heading inertia drives the difficulty. Neither does much of the
+   other's job, which is what the two arms were for.
+3. **The re-baselined table is not usable as an absolute measure.** The bot now
+   dies at 124–232s against 306–346s before, and most policies never reach the
+   boss at all. The direction is trustworthy; the levels are not.
+4. **§7.5's stack cap now saturates in normal play** rather than acting as a
+   safety valve, and everything past roughly 17 stacks is inert.
+5. The inertia model is a first-order lag, which is **vehicle turning, not human
+   decision-making**, and its time constant has never been validated against a
+   person. That is my judgement of my own implementation, not a measurement.
+
+## The four arms
+
+| | A · control | B · inertia | C · threat | D · both |
+|---|---|---|---|---|
+| midpiece+wake | 100% | 0% | 44% | 0% |
+| membrane+acrosome | 38% (22%) | 6% (74%) | 25% (79%) | 19% (31%) |
+| motility | 63% | 25% (57%) | 81% | 13% |
+| greedy-capacitation | 94% | 56% | 81% | 19% (3%) |
+| random | 75% | 19% (75%) | 81% | 31% |
+| turn rate, rad/s | 52–74 | 2.3–2.6 | 27–45 | 2.1–2.3 |
+| mean stacks at 300s | 2.5–8.4 | 0–12.6 | **24.6–61.8** | **48–76** |
+| median survival, s | 306–346 | 166–314 | 305–322 | 125–232 |
+
+Boss HP remaining in brackets where it is not 0%.
+
+**Arm A reproduces Run 5 exactly** — 100 / 38 (22%) / 63 / 94 / 75. That is the
+control doing its job, and it took a correction to get: my first attempt changed
+the degenerate case, where the repulsion vectors cancel, from "snap to +x" to
+"hold the last heading". That is part of the inertia change and it belongs behind
+the inertia flag, not in the control. Caught because the arm did not reproduce.
+
+## The decomposition
+
+**Threat weighting is the stack driver.** Arm C raises mean stacks from 2.5–8.4 to
+24.6–61.8 — five to ten times — while leaving win rates in the same region as the
+control (44–81% against 38–100%). Once the bot stops fleeing a 0-damage enemy as
+hard as it flees a 14-damage one, it simply walks through every antibody placed in
+front of it. This is the artefact from Run 5 quantified: the defensive screen was
+worth most of the mechanic.
+
+**Heading inertia is the difficulty driver.** Arm B collapses win rates (0–56%)
+while raising stacks only moderately. A bot that commits to a direction gets
+cornered by a horde that converges from every side, and `midpiece+wake` — whose
+whole identity is kiting — goes to 0% and stops reaching the boss.
+
+They compound in arm D rather than cancelling.
+
+## §10.7's predictions
+
+| prediction | result |
+|---|---|
+| Stacks rise for every policy | **Confirmed.** 5–10× on threat alone, 10–25× on both |
+| `midpiece+wake`'s 100% falls | **Confirmed.** 100% → 0%, and it stops reaching the boss |
+| `membrane+acrosome`'s 22% rises | **Confirmed.** 22% → 31% (D), 74–79% (B, C) |
+| **Falsifier:** stacks fall under a bot that holds a heading | **Did not fire.** They rise sharply. §10.1's floor claim stands and `G-020` does not reopen |
+
+The floor claim was right and understated. The bots were not reading a little low;
+they were reading an order of magnitude low.
+
+## What the re-baseline cannot give you
+
+**An absolute table.** In arm D only 0–7 runs of 16 per policy reach the 300s mark,
+and `midpiece+wake` reaches it zero times out of sixteen. Boss participation
+numbers over a handful of survivors are not comparable to numbers over sixteen,
+and §9.5's 40% threshold cannot be evaluated against them at all.
+
+**A dispersion figure.** §8.4's careless-≥-2×-careful condition is undefined in
+arm D, because the careful policy has no runs at the measurement point. In arm C,
+where survival is intact, it is 61.8 against 24.6 = **2.5×**, so the condition
+still passes on the arm that can express it.
+
+I also had to fix a measurement defect of my own before any of this was legible:
+`stacksAt300` kept its initial value of 0 for runs that ended before 300s, so a
+table of medians read 0 while the means read 20–28. Stack statistics are now
+computed over survivors only, with the surviving count reported alongside.
+
+## The part I am least confident in, which is mine
+
+The inertia model is a first-order lag on heading with a 0.22s time constant. It
+took the turn rate from 52–74 rad/s to 2.2, which is the right order of magnitude
+for a person. But a lag is the wrong *shape*: it models something with a turning
+circle, and reversing direction under it takes several time constants. A human on
+a keyboard reverses instantly — what a human does not do is oscillate at 60Hz.
+
+The better model is probably **decision cadence**: re-evaluate the desired
+direction every 150–250ms and hold it in between, so heading changes are instant
+but infrequent. That produces a stable heading without a turning circle, and it
+would very likely recover much of the survival that arm D lost.
+
+So: arm D is honest about antibody arrival and probably unfair about difficulty.
+The stack findings are safe in direction and magnitude; the win rates are not, and
+I would not tune anything against arm D's survival numbers.
+
+## Re-read, not re-decided (§10.7)
+
+- **§9.5's 40% threshold** — cannot be evaluated. `membrane+acrosome` reads 31% in
+  arm D and 74–79% in B and C, all over too few survivors to compare against a
+  threshold set on sixteen.
+- **`G-022`'s 22%** — was optimistic, as §10.5 predicted. Every arm moves it up.
+- **§8.4 dispersion** — holds at 2.5× on the arm that can express it.
+- **`random`'s 75%** — 19% (B), 81% (C), 31% (D). Moves in both directions
+  depending on which fix is applied, so §8.6's question is not settled by this.
+- **§7.5's cap** — now the binding constraint. `antibodyDrag` floors at 0.65,
+  reached at about 17 stacks; the re-baselined bot carries 48–76. Under an honest
+  instrument the mechanic saturates around minute four and every stack after that
+  is decoration. That was a safety valve and it is now a design surface.
+
+## Decisions wanted
+
+1. **The inertia time constant needs a shape, not a number.** A first-order lag
+   may be the wrong model of a player entirely. This is an instrument decision
+   with design consequences and I would rather not pick it alone.
+2. **§7.5's cap saturating** is the one thing here that looks like it needs a
+   ruling rather than a re-read.
+3. **Whether any absolute threshold survives.** Two runs in a row have moved every
+   movement-dependent number. §9.5's 40% and §8.4's dispersion figure were both
+   set against instruments that have since changed twice.
+
+---
+
 # 2026-08-01 · Run 5 — diagnostic. No design changes.
 
 Two questions, per §9.5. Both answered. Both answers are different from the ones
