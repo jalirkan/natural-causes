@@ -1,13 +1,11 @@
-import conceptionAtlasPng from '../../assets/atlas/conception.png';
-import conceptionAtlasJson from '../../assets/atlas/conception.json';
-
 /**
- * Act definitions. The scene reads these; it knows nothing about Conception
- * specifically, so the remaining acts are data rather than code.
+ * Act RULES. Deliberately free of anything a renderer needs.
  *
- * Atlases are imported rather than fetched by path so Vite hashes and copies
- * them on build — a string path under assets/ works in dev and 404s in
- * production, which is the kind of thing that is discovered at the worst time.
+ * Atlases and colours live in `act-visuals.ts`. The split exists because the
+ * playtest bots import this module in Node, and an act definition that reaches
+ * for a PNG drags a browser asset into the headless build — the simulation
+ * would then be unable to run without the thing it is supposed to be
+ * independent of.
  */
 
 export interface SpawnWave {
@@ -52,10 +50,6 @@ export function rateAt(stream: SpawnWave[], seconds: number): number {
 export interface ActDef {
   id: string;
   name: string;
-  /** Act background, from the locked palette (ART-DIRECTION law 3). */
-  background: number;
-  atlas: { key: string; png: string; json: object };
-  playerFrame: string;
   /** How long the act runs before its boss, in seconds. */
   durationSeconds: number;
   waves: SpawnWave[];
@@ -64,10 +58,6 @@ export interface ActDef {
 export const CONCEPTION: ActDef = {
   id: 'conception',
   name: 'Conception',
-  // conception-deep, the act background in the locked palette.
-  background: 0x6b3a44,
-  atlas: { key: 'conception', png: conceptionAtlasPng, json: conceptionAtlasJson },
-  playerFrame: 'player-sperm.png',
   durationSeconds: 300,
   // CONCEPTION-ROSTER.md §3.5. One track per enemy, read as concurrent
   // streams. A new pressure roughly every forty-five seconds for the first

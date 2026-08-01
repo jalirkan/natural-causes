@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ENEMIES } from '../enemies';
-import { WEAPONS } from '../weapons';
+import { ITEMS } from '../items';
+import { ACT_VISUALS } from '../act-visuals';
 import { ACTS, rateAt, spawnStreams } from '../acts';
 import { BONE, INK, PAPER, SHADOW, THREAT_BOSS, THREAT_CONTACT, THREAT_ELITE, THREAT_RANGED } from '../../config';
 import {
@@ -109,7 +110,11 @@ describe('the reserved list (G-011, CONCEPTION-ROSTER §2)', () => {
 });
 
 describe('every item states what it enables and what it trades away (mechanism 5)', () => {
-  for (const [id, def] of Object.entries(WEAPONS)) {
+  // Iterates the ONE registry (CONCEPTION-ROSTER §5.3). A sibling collection
+  // would be a content rule that silently stopped applying to part of the act,
+  // which is the failure mechanism 5 exists to prevent — so there is nowhere
+  // else for an item to live.
+  for (const [id, def] of Object.entries(ITEMS)) {
     it(`${id}`, () => {
       expect(def.enables.length, `"${id}" does not say what build it enables`).toBeGreaterThan(30);
       expect(def.tradesAway.length, `"${id}" does not say what it trades away`).toBeGreaterThan(30);
@@ -135,8 +140,10 @@ describe('the locked palette', () => {
 
   it('each act background is the act background from the locked palette', () => {
     for (const act of ACTS) {
+      const visuals = ACT_VISUALS[act.id];
+      expect(visuals, `act "${act.id}" has no visuals`).toBeDefined();
       const expected = actBackground(act.id as 'conception').hex.toUpperCase();
-      expect(hex(act.background), `act "${act.id}"`).toBe(expected);
+      expect(hex(visuals!.background), `act "${act.id}"`).toBe(expected);
     }
   });
 });

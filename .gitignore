@@ -32,3 +32,6 @@ tools/playtest/runs/
 # Dev frame captures — regenerable, and not evidence of anything once the
 # game moves on. The pipeline output under assets/ is what gets committed.
 tools/dev/snapshots/
+
+# Playtest output — regenerable, and the raw runs are large.
+tools/playtest/runs/
