@@ -18,6 +18,37 @@ export interface SpawnWave {
   rate: number;
 }
 
+/**
+ * Waves grouped into one escalation schedule per enemy, each sorted by time.
+ *
+ * The flat `waves` array is a readable way to author an act and a misleading
+ * way to consume one. An act does not have "a current wave" — it has one
+ * concurrent stream per enemy type, each with its own curve. Reading the flat
+ * list as a single sequence produced two bugs at once: a spawner that only
+ * ever emitted one enemy type, and an escalation test that no roster with
+ * more than one enemy in it could satisfy.
+ */
+export function spawnStreams(waves: SpawnWave[]): Map<string, SpawnWave[]> {
+  const streams = new Map<string, SpawnWave[]>();
+  for (const wave of waves) {
+    const list = streams.get(wave.enemyId);
+    if (list) list.push(wave);
+    else streams.set(wave.enemyId, [wave]);
+  }
+  for (const list of streams.values()) list.sort((a, b) => a.fromSeconds - b.fromSeconds);
+  return streams;
+}
+
+/** The rate for one stream at time `seconds` — the last entry that has started. */
+export function rateAt(stream: SpawnWave[], seconds: number): number {
+  let rate = 0;
+  for (const wave of stream) {
+    if (seconds < wave.fromSeconds) break;
+    rate = wave.rate;
+  }
+  return rate;
+}
+
 export interface ActDef {
   id: string;
   name: string;

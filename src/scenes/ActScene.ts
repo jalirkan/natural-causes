@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import type { ActDef } from '../data/acts';
+import { rateAt, spawnStreams, type ActDef, type SpawnWave } from '../data/acts';
 import { enemyDef, type EnemyDef } from '../data/enemies';
 import { weaponDef, type WeaponDef } from '../data/weapons';
 import { Pool } from '../systems/pool';
@@ -27,6 +27,12 @@ const PLAYER_RADIUS = 16;
 const PLAYER_DISPLAY = 56;
 /** Seconds of immunity after taking a hit. Without it a crowd deletes you. */
 const IFRAMES = 0.6;
+/**
+ * Hard ceiling on live enemies. Measured cost is 0.35ms/update at 1200, so
+ * this is nowhere near a frame-budget limit — it exists so an unattended
+ * playtest run cannot spawn without bound when a bot stops killing things.
+ */
+const MAX_ACTIVE_ENEMIES = 1500;
 
 /**
  * One act of the run. Reads an ActDef and knows nothing about Conception
@@ -50,7 +56,8 @@ export class ActScene extends Phaser.Scene {
   private invulnerable = 0;
   private elapsed = 0;
   private kills = 0;
-  private spawnAccumulator = 0;
+  private streams: Map<string, SpawnWave[]> = new Map();
+  private spawnAccumulators: Map<string, number> = new Map();
   private fireCooldown = 0;
   private dead = false;
 
@@ -80,7 +87,8 @@ export class ActScene extends Phaser.Scene {
     this.hp = PLAYER_MAX_HP;
     this.elapsed = 0;
     this.kills = 0;
-    this.spawnAccumulator = 0;
+    this.streams = spawnStreams(this.act.waves);
+    this.spawnAccumulators = new Map();
     this.fireCooldown = 0;
     this.invulnerable = 0;
     this.dead = false;
@@ -195,22 +203,26 @@ export class ActScene extends Phaser.Scene {
     if (move.x !== 0) this.player.setFlipX(move.x < 0);
   }
 
-  /** The wave table is a rate, so spawning is an accumulator, not a timer. */
+  /**
+   * One concurrent stream per enemy type, each with its own rate and its own
+   * accumulator. The wave table is a rate rather than a schedule, so spawning
+   * accumulates fractional enemies instead of firing on a timer.
+   */
   private spawn(dt: number): void {
-    let rate = 0;
-    let enemyId = '';
-    for (const wave of this.act.waves) {
-      if (this.elapsed >= wave.fromSeconds) {
-        rate = wave.rate;
-        enemyId = wave.enemyId;
-      }
-    }
-    if (rate === 0) return;
+    for (const [enemyId, stream] of this.streams) {
+      const rate = rateAt(stream, this.elapsed);
+      if (rate === 0) continue;
 
-    this.spawnAccumulator += rate * dt;
-    while (this.spawnAccumulator >= 1) {
-      this.spawnAccumulator -= 1;
-      this.spawnEnemy(enemyId);
+      const accumulated = (this.spawnAccumulators.get(enemyId) ?? 0) + rate * dt;
+      let whole = Math.floor(accumulated);
+      this.spawnAccumulators.set(enemyId, accumulated - whole);
+      // A safety valve, not a difficulty knob. Four escalating streams with a
+      // player who has stopped killing things grows without bound, and a
+      // headless playtest bot has no one to notice it has stopped responding.
+      while (whole > 0 && this.enemies.active < MAX_ACTIVE_ENEMIES) {
+        whole--;
+        this.spawnEnemy(enemyId);
+      }
     }
   }
 

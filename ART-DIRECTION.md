@@ -52,10 +52,13 @@ Enforced in code. The check that enforces each one is named.
 3. **Locked palette.** Twenty colours, act tints included. Every asset is
    quantised to it after generation. `palette-conformance`, tolerant of exactly
    the grain amplitude and nothing more.
-4. **Hand-cut, never mechanical** — with the deliberate exception of the Office
-   act, where ruled geometry *is* the joke. Selected per act by
-   `styleSuffix()`, because in prose this exception produced a prompt demanding
-   both at once.
+4. **Hand-cut, never mechanical** — with the deliberate exception of **the
+   Reorg**, and nothing else in the Office act (G-013). Ruled geometry is one
+   object's characterisation, not an act's style: everything else in that
+   building was made by people and looks it, and the diagram that outranks all
+   of it was drawn by nobody. Selected by `styleSuffix()`, because in prose this
+   exception produced a prompt demanding both at once. **The selector is
+   currently per act and now needs to be per asset.**
 5. **Faces on everything that can hold one.** Homework has a face. The mortgage
    has a face. Every box in the org chart has a face.
 6. **Silhouette carries identity; colour carries threat.** A fixed threat
@@ -71,6 +74,19 @@ Enforced in code. The check that enforces each one is named.
    performs — the clipboard and the lanyard are the character; the person
    carries them. An enemy the player pities is aimed at the wrong target, and
    is the same failure as D-007 one step over.
+10. **The player never wears a threat colour** (G-012). Contact, ranged, elite
+    and boss appear on things that will hurt the player and on nothing else —
+    not on the player sprite, not on pickups, not on UI chrome. Damage feedback
+    goes to value and outline weight, never to tint, because the moment the
+    player flashes contact red the colour means "someone is being hurt" instead
+    of "this hurts". **No check yet** — wants a palette scan of the player and
+    pickup frames.
+11. **Each act reserves its silhouettes and its threat colours** (G-011). A
+    small exclusive shape vocabulary per act, declared before any asset in that
+    act is generated. Conception is the worked example — comet, blot, ring, Y,
+    with gold held for the boss (`CONCEPTION-ROSTER.md` §2). Law 6 only delivers
+    at horde density if the vocabulary is small and nothing shares. **No check
+    yet** — the reservation list has to exist as data before it can be enforced.
 
 ## The detail budget (D-018)
 
@@ -129,12 +145,30 @@ the border ring, never assumed.
 
 ## Still open
 
-Raised by `TEST-BATCH-CONCEPTS.md` and deliberately not settled here:
+The three questions raised by `TEST-BATCH-CONCEPTS.md` are **settled** — they are
+now laws 10 and 11 and the amendment to law 4, recorded as G-011, G-012 and
+G-013. What remains is that none of them is enforced yet:
 
-- A player-reservation rule for the threat palette — the player never wears
-  contact/ranged/elite/boss colours, so those always mean "this will hurt you".
-- Whether other Office enemies also get ruled geometry, or whether the Reorg is
-  the only clean thing in the act and that is why it is frightening. The second
-  is better.
-- Per-act silhouette reservation lists — no other School enemy may be a bright
-  hard rectangle. A pipeline feature that does not exist yet.
+- **Law 10 needs a check.** A palette scan asserting no threat colour appears in
+  any player or pickup frame. Cheap, and it is the one law a single well-meaning
+  "flash red on hit" commit would quietly delete.
+- **Law 11 needs the reservation list to be data.** Per act: reserved
+  silhouettes, reserved threat colours, and which asset holds each. Conception's
+  is written out in `CONCEPTION-ROSTER.md` §2 and should be lifted into whatever
+  shape the pipeline wants rather than kept in prose.
+- **Law 4's exception moved from per-act to per-asset** and `styleSuffix()` has
+  not caught up. Until it does, either the whole Office act gets ruled geometry
+  or none of it does, and both are wrong.
+
+Genuinely open, and mine rather than the pipeline's:
+
+- **Per-act reserved lists for School onward.** School's needs writing before any
+  School asset is generated, not after — the substitute's clipboard needs to be
+  the only bright hard rectangle in the act, and that is a claim about every
+  other School enemy, none of which are designed yet.
+- **What the register does with a human figure.** The batch never got a passing
+  human asset: the substitute failed under the old register and has not been
+  regenerated under this one. Law 9 says what to aim for and the safety-poster
+  figure is the reference, but nothing has been tested. It is the largest
+  unvalidated assumption in the art direction, and four of seven acts depend on
+  it.

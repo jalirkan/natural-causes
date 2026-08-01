@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ENEMIES } from '../enemies';
 import { WEAPONS } from '../weapons';
-import { ACTS } from '../acts';
+import { ACTS, rateAt, spawnStreams } from '../acts';
 import { BONE, INK, PAPER, SHADOW, THREAT_BOSS, THREAT_CONTACT, THREAT_ELITE, THREAT_RANGED } from '../../config';
 import {
   BONE as ART_BONE,
@@ -95,15 +95,83 @@ describe('acts', () => {
     }
   });
 
-  it('waves are ordered and escalate', () => {
+  /**
+   * Escalation is per enemy, not across the flat array.
+   *
+   * The original version asserted `rate` rose across `act.waves` as a single
+   * sequence. That is satisfiable only by an act with one enemy type: a
+   * roster where a rival wave at 3/s is followed in time by an elite at
+   * 0.08/s cannot order itself to pass, and sorting by rate breaks the
+   * time ordering the same assertion demands. It was a test that silently
+   * constrained the design to one enemy, which is not a rule anyone chose.
+   */
+  const escalationProblems = (waves: typeof ACTS[number]['waves']): string[] => {
+    const problems: string[] = [];
+    for (const [enemyId, stream] of spawnStreams(waves)) {
+      for (let i = 1; i < stream.length; i++) {
+        const prev = stream[i - 1]!;
+        const cur = stream[i]!;
+        if (cur.fromSeconds === prev.fromSeconds) {
+          problems.push(`${enemyId} has two entries at ${cur.fromSeconds}s`);
+        }
+        if (cur.rate <= prev.rate) {
+          problems.push(
+            `${enemyId} does not escalate at ${cur.fromSeconds}s (${prev.rate} -> ${cur.rate})`,
+          );
+        }
+      }
+    }
+    return problems;
+  };
+
+  it('each enemy escalates along its own schedule', () => {
     for (const act of ACTS) {
-      for (let i = 1; i < act.waves.length; i++) {
-        const prev = act.waves[i - 1]!;
-        const cur = act.waves[i]!;
-        expect(cur.fromSeconds, `act "${act.id}" waves out of order`).toBeGreaterThan(
-          prev.fromSeconds,
-        );
-        expect(cur.rate, `act "${act.id}" wave ${i} does not escalate`).toBeGreaterThan(prev.rate);
+      expect(escalationProblems(act.waves), `act "${act.id}"`).toEqual([]);
+    }
+  });
+
+  it('the rule can express a real mixed roster (CONCEPTION-ROSTER.md §3)', () => {
+    // The four-enemy table the old assertion could not represent. This is the
+    // point of the change, so it is the thing under test — not a weakening.
+    const roster = [
+      { fromSeconds: 0, enemyId: 'rival-sperm', rate: 1.5 },
+      { fromSeconds: 30, enemyId: 'rival-sperm', rate: 3 },
+      { fromSeconds: 45, enemyId: 'antibody', rate: 0.6 },
+      { fromSeconds: 75, enemyId: 'rival-sperm', rate: 5.5 },
+      { fromSeconds: 90, enemyId: 'spermicide', rate: 0.35 },
+      { fromSeconds: 120, enemyId: 'antibody', rate: 1.2 },
+      { fromSeconds: 130, enemyId: 'white-cell', rate: 0.08 },
+      { fromSeconds: 140, enemyId: 'rival-sperm', rate: 9 },
+      { fromSeconds: 165, enemyId: 'spermicide', rate: 0.7 },
+      { fromSeconds: 195, enemyId: 'white-cell', rate: 0.14 },
+      { fromSeconds: 200, enemyId: 'antibody', rate: 2.0 },
+      { fromSeconds: 210, enemyId: 'rival-sperm', rate: 14 },
+      { fromSeconds: 240, enemyId: 'spermicide', rate: 1.1 },
+      { fromSeconds: 255, enemyId: 'white-cell', rate: 0.22 },
+    ];
+    expect(escalationProblems(roster)).toEqual([]);
+    expect(spawnStreams(roster).size).toBe(4);
+  });
+
+  it('still catches a stream that de-escalates', () => {
+    const bad = [
+      { fromSeconds: 0, enemyId: 'rival-sperm', rate: 3 },
+      { fromSeconds: 30, enemyId: 'antibody', rate: 0.6 },
+      { fromSeconds: 60, enemyId: 'rival-sperm', rate: 2 },
+    ];
+    expect(escalationProblems(bad)).toEqual([
+      'rival-sperm does not escalate at 60s (3 -> 2)',
+    ]);
+  });
+
+  it('streams run concurrently — every declared enemy spawns at act end', () => {
+    // The spawner read the flat list as one active wave, so exactly one enemy
+    // type could ever be live. Rates must be non-zero for every stream once
+    // its schedule has started.
+    for (const act of ACTS) {
+      for (const [enemyId, stream] of spawnStreams(act.waves)) {
+        const at = rateAt(stream, act.durationSeconds);
+        expect(at, `"${enemyId}" is dead by the end of act "${act.id}"`).toBeGreaterThan(0);
       }
     }
   });
