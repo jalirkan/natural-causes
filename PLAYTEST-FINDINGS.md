@@ -21,6 +21,111 @@ Running record of what the automated bots measured and what it means for design.
 
 ---
 
+# 2026-08-01 · Run 7 — BLOCKED on §11.5. Shapes implemented, no run.
+
+Per §11.6: two shapes in, both values placeholders, no bots run. One genuine
+result, and it has a structural consequence §11.5 cannot resolve.
+
+## What was implemented
+
+**G-025 — the drag curve.** `antibodyDragFor(n) = FLOOR + (1 − FLOOR) / (1 + kn)`.
+The floor is an asymptote on resulting speed, never a clamp on stack count.
+Marginal drag is strictly positive at every count. `ANTIBODY_FLOOR` stays at 0.65
+and is labelled in the source as **the retired safety-valve value from §7.5, not
+a design choice**.
+
+**§11.4 — decision cadence.** The first-order lag is gone. The bot holds a chosen
+direction for a placeholder 200ms, with one interrupt: **re-evaluate immediately
+on taking damage.** No threshold, no other interrupt, no new tuning parameter.
+Antibodies deal zero damage and never trigger it, which is intended.
+
+One consequence worth knowing rather than a defect: the white cell's engulf deals
+damage over its full 0.9s, so it re-decides every frame for that window. Still
+"reacts to being damaged", but continuous rather than discrete.
+
+## The result: §8.4's dispersion is evaluable again, and it does not pass
+
+Read on arm C, the Run 6 arm with survival intact — careful 24.6 stacks
+(`midpiece+wake`), careless 61.8 (`random`).
+
+| | careful | careless | ratio |
+|---|---|---|---|
+| raw stack counts | 24.6 | 61.8 | 2.51× |
+| **experienced drag, old clamp** | 35.0% | 35.0% | **1.00×** |
+| **experienced drag, new curve** | 14.9% | 22.7% | **1.53×** |
+
+The old clamp is confirmed exactly as §11.2 predicted: both terms above it, both
+arriving at the same speed, dispersion **1.00×** while the criterion reported
+2.51× and passed.
+
+The curve makes it evaluable. **It reads 1.53× against a required 2.0×, so the
+condition now fails.** That is a genuine result and it agrees with §11.2's design
+argument from an independent direction — Cowork argued 0.65 is too generous from
+§3.3's intent; the newly-evaluable measurement says the same.
+
+The tail is also fixed. Marginal cost of the *n*th stack:
+
+| n | new curve | old clamp |
+|---|---|---|
+| 5 | 0.815% | 2.329% |
+| 17 | 0.470% | 1.342% |
+| 30 | 0.296% | **0.000%** |
+| 76 | 0.098% | **0.000%** |
+
+## The structural consequence — §11.5 cannot fix the dispersion
+
+**The floor does not move the experienced dispersion ratio at all.**
+
+| floor | careful | careless | ratio |
+|---|---|---|---|
+| 0.65 | 14.9% | 22.7% | 1.530× |
+| 0.50 | 21.2% | 32.5% | 1.530× |
+| 0.45 | 23.4% | 35.7% | 1.530× |
+| 0.35 | 27.6% | 42.2% | 1.530× |
+| 0.20 | 34.0% | 52.0% | 1.530× |
+
+Algebraically: `drag(n) = (1 − floor) · kn/(1 + kn)`, so the floor is a scale
+factor that cancels out of any ratio. There is a test asserting this.
+
+`k` is the lever that moves it, in the opposite direction to intuition — *lower*
+k means less curvature, so the experienced ratio approaches the raw stack ratio:
+
+| k | dispersion |
+|---|---|
+| 0.100 | 1.211× |
+| 0.030 (current) | 1.530× |
+| 0.015 | 1.785× |
+| 0.007 | 2.056× |
+| 0.003 | 2.276× |
+| k → 0 | 2.512× (the raw stack ratio) |
+
+**So floor and k are orthogonal levers with different jobs.** The floor sets how
+much the drag hurts. `k` sets how much play matters. §11.5's session is about
+severity — "do you notice you are slower", "can you say when it started" — and
+will settle the floor. It will not touch dispersion, because a person cannot feel
+a ratio between two counterfactual runs.
+
+That is not an argument for picking `k` from a bot number. It is an argument that
+§8.4's dispersion condition is waiting on a lever nobody has assigned an owner to,
+and that assigning one is a §12 question.
+
+## Not done, deliberately
+
+No Run 7. No tuning. Nothing read against arm D's win rates. Both remaining
+values wait on §11.5.
+
+## Decisions wanted
+
+1. **Who owns `k`, and against what?** It is the only lever that moves §8.4's
+   dispersion, it is not perceptual in the way the floor is, and it is currently
+   a placeholder inherited from a formula that has been replaced.
+2. **Does §8.4's dispersion condition survive its own re-read?** It now measures
+   the right quantity and fails at 1.53×. Per G-026 that could mean the mechanic
+   needs `k`, or that 2.0× was a level set against an instrument that has since
+   changed three times — the exact species of criterion G-026 retires.
+
+---
+
 # 2026-08-01 · Run 6 — instrument re-baseline. No design changes.
 
 Four arms: control, inertia only, threat weighting only, both. Two item strings

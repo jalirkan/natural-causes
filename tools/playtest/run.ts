@@ -1,5 +1,6 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
+import { ANTIBODY_FLOOR, antibodyDragFor } from '../../src/sim/world';
 import {
   POLICIES,
   itemUptake,
@@ -31,11 +32,11 @@ const jitter = Number(argv.find((a) => a.startsWith('--jitter='))?.slice(9) ?? 0
 setHeadingJitter(jitter);
 // Instrument arms (§10.5). Defaults are the re-baselined bot; --inertia=0 and
 // --threat=0 reproduce the old one for the control arms.
-const inertiaArg = argv.find((a) => a.startsWith('--inertia='))?.slice(10);
+const cadenceArg = argv.find((a) => a.startsWith('--cadence='))?.slice(10);
 const threatArg = argv.find((a) => a.startsWith('--threat='))?.slice(9);
-const tau = inertiaArg === undefined ? 0.22 : Number(inertiaArg);
+const cadence = cadenceArg === undefined ? 0.2 : Number(cadenceArg);
 const threat = threatArg === undefined ? true : threatArg !== '0';
-setInstrument(tau, threat);
+setInstrument(cadence, threat);
 
 const policies = onlyPolicy ? POLICIES.filter((p) => p.name === onlyPolicy) : POLICIES;
 if (policies.length === 0) {
@@ -58,7 +59,7 @@ out.push(
     `${bossPull === undefined ? '' : `, boss pull ${bossPull}`}` +
     `${spawnOverride === undefined ? '' : `, all spawns forced to ${spawnOverride}`}` +
     `${jitter > 0 ? `, heading jitter ${jitter} rad` : ''}` +
-    `, inertia tau ${tau}s, threat weighting ${threat ? 'on' : 'off'})`,
+    `, cadence ${cadence}s, threat weighting ${threat ? 'on' : 'off'})`,
 );
 out.push('');
 out.push('policy                 runs   win rate (95% CI)      median s   kills   lvl   boss left');
@@ -95,9 +96,28 @@ for (const s of summarise(results)) {
   const ratio = careful > 0 ? careless / careful : Infinity;
   out.push(
     `
-spread: careless ${careless.toFixed(1)} vs careful ${careful.toFixed(1)} ` +
-      `= ${Number.isFinite(ratio) ? `${ratio.toFixed(1)}x` : 'undefined (careful is zero)'}` +
+spread, raw stack counts: careless ${careless.toFixed(1)} vs careful ` +
+      `${careful.toFixed(1)} = ` +
+      `${Number.isFinite(ratio) ? `${ratio.toFixed(1)}x` : 'undefined (careful is zero)'}`,
+  );
+
+  // §11.2 / G-026: a ratio is only meaningful if both terms sit where the
+  // quantity still maps to player experience. Raw counts stopped doing that
+  // once both terms cleared the old clamp, and the condition went on passing
+  // at 2.5x while experienced dispersion was 1.0x. This is the reading that
+  // matters.
+  const drag = (stacks: number) => 1 - antibodyDragFor(stacks);
+  const dCareful = drag(careful);
+  const dCareless = drag(careless);
+  const dRatio = dCareful > 0 ? dCareless / dCareful : Infinity;
+  out.push(
+    `spread, experienced drag:  careless ${(dCareless * 100).toFixed(1)}% vs careful ` +
+      `${(dCareful * 100).toFixed(1)}% speed lost = ` +
+      `${Number.isFinite(dRatio) ? `${dRatio.toFixed(2)}x` : 'undefined'}` +
       `  — needs >= 2.0x`,
+  );
+  out.push(
+    `  (floor ${ANTIBODY_FLOOR} is the retired safety-valve value, not a design choice — §11.2)`,
   );
 }
 

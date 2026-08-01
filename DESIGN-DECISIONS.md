@@ -691,3 +691,85 @@ entries stand on rationales that have been measured false. Cheapest, invisible,
 and it is precisely how a document becomes something nobody can reason from. The
 next agent to read `G-022` would inherit a compounding loop that does not exist
 and design against it.
+
+## G-025 · 2026-08-01 · The antibody drag is a curve with a floor, not a cap
+Diminishing returns per stack, strictly positive at every count, bounded by a
+floor on resulting movement speed rather than by a ceiling on stack count. §7.5's
+hard cap at roughly 17 stacks is retired.
+
+The cap was correct as a safety valve when the expected operating range was the
+dozen §3.3 describes and the cap sat above it. Under an honest instrument the
+range is 48–76 and the cap is the operating point, which breaks the design in a
+way that is easy to miss and one way that is not:
+
+**The one that is not.** §8.4's dispersion condition passes at 2.5×, and both of
+its terms — 24.6 and 61.8 stacks — are above the cap. The careful policy and the
+careless one arrive at the same 0.65 drag, so experienced dispersion is **1.0×**.
+The criterion reports *working* while the property it exists to detect has gone to
+zero. A stale number is a nuisance; a number that passes while measuring nothing
+is worse, because nothing downstream of it will ever ask.
+
+**The easy one.** Stacks 18 through 76 do nothing, so an enemy that spawns for
+five minutes stops mattering in the third.
+
+§3.3 asked for three properties: no single stack feels unfair, the aggregate is
+decisive, the player cannot say when it went wrong. A hard cap keeps the first and
+third and breaks the second the moment it is reached. A curve keeps all three, and
+a speed floor does the bounding the cap was actually there for — `G-022` was right
+that something must stop the reinforcing loop, and wrong about what.
+
+**The shape is settled here; the value is not, and it is not the bot's.** 0.65 is
+too generous on design grounds alone — it was chosen to prevent a spiral, and
+§3.3's intended worst case is that a careless run *ends*, which 65% speed does not
+do. Those are different jobs. The floor goes to the human pass along with the
+other perceptual questions §10.4 moved off the instrument.
+
+Rejected: **letting stacks decay or be shed over time.** The genre-standard fix,
+and it bounds the total, preserves dispersion and avoids saturation all at once —
+genuinely the most elegant option available. It loses on the design's terms: §3.3
+made stacks permanent within the act because a record that expires is not a
+record, and a decaying stack count is farmable to zero, which is Run 3's failure
+mode returning by a different door.
+
+Rejected: **lowering the antibody spawn rate** until counts land near the cap.
+Cheapest, and it treats the symptom rather than the cliff — the effect curve would
+still saturate, just later. It is also tuning an absolute level against an
+instrument whose absolute levels are explicitly untrustworthy, which is the thing
+`G-026` exists to stop.
+
+## G-026 · 2026-08-01 · Criteria are set at qualitative boundaries, never calibrated near the operating point
+Three sets of calibrated thresholds have been invalidated in three runs. What has
+survived every instrument change: ordinal claims, directional claims, presence
+claims, reproduction claims, decomposition claims. What has not survived: every
+absolute level anyone has written down.
+
+So the form changes rather than the numbers. §10.4 was the first instance and was
+treated as a special case; it was not one.
+
+> **Prefer criteria at qualitative boundaries, far from the operating point.**
+> §10.4's "median below 3 means absent" survived two instrument changes because
+> the instrument would have to be wrong by a great deal to flip it. §9.5's 40% sat
+> eighteen points from a measured 22% and died to the first change that touched
+> it.
+
+> **A ratio is only meaningful if both its terms sit where the quantity still maps
+> to player experience.** `G-025` is the worked example: a correct ratio measuring
+> a difference the player cannot feel.
+
+§9.5's 40% threshold is retired and replaced by *a build is excluded when it
+cannot remove half the boss on runs where it reaches the boss* — which restates
+the original 86–97% crisis as the shape it actually was. Every criterion from here
+records the instrument it was set against, the same way every asset records its
+prompt (`D-010`).
+
+Rejected: **re-calibrating the thresholds against the new instrument** and
+carrying on. What was implicitly done twice already, and the instrument has now
+changed twice in three runs with a third change queued in §11.4. Re-calibration is
+a treadmill that produces a fresh set of numbers to invalidate next pass, and it
+hides the fact that the form was wrong.
+
+Rejected: **dropping numeric criteria entirely** in favour of narrative judgement
+each pass. Immune to instrument drift and it discards the mechanism that makes
+this project's findings checkable at all — a prediction with no threshold cannot
+fail, and §7.6's thresholds are why three instrument defects were caught rather
+than absorbed. The answer is better-placed numbers, not fewer.

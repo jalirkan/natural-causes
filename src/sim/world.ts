@@ -30,12 +30,38 @@ export const MAX_ACTIVE_ENEMIES = 1500;
 export const DESPAWN_RADIUS = 1600;
 export const DRIFT_SPREAD = (120 * Math.PI) / 180;
 /**
- * Antibody drag (G-018). Diminishing per stack and floored.
+ * Antibody drag: a curve with a floor, not a cap (G-025).
  *
- * Flat 2.5% per stack was unbounded, which put the slowest legal player below
- * the Egg's pull and made G-015's non-negotiable constraint unsatisfiable.
- * Diminishing returns keep a dozen stacks meaningful without a thirtieth one
- * being fatal.
+ * The floor is an ASYMPTOTE on resulting speed, not a clamp on stack count.
+ * Marginal drag is strictly positive at every count, so the fiftieth stack
+ * still costs something and an enemy that spawns for five minutes keeps
+ * mattering for all five.
+ *
+ * The previous form clamped with `max(FLOOR, ...)`, which flattened at about
+ * 17 stacks. Under an honest instrument the operating range is 48-76, so the
+ * cap WAS the operating point. Two consequences, and the second is why this is
+ * a ruling rather than a tidy-up:
+ *
+ *   - Stacks 18 through 76 did nothing at all.
+ *   - §8.4's dispersion condition passed at 2.5x while both of its terms sat
+ *     above the clamp, so the careful policy and the careless one arrived at
+ *     exactly the same speed. Experienced dispersion was 1.0x. A criterion
+ *     reporting "working" while the property it detects has gone to zero is
+ *     worse than a stale one, because nothing downstream ever asks again.
+ *
+ * §3.3 asks for three properties: no single stack feels unfair, the aggregate
+ * is decisive, the player cannot say when it went wrong. A clamp keeps the
+ * first and third and breaks the second the moment it is reached.
+ *
+ * PLACEHOLDER VALUES. Both numbers below are placeholders awaiting §11.5, the
+ * session with a human. The shape is settled (G-025); neither value is.
+ *
+ * ANTIBODY_FLOOR is 0.65 because that is the RETIRED SAFETY-VALVE value from
+ * §7.5 — a number chosen to prevent a death spiral, not to express an intended
+ * worst case. It is not a design choice and should not be treated as one.
+ * §3.3's intended worst case is that a careless run *ends*; a player at 65%
+ * speed is inconvenienced. Cowork's starting guess is 0.35-0.45, offered to be
+ * reacted to rather than as a proposal.
  */
 export const ANTIBODY_DRAG_K = 0.03;
 export const ANTIBODY_FLOOR = 0.65;
@@ -214,6 +240,18 @@ function mulberry32(seed: number): () => number {
   };
 }
 
+/**
+ * The drag curve, exported so the playtest report can convert stack counts
+ * into experienced speed without duplicating the formula.
+ *
+ * A ratio of stack counts is only meaningful if both terms sit where the
+ * quantity still maps to player experience (G-026). Reading dispersion off
+ * raw counts is what let §8.4 pass while measuring nothing.
+ */
+export function antibodyDragFor(stacks: number): number {
+  return ANTIBODY_FLOOR + (1 - ANTIBODY_FLOOR) / (1 + stacks * ANTIBODY_DRAG_K);
+}
+
 /** Removes index `i` in O(1). Reorders the array — walk backwards. */
 function swapRemove<T>(arr: T[], i: number): void {
   const last = arr.pop()!;
@@ -296,9 +334,14 @@ export class World {
     return PLAYER_BASE_HP * this.passiveProduct((d) => d.healthMultiplier);
   }
 
-  /** Drag from attached antibodies alone. Diminishing, floored (G-018). */
+  /**
+   * Speed multiplier from attached antibodies (G-025).
+   *
+   * Approaches ANTIBODY_FLOOR asymptotically and never reaches it, so every
+   * additional stack costs something and no count is a cliff.
+   */
   get antibodyDrag(): number {
-    return Math.max(ANTIBODY_FLOOR, 1 / (1 + this.dragStacks * ANTIBODY_DRAG_K));
+    return antibodyDragFor(this.dragStacks);
   }
 
   /**

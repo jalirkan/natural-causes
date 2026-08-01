@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { CONCEPTION } from '../../data/acts';
 import { ITEMS } from '../../data/items';
 import {
+  ANTIBODY_DRAG_K,
   ANTIBODY_FLOOR,
   ANTIBODY_LEAD,
+  antibodyDragFor,
   BOSS_HP,
   BOSS_PULL,
   PLAYER_BASE_SPEED,
@@ -289,7 +291,7 @@ describe('the antibody cannot be shot (G-018)', () => {
     expect(def.contact).toBe('attach');
   });
 
-  it('drag diminishes per stack and is floored', () => {
+  it('drag diminishes per stack', () => {
     const w = new World({ act: CONCEPTION, seed: 8 });
     w.dragStacks = 0;
     expect(w.antibodyDrag).toBe(1);
@@ -300,8 +302,51 @@ describe('the antibody cannot be shot (G-018)', () => {
     // Twelve stacks cost more than six, but less than twice as much.
     expect(twelve).toBeLessThan(six);
     expect(1 - twelve).toBeLessThan(2 * (1 - six));
-    w.dragStacks = 500;
-    expect(w.antibodyDrag).toBe(ANTIBODY_FLOOR);
+  });
+});
+
+describe('the drag is a curve with a floor, not a cap (G-025)', () => {
+  it('the floor is an asymptote — it is approached and never reached', () => {
+    // The previous form clamped with max(FLOOR, ...) and flattened at about 17
+    // stacks. Under an honest instrument the operating range is 48-76, so the
+    // clamp WAS the operating point.
+    expect(antibodyDragFor(0)).toBe(1);
+    for (const n of [17, 50, 200, 5000]) {
+      expect(antibodyDragFor(n), `at ${n} stacks`).toBeGreaterThan(ANTIBODY_FLOOR);
+    }
+    expect(antibodyDragFor(100_000)).toBeCloseTo(ANTIBODY_FLOOR, 3);
+  });
+
+  it('marginal drag is strictly positive at every count, including far out', () => {
+    // The property the clamp broke: stacks 18 through 76 did nothing, so an
+    // enemy that spawns for five minutes stopped mattering in the third.
+    for (const n of [1, 17, 18, 30, 76, 300]) {
+      const marginal = antibodyDragFor(n - 1) - antibodyDragFor(n);
+      expect(marginal, `marginal cost of stack ${n}`).toBeGreaterThan(0);
+    }
+  });
+
+  it('is monotonically decreasing with no cliff', () => {
+    let previous = antibodyDragFor(0);
+    for (let n = 1; n <= 120; n++) {
+      const current = antibodyDragFor(n);
+      expect(current, `stack ${n}`).toBeLessThan(previous);
+      previous = current;
+    }
+  });
+
+  it('dispersion in experienced drag depends on the curve, not on the floor', () => {
+    // Structural, and it is the reason §11.5's floor session cannot settle
+    // §8.4's dispersion condition. drag(n) = (1 - floor) * kn/(1 + kn), so the
+    // floor is a scale factor that cancels out of any ratio.
+    const careful = 24.6;
+    const careless = 61.8;
+    const ratioAt = (floor: number) => {
+      const curve = (n: number) => floor + (1 - floor) / (1 + n * ANTIBODY_DRAG_K);
+      return (1 - curve(careless)) / (1 - curve(careful));
+    };
+    expect(ratioAt(0.65)).toBeCloseTo(ratioAt(0.35), 6);
+    expect(ratioAt(0.65)).toBeCloseTo(ratioAt(0.2), 6);
   });
 });
 

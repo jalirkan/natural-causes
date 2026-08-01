@@ -105,10 +105,24 @@ export interface RunResult {
  * change, and these two will interact: a bot that holds a heading AND ignores
  * harmless enemies moves differently from one that does either alone.
  */
-let headingTau = 0.22;
+/**
+ * PLACEHOLDER, 200ms. Awaiting §11.5 — the value is calibrated from an input
+ * log of a human playing, not chosen here.
+ *
+ * Replaces the first-order lag from Run 6 (§11.4). A lag models a slow
+ * ACTUATOR; a human is a fast actuator with a slow CONTROLLER. Keyboard input
+ * is discrete and reversal is instantaneous — what a person cannot do is
+ * decide sixty times a second. So the constraint belongs on the decision, not
+ * on the turn, and the bot now holds a chosen direction between
+ * re-evaluations rather than easing toward one.
+ *
+ * Zero disables the hold entirely, which reproduces the pre-Run-6 thrashing
+ * bot and is what a control arm needs.
+ */
+let cadenceSeconds = 0.2;
 let threatWeighting = true;
-export function setInstrument(tau: number, threat: boolean): void {
-  headingTau = tau;
+export function setInstrument(cadence: number, threat: boolean): void {
+  cadenceSeconds = cadence;
   threatWeighting = threat;
 }
 
@@ -227,10 +241,10 @@ function decideMove(w: World, rng: () => number, state: BotState): Input {
   let nx: number;
   let ny: number;
   if (len < 0.001) {
-    // Coasting on the last heading is part of the inertia change, not a free
-    // extra: with tau at zero the control arm must reproduce the old bot
+    // Coasting on the last heading is part of the cadence change, not a free
+    // extra: with cadence at zero the control arm must reproduce the old bot
     // exactly, and the old bot snapped to +x whenever the forces cancelled.
-    if (headingTau > 0) {
+    if (cadenceSeconds > 0) {
       nx = state.headingX;
       ny = state.headingY;
     } else {
@@ -243,25 +257,6 @@ function decideMove(w: World, rng: () => number, state: BotState): Input {
     ny = ay / len;
   }
 
-  // Heading inertia (§10.5). Without it the bot turned 52-74 rad/s — eight to
-  // twelve full rotations a second — because the desired vector is a sum of
-  // repulsions that flips sign every frame. No human input device produces
-  // that, and it made "spawn on the player's instantaneous heading" equivalent
-  // to "spawn at a random point", which is why §9.3 could not be tested.
-  //
-  // A first-order lag toward the desired direction. Tau is the time constant:
-  // the bot commits to a direction for roughly that long before the crowd can
-  // turn it.
-  if (headingTau > 0) {
-    const alpha = 1 - Math.exp(-DT / headingTau);
-    const bx = state.headingX + (nx - state.headingX) * alpha;
-    const by = state.headingY + (ny - state.headingY) * alpha;
-    const bl = Math.hypot(bx, by);
-    if (bl > 0.001) {
-      nx = bx / bl;
-      ny = by / bl;
-    }
-  }
   state.headingX = nx;
   state.headingY = ny;
 
@@ -286,6 +281,10 @@ const SPREAD_BELOW = 3;
 interface BotState {
   headingX: number;
   headingY: number;
+  /** Seconds until the current decision expires. */
+  holdRemaining: number;
+  /** Health at the last decision, to detect a damage event. */
+  lastHp: number;
 }
 
 function chooseOffer(
@@ -309,6 +308,38 @@ function chooseOffer(
   return offers[Math.floor(rng() * offers.length)] ?? offers[0]!;
 }
 
+/**
+ * Decision cadence with one interrupt (§11.4).
+ *
+ * Holds the last decision for `cadenceSeconds`, then re-decides. The single
+ * interrupt is TAKING DAMAGE: a pure zero-order hold commits for the whole
+ * interval regardless of what happens, so the bot walks into things a person
+ * would obviously react to — which would swing the antibody measurement from
+ * understating to overstating. A damage event is discrete, needs no threshold
+ * and no new tuning parameter, and is exactly what a person reacts to.
+ *
+ * Antibodies deal zero damage and so never trigger it. That is intended: a
+ * human does not panic-turn for a harmless drifting shape either.
+ *
+ * Known consequence, not a defect: the white cell's engulf deals damage over
+ * its whole duration, so it re-decides every frame for those 0.9 seconds. That
+ * is still "reacts to being damaged", but it is continuous rather than
+ * discrete and is worth knowing when reading engulf-heavy runs.
+ */
+function decideWithCadence(w: World, rng: () => number, state: BotState, dt: number): Input {
+  const tookDamage = w.hp < state.lastHp;
+  state.lastHp = w.hp;
+
+  if (cadenceSeconds <= 0) return decideMove(w, rng, state);
+
+  state.holdRemaining -= dt;
+  if (state.holdRemaining > 0 && !tookDamage) {
+    return { moveX: state.headingX, moveY: state.headingY };
+  }
+  state.holdRemaining = cadenceSeconds;
+  return decideMove(w, rng, state);
+}
+
 export function runOnce(
   policy: BotPolicy,
   seed: number,
@@ -328,7 +359,7 @@ export function runOnce(
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 
-  const state: BotState = { headingX: 1, headingY: 0 };
+  const state: BotState = { headingX: 1, headingY: 0, holdRemaining: 0, lastHp: world.hp };
   let steps = 0;
   let stacksAt300 = 0;
   let reached300 = false;
@@ -362,7 +393,7 @@ export function runOnce(
       continue;
     }
     const inCrowdPhase = world.time < CONCEPTION.durationSeconds;
-    world.step(DT, decideMove(world, rng, state));
+    world.step(DT, decideWithCadence(world, rng, state, DT));
     steps++;
 
     if (inCrowdPhase) {

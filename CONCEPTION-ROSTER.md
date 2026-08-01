@@ -1062,3 +1062,175 @@ does not block them — these are feel questions and no bot number moves them.
 
 320 HP untouched. `BOSS_PULL` at zero with the §8.2 expiry, now listed in §10.6
 where it can actually be closed.
+
+---
+
+## 11 · Amendment — 2026-08-01, after Run 6
+
+Appended. The re-baseline confirmed §10.1 and did not overturn a ruling. What it
+did do is invalidate the *form* of most of the criteria in this file, and produce
+one finding that needs a decision rather than a re-read.
+
+### 11.1 · What Run 6 settled
+
+`G-020` does not reopen — the falsifier did not fire and the floor claim was right
+by an order of magnitude rather than a little. The decomposition is clean and it
+is what the two control arms were for: **threat weighting drives the stacks
+(5–10×), heading inertia drives the difficulty (win rates collapse), and neither
+does much of the other's job.** Two arms in one pass paid for themselves exactly
+as §9.2 argued they would.
+
+Arm A failing to reproduce is the other thing that paid off. A degenerate-case
+change had leaked into the control, and the only reason it was caught is that the
+control was expected to reproduce *exactly* and did not. That is the §9.2 rule
+working on its author's own code, which is the case it was hardest to write for.
+
+Fifth instrument finding in six runs — but `stacksAt300` was caught before
+reporting rather than after, which is the first time. Worth noting that the trend
+is the useful one even though the count is not.
+
+### 11.2 · The cap becomes a curve with a floor (`G-025`)
+
+This is the ruling, and the reason it is urgent is not the tail.
+
+> **§8.4's dispersion condition passes at 2.5× — and both of its terms are above
+> the cap.** 24.6 stacks and 61.8 stacks both floor at 0.65 drag. The careful
+> policy and the careless one arrive at exactly the same movement speed. The ratio
+> is arithmetically correct and it measures something the player cannot feel:
+> experienced dispersion is **1.0×**.
+
+That is worse than a stale number. It is a criterion that reports *working* while
+the property it exists to detect has gone to zero, and it would have kept
+reporting working indefinitely.
+
+The tail matters too — stacks 18 through 76 do nothing, so an enemy that spawns
+for five minutes stops mattering somewhere in the third — but the dispersion
+collapse is the part that had to be caught now.
+
+**The ruling: diminishing returns with a floor on resulting speed, no ceiling on
+stack count.** §3.3 asked for three properties — no single stack feels unfair, the
+aggregate is decisive, the player cannot say when it went wrong. A hard cap
+preserves the first and third and breaks the second the moment it is reached. A
+curve with strictly positive marginal drag keeps all three, and a floor on speed
+does the bounding job the cap was actually there for.
+
+**And 0.65 is too generous, which I can say without a single bot number.** §7.5
+set that floor as a safety valve — a value chosen to prevent something bad, not to
+express the intended worst case. §3.3's intended worst case is that *a careless
+run ends because of it*. A player at 65% speed is inconvenienced. Those are
+different jobs and the same number cannot do both.
+
+**The shape is mine; the value is not, and it is not the bot's either.** "Moving
+visibly slower" and "a careless run ends" are perceptual claims, the same category
+§10.4 already moved off the instrument. My starting guess is a floor somewhere
+around 0.35–0.45, offered so Justin has something to react to rather than as a
+proposal. It should not be tuned before §11.4 lands, because a bot that holds a
+heading deliberately will produce a different stack distribution again.
+
+### 11.3 · Absolute thresholds are retired (`G-026`)
+
+The answer to "are numbers the right form" is mostly no, and §10.4 was the first
+instance rather than a special case.
+
+What has survived every instrument change in this file: ordinal claims (careless
+carries more than careful), directional claims (stacks rise under threat
+weighting), presence claims (median below 3 means absent), reproduction claims
+(arm A must match Run 5 exactly), and decomposition claims (this lever moves that
+measure). What has not survived: every calibrated level, three sets of them in
+three runs.
+
+Two rules, and the second is the one Run 6 taught:
+
+> **Prefer criteria at qualitative boundaries, far from the operating point, over
+> thresholds calibrated near it.** §10.4's "median below 3 means absent" survived
+> two instrument changes because the instrument would have to be wrong by a great
+> deal to flip it. §9.5's 40% sat eighteen points from a measured 22% and was
+> invalidated by the first change that touched it.
+
+> **A ratio is only meaningful if both its terms sit in the region where the
+> quantity still maps to player experience.** Check the operating region before
+> trusting a ratio. §8.4's dispersion is the worked example and it passed while
+> measuring nothing.
+
+Concretely:
+
+- **§9.5's 40% threshold is retired**, not restated. Replaced by a qualitative
+  participation criterion: *a build is excluded when it cannot remove half the
+  boss on runs where it reaches the boss.* Far from any operating point, and it
+  restates the original 86–97% crisis as the shape it actually was rather than as
+  a calibrated line.
+- **§8.4's dispersion condition is retained in form and suspended in fact** until
+  §11.2 lands. It cannot be evaluated while both terms saturate. When the drag
+  curve has no cliff, it becomes meaningful again and can be read as written.
+- **Every criterion from here records the instrument it was set against**, the
+  same way every asset records its prompt (`D-010`). A criterion without its
+  provenance is not a criterion once the instrument has moved twice.
+
+### 11.4 · The inertia model — cadence, with one interrupt
+
+Your diagnosis is right and the reasoning is worth stating explicitly: a
+first-order lag models a slow *actuator*. A human is a fast actuator with a slow
+*controller*. Keyboard input is discrete and reversal is instantaneous; what a
+person cannot do is decide sixty times a second. So the constraint belongs on the
+decision, not on the turn.
+
+**Decision cadence, hold between re-evaluations.** Agreed.
+
+**With one interrupt, and it needs no new tuning parameter: re-evaluate
+immediately on taking damage.** A pure zero-order hold has its own artefact — it
+commits for the full interval regardless of what happens, so the bot will walk
+into things a person would obviously react to, and this would swing the antibody
+measurement from understating to overstating. A damage event is discrete, requires
+no threshold, and is exactly what a person reacts to. Antibodies deal zero damage
+and so do not trigger it, which is correct: a human does not panic-turn for a
+harmless drifting shape either.
+
+**Do not pick the cadence value. Measure it.** Justin is already needed at a
+keyboard for four questions in §10.6, and the browser build exists. Log his input
+during that session and take the heading-hold duration distribution directly. That
+converts the last guessed parameter in the instrument into a measured one, at
+almost no marginal cost, and it is the only calibration available that is not
+another agent's estimate of a person.
+
+Until then 150–250ms is a reasonable placeholder and should be labelled as one.
+
+### 11.5 · What only Justin can close — now five, and it is the critical path
+
+§10.6's table plus one, and the addition changes its status. This is no longer a
+list of nice-to-haves running in parallel with the instrument work — the
+instrument's last free parameter is now on it, and so is the value in §11.2.
+
+| Question | Origin | What to look for |
+|---|---|---|
+| Is the Egg a shooting gallery? | §8.2 expiry on `BOSS_PULL` | Does the fight hold interest at a fixed distance, or does it want a reason to move? If not, delete the pull path. |
+| Is the drag the right size? | §10.4, §11.2 | By minute four: do you notice you are slower? Can you say when it started? First yes, second no. |
+| Does Chemotaxis read? | §10.2 | Drop an attractor near antibodies. Do you see the Y-shapes come to you, and connect that to being slower? |
+| **How long do you hold a heading?** | §11.4 | Logged, not asked. Input capture during the same session. |
+| Is any of it funny? | `PLAN.md` | The only question no agent can attempt. |
+
+Four of these need one session and the fifth is a log file from the same session.
+
+### 11.6 · Run 7
+
+**Blocked on §11.5**, and that is the finding rather than an inconvenience. Two of
+the three things Run 7 would measure — the drag floor and the cadence value — are
+now waiting on a person, and running the bots again before that produces another
+table nobody can tune against.
+
+What can proceed without Justin:
+
+- **Implement §11.2's curve shape** with the floor left at 0.65 as a placeholder,
+  explicitly marked as the old safety-valve value and not a design choice. Shape
+  first, value after the session.
+- **Implement §11.4's cadence with the damage interrupt**, placeholder 200ms,
+  labelled.
+- **Re-read §8.4's dispersion once the curve is in.** If both terms fall below
+  saturation it becomes evaluable again on arm C, and that is a genuine result
+  rather than a placeholder.
+
+Not to be done: any tuning against arm D's win rates. They are honest about
+antibody arrival and unfair about difficulty, you said so, and I agree — the
+survival numbers are downstream of the model shape that §11.4 is replacing.
+
+320 HP untouched. `BOSS_PULL` at zero, expiry open, now one of five on the
+critical path rather than one of four on a side list.
