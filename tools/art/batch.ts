@@ -105,20 +105,51 @@ export const DETAIL_THRESHOLD_PX = 200;
  * generator to make the org chart lumpy while the subject asks for rigid
  * boxes, and the two would fight inside one prompt.
  */
-const PROPORTION_CLAUSE: Record<ActId, string> = {
-  conception: 'slightly irregular hand-cut paper shapes, organic and asymmetric, never mechanical',
-  school: 'slightly irregular hand-cut paper shapes, organic and asymmetric, never mechanical',
-  service: 'slightly irregular hand-cut paper shapes, organic and asymmetric, never mechanical',
-  office:
+export type Geometry = 'hand-cut' | 'ruled';
+
+const GEOMETRY_CLAUSE: Record<Geometry, string> = {
+  'hand-cut':
+    'slightly irregular hand-cut paper shapes, organic and asymmetric, never mechanical',
+  ruled:
     'precise ruled geometry with true right angles and straight edges, drafted rather than drawn, ' +
     'the wrongness coming entirely from the arrangement and never from the shapes',
 };
 
-export function styleSuffix(act: ActId, targetSize = DETAIL_THRESHOLD_PX + 1): string {
+/**
+ * Law 4's default per act. The Office is ruled; everywhere else is hand-cut.
+ *
+ * This is only the DEFAULT now. G-013 moved the exception from per-act to
+ * per-asset — ruled geometry characterises one object rather than styling a
+ * whole act — and Conception forces the point immediately: the antibody's Y is
+ * "the only straight lines in the act" (CONCEPTION-ROSTER §2), so it needs the
+ * ruled clause inside an otherwise hand-cut act. An asset overrides with
+ * `geometry`.
+ */
+const ACT_DEFAULT_GEOMETRY: Record<ActId, Geometry> = {
+  conception: 'hand-cut',
+  school: 'hand-cut',
+  service: 'hand-cut',
+  office: 'hand-cut',
+};
+
+export function styleSuffix(
+  act: ActId,
+  targetSize = DETAIL_THRESHOLD_PX + 1,
+  geometry: Geometry = ACT_DEFAULT_GEOMETRY[act],
+): string {
   const detail = DETAIL_CLAUSE[targetSize >= DETAIL_THRESHOLD_PX ? 'large' : 'small'];
-  return [SHARED_STYLE[0]!, SHARED_STYLE[1]!, detail, PROPORTION_CLAUSE[act], ...SHARED_STYLE.slice(2)].join(
-    ', ',
-  );
+  return [
+    SHARED_STYLE[0]!,
+    SHARED_STYLE[1]!,
+    detail,
+    GEOMETRY_CLAUSE[geometry],
+    ...SHARED_STYLE.slice(2),
+  ].join(', ');
+}
+
+/** The style suffix an asset actually gets, honouring its geometry override. */
+export function styleSuffixFor(spec: AssetSpec): string {
+  return styleSuffix(spec.act, spec.targetSize, spec.geometry ?? ACT_DEFAULT_GEOMETRY[spec.act]);
 }
 
 /** The style as it applies to every act but the Office. Used in provenance. */
@@ -246,6 +277,10 @@ export const TEST_BATCH: AssetSpec[] = [
     tests: 'can the style render an abstraction as a monster — THE REAL TEST',
     targetSize: 384,
     seed: 6006,
+    // G-013: ruled geometry is this object's characterisation, not the Office
+    // act's style. Everything else in that building was made by people and
+    // looks it; the diagram that outranks all of it was drawn by nobody.
+    geometry: 'ruled',
     whyThisStage:
       "The Office is the first stage where the player's life is decided by a diagram that somebody else is allowed to edit.",
     // Rewritten after the first batch, which read as a chest of drawers.
@@ -269,5 +304,90 @@ export const TEST_BATCH: AssetSpec[] = [
 ];
 
 export function fullPrompt(spec: AssetSpec): string {
-  return `${spec.subject}, ${styleSuffix(spec.act, spec.targetSize)}`;
+  return `${spec.subject}, ${styleSuffixFor(spec)}`;
 }
+
+/**
+ * The Conception roster (CONCEPTION-ROSTER.md §3). Three swarm-tier assets,
+ * each holding one reserved silhouette from §2: blot, droplet, Y. The ring is
+ * the spermicide's second state and is drawn in code rather than generated —
+ * it has to be an exactly even annulus at the standard outline weight, which
+ * is a thing a renderer guarantees and a generator approximates.
+ */
+export const CONCEPTION_ROSTER: AssetSpec[] = [
+  {
+    id: 'white-cell',
+    name: 'White cell',
+    act: 'conception',
+    role: 'swarm',
+    tests: 'the blot silhouette, and a stamp face that must survive 48px',
+    targetSize: 96,
+    seed: 7007,
+    whyThisStage:
+      'Before the player is anyone at all, there is already a process whose only job is to stop things that look like them.',
+    subject: [
+      'a single large round white blood cell seen from directly above, filling most of the frame',
+      'a round lobed mass with a scalloped irregular edge, the lobes uneven in count and depth so it never resolves into a flower',
+      'no tail, no limbs, no spikes, no protrusions',
+      'flat muted purple, one darker shadow tone at most, no interior texture whatsoever',
+      // Deliberately does not say "rubber stamp": the shared style suffix
+      // carries "no stamp, no seal, no chop mark" to suppress the fake
+      // signature marks the register keeps drawing in corners, and the two
+      // would fight inside one prompt. The shape is what matters, not the word.
+      'one small flat pale cream oval disc set off-centre on the mass, lying flat on its surface',
+      'that disc carries two small dark dots for eyes and one short horizontal line for a mouth and nothing else',
+      'the eyes aimed a few degrees off to one side, looking past the viewer rather than at them',
+    ].join(', '),
+  },
+  {
+    id: 'spermicide',
+    name: 'Spermicide',
+    act: 'conception',
+    role: 'swarm',
+    tests: 'a droplet that reads as asleep, with no interior detail at all',
+    targetSize: 72,
+    seed: 8008,
+    whyThisStage:
+      'Conception is the first stage where the environment was made lethal in advance by someone who will never be told whether it worked.',
+    subject: [
+      'a single rounded teardrop-shaped droplet of liquid with a flat top and a smooth blunt bottom',
+      'flat muted red, one solid colour, absolutely no interior detail, no highlight, no shine, no bubbles',
+      'a small simple face low on the droplet: two downward-curving closed sleeping eye arcs and no mouth at all',
+      'peacefully asleep, unaware, completely unbothered',
+      'no arms, no legs, no tail, no ring, no circle around it',
+    ].join(', '),
+  },
+  {
+    id: 'antibody',
+    name: 'Antibody',
+    act: 'conception',
+    role: 'swarm',
+    tests: 'the Y — the only straight lines in the act, at the smallest size in it',
+    targetSize: 44,
+    seed: 9009,
+    // §2 reserves the Y as the act's only straight lines, so this asset takes
+    // law 4's ruled clause inside an otherwise hand-cut act (G-013).
+    geometry: 'ruled',
+    whyThisStage:
+      'Conception is where the first record about the player is opened, and it describes a category rather than a person.',
+    // The word "fork" is deliberately absent. It was in the first version and
+    // the generator drew cutlery four times out of four — a literal dinner
+    // fork, complete with a long thin handle that measured 11% coverage. The
+    // shape wanted here is the letter, so the prompt says the letter.
+    subject: [
+      'a bold capital letter Y as a simple flat geometric symbol',
+      'three thick straight bars of exactly equal thickness meeting at one central junction',
+      'two bars angling upward and apart in a wide V, one bar pointing straight down',
+      'all three limbs roughly the same length as each other, short and heavy, not thin, not tapering',
+      'perfectly straight edges and sharp square corners, no curves anywhere on it',
+      'flat dark grey-brown, one solid colour and nothing else',
+      'one small pale cream square tag centred on the junction where the bars meet',
+      'the tag carries two small dark dots for eyes and no mouth and nothing else',
+      'no other detail, no texture, no shading',
+      'not a fork, not cutlery, not a utensil, not a tree, not a branch, not a slingshot',
+    ].join(', '),
+  },
+];
+
+/** Everything the pipeline knows how to generate. */
+export const ALL_ASSETS: AssetSpec[] = [...TEST_BATCH, ...CONCEPTION_ROSTER];

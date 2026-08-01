@@ -6,7 +6,30 @@
  * teacher who does not know your name" can. There is a test that fails the
  * build if any entry is missing one, because the whole point of the rule is
  * that it survives a long unattended run with nobody reading the diffs.
+ *
+ * Numbers are from CONCEPTION-ROSTER.md §3.4 and are starting values. The
+ * relationships are the design commitment — the white cell is an order of
+ * magnitude tankier and slower than everything else, the antibody's contact
+ * damage is nearly zero on purpose — and the absolute figures are the
+ * playtest bots' to move.
  */
+
+/** How an enemy crosses the field. */
+export type Movement =
+  /** Steers at the player every frame. */
+  | 'chase'
+  /** Enters on a fixed heading taken at spawn and never steers again. */
+  | 'cross'
+  /** Drifts on a current that never acknowledged the player at all. */
+  | 'drift';
+
+/** What happens when it touches the player. */
+export type Contact =
+  | 'damage'
+  /** Holds the player, slows them hard, and deals damage over the window. */
+  | 'engulf'
+  /** Despawns, sticks to the player, and adds a drag stack that never expires. */
+  | 'attach';
 
 export interface EnemyDef {
   id: string;
@@ -35,6 +58,14 @@ export interface EnemyDef {
    * is imposed here instead of asked for. `0xffffff` leaves the sprite alone.
    */
   tint: number;
+  movement: Movement;
+  contact: Contact;
+  /** `engulf` only. */
+  engulf?: { seconds: number; slow: number; damagePerSecond: number };
+  /** `attach` only. Fraction of movement speed removed per stack. */
+  attach?: { drag: number };
+  /** Zone hazards. Bursts on a timer, never on proximity. */
+  burst?: { fuseSeconds: number; ringRadius: number; ringSeconds: number; ringDamage: number };
   /** One sentence. Required. */
   whyThisStage: string;
 }
@@ -53,8 +84,68 @@ export const ENEMIES: Record<string, EnemyDef> = {
     // conception-mid. Darker than the player against conception-deep, so a
     // dense crowd still reads as a crowd rather than a wall.
     tint: 0xa86a63,
+    movement: 'chase',
+    contact: 'damage',
     whyThisStage:
       'Conception is the only competition the player has already won, so the game opens by making it feel like a commute.',
+  },
+
+  antibody: {
+    id: 'antibody',
+    name: 'Antibody',
+    frame: 'antibody.png',
+    hp: 2,
+    speed: 34,
+    contactDamage: 1,
+    radius: 11,
+    displaySize: 44,
+    xp: 2,
+    tint: 0x6e6353,
+    movement: 'drift',
+    contact: 'attach',
+    // 2.5% per stack: a dozen by minute four is roughly 30% slower, which is
+    // the "visibly slower and nobody said a word about it" the design wants.
+    // The aggregate is a playtest-bot question; the shape of the answer is
+    // that the player should not be able to say when it went wrong.
+    attach: { drag: 0.025 },
+    whyThisStage:
+      'Conception is where the first record about the player is opened, and it describes a category rather than a person.',
+  },
+
+  spermicide: {
+    id: 'spermicide',
+    name: 'Spermicide',
+    frame: 'spermicide.png',
+    hp: 6,
+    speed: 20,
+    contactDamage: 9,
+    radius: 26,
+    displaySize: 72,
+    xp: 3,
+    tint: 0xc4472e,
+    movement: 'drift',
+    contact: 'damage',
+    burst: { fuseSeconds: 4.5, ringRadius: 130, ringSeconds: 1.6, ringDamage: 9 },
+    whyThisStage:
+      'Conception is the first stage where the environment was made lethal in advance by someone who will never be told whether it worked.',
+  },
+
+  'white-cell': {
+    id: 'white-cell',
+    name: 'White cell',
+    frame: 'white-cell.png',
+    hp: 44,
+    speed: 16,
+    contactDamage: 14,
+    radius: 34,
+    displaySize: 96,
+    xp: 12,
+    tint: 0x7c5c8a,
+    movement: 'cross',
+    contact: 'engulf',
+    engulf: { seconds: 0.9, slow: 0.35, damagePerSecond: 14 },
+    whyThisStage:
+      'Before the player is anyone at all, there is already a process whose only job is to stop things that look like them.',
   },
 };
 

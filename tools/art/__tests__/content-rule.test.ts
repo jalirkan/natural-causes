@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { TEST_BATCH, styleSuffix, fullPrompt } from '../batch';
+import { ALL_ASSETS, TEST_BATCH, styleSuffix, fullPrompt } from '../batch';
 import { ACT_IDS } from '../palette';
 import { ContentRuleViolation, assertContentRule, findViolations } from '../content-rule';
 
@@ -123,24 +123,33 @@ describe('the shipped test batch', () => {
     }
   });
 
-  it('law 4: only the Office act gets ruled geometry; every other act is hand-cut', () => {
+  it('law 4 is per asset now (G-013): every act defaults to hand-cut', () => {
+    // The exception used to be the Office act's style. It is one object's
+    // characterisation, so no act carries it any more — an asset opts in.
     for (const act of ACT_IDS) {
-      const suffix = styleSuffix(act);
-      if (act === 'office') {
-        expect(suffix).toMatch(/precise ruled geometry|true right angles/);
-        expect(suffix).not.toMatch(/hand-cut paper/);
+      expect(styleSuffix(act), `act "${act}" default`).toMatch(/hand-cut paper/);
+      expect(styleSuffix(act)).not.toMatch(/precise ruled geometry/);
+    }
+  });
+
+  it('only assets that declare ruled geometry get it, and they lose hand-cut', () => {
+    for (const spec of ALL_ASSETS) {
+      const prompt = fullPrompt(spec);
+      if (spec.geometry === 'ruled') {
+        expect(prompt, `"${spec.id}"`).toMatch(/precise ruled geometry|true right angles/);
+        expect(prompt, `"${spec.id}"`).not.toMatch(/hand-cut paper/);
       } else {
-        expect(suffix).toMatch(/hand-cut paper/);
-        expect(suffix).not.toMatch(/precise ruled geometry/);
+        expect(prompt, `"${spec.id}"`).toMatch(/hand-cut paper/);
+        expect(prompt, `"${spec.id}"`).not.toMatch(/precise ruled geometry/);
       }
     }
   });
 
-  it('the Reorg prompt does not order the generator to be irregular and ruled at once', () => {
-    const reorg = TEST_BATCH.find((s) => s.id === 'boss-reorg')!;
-    const prompt = fullPrompt(reorg);
-    expect(prompt).toMatch(/right angles/);
-    expect(prompt).not.toMatch(/hand-cut paper/);
+  it('the two assets that are meant to be ruled actually are', () => {
+    // The Reorg, because a diagram was drawn by nobody. The antibody, because
+    // CONCEPTION-ROSTER §2 reserves the Y as the act's only straight lines.
+    const ruled = ALL_ASSETS.filter((s) => s.geometry === 'ruled').map((s) => s.id).sort();
+    expect(ruled).toEqual(['antibody', 'boss-reorg']);
   });
 
   it('the Reorg prompt names connectors and forbids the failure it already hit', () => {

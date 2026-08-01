@@ -204,3 +204,24 @@ It would work, and horde density is most of what makes the genre feel good;
 trading it for surface texture is trading the game for the picture.
 Rejected: dropping the register back to something that survives at any size —
 that is how the first batch happened.
+
+## D-019 · 2026-08-01 · Drifting enemies cross the arena; they do not walk randomly
+CONCEPTION-ROSTER §3.2 says the spermicide "never acknowledges the player's
+position at any point in its life", and the first implementation took that
+literally: a uniformly random heading, fixed at spawn.
+
+Measured over a full 300-second act, that produced **3 antibody attachments
+from 220 spawns**. Enemies spawn on a ring just outside the viewport, so a
+uniform heading sends half of them straight back out of it to be culled. The
+design expects roughly a dozen stacks by minute four and reads the drag as the
+act's quiet failure mode; at three stacks the mechanic does not exist.
+
+Drift headings are now inbound with a 120° spread, so a drifter crosses the
+play area. Nothing steers and nothing is corrected after spawn, so "drifts,
+does not pursue" holds and the enemy still has no intent — the spread is wide
+enough that being caught reads as a current rather than as something coming for
+you. Re-measured: 15 stacks by minute four, player speed 190 → 119.
+
+Recorded rather than folded in silently because it is a deviation from the
+design's literal wording, decided on a number the design could not have had.
+If the wording matters more than the mechanic, this is the line to change.

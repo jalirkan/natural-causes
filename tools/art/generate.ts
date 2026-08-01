@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { assertContentRule } from './content-rule';
-import { fullPrompt, styleSuffix } from './batch';
+import { fullPrompt, styleSuffixFor } from './batch';
 import type { AssetSpec } from './types';
 
 /**
@@ -98,7 +98,7 @@ export async function generate(
     subject: spec.subject,
     whyThisStage: spec.whyThisStage,
     prompt,
-    styleSuffix: styleSuffix(spec.act, spec.targetSize),
+    styleSuffix: styleSuffixFor(spec),
   });
 
   const key = options.key ?? loadKey(options.cwd);

@@ -1,7 +1,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fromPng, toPng } from './bitmap';
-import { TEST_BATCH } from './batch';
+import { ALL_ASSETS, CONCEPTION_ROSTER, TEST_BATCH } from './batch';
 import { pack, type PackEntry } from './pack';
 import { runBatch } from './pipeline';
 import { ACT_IDS, type ActId } from './palette';
@@ -26,9 +26,15 @@ function log(msg: string): void {
 async function cmdBatch(argv: string[]): Promise<number> {
   const dry = argv.includes('--dry');
   const only = argv.find((a) => a.startsWith('--only='))?.slice('--only='.length);
+  const set = argv.find((a) => a.startsWith('--set='))?.slice('--set='.length);
+
+  // Default stays TEST_BATCH so a bare `art:batch` never silently regenerates
+  // approved art. --only searches everything; --set picks a named collection.
+  const source =
+    set === 'roster' ? CONCEPTION_ROSTER : set === 'all' ? ALL_ASSETS : only ? ALL_ASSETS : TEST_BATCH;
   const specs: AssetSpec[] = only
-    ? TEST_BATCH.filter((s) => s.id === only || s.act === only)
-    : TEST_BATCH;
+    ? source.filter((s) => s.id === only || s.act === only)
+    : source;
 
   if (specs.length === 0) {
     log(`No assets matched --only=${only}`);
@@ -39,14 +45,14 @@ async function cmdBatch(argv: string[]): Promise<number> {
     // Content rule runs inside generate(), but --dry has to exercise it too,
     // otherwise the cheap check is the one nobody runs.
     const { assertContentRule } = await import('./content-rule');
-    const { fullPrompt, styleSuffix } = await import('./batch');
+    const { fullPrompt, styleSuffixFor } = await import('./batch');
     for (const spec of specs) {
       assertContentRule(`asset "${spec.id}"`, {
         name: spec.name,
         subject: spec.subject,
         whyThisStage: spec.whyThisStage,
         prompt: fullPrompt(spec),
-        styleSuffix: styleSuffix(spec.act, spec.targetSize),
+        styleSuffix: styleSuffixFor(spec),
       });
       log(`\n=== ${spec.id} (${spec.act}, ${spec.role}, ${spec.targetSize}px) ===`);
       log(fullPrompt(spec));
@@ -80,7 +86,7 @@ async function cmdPack(): Promise<number> {
   let packed = 0;
   for (const act of ACT_IDS) {
     const entries: PackEntry[] = [];
-    for (const spec of TEST_BATCH.filter((s) => s.act === act)) {
+    for (const spec of ALL_ASSETS.filter((s) => s.act === act)) {
       const file = resolve(root, `assets/sprites/${act}/${spec.id}.png`);
       try {
         entries.push({ id: spec.id, bitmap: await fromPng(readFileSync(file)) });
@@ -110,7 +116,7 @@ async function cmdPack(): Promise<number> {
 
 async function cmdSheet(): Promise<number> {
   const out = resolve(root, 'assets/review/test-batch.html');
-  const html = await buildContactSheet(root, TEST_BATCH);
+  const html = await buildContactSheet(root, ALL_ASSETS);
   mkdirSync(dirname(out), { recursive: true });
   writeFileSync(out, html);
   log(`\nReview page: ${out}`);

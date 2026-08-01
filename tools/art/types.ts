@@ -24,6 +24,12 @@ export interface AssetSpec {
   whyThisStage?: string;
   /** What the asset is testing. Test batch only. */
   tests?: string;
+  /**
+   * Law 4 override (G-013). Ruled geometry characterises one object rather
+   * than styling a whole act, so it is declared per asset. Omit for the act's
+   * default, which is hand-cut everywhere.
+   */
+  geometry?: 'hand-cut' | 'ruled';
   /** Base seed. Rejections mutate it rather than escalating to a human. */
   seed: number;
   /** Longest side of the finished sprite — the act's scale grid. */

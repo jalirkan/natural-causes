@@ -69,12 +69,26 @@ export const CONCEPTION: ActDef = {
   atlas: { key: 'conception', png: conceptionAtlasPng, json: conceptionAtlasJson },
   playerFrame: 'player-sperm.png',
   durationSeconds: 300,
+  // CONCEPTION-ROSTER.md §3.5. One track per enemy, read as concurrent
+  // streams. A new pressure roughly every forty-five seconds for the first
+  // half, then only escalation: nothing new arrives after 130s, so the last
+  // three minutes are the player's build against a curve they have already
+  // seen. That is the shape that lets the boss afford a new mechanic.
   waves: [
     { fromSeconds: 0, enemyId: 'rival-sperm', rate: 1.5 },
     { fromSeconds: 30, enemyId: 'rival-sperm', rate: 3 },
+    { fromSeconds: 45, enemyId: 'antibody', rate: 0.6 },
     { fromSeconds: 75, enemyId: 'rival-sperm', rate: 5.5 },
+    { fromSeconds: 90, enemyId: 'spermicide', rate: 0.35 },
+    { fromSeconds: 120, enemyId: 'antibody', rate: 1.2 },
+    { fromSeconds: 130, enemyId: 'white-cell', rate: 0.08 },
     { fromSeconds: 140, enemyId: 'rival-sperm', rate: 9 },
+    { fromSeconds: 165, enemyId: 'spermicide', rate: 0.7 },
+    { fromSeconds: 195, enemyId: 'white-cell', rate: 0.14 },
+    { fromSeconds: 200, enemyId: 'antibody', rate: 2.0 },
     { fromSeconds: 210, enemyId: 'rival-sperm', rate: 14 },
+    { fromSeconds: 240, enemyId: 'spermicide', rate: 1.1 },
+    { fromSeconds: 255, enemyId: 'white-cell', rate: 0.22 },
   ],
 };
 

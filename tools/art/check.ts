@@ -83,6 +83,30 @@ export const BOSS_THRESHOLDS: CheckThresholds = {
   maxCoverage: 0.95,
 };
 
+/**
+ * Swarm-tier thresholds, per the detail budget (D-018).
+ *
+ * The colour-count floors were calibrated against the original toony style,
+ * where every sprite had a body, a shadow tone and features. D-018 then asked
+ * swarm assets for the opposite — "bold flat shapes, large uninterrupted
+ * areas of flat colour, very few interior details" — and the two rules
+ * contradict each other. CONCEPTION-ROSTER §3.2 makes it concrete: the
+ * spermicide is specified as flat red with *no interior detail whatsoever*,
+ * which is one fill plus the ink outline. Two colours is the correct answer
+ * for that asset, and a check demanding three was rejecting the design.
+ *
+ * What is NOT relaxed: silhouette area, background contrast, and edge density
+ * at 48px. Those are the checks that actually catch an unreadable sprite. A
+ * flat two-tone shape with a strong outline is exactly what reads in a crowd —
+ * colour count was never the property worth measuring here.
+ */
+export const SWARM_THRESHOLDS: CheckThresholds = {
+  ...DEFAULT_THRESHOLDS,
+  minDistinctColours: 2,
+  maxSingleColourShare: 0.97,
+  minDistinctColours48: 2,
+};
+
 function paletteHistogram(bmp: Bitmap, act: ActId): Map<string, number> {
   const palette = actPalette(act);
   const hist = new Map<string, number>();

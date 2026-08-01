@@ -1,8 +1,8 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fromPng, toPng, type Bitmap } from './bitmap';
-import { DETAIL_THRESHOLD_PX, fullPrompt, styleSuffix } from './batch';
-import { BOSS_THRESHOLDS, DEFAULT_THRESHOLDS, check, type CheckReport } from './check';
+import { DETAIL_THRESHOLD_PX, fullPrompt, styleSuffixFor } from './batch';
+import { BOSS_THRESHOLDS, SWARM_THRESHOLDS, check, type CheckReport } from './check';
 import { conform } from './conform';
 import { cut } from './cut';
 import { DEFAULT_MODEL, generate, type GenerateOptions } from './generate';
@@ -108,14 +108,14 @@ export async function runAsset(
   const root = options.root ?? process.cwd();
   const maxAttempts = options.maxAttempts ?? 4;
   const log = options.onProgress ?? (() => {});
-  const thresholds = spec.role === 'boss' ? BOSS_THRESHOLDS : DEFAULT_THRESHOLDS;
+  const thresholds = spec.role === 'boss' ? BOSS_THRESHOLDS : SWARM_THRESHOLDS;
 
   const record: GenerationRecord = {
     assetId: spec.id,
     model: options.model ?? DEFAULT_MODEL,
     seed: spec.seed,
     prompt: fullPrompt(spec),
-    styleSuffix: styleSuffix(spec.act, spec.targetSize),
+    styleSuffix: styleSuffixFor(spec),
     attempt: 0,
     rejected: [],
     checks: [],

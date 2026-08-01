@@ -53,6 +53,61 @@ describe('law 6: the player is the lightest thing on screen', () => {
   });
 });
 
+describe('behaviours are fully specified (CONCEPTION-ROSTER §5.2)', () => {
+  for (const [id, def] of Object.entries(ENEMIES)) {
+    it(`${id}`, () => {
+      // A contact mode without its parameters is a silently inert enemy: the
+      // white cell becomes a large slow rival and the antibody becomes a weak
+      // one, which is exactly the roster's stated failure case.
+      if (def.contact === 'engulf') {
+        expect(def.engulf, `"${id}" engulfs but has no engulf parameters`).toBeDefined();
+        expect(def.engulf!.seconds).toBeGreaterThan(0);
+        expect(def.engulf!.slow).toBeGreaterThan(0);
+        expect(def.engulf!.slow).toBeLessThan(1);
+        expect(def.engulf!.damagePerSecond).toBeGreaterThan(0);
+      }
+      if (def.contact === 'attach') {
+        expect(def.attach, `"${id}" attaches but has no drag`).toBeDefined();
+        expect(def.attach!.drag).toBeGreaterThan(0);
+        // Small enough per stack that no single attachment feels unfair.
+        expect(def.attach!.drag).toBeLessThan(0.1);
+      }
+      if (def.burst) {
+        expect(def.burst.fuseSeconds, `"${id}" bursts instantly`).toBeGreaterThan(0);
+        expect(def.burst.ringRadius).toBeGreaterThan(0);
+        expect(def.burst.ringSeconds).toBeGreaterThan(0);
+      }
+      // A burst is on a timer, never on proximity, so it cannot chase.
+      if (def.burst) expect(def.movement).not.toBe('chase');
+    });
+  }
+});
+
+describe('the reserved list (G-011, CONCEPTION-ROSTER §2)', () => {
+  it('no enemy wears paper — it is the player, and law 10 depends on it', () => {
+    for (const [id, def] of Object.entries(ENEMIES)) {
+      expect(def.tint, `"${id}" wears the player's colour`).not.toBe(PAPER);
+    }
+  });
+
+  it('gold does not appear before the boss', () => {
+    // Reserved to the Egg. An enemy wearing it early spends the boss's only
+    // colour before the boss arrives.
+    for (const [id, def] of Object.entries(ENEMIES)) {
+      expect(def.tint, `"${id}" wears the Egg's reserved gold`).not.toBe(THREAT_RANGED);
+    }
+  });
+
+  it('no two enemies share a tint', () => {
+    const seen = new Map<number, string>();
+    for (const [id, def] of Object.entries(ENEMIES)) {
+      const clash = seen.get(def.tint);
+      expect(clash, `"${id}" and "${clash}" share a tint`).toBeUndefined();
+      seen.set(def.tint, id);
+    }
+  });
+});
+
 describe('every item states what it enables and what it trades away (mechanism 5)', () => {
   for (const [id, def] of Object.entries(WEAPONS)) {
     it(`${id}`, () => {
@@ -173,6 +228,24 @@ describe('acts', () => {
         const at = rateAt(stream, act.durationSeconds);
         expect(at, `"${enemyId}" is dead by the end of act "${act.id}"`).toBeGreaterThan(0);
       }
+    }
+  });
+
+  it('total spawn rate never decreases over the act', () => {
+    // The invariant the original flat-array assertion was actually reaching
+    // for (CONCEPTION-ROSTER §5.1). Per-enemy escalation alone would permit an
+    // act that gets quieter overall by retiring a stream; this is what says
+    // the act only ever gets worse.
+    for (const act of ACTS) {
+      const streams = [...spawnStreams(act.waves).values()];
+      const moments = [...new Set(act.waves.map((w) => w.fromSeconds))].sort((a, b) => a - b);
+      let previous = 0;
+      for (const t of moments) {
+        const total = streams.reduce((sum, s) => sum + rateAt(s, t), 0);
+        expect(total, `act "${act.id}" total rate drops at ${t}s`).toBeGreaterThanOrEqual(previous);
+        previous = total;
+      }
+      expect(previous, `act "${act.id}" never escalates at all`).toBeGreaterThan(0);
     }
   });
 
