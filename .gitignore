@@ -1,0 +1,30 @@
+# Node
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Generated art — raw output is not committed; the PROMPTS and the packed
+# atlases are. A raw generation is reproducible from its prompt (D-010); a
+# few hundred megabytes of rejected candidates is not worth carrying.
+assets/raw/
+assets/rejected/
+
+# Committed on purpose, despite living under assets/:
+#   assets/prompts/   the provenance — an asset without its prompt does not ship
+#   assets/atlas/     the packed, conformed output the game actually loads
+!assets/prompts/
+!assets/atlas/
+
+# API keys for the image generator
+.env
+.env*.local
+
+# Playtest output — regenerable, and large
+tools/playtest/runs/
+
+# Editors / tooling
+.vscode/
+.idea/
+.cursor/
+.claude/
+.DS_Store

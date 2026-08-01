@@ -1,0 +1,9 @@
+# Every generation prompt is committed here, named for the asset it produced.
+#
+# An asset whose prompt is not in this directory does not ship (DECISIONS.md
+# D-010). Two reasons: a result without its provenance is not evidence, and a
+# style that cannot be regenerated cannot be extended six months from now.
+#
+# One file per asset. Record the model, the seed, the full prompt, the style
+# suffix, and how many candidates were rejected before this one passed the
+# mechanical checks.

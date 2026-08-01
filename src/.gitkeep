@@ -1,0 +1,5 @@
+# Game source. Phaser 3 + TypeScript.
+#
+# Layout resolved at Phase 0. Expected shape: scenes/, systems/, entities/,
+# data/ (enemies, weapons, acts as data files — never hardcoded into systems,
+# per the portfolio convention that content is data).

@@ -1,0 +1,8 @@
+# Automated playtest bots — the part that genuinely runs for hours unattended
+# and produces real numbers rather than impressions.
+#
+# Measures: win rate by build, time-to-death curves, weapons never picked,
+# unwinnable seeds, difficulty spikes. Headless, seeded, reproducible.
+#
+# Portfolio convention applies: any statistic reported carries its uncertainty.
+# A win rate from 12 runs is not a win rate.

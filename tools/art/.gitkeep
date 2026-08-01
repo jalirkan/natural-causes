@@ -1,0 +1,14 @@
+# The art pipeline. Six stages, per ART-DIRECTION.md:
+#
+#   generate.ts   Flux via API — one entity per image, plain background,
+#                 fixed style suffix, locked seed family per act
+#   cut.ts        background removal, alpha trim, centre on canvas
+#   conform.ts    quantise to locked palette, outline pass, normalise scale
+#   texture.ts    uniform grain overlay — unifies inconsistent generation
+#   check.ts      MECHANICAL REJECTION: silhouette area, contrast against act
+#                 background, palette conformance, readable at 48px
+#   pack.ts       sprite atlas, per act
+#
+# check.ts is what makes the run unattended. A failed asset is regenerated with
+# a mutated seed, never escalated to a human. Everything surviving the pipeline
+# is in-style by construction.
