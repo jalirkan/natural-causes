@@ -48,16 +48,12 @@ export interface EnemyDef {
   /** Experience dropped on death. */
   xp: number;
   /**
-   * Multiplied over the sprite at draw time, from the act palette.
-   *
-   * TEST-BATCH-CONCEPTS is explicit that the player is the lightest thing on
-   * screen and the rivals are a darker tone — the player/enemy distinction is
-   * carried by value, since the two share a body plan by design. The
-   * generator does not reliably honour "muted darker colouring", and this is
-   * a gameplay readability requirement rather than an art preference, so it
-   * is imposed here instead of asked for. `0xffffff` leaves the sprite alone.
+   * REMOVED by G-032. The field did two unrelated jobs and both have moved:
+   * threat colour is now stated in the generation prompt and verified by
+   * CONFORM and CHECK, and value correction is `enemy-value-ceiling`, a check
+   * whose failure regenerates with a mutated seed rather than being papered
+   * over on the GPU.
    */
-  tint: number;
   movement: Movement;
   contact: Contact;
   /** `engulf` only. */
@@ -96,9 +92,6 @@ export const ENEMIES: Record<string, EnemyDef> = {
     radius: 15,
     displaySize: 48,
     xp: 1,
-    // conception-mid. Darker than the player against conception-deep, so a
-    // dense crowd still reads as a crowd rather than a wall.
-    tint: 0xa86a63,
     movement: 'chase',
     contact: 'damage',
     whyThisStage:
@@ -118,7 +111,6 @@ export const ENEMIES: Record<string, EnemyDef> = {
     radius: 11,
     displaySize: 44,
     xp: 0,
-    tint: 0x6e6353,
     movement: 'drift',
     contact: 'attach',
     // G-020: arrival was the binding constraint, not toughness. Only the entry
@@ -142,7 +134,6 @@ export const ENEMIES: Record<string, EnemyDef> = {
     radius: 26,
     displaySize: 72,
     xp: 3,
-    tint: 0xc4472e,
     movement: 'drift',
     contact: 'damage',
     burst: { fuseSeconds: 4.5, ringRadius: 130, ringSeconds: 1.6, ringDamage: 9 },
@@ -160,7 +151,6 @@ export const ENEMIES: Record<string, EnemyDef> = {
     radius: 34,
     displaySize: 96,
     xp: 12,
-    tint: 0x7c5c8a,
     movement: 'cross',
     contact: 'engulf',
     engulf: { seconds: 0.9, slow: 0.35, damagePerSecond: 14 },

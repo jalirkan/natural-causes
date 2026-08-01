@@ -911,3 +911,67 @@ and it opens law 3, which is binding, in order to solve a problem that an existi
 unused colour already solves. The act-light tones were sitting there doing nothing
 in both designed acts; spending a palette slot before spending an idle colour is
 the wrong order.
+
+## G-031 · 2026-08-01 · Ranged gold goes on the projectile, not the body
+Forced by measurement and better on the merits. Tinting `substitute-teacher` gold
+takes its brightest pixel from L 0.930 to 0.685 and halves its gap to the School
+background, 0.515 to 0.270. `SCHOOL-ROSTER.md` §1 calls the bright hard rectangle
+the reservation the act is built around; a multiply that turns it into a mid-tone
+is that reservation failing.
+
+On that asset the two halves of law 6 point opposite ways — silhouette carries
+identity, colour carries threat, and here the threat colour destroys the identity.
+**Identity wins**, because it is the channel law 11 makes exclusive and enforces.
+
+The general rule is the interesting part. Contact, elite and boss all describe *an
+enemy*. Ranged is the only class that describes a **relationship** — the damage
+arrives separately from the body that made it. Gold on a body was therefore always
+an indirection: it meant "this will emit something that hurts you" where contact
+red means "this hurts you". Putting it on the thing that separates makes the
+colour literal.
+
+It sharpens Conception rather than costing it. `G-010` reserved gold to the Egg so
+the first aimed thing in the player's life is the thing deciding whether they
+exist; under this rule gold first appears **as the Egg's first projectile**, which
+is more exactly that moment. The boss reads as a boss and its attack reads as
+ranged — two pieces of information where there was one.
+
+Rejected: **masking the clipboard out of the tint** so the body multiplies and the
+rectangle does not. Preserves both reservations literally, and it invents a
+per-region tint for one asset in seven acts, which is a pipeline feature bought to
+protect a rule that turned out to be wrong anyway.
+
+Rejected: **dropping ranged from the threat palette in School** and letting the
+substitute wear an act tone with no threat colour anywhere. Simplest, and it means
+the act that introduces ranged pressure is the one act with no way to signal it —
+`G-010` built the whole escalation on gold arriving here.
+
+## G-032 · 2026-08-01 · The pipeline rejects, it does not correct — render tinting is retired
+Not baked, not restricted. Retired, with the requirement it served moving into
+CHECK as a rejection criterion: no enemy sprite may contain a pixel lighter than
+the player's floor, and failure regenerates with a mutated seed.
+
+Every tinted enemy currently breaks law 3 — 0.0000 off-palette as CHECK sees it,
+0.084–0.107 as the GPU draws it, against a 0.0353 tolerance — because the pipeline
+checks the sprite and the game multiplies it afterwards.
+
+**This is `D-005` applied where it was missed.** That entry says consistency is
+enforced by mechanical rejection rather than by post-processing, and render
+tinting is the single place in the pipeline that corrects pixels instead of
+rejecting an asset. It is also the single place that broke. The `tint` field was a
+corrective for generator non-compliance on value, written before CONFORM and CHECK
+existed in their current form, and those now do the job it was invented for.
+
+Rejected: **baking the tint at pack time and re-quantising.** The option that
+looks most honest, and the substitute's own numbers kill it: the multiply halves
+the clipboard's background contrast and re-quantising snaps the halved values onto
+palette entries without restoring anything. Law 3 goes green over a sprite that
+got worse. That is the third instance in this project of a check passing over a
+real regression — after §11.2's dispersion condition and §12.1's coincidental
+corroboration — and it is the most expensive error the project makes, because
+nothing downstream ever asks again.
+
+Rejected: **restricting tints to palette-closed multiplies.** Cheapest by far and
+it is the same harm in a smaller domain: it still multiplies, it just lands on
+palette entries when it does. It would also freeze the legal tint set against a
+palette that three unfinished acts still have to extend.

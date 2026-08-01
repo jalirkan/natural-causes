@@ -13,8 +13,8 @@ import {
 import {
   INK,
   PAPER,
-  THREAT_BOSS,
   THREAT_CONTACT,
+  THREAT_RANGED,
   UI_FILL,
   WORLD_HEIGHT,
   WORLD_WIDTH,
@@ -114,6 +114,23 @@ export class ActScene extends Phaser.Scene {
     }
 
     this.createHud();
+
+    // Controls, stated. The first level-up arrives about fourteen seconds in
+    // and freezes the world until a choice is made, which without a prompt is
+    // indistinguishable from the game hanging — it was reported as exactly
+    // that. Fades out once the player has started moving.
+    const hint = this.add
+      .text(
+        this.cameras.main.width / 2,
+        this.cameras.main.height - 54,
+        'WASD or arrows to move   ·   you fire automatically   ·   1/2/3 to pick an upgrade',
+        { fontFamily: 'monospace', fontSize: '15px', color: '#EFE7D6' },
+      )
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(150)
+      .setAlpha(0.85);
+    this.tweens.add({ targets: hint, alpha: 0, delay: 6500, duration: 1200 });
   }
 
   /**
@@ -223,10 +240,17 @@ export class ActScene extends Phaser.Scene {
     for (let i = 0; i < list.length; i++) {
       const e = list[i]!;
       const s = this.enemySprites[i]!;
+      // G-032: no render tint. The sprite arrives in its final colours and
+      // CHECK enforces the value ceiling, because a GPU multiply is invisible
+      // to every check in the pipeline and was putting every enemy off-palette
+      // by three times the tolerance at draw time.
+      //
+      // Hit feedback is value, not tint — law 10's own wording, and the same
+      // reason the player dims rather than flashing red.
       s.setTexture(this.visuals.atlas.key, e.def.frame)
         .setPosition(e.x, e.y)
         .setDisplaySize(e.def.displaySize, e.def.displaySize)
-        .setTint(e.hitFlash > 0 ? THREAT_CONTACT : e.def.tint)
+        .setAlpha(e.hitFlash > 0 ? 0.55 : 1)
         .setVisible(true);
       if (e.def.movement === 'chase') s.setFlipX(this.world.x < e.x);
     }
@@ -239,7 +263,10 @@ export class ActScene extends Phaser.Scene {
       const p = list[i]!;
       this.projectileSprites[i]!.setPosition(p.x, p.y)
         .setRadius(p.radius)
-        .setFillStyle(p.hostile ? THREAT_BOSS : PAPER)
+        // G-031: ranged gold lives on the PROJECTILE, game-wide. The Egg's
+        // body is boss teal and gold first appears as its first shot, which
+        // is closer to what G-010 wanted than colouring the body.
+        .setFillStyle(p.hostile ? THREAT_RANGED : PAPER)
         .setVisible(true);
     }
   }
@@ -301,11 +328,12 @@ export class ActScene extends Phaser.Scene {
     // frame it is carried by scale and tint rather than by a drawn frame —
     // D-006 wants real frames here and there is only one.
     const telegraph = b.phase === 'telegraph';
+    // Value and scale, not tint (G-032, law 10). The telegraph still has to be
+    // legible from across the arena, which is what the scale pulse is for.
     this.bossSprite
       .setPosition(b.x, b.y)
-      .setTint(telegraph ? THREAT_CONTACT : 0xffffff)
       .setScale(this.bossSprite.scaleX + (telegraph ? 0.0008 : 0))
-      .setAlpha(b.phase === 'absorbing' ? Math.max(0, b.timer / 1.8) : 1);
+      .setAlpha(b.phase === 'absorbing' ? Math.max(0, b.timer / 1.8) : telegraph ? 0.72 : 1);
   }
 
   private syncAttached(): void {
@@ -315,7 +343,6 @@ export class ActScene extends Phaser.Scene {
       const s = this.add
         .image(0, 0, this.visuals.atlas.key, 'antibody.png')
         .setDisplaySize(22, 22)
-        .setTint(0x6e6353)
         .setDepth(11)
         .setRotation(Math.random() * Math.PI * 2);
       s.setData('angle', angle);
@@ -369,7 +396,7 @@ export class ActScene extends Phaser.Scene {
       this.offerText
         .setText(
           [
-            'LEVEL ' + w.level,
+            `LEVEL ${w.level}  —  PRESS 1, 2 OR 3`,
             '',
             ...w.offers.map((id, i) => {
               const def = itemDef(id);

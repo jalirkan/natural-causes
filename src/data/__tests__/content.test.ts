@@ -12,8 +12,6 @@ import {
   THREAT as ART_THREAT,
   actBackground,
   actLight,
-  ACT_IDS,
-  FULL_PALETTE,
 } from '../../../tools/art/palette';
 
 /**
@@ -35,26 +33,10 @@ describe('every enemy answers "why this life stage" (PLAN.md mechanism 2)', () =
   }
 });
 
-describe('law 6: the player is the lightest thing on screen', () => {
-  const luminance = (c: number) =>
-    (0.2126 * ((c >> 16) & 0xff) + 0.7152 * ((c >> 8) & 0xff) + 0.0722 * (c & 0xff)) / 255;
-
-  it('every enemy tint is darker than the player, so the two never merge in a crowd', () => {
-    for (const [id, def] of Object.entries(ENEMIES)) {
-      expect(luminance(def.tint), `"${id}" is not darker than the player`).toBeLessThan(
-        luminance(PAPER) - 0.1,
-      );
-    }
-  });
-
-  it('every enemy tint is a colour from the locked palette', () => {
-    const allowed = new Set(FULL_PALETTE.map((c) => c.hex.toUpperCase()));
-    for (const [id, def] of Object.entries(ENEMIES)) {
-      const hex = `#${def.tint.toString(16).padStart(6, '0').toUpperCase()}`;
-      expect(allowed.has(hex), `"${id}" tint ${hex} is not in the locked palette`).toBe(true);
-    }
-  });
-});
+// law 6's value requirement moved to tools/art/__tests__/laws.test.ts when
+// G-032 retired render tinting. It was asserted against the TINT VALUE, which
+// only ever stood in for the drawn sprite; now it is asserted against the
+// sprite, which is what it always meant.
 
 describe('behaviours are fully specified (CONCEPTION-ROSTER §5.2)', () => {
   for (const [id, def] of Object.entries(ENEMIES)) {
@@ -102,44 +84,6 @@ describe("law 10 / G-030 — pickups take the act's light tone", () => {
     }
   });
 
-  it("no enemy wears its act's light tone — the rule costs nothing today", () => {
-    // The whole argument for assigning pickups the light tone is that it was
-    // sitting idle in both designed acts. If an enemy ever takes it, pickups
-    // and that enemy collide, and this fails before anyone sees it in play.
-    for (const [id, def] of Object.entries(ENEMIES)) {
-      for (const act of ACT_IDS) {
-        const light = parseInt(actLight(act).hex.slice(1), 16);
-        expect(def.tint, `enemy "${id}" wears ${act}-light, which belongs to pickups`).not.toBe(
-          light,
-        );
-      }
-    }
-  });
-});
-
-describe('the reserved list (G-011, CONCEPTION-ROSTER §2)', () => {
-  it('no enemy wears paper — it is the player, and law 10 depends on it', () => {
-    for (const [id, def] of Object.entries(ENEMIES)) {
-      expect(def.tint, `"${id}" wears the player's colour`).not.toBe(PAPER);
-    }
-  });
-
-  it('gold does not appear before the boss', () => {
-    // Reserved to the Egg. An enemy wearing it early spends the boss's only
-    // colour before the boss arrives.
-    for (const [id, def] of Object.entries(ENEMIES)) {
-      expect(def.tint, `"${id}" wears the Egg's reserved gold`).not.toBe(THREAT_RANGED);
-    }
-  });
-
-  it('no two enemies share a tint', () => {
-    const seen = new Map<number, string>();
-    for (const [id, def] of Object.entries(ENEMIES)) {
-      const clash = seen.get(def.tint);
-      expect(clash, `"${id}" and "${clash}" share a tint`).toBeUndefined();
-      seen.set(def.tint, id);
-    }
-  });
 });
 
 describe('every item states what it enables and what it trades away (mechanism 5)', () => {

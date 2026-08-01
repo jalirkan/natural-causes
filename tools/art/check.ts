@@ -1,13 +1,18 @@
 import { CHANNELS, index, opaqueBounds, opaqueCount, resizeSmooth, type Bitmap } from './bitmap';
 import {
+  BONE,
+  PAPER,
   THREAT,
   actBackground,
+  actLight,
   actPalette,
   distanceToPalette,
   lightness,
   nearest,
   rgbToOklab,
   type ActId,
+  type Colour,
+  type ThreatClass,
 } from './palette';
 import { GRAIN_AMPLITUDE } from './texture';
 
@@ -271,6 +276,23 @@ export async function check(
     note: 'D-018: an asset that only reads at the size it was generated has failed',
   });
 
+  // 5. Value ceiling (G-032). Replaces render tinting: the sprite must arrive
+  //    dark enough on its own rather than being darkened on the GPU, because
+  //    a GPU multiply is invisible to every other check in this function.
+  let brightest = 0;
+  for (let i = 0; i < bmp.data.length; i += CHANNELS) {
+    if (bmp.data[i + 3] === 0) continue;
+    const L = rgbToOklab(bmp.data[i]!, bmp.data[i + 1]!, bmp.data[i + 2]!).L;
+    if (L > brightest) brightest = L;
+  }
+  results.push({
+    name: 'enemy-value-ceiling',
+    pass: brightest <= MAX_ENEMY_LIGHTNESS,
+    measured: +brightest.toFixed(4),
+    expected: `<= ${MAX_ENEMY_LIGHTNESS.toFixed(3)} Oklab L (bone); paper belongs to the player`,
+    note: 'law 10 — the player is the lightest thing on screen',
+  });
+
   const density = edgeDensity(small);
   results.push({
     name: 'readable-48px-detail',
@@ -282,6 +304,84 @@ export async function check(
 
   const failures = results.filter((r) => !r.pass).map((r) => `${r.name} (${r.measured})`);
   return { pass: failures.length === 0, results, failures };
+}
+
+/**
+ * The brightest an enemy pixel may be (G-032).
+ *
+ * Derived from the palette rather than typed in: bone is the lightest colour
+ * an enemy is allowed, paper belongs to the player alone (law 10), and the
+ * gap between them is what stops an enemy competing with the player for
+ * "lightest thing on screen" at horde density.
+ *
+ * This replaces render tinting. The tint field did two unrelated jobs — threat
+ * colour and value correction — and value correction is a requirement, not a
+ * post-process. A requirement belongs in CHECK, where failure regenerates with
+ * a mutated seed through machinery D-005 already built.
+ */
+export const MAX_ENEMY_LIGHTNESS = (() => {
+  // Bone plus the grain, because TEXTURE runs after CONFORM and lifts a bone
+  // pixel above a bare bone ceiling. boss-egg failed four attempts at 0.8512
+  // against 0.8395 for exactly this — the quantiser could not have produced
+  // it, so the ceiling was rejecting the grain rather than the colour. Derived
+  // from GRAIN_AMPLITUDE so the two cannot drift apart.
+  const b = BONE.rgb;
+  const lifted = rgbToOklab(
+    Math.min(255, b[0] + GRAIN_AMPLITUDE),
+    Math.min(255, b[1] + GRAIN_AMPLITUDE),
+    Math.min(255, b[2] + GRAIN_AMPLITUDE),
+  ).L;
+  return lifted + 0.005;
+})();
+
+/**
+ * Colours an enemy sprite may not contain, and who they belong to.
+ *
+ * Render tinting hid this: sprites were generated pale and darkened on the
+ * GPU, so nobody looked at what the untinted pixels actually were. The
+ * substitute turned out to carry paper, its act's light tone and two threat
+ * colours it does not hold.
+ */
+export function reservedColourViolations(
+  bmp: Bitmap,
+  act: ActId,
+  holdsThreat: ThreatClass[] = [],
+): string[] {
+  const tolerance = distanceToleranceFor(GRAIN_AMPLITUDE);
+  const forbidden: Array<{ name: string; colour: Colour }> = [
+    { name: 'paper (the player)', colour: PAPER },
+  ];
+
+  // The act's light tone is the pickups' (G-030) — but only if it is
+  // distinguishable from a colour enemies ARE allowed. service-light #CFC3A0
+  // and bone #D2C6AC are closer together than the quantiser's tolerance, so in
+  // Service the check cannot tell a legal bone pixel from a reserved one and
+  // would fail every enemy in the act for wearing bone. That is a palette
+  // collision to be resolved in the palette, not a sprite defect to reject.
+  const light = actLight(act);
+  const lightLab = rgbToOklab(light.rgb[0], light.rgb[1], light.rgb[2]);
+  const boneLab = rgbToOklab(BONE.rgb[0], BONE.rgb[1], BONE.rgb[2]);
+  const lightIsDistinct =
+    Math.hypot(lightLab.L - boneLab.L, lightLab.a - boneLab.a, lightLab.b - boneLab.b) > tolerance;
+  if (lightIsDistinct) {
+    forbidden.push({ name: `${act}-light (pickups)`, colour: light });
+  }
+  for (const [cls, colour] of Object.entries(THREAT) as Array<[ThreatClass, Colour]>) {
+    if (!holdsThreat.includes(cls)) {
+      forbidden.push({ name: `threat-${cls} (not held by this asset)`, colour });
+    }
+  }
+
+  const found = new Set<string>();
+  for (let i = 0; i < bmp.data.length; i += CHANNELS) {
+    if (bmp.data[i + 3] === 0) continue;
+    const lab = rgbToOklab(bmp.data[i]!, bmp.data[i + 1]!, bmp.data[i + 2]!);
+    for (const f of forbidden) {
+      const t = rgbToOklab(f.colour.rgb[0], f.colour.rgb[1], f.colour.rgb[2]);
+      if (Math.hypot(lab.L - t.L, lab.a - t.a, lab.b - t.b) <= tolerance) found.add(f.name);
+    }
+  }
+  return [...found];
 }
 
 /**

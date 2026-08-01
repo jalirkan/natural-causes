@@ -6,7 +6,7 @@ import { check, distanceToleranceFor, DEFAULT_THRESHOLDS } from '../check';
 import { GRAIN_AMPLITUDE, grainTile, texture } from '../texture';
 import { pack } from '../pack';
 import { mutateSeed } from '../pipeline';
-import { FULL_PALETTE, INK, PAPER, SHADOW, actPalette, nearest, rgbToOklab } from '../palette';
+import { BONE, FULL_PALETTE, INK, PAPER, SHADOW, actPalette, nearest, rgbToOklab } from '../palette';
 
 /** Build a test image: a solid magenta field with a coloured blob in it. */
 function fixture(size = 64, blobColour: [number, number, number] = [240, 240, 226]): Bitmap {
@@ -342,7 +342,9 @@ describe('check', () => {
         // flat tone at most") actually produces and what the variety check
         // is calibrated for.
         const eye = Math.hypot(x - 38, y - 40) < 6 || Math.hypot(x - 58, y - 43) < 7;
-        const c = eye ? INK : y > size * 0.66 ? SHADOW : PAPER;
+        // BONE not PAPER: paper is the player's alone (law 10) and an enemy
+        // sprite carrying it now fails enemy-value-ceiling, correctly.
+        const c = eye ? INK : y > size * 0.66 ? SHADOW : BONE;
         bmp.data[i] = c.rgb[0];
         bmp.data[i + 1] = c.rgb[1];
         bmp.data[i + 2] = c.rgb[2];

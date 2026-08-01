@@ -21,7 +21,7 @@ did not have and the substitute is a fixed point the act has to be built around.
 
 | Reserved | Held by | Consequence |
 |---|---|---|
-| **Bright hard rectangle** | `substitute-teacher` | Nothing else in the act is a bright hard-edged rectangle. This is the reservation the act is built around and it is the one most at risk, because School is full of paper. |
+| **Bright hard rectangle** | `substitute-teacher` — in **bone `#D2C6AC`**, never paper (`G-032`, §6.2) | Nothing else in the act is a bright hard-edged rectangle. This is the reservation the act is built around and it is the one most at risk, because School is full of paper. |
 | **Circle** | `dodgeball` | The only perfect circle among the act's enemies. Nothing else is radially symmetric. |
 | **Wedge** | `homework` | A leaning stack, triangular in profile, dull. Paper that is deliberately not a rectangle. |
 | **Sash** | `hall-monitor` | The only hard diagonal in the act. It runs off both edges of the body so it reads as a stripe, never a slab. |
@@ -31,7 +31,7 @@ did not have and the substitute is a fixed point the act has to be built around.
 
 | Class | Held by | Why |
 |---|---|---|
-| **Ranged `#D69A3C`** | `substitute-teacher` | The substitute is the only thing in School that aims. Conception's first aimed thing was the boss; School's is a swarm enemy, and that escalation is the act's whole point (`G-010`). No other School enemy may be gold. |
+| **Ranged `#D69A3C`** | `substitute-teacher` — **on its projectile, not its body** (`G-031`, §6.1) | The substitute is the only thing in School that aims. Conception's first aimed thing was the boss; School's is a swarm enemy, and that escalation is the act's whole point (`G-010`). No other School enemy may be gold. |
 
 **Game-wide, not School's to set** (law 10, `G-030`): pickups take
 `school-light #9FA86B` and hold their one global shape. No enemy above uses the
@@ -227,16 +227,18 @@ designed around — it is a stand-in for a joke, not a joke.
 Relationships are the design; the values are a starting point and the bots own
 them.
 
-| id | hp | speed | contactDamage | radius | displaySize | xp | tint |
+| id | hp | speed | contactDamage | radius | displaySize | xp | dominant colour |
 |---|---|---|---|---|---|---|---|
-| `clique` | 9 | 28 | 5 | 38 | 88 | 3 | `0x6b7f53` |
-| `dodgeball` | 4 | 165 | 11 | 14 | 44 | 2 | `0xc4472e` |
-| `homework` | 14 | 0 | 0 | 30 | 72 | 1 | `0x6e6353` |
-| `hall-monitor` | 40 | 22 | 13 | 26 | 88 | 11 | `0x7c5c8a` |
-| `substitute-teacher` | 12 | 24 | 6 | 20 | 96 | 5 | `0xd69a3c` |
+| `clique` | 9 | 28 | 5 | 38 | 88 | 3 | `#6B7F53` school-mid |
+| `dodgeball` | 4 | 165 | 11 | 14 | 44 | 2 | `#C4472E` contact |
+| `homework` | 14 | 0 | 0 | 30 | 72 | 1 | `#6E6353` shadow |
+| `hall-monitor` | 40 | 22 | 13 | 26 | 88 | 11 | `#7C5C8A` elite |
+| `substitute-teacher` | 12 | 24 | 6 | 20 | 96 | 5 | act tones — gold is on its **projectile** |
 
-Every tint is in the locked palette and darker than `PAPER − 0.1`; checked by hand
-against `content.test.ts`'s two rules before writing them down.
+**These are prompt targets, not `tint` values** (`G-032`, §6.3). Render tinting is
+retired; the colour is authored into the sprite and verified by CONFORM and
+CHECK, the way the substitute's nine colours already were. Every entry is a
+locked-palette colour and none is lighter than the player's floor.
 
 **Introduction order**, not a wave table — per `CONCEPTION-ROSTER.md` §5.1 the
 escalation invariant is per-`enemyId`, so the tracks are independent: clique from
@@ -273,3 +275,119 @@ appearing means something.
 - **Wave tuning and the act clock.** After the Conception session unblocks, since
   School's pacing should be set against an act whose feel a human has confirmed
   rather than against Conception's current placeholders.
+
+---
+
+## 6 · Amendment — 2026-08-01, after the tint measurement
+
+§1 said the reservation changes rather than the asset if gold broke it. It broke
+it, so §1 changes. The general half of the answer is larger than the question and
+is in §6.3.
+
+### 6.1 · The substitute is not tinted, and ranged gold moves to projectiles (`G-031`)
+
+L 0.930 → 0.685 on the brightest pixel, background gap 0.515 → 0.270, colours
+9 → 6. §1 calls the bright hard rectangle the reservation the act is built around
+and the one most at risk; a multiply that halves its contrast is the risk
+arriving. The clipboard would still clear the 0.12 check and it would no longer be
+the brightest hard shape in the act, which is what the reservation actually says.
+
+**On this asset the two channels of law 6 are in direct conflict** — silhouette
+carries identity, colour carries threat, and here the threat colour destroys the
+identity. Identity wins, because it is the channel that is exclusive and enforced.
+
+Your observation is the answer and it is better than a workaround. **Ranged gold
+moves from the body to the projectile, game-wide.**
+
+Look at what the four threat classes actually are. Contact, elite and boss all
+describe *an enemy*. Ranged is the only one that describes a *relationship* — it
+says the damage arrives separately from the body that produced it. So gold on a
+body was always an indirection: it means "this thing will emit something else that
+hurts you", where contact red means "this hurts you". Putting gold on the thing
+that separates removes the indirection and makes the colour literal.
+
+It also sharpens Conception rather than costing it. `G-010` reserved gold to the
+Egg so that the first aimed thing in the player's life is the thing deciding
+whether they exist. Under this rule the Egg's body is boss teal and gold first
+appears **as the Egg's first projectile**, which is more precisely the moment
+`G-010` was marking. The boss reads as a boss and its attack reads as ranged: two
+pieces of information where there was one confused one.
+
+§1's reserved-threat row stands unchanged in meaning — the substitute is still the
+only source of gold in School — and now describes what it fires rather than what
+it is.
+
+### 6.2 · The clipboard is bone, not paper — a conflict I wrote
+
+Checking the measurement turned up something worse than the tint. The
+substitute's brightest pixel is L 0.930. **That is paper**, and law 10 says paper
+is the player's and nothing else's.
+
+So `SCHOOL-ROSTER.md` §1 and `ART-DIRECTION.md` law 10 contradict each other and I
+wrote both, one amendment apart. §1 wants the brightest hard shape in the act;
+law 10 forbids the brightest colour to anything but the player.
+
+**Law 10 wins and the clipboard is bone `#D2C6AC`.** Forty substitutes at 48px
+each holding a paper-bright slab is precisely the screen on which a player loses
+track of themselves, which is the failure law 10 exists to prevent. Bone is the
+"everything else" bucket, it is still comfortably the brightest thing in School
+after the player, and the reservation is unharmed — *brightest hard rectangle in
+the act* is satisfied by bone as easily as by paper.
+
+I am less comfortable with this than the paragraph sounds. I rejected bone for
+pickups two days of work ago partly because it competes with the player, and I am
+now handing it to a swarm enemy's largest feature. The difference is exposure —
+pickups are dozens on screen in every act and had a free alternative in the act
+light tone; the clipboard is one shape on one enemy in one act, and its
+alternatives are forbidden or taken. It is the remaining slot rather than the
+right one, and it belongs in the review sheet as something for Justin to look at
+rather than something I have settled.
+
+**Needs checking, not assumed:** whether CONFORM actually chose `paper` or
+something near it. If it chose paper this is a regeneration with an amended
+prompt; if it chose bone already, it is a documentation fix and nothing moves.
+
+### 6.3 · The pipeline rejects, it does not correct (`G-032`)
+
+Render tinting is **retired**, not baked and not restricted. The requirement it
+serves moves into CHECK as a rejection criterion.
+
+All three routes were live and two of them fail on the same evidence. **Baking the
+tint at pack time makes law 3 pass and keeps the harm.** The substitute's numbers
+are the proof: the multiply halves the clipboard's contrast, and re-quantising
+afterwards snaps the halved values onto palette entries without restoring
+anything. Law 3 goes green over a sprite that got worse. This project has now
+seen that shape three times — §11.2's dispersion criterion, §12.1's coincidental
+corroboration, and now this — and it is the most expensive kind of error it makes,
+because nothing downstream ever asks again.
+
+Restricting tints to palette-closed multiplies is the same harm with a smaller
+domain. It still multiplies; it just lands on palette entries when it does.
+
+So: no tint. **The value requirement becomes a check.** No enemy sprite may
+contain a pixel lighter than the player's floor; failure regenerates with a
+mutated seed, which is the machinery `D-005` already specifies and the path every
+other check already uses.
+
+This is not a new philosophy, it is the existing one applied where it was missed.
+`D-005` says consistency is enforced by mechanical rejection rather than by
+post-processing, and render tinting is the one place in the pipeline that
+*corrects* pixels instead of *rejecting* the asset. It is also the one place that
+broke.
+
+Two things it cleans up on the way past:
+
+- **The `tint` field currently does two unrelated jobs** — it carries threat
+  colour (spermicide's contact red, the white cell's elite purple) and it acts as
+  a value corrective for generator non-compliance. Threat colour belongs in the
+  prompt and is verified by CONFORM and CHECK, exactly as the substitute's nine
+  colours were. Whether the field survives in some reduced form is yours.
+- **`content.test.ts` asserts the tint value is dark.** It should assert the drawn
+  sprite is dark, which is what it always meant. A rule about a corrective is not
+  a rule about the thing.
+
+**The cost, stated plainly:** every existing enemy sprite gets re-checked and some
+regenerate. Four Conception enemies and one School asset. That is the whole
+exposure, and this is the cheapest moment it will ever be — the alternative is
+carrying a corrective that breaks two laws to enforce a third, into five more
+acts.

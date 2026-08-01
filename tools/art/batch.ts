@@ -35,7 +35,7 @@ const SHARED_STYLE = [
   // satirising is the register it should be drawn in: the visual language of
   // insurance pamphlets, safety posters and annual reports.
   'mid-century modern commercial illustration, 1950s 1960s printed institutional graphic design',
-  'limited spot-colour screenprint, two or three flat muted ink colours on off-white paper stock',
+  'limited spot-colour screenprint, two or three flat muted ink colours',
   // Flatness is load-bearing twice over: it is the register, and the first
   // batch's Reorg read as a dresser because the boxes were drawn in 3D.
   'strictly flat two-dimensional, no perspective, no depth, no 3D, no isometric view',
@@ -72,6 +72,23 @@ const SHARED_STYLE = [
  * The register is not being watered down; it is being spent where the camera
  * rests, the same logic as the animation budget in D-006.
  */
+/**
+ * The value ceiling, in the prompt (G-032).
+ *
+ * Render tinting is retired, so the sprite has to arrive dark enough on its
+ * own. The old shared style asked for "off-white paper stock" and got exactly
+ * that — every enemy sprite in the project came back with paper as its
+ * brightest pixel, which belongs to the player alone (law 10). It did not
+ * matter while a GPU multiply darkened everything afterwards; it matters now.
+ *
+ * Enemies only. The player is supposed to be the lightest thing on screen.
+ */
+const ENEMY_VALUE_CLAUSE = [
+  'muted mid-tone colouring throughout',
+  'no white, no off-white, no cream, no ivory, nothing paler than a soft tan',
+  'the lightest area is a muted tan and the darkest is a warm near-black',
+].join(', ');
+
 const DETAIL_CLAUSE: Record<'small' | 'large', string> = {
   small: [
     'bold simplified flat shapes with a strong clear silhouette',
@@ -136,6 +153,7 @@ export function styleSuffix(
   act: ActId,
   targetSize = DETAIL_THRESHOLD_PX + 1,
   geometry: Geometry = ACT_DEFAULT_GEOMETRY[act],
+  isEnemy = false,
 ): string {
   const detail = DETAIL_CLAUSE[targetSize >= DETAIL_THRESHOLD_PX ? 'large' : 'small'];
   return [
@@ -143,13 +161,19 @@ export function styleSuffix(
     SHARED_STYLE[1]!,
     detail,
     GEOMETRY_CLAUSE[geometry],
+    ...(isEnemy ? [ENEMY_VALUE_CLAUSE] : []),
     ...SHARED_STYLE.slice(2),
   ].join(', ');
 }
 
 /** The style suffix an asset actually gets, honouring its geometry override. */
 export function styleSuffixFor(spec: AssetSpec): string {
-  return styleSuffix(spec.act, spec.targetSize, spec.geometry ?? ACT_DEFAULT_GEOMETRY[spec.act]);
+  return styleSuffix(
+    spec.act,
+    spec.targetSize,
+    spec.geometry ?? ACT_DEFAULT_GEOMETRY[spec.act],
+    spec.role === 'swarm' || spec.role === 'boss',
+  );
 }
 
 /** The style as it applies to every act but the Office. Used in provenance. */
@@ -191,7 +215,7 @@ export const TEST_BATCH: AssetSpec[] = [
       'half-lidded eyes almost closed, a flat horizontal line for a mouth, no eyebrows',
       'a blank disinterested expression, completely uninterested, looking straight ahead in its direction of travel and not at the viewer',
       'a single thin curled tail',
-      'muted darker colouring',
+      'flat muted dusty rose colouring, mid-tone, never pale and never white',
     ].join(', '),
   },
   {
@@ -205,7 +229,7 @@ export const TEST_BATCH: AssetSpec[] = [
     whyThisStage:
       'It is the only boss in the game that is beaten by being taken in rather than brought down.',
     subject: [
-      'an enormous smooth round cartoon egg cell filling the frame',
+      'an enormous smooth round egg cell filling the frame, flat muted deep teal',
       'a thick irregular fringe of blunt stubby finger-like protrusions all the way around it like a lumpy crown or a bad haircut',
       'no two protrusions the same length',
       'one small calm face placed off-centre and low on the huge smooth mass',
@@ -237,11 +261,12 @@ export const TEST_BATCH: AssetSpec[] = [
       'a substitute schoolteacher drawn as a mid-century institutional pictogram',
       'an ordinary adult figure of average unremarkable build, standing squarely and symmetrically facing forward',
       'a simplified geometric body, plain and generic, more diagram than portrait',
-      'holding a large plain white clipboard flat against the chest with both hands, the clipboard is the brightest and hardest shape in the picture',
+      'holding a large plain muted-tan clipboard flat against the chest with both hands, the clipboard is the lightest and hardest-edged shape in the picture but is a soft tan and never white',
       'a plain lanyard loop around the neck',
       'the face is almost blank, two small flat dots for eyes and one short straight line for a mouth, no eyebrows',
       'no expression whatsoever, completely indifferent, unbothered, not looking at the viewer but slightly past and to one side',
       'institutional and anonymous, not sad, not nervous, not sympathetic',
+      'no yellow, no gold, no olive green anywhere on the figure',
     ].join(', '),
   },
   {
@@ -326,7 +351,10 @@ export const CONCEPTION_ROSTER: AssetSpec[] = [
     whyThisStage:
       'Before the player is anyone at all, there is already a process whose only job is to stop things that look like them.',
     subject: [
-      'a single large round white blood cell seen from directly above, filling most of the frame',
+      // Deliberately not "white blood cell": the word "white" is in the name
+      // and the generator obliges, which failed enemy-value-ceiling at 0.9297
+      // four attempts running. Same species as the antibody's "fork".
+      'a single large round leukocyte cell seen from directly above, filling most of the frame',
       'a round lobed mass with a scalloped irregular edge, the lobes uneven in count and depth so it never resolves into a flower',
       'no tail, no limbs, no spikes, no protrusions',
       'flat muted purple, one darker shadow tone at most, no interior texture whatsoever',
@@ -334,7 +362,7 @@ export const CONCEPTION_ROSTER: AssetSpec[] = [
       // carries "no stamp, no seal, no chop mark" to suppress the fake
       // signature marks the register keeps drawing in corners, and the two
       // would fight inside one prompt. The shape is what matters, not the word.
-      'one small flat pale cream oval disc set off-centre on the mass, lying flat on its surface',
+      'one small flat muted-tan oval disc set off-centre on the mass, lying flat on its surface',
       'that disc carries two small dark dots for eyes and one short horizontal line for a mouth and nothing else',
       'the eyes aimed a few degrees off to one side, looking past the viewer rather than at them',
     ].join(', '),
@@ -381,7 +409,7 @@ export const CONCEPTION_ROSTER: AssetSpec[] = [
       'all three limbs roughly the same length as each other, short and heavy, not thin, not tapering',
       'perfectly straight edges and sharp square corners, no curves anywhere on it',
       'flat dark grey-brown, one solid colour and nothing else',
-      'one small pale cream square tag centred on the junction where the bars meet',
+      'one small muted-tan square tag centred on the junction where the bars meet',
       'the tag carries two small dark dots for eyes and no mouth and nothing else',
       'no other detail, no texture, no shading',
       'not a fork, not cutlery, not a utensil, not a tree, not a branch, not a slingshot',

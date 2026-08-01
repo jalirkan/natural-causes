@@ -36,6 +36,18 @@ export interface ActReservations {
   reservedThreat: Partial<Record<ThreatClass, string>>;
 }
 
+/**
+ * Ranged gold is held by projectiles rather than by any sprite (G-031).
+ *
+ * Measured cause: multiplying the substitute by gold took its brightest pixel
+ * from L 0.930 to 0.685 and halved its contrast against the act background,
+ * destroying the bright-hard-rectangle reservation the act is built around.
+ * Putting the threat colour on the thing that does the reaching keeps both
+ * reservations, and is a better reading of law 6 — the colour marks the
+ * attack, which is the part that actually crosses the room.
+ */
+export const PROJECTILE_HOLDER = '(projectiles, game-wide)';
+
 export const RESERVATIONS: Partial<Record<ActId, ActReservations>> = {
   // Lifted verbatim from CONCEPTION-ROSTER.md §2. Four shapes is the budget,
   // and the constraint is generative rather than limiting: "the ring is taken"
@@ -67,8 +79,11 @@ export const RESERVATIONS: Partial<Record<ActId, ActReservations>> = {
       },
     ],
     reservedThreat: {
-      // Gold does not appear before the boss.
-      ranged: 'boss-egg',
+      // G-031. The Egg's BODY is boss teal; gold first appears as its first
+      // projectile. Closer to what G-010 wanted than colouring the body — the
+      // first aimed thing in the player's life announces itself by firing.
+      boss: 'boss-egg',
+      ranged: PROJECTILE_HOLDER,
     },
   },
 
@@ -111,8 +126,11 @@ export const RESERVATIONS: Partial<Record<ActId, ActReservations>> = {
     ],
     reservedThreat: {
       // Conception's first aimed thing was the boss; School's is a swarm
-      // enemy, and that escalation is the act's whole point (G-010).
-      ranged: 'substitute-teacher',
+      // enemy, and that escalation is the act's whole point (G-010). Under
+      // G-031 the gold rides the substitute's PROJECTILE — the misspelled
+      // name it fires — and never its body, which has to stay the act's only
+      // bright hard rectangle.
+      ranged: PROJECTILE_HOLDER,
     },
   },
 

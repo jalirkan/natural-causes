@@ -4,6 +4,8 @@ import { fromPng, toPng, type Bitmap } from './bitmap';
 import { DETAIL_THRESHOLD_PX, fullPrompt, styleSuffixFor } from './batch';
 import { BOSS_THRESHOLDS, SWARM_THRESHOLDS, check, type CheckReport } from './check';
 import { conform } from './conform';
+import { RESERVATIONS } from './reservations';
+import type { ThreatClass } from './palette';
 import { cut } from './cut';
 import { DEFAULT_MODEL, generate, type GenerateOptions } from './generate';
 import { texture } from './texture';
@@ -133,7 +135,19 @@ export async function runAsset(
       write(resolve(root, `assets/raw/${spec.id}-${seed}.png`), raw.png);
 
       const bmp = await fromPng(raw.png);
-      const conformed = await conform(cut(bmp), { act: spec.act, targetSize: spec.targetSize });
+      const isEnemy = spec.role === 'swarm' || spec.role === 'boss';
+      const held = RESERVATIONS[spec.act];
+      const holdsThreat = held
+        ? (Object.entries(held.reservedThreat)
+            .filter(([, who]) => who === spec.id)
+            .map(([cls]) => cls) as ThreatClass[])
+        : [];
+      const conformed = await conform(cut(bmp), {
+        act: spec.act,
+        targetSize: spec.targetSize,
+        forEnemy: isEnemy,
+        holdsThreat,
+      });
       // D-018: grain is part of the register, and at swarm scale it is
       // indistinguishable from noise — it costs contrast and buys nothing a
       // player can see. Spend it where the camera rests.

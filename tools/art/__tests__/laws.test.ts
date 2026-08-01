@@ -3,11 +3,16 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { fromPng } from '../bitmap';
 import { ALL_ASSETS } from '../batch';
-import { threatColourViolations } from '../check';
-import { PICKUP_SILHOUETTE, RESERVATIONS, ReservationError, assertReserved } from '../reservations';
-import { ENEMIES } from '../../../src/data/enemies';
+import { MAX_ENEMY_LIGHTNESS, reservedColourViolations, threatColourViolations } from '../check';
+import {
+  PICKUP_SILHOUETTE,
+  PROJECTILE_HOLDER,
+  RESERVATIONS,
+  ReservationError,
+  assertReserved,
+} from '../reservations';
 import { UI_FILL } from '../../../src/config';
-import { ACT_IDS, actLight } from '../palette';
+import { rgbToOklab } from '../palette';
 import { THREAT } from '../palette';
 
 /**
@@ -46,19 +51,38 @@ describe('law 10 — the player never wears a threat colour', () => {
     // split exists to prevent. Asserted in src/data/__tests__ instead.
   });
 
-  it("G-030: no enemy uses its act's light tone — the rule costs nothing today", () => {
-    // The whole argument for assigning pickups the light tone is that it was
-    // sitting idle in both designed acts. If an enemy ever takes it, pickups
-    // and that enemy collide and this fails before anyone sees it in play.
-    for (const [id, def] of Object.entries(ENEMIES)) {
-      for (const act of ACT_IDS) {
-        const light = parseInt(actLight(act).hex.slice(1), 16);
-        expect(def.tint, `enemy "${id}" wears ${act}-light, which belongs to pickups`).not.toBe(
-          light,
-        );
+});
+
+describe('G-032 — the sprite arrives dark; nothing is corrected on the GPU', () => {
+  const enemySprites = ALL_ASSETS.filter((s) => s.role === 'swarm' || s.role === 'boss');
+
+  for (const spec of enemySprites) {
+    it(`${spec.id} is no lighter than bone, and wears nothing reserved`, async () => {
+      const file = resolve(process.cwd(), `assets/sprites/${spec.act}/${spec.id}.png`);
+      if (!existsSync(file)) return;
+      const bmp = await fromPng(readFileSync(file));
+
+      // The value requirement law 6 always meant, asserted against the drawn
+      // sprite rather than against a tint value that stood in for it.
+      let brightest = 0;
+      for (let i = 0; i < bmp.data.length; i += 4) {
+        if (bmp.data[i + 3] === 0) continue;
+        const L = rgbToOklab(bmp.data[i]!, bmp.data[i + 1]!, bmp.data[i + 2]!).L;
+        if (L > brightest) brightest = L;
       }
-    }
-  });
+      expect(brightest, `${spec.id} brightest pixel`).toBeLessThanOrEqual(MAX_ENEMY_LIGHTNESS);
+
+      // Reserved colours: paper is the player's, the act light tone is the
+      // pickups', and a threat colour belongs only to an asset that holds it.
+      const held = RESERVATIONS[spec.act];
+      const holds = held
+        ? (Object.entries(held.reservedThreat)
+            .filter(([, who]) => who === spec.id)
+            .map(([cls]) => cls) as Parameters<typeof reservedColourViolations>[2])
+        : [];
+      expect(reservedColourViolations(bmp, spec.act, holds)).toEqual([]);
+    });
+  }
 });
 
 describe('law 11 — each act reserves its silhouettes, before generation', () => {
@@ -67,8 +91,12 @@ describe('law 11 — each act reserves its silhouettes, before generation', () =
     expect(shapes).toEqual(['Y', 'blot', 'comet', 'ring']);
   });
 
-  it('gold is held for the Egg and appears on nothing before it', () => {
-    expect(RESERVATIONS['conception']!.reservedThreat.ranged).toBe('boss-egg');
+  it('G-031: gold is held by projectiles, and the Egg holds boss teal', () => {
+    // Measured cause: a gold multiply on the substitute halved its contrast
+    // and destroyed the reservation the School act is built around. The colour
+    // moved to the thing that does the reaching.
+    expect(RESERVATIONS['conception']!.reservedThreat.ranged).toBe(PROJECTILE_HOLDER);
+    expect(RESERVATIONS['conception']!.reservedThreat.boss).toBe('boss-egg');
   });
 
   it('no two assets in an act share a silhouette', () => {
@@ -102,8 +130,12 @@ describe('law 11 — each act reserves its silhouettes, before generation', () =
     );
   });
 
-  it("School holds gold to the substitute — the act's only aimed thing", () => {
-    expect(RESERVATIONS['school']!.reservedThreat.ranged).toBe('substitute-teacher');
+  it('G-031: School holds gold on the projectile, never on the body', () => {
+    expect(RESERVATIONS['school']!.reservedThreat.ranged).toBe(PROJECTILE_HOLDER);
+    // And no School sprite holds it, which is what keeps the clipboard bright.
+    expect(Object.values(RESERVATIONS['school']!.reservedThreat)).not.toContain(
+      'substitute-teacher',
+    );
   });
 
   it('pickups sit outside every act vocabulary and hold one shape game-wide', () => {

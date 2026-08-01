@@ -63,6 +63,13 @@ Enforced in code. The check that enforces each one is named.
    has a face. Every box in the org chart has a face.
 6. **Silhouette carries identity; colour carries threat.** A fixed threat
    palette — contact, ranged, elite, boss — overlays the act palette.
+   **Ranged gold goes on the projectile, not the body** (G-031). Contact, elite
+   and boss describe an enemy; ranged describes a *relationship* — the damage
+   arrives separately from the thing that made it — so the colour belongs on the
+   thing that separates. Gold on a body means "this will emit something that
+   hurts you", which is an indirection the other three do not have.
+   **Where the two channels conflict on one asset, identity wins**, because it
+   is the channel law 11 makes exclusive and enforces.
 7. **Readable at 48px.** Authored to be recognisable at gameplay size against
    its act background. `readable-48px-silhouette`, `readable-48px-detail`,
    `readable-48px-structure`.
@@ -181,20 +188,37 @@ G-013. All three are now enforced as well:
   antibody forced it — CONCEPTION-ROSTER §2 reserves the Y as the act's only
   straight lines, inside an otherwise hand-cut act.
 
-- **Law 3 is not enforced at render time, and every tinted enemy currently
-  breaks it.** The pipeline quantises the sprite and checks it; the game then
-  multiplies that sprite by a tint on the GPU, and a multiply of two palette
-  colours is not generally a palette colour. Measured across all four Conception
-  enemies: each is 0.0000 off-palette as checked and 0.084–0.107 off-palette as
-  drawn, against a tolerance of 0.0353. Three times over, on every one.
+- ~~**Law 3 is not enforced at render time, and every tinted enemy currently
+  breaks it.**~~ **Settled — `G-032`. Render tinting is retired.** The pipeline
+  quantised the sprite and checked it; the game then multiplied that sprite on
+  the GPU, and a multiply of two palette colours is not generally a palette
+  colour. All four Conception enemies measured 0.0000 off-palette as checked and
+  0.084–0.107 as drawn, against a 0.0353 tolerance.
 
-  This is a gap between what CHECK sees and what a player sees, not a bad tint
-  value — the same shape of gap as the bot instrument problems. Three ways out,
-  and the choice is a real one: bake the tint at pack time and re-quantise
-  (honest, and re-packs every existing sprite); restrict tints to multiplies
-  that are palette-closed (cheap, and severely limits the tint set); or drop
-  render tinting and have the generator produce final colours (which is what the
-  tint exists to work around, because it would not).
+  Baking at pack time was the honest-looking option and it loses on the
+  substitute's own numbers: the multiply halves the clipboard's background
+  contrast, and re-quantising afterwards snaps the halved values onto palette
+  entries without restoring anything. Law 3 would go green over a sprite that
+  got worse — the third time this project has caught a check passing over a real
+  regression. Restricting tints to palette-closed multiplies is the same harm in
+  a smaller domain.
+
+  So the value requirement becomes a check instead of a correction: no enemy
+  sprite may contain a pixel lighter than the player's floor, and failure
+  regenerates with a mutated seed. That is not a new philosophy — `D-005` already
+  says consistency is enforced by mechanical rejection rather than
+  post-processing, and render tinting was the one place in the pipeline that
+  corrected pixels rather than rejecting the asset. It was also the one place
+  that broke. Cost: four Conception sprites and one School sprite get re-checked,
+  and this is the cheapest moment that will ever be true.
+
+- **`service-light` and `bone` are the same colour to the quantiser.** `#CFC3A0`
+  and `#D2C6AC` sit closer together than the palette tolerance, so G-030's
+  "pickups take the act's light tone" is unenforceable in Service — a check
+  cannot tell a legal bone pixel on an enemy from the reserved pickup colour.
+  The check skips the reservation there and says so rather than failing every
+  Service enemy. Resolve in the palette: move `service-light`, or accept that
+  Service pickups are bone and the act has one fewer exclusive colour.
 
 Genuinely open, and mine rather than the pipeline's:
 

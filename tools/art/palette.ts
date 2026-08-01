@@ -119,6 +119,31 @@ export function actPalette(act: ActId): Colour[] {
   return [INK, SHADOW, PAPER, BONE, ...ACT_TONES[act], ...Object.values(THREAT)];
 }
 
+/**
+ * The colours an ENEMY may be quantised into (G-030, G-032).
+ *
+ * Paper is the player's and the act's light tone is the pickups', so neither
+ * may appear on an enemy. They were still in the quantiser's palette, which
+ * made the value ceiling unsatisfiable by construction: a light pixel snapped
+ * to paper, CHECK rejected the sprite, and the regeneration snapped to paper
+ * again. rival-sperm failed at exactly 0.9297 — paper's lightness — on three
+ * of four attempts before this existed.
+ *
+ * Enforcing the reservation in CONFORM rather than only in CHECK means the
+ * quantiser cannot produce a violation for CHECK to find.
+ */
+export function enemyPalette(act: ActId, holdsThreat: ThreatClass[] = []): Colour[] {
+  const tones = ACT_TONES[act];
+  return [
+    INK,
+    SHADOW,
+    BONE,
+    tones[0],
+    tones[1],
+    ...holdsThreat.map((cls) => THREAT[cls]),
+  ];
+}
+
 /** The full locked palette. Law 3 caps this at twenty. */
 export const FULL_PALETTE: Colour[] = [
   INK,

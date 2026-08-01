@@ -1,5 +1,13 @@
 import { CHANNELS, blank, index, opaqueBounds, crop, centreOn, resize, type Bitmap } from './bitmap';
-import { INK, actPalette, nearest, type ActId, type Colour } from './palette';
+import {
+  INK,
+  actPalette,
+  enemyPalette,
+  nearest,
+  type ActId,
+  type Colour,
+  type ThreatClass,
+} from './palette';
 
 /**
  * Stage 3 — CONFORM. Quantise to the locked palette, apply the standard
@@ -106,6 +114,14 @@ export interface ConformOptions {
   act: ActId;
   /** Longest side of the finished sprite, in pixels — the act's scale grid. */
   targetSize: number;
+  /**
+   * Quantise against the enemy palette, which excludes paper (the player's)
+   * and the act's light tone (the pickups'). Without this the quantiser can
+   * produce a colour CHECK is guaranteed to reject.
+   */
+  forEnemy?: boolean;
+  /** Threat colours this asset is allowed to wear. */
+  holdsThreat?: ThreatClass[];
 }
 
 /**
@@ -132,7 +148,10 @@ export async function conform(input: Bitmap, options: ConformOptions): Promise<B
   );
 
   binariseAlpha(scaled);
-  quantise(scaled, actPalette(act));
+  quantise(
+    scaled,
+    options.forEnemy ? enemyPalette(act, options.holdsThreat ?? []) : actPalette(act),
+  );
 
   const centred = centreOn(scaled, targetSize);
   return applyOutline(centred, outline);
