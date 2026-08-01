@@ -64,6 +64,16 @@ export interface EnemyDef {
   engulf?: { seconds: number; slow: number; damagePerSecond: number };
   /** `attach` only. Fraction of movement speed removed per stack. */
   attach?: { drag: number };
+  /**
+   * Weapons do not affect it (G-018). Shots pass through, areas ignore it, it
+   * is never a kill and drops nothing.
+   *
+   * The alternative was a large `hp`, which makes the enemy's presence a
+   * function of the player's damage output — a treadmill needing re-tuning
+   * against every weapon buff for seven acts, firing hardest at the players
+   * already losing. You cannot shoot a document.
+   */
+  invulnerable?: boolean;
   /** Zone hazards. Bursts on a timer, never on proximity. */
   burst?: { fuseSeconds: number; ringRadius: number; ringSeconds: number; ringDamage: number };
   /** One sentence. Required. */
@@ -94,20 +104,21 @@ export const ENEMIES: Record<string, EnemyDef> = {
     id: 'antibody',
     name: 'Antibody',
     frame: 'antibody.png',
-    hp: 2,
+    // hp is inert: it cannot be damaged. Kept at 1 so nothing divides by zero.
+    hp: 1,
+    invulnerable: true,
     speed: 34,
-    contactDamage: 1,
+    // It costs speed and never health, and it is not a kill, so it drops no XP.
+    contactDamage: 0,
     radius: 11,
     displaySize: 44,
-    xp: 2,
+    xp: 0,
     tint: 0x6e6353,
     movement: 'drift',
     contact: 'attach',
-    // 2.5% per stack: a dozen by minute four is roughly 30% slower, which is
-    // the "visibly slower and nobody said a word about it" the design wants.
-    // The aggregate is a playtest-bot question; the shape of the answer is
-    // that the player should not be able to say when it went wrong.
-    attach: { drag: 0.025 },
+    // Retained for reference; the curve now lives in World.antibodyDrag,
+    // because G-018 made the per-stack cost diminishing rather than flat.
+    attach: { drag: 0.03 },
     whyThisStage:
       'Conception is where the first record about the player is opened, and it describes a category rather than a person.',
   },

@@ -51,6 +51,8 @@ export interface RunResult {
   kills: number;
   level: number;
   dragStacks: number;
+  /** Stacks at the 300s mark — the moment §7.6's prediction is stated about. */
+  stacksAt300: number;
   /** How much of the boss was left when the run ended. Null if it never spawned. */
   bossHpLeft: number | null;
   bossHpFraction: number | null;
@@ -116,16 +118,32 @@ function decideMove(w: World): Input {
     // close enough to use them. That is the instrument reporting its own
     // movement policy rather than the item, so the standoff is derived from
     // what the run is actually holding.
-    let reach = 0;
+    // Stand where the build's SHORTEST weapon works, not its longest.
+    //
+    // Using the longest was the bug: every run starts holding Lash at 420px,
+    // so max-reach was always 420 and the bot parked at ~294px — outside
+    // Acrosome's 246px effective reach against the Egg, in every single run.
+    // The previous "fix" therefore never moved a short build closer, and the
+    // resulting 97% boss-HP-remaining was the instrument, not the item.
+    let reach = Infinity;
     for (const id of w.items.keys()) {
       const def = ITEMS[id];
-      if (def && isActive(def) && def.damage > 0) reach = Math.max(reach, def.range);
+      if (def && isActive(def) && def.damage > 0) reach = Math.min(reach, def.range);
     }
+    if (!Number.isFinite(reach)) reach = 300;
     const standoff = Math.max(BOSS_STANDOFF_MIN, Math.min(reach * 0.7, 300));
     const d = Math.hypot(w.boss.x - w.x, w.boss.y - w.y) || 1;
+    const toX = (w.boss.x - w.x) / d;
+    const toY = (w.boss.y - w.y) / d;
     const want = d > standoff ? 0.9 : -0.9;
-    ax += ((w.boss.x - w.x) / d) * want;
-    ay += ((w.boss.y - w.y) / d) * want;
+    ax += toX * want;
+    ay += toY * want;
+    // Orbit. G-015 makes the fight an orbit rather than a standoff, and a bot
+    // that can only move radially measures its own inability to circle rather
+    // than the mechanic. Added at the same time as the pull, which does weaken
+    // the before/after comparison — noted rather than hidden.
+    ax += -toY * 0.75;
+    ay += toX * 0.75;
   }
 
   const len = Math.hypot(ax, ay);
@@ -157,8 +175,10 @@ function chooseOffer(
   return offers[Math.floor(rng() * offers.length)] ?? offers[0]!;
 }
 
-export function runOnce(policy: BotPolicy, seed: number): RunResult {
-  const world = new World({ act: CONCEPTION, seed });
+export function runOnce(policy: BotPolicy, seed: number, bossPull?: number): RunResult {
+  const world = new World(
+    bossPull === undefined ? { act: CONCEPTION, seed } : { act: CONCEPTION, seed, bossPull },
+  );
   // A separate stream for choices, so a policy change does not shift spawns.
   let a = (seed * 2654435761) >>> 0;
   const rng = () => {
@@ -169,8 +189,12 @@ export function runOnce(policy: BotPolicy, seed: number): RunResult {
   };
 
   let steps = 0;
+  let stacksAt300 = 0;
   const maxSteps = MAX_SECONDS / DT;
   while (!world.dead && !world.won && steps < maxSteps) {
+    if (stacksAt300 === 0 && world.time >= CONCEPTION.durationSeconds) {
+      stacksAt300 = world.dragStacks;
+    }
     if (world.offers) {
       world.choose(chooseOffer(policy, world.offers, world.items, rng));
       continue;
@@ -189,6 +213,7 @@ export function runOnce(policy: BotPolicy, seed: number): RunResult {
     kills: world.kills,
     level: world.level,
     dragStacks: world.dragStacks,
+    stacksAt300,
     items: Object.fromEntries(world.items),
   };
 }
@@ -225,6 +250,7 @@ export interface PolicySummary {
   medianKills: number;
   medianLevel: number;
   medianDragStacks: number;
+  medianStacksAt300: number;
   /** Median share of the boss still standing when the run ended. */
   medianBossLeft: number | null;
   reachedBoss: number;
@@ -250,6 +276,7 @@ export function summarise(results: RunResult[]): PolicySummary[] {
       medianKills: median(runs.map((r) => r.kills)),
       medianLevel: median(runs.map((r) => r.level)),
       medianDragStacks: median(runs.map((r) => r.dragStacks)),
+      medianStacksAt300: median(runs.map((r) => r.stacksAt300)),
       reachedBoss: runs.filter((r) => r.bossHpFraction !== null).length,
       medianBossLeft: (() => {
         const reached = runs.filter((r) => r.bossHpFraction !== null);

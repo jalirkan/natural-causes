@@ -29,8 +29,16 @@ export const IFRAMES = 0.6;
 export const MAX_ACTIVE_ENEMIES = 1500;
 export const DESPAWN_RADIUS = 1600;
 export const DRIFT_SPREAD = (120 * Math.PI) / 180;
-export const DRAG_PER_STACK = 0.025;
-export const MIN_SPEED_FRACTION = 0.35;
+/**
+ * Antibody drag (G-018). Diminishing per stack and floored.
+ *
+ * Flat 2.5% per stack was unbounded, which put the slowest legal player below
+ * the Egg's pull and made G-015's non-negotiable constraint unsatisfiable.
+ * Diminishing returns keep a dozen stacks meaningful without a thirtieth one
+ * being fatal.
+ */
+export const ANTIBODY_DRAG_K = 0.03;
+export const ANTIBODY_FLOOR = 0.65;
 /** How close a gem has to be before it comes to the player. */
 export const MAGNET_RADIUS = 96;
 export const GEM_SPEED = 320;
@@ -39,6 +47,20 @@ export const RING_BAND = 6;
 export const SPAWN_RADIUS = 780;
 /** The Egg is roughly 8x player height and does not move from centre. */
 export const BOSS_RADIUS = 150;
+/**
+ * The Egg's constant radial pull (G-015), in pixels per second.
+ *
+ * Live from the moment it spawns, identical at full health and at one HP,
+ * never reacting to anything. It is not a phase: a phase would be the boss
+ * responding to the fight, and this is the boss responding to nothing at all
+ * while the space near it stops being neutral.
+ *
+ * The non-negotiable constraint is that a player swimming directly outward
+ * makes progress. `world.test.ts` computes the slowest legal build from the
+ * item data and fails if this number beats it, so a future Membrane buff
+ * cannot quietly make the Egg inescapable.
+ */
+export const BOSS_PULL = 55;
 /**
  * Calibrated against measured bot damage, not guessed.
  *
@@ -137,6 +159,13 @@ export interface WorldOptions {
   seed?: number;
   /** Items the run starts with. */
   startingItems?: string[];
+  /**
+   * Overrides the Egg's pull, for A/B experiments only.
+   *
+   * Exists so the pull can be isolated from everything else that changed in
+   * the same pass. Not a difficulty setting — the shipped value is BOSS_PULL.
+   */
+  bossPull?: number;
 }
 
 function mulberry32(seed: number): () => number {
@@ -201,8 +230,11 @@ export class World {
   gems: GemState[] = [];
   boss: BossState | null = null;
 
+  readonly bossPull: number;
+
   constructor(options: WorldOptions) {
     this.act = options.act;
+    this.bossPull = options.bossPull ?? BOSS_PULL;
     this.seed = options.seed ?? 1;
     this.rng = mulberry32(this.seed);
     this.streams = spawnStreams(options.act.waves);
@@ -226,10 +258,18 @@ export class World {
     return PLAYER_BASE_HP * this.passiveProduct((d) => d.healthMultiplier);
   }
 
+  /** Drag from attached antibodies alone. Diminishing, floored (G-018). */
+  get antibodyDrag(): number {
+    return Math.max(ANTIBODY_FLOOR, 1 / (1 + this.dragStacks * ANTIBODY_DRAG_K));
+  }
+
+  /** Movement speed ignoring transient effects. The pull is measured against this. */
+  get baseSpeed(): number {
+    return PLAYER_BASE_SPEED * this.passiveProduct((d) => d.speedMultiplier) * this.antibodyDrag;
+  }
+
   get speed(): number {
-    const drag = Math.max(MIN_SPEED_FRACTION, 1 - this.dragStacks * DRAG_PER_STACK);
-    const engulf = this.engulfTimer > 0 ? this.engulfSlow : 1;
-    return PLAYER_BASE_SPEED * this.passiveProduct((d) => d.speedMultiplier) * drag * engulf;
+    return this.baseSpeed * (this.engulfTimer > 0 ? this.engulfSlow : 1);
   }
 
   get damageTaken(): number {
@@ -269,6 +309,7 @@ export class World {
     this.invulnerable = Math.max(0, this.invulnerable - dt);
 
     this.movePlayer(dt, input);
+    this.applyBossPull(dt);
     if (!this.boss) this.spawn(dt);
     this.moveEnemies(dt);
     // Rebuilt after movement so every query this step sees current positions.
@@ -295,6 +336,19 @@ export class World {
     this.facingY = ny;
     this.x += nx * this.speed * dt;
     this.y += ny * this.speed * dt;
+  }
+
+  /**
+   * G-015. Constant magnitude, no falloff, no dependence on the boss's health
+   * or on anything the player does. The fight is an orbit.
+   */
+  private applyBossPull(dt: number): void {
+    const b = this.boss;
+    if (!b) return;
+    const d = Math.hypot(b.x - this.x, b.y - this.y);
+    if (d < 1) return;
+    this.x += ((b.x - this.x) / d) * this.bossPull * dt;
+    this.y += ((b.y - this.y) / d) * this.bossPull * dt;
   }
 
   /** One concurrent stream per enemy, each with its own rate and accumulator. */
@@ -404,6 +458,14 @@ export class World {
     }
   }
 
+  /** The boss as a seeking target, if it exists and is in range of its edge. */
+  private bossAsTarget(within: number): { x: number; y: number } | null {
+    const b = this.boss;
+    if (!b || b.phase === 'absorbing') return null;
+    const d = Math.hypot(b.x - this.x, b.y - this.y);
+    return d - BOSS_RADIUS <= within ? { x: b.x, y: b.y } : null;
+  }
+
   private nearestEnemy(within: number): EnemyState | null {
     let best: EnemyState | null = null;
     let bestD = within * within;
@@ -441,7 +503,13 @@ export class World {
 
     switch (def.mode) {
       case 'seeking': {
-        const target = this.nearestEnemy(def.range);
+        // The boss is a target. It was not, and that meant Lash — the weapon
+        // every run starts with — could not touch the Egg at all: with normal
+        // spawning stopped there was often nothing in `enemies`, so a seeking
+        // weapon simply never fired. It only ever hit the boss by accident,
+        // when a shot aimed at a rival happened to pass through it.
+        const enemy = this.nearestEnemy(def.range);
+        const target = enemy ?? this.bossAsTarget(def.range);
         if (!target) return false;
         const d = Math.hypot(target.x - this.x, target.y - this.y) || 1;
         this.projectiles.push({
@@ -556,7 +624,7 @@ export class World {
       if (a.pull || a.damage <= 0) continue;
       this.grid.query(a.x, a.y, a.radius + 64, this.near);
       for (const e of this.near) {
-        if (e.hp <= 0) continue;
+        if (e.def.invulnerable || e.hp <= 0) continue;
         if (Math.hypot(e.x - a.x, e.y - a.y) > a.radius + e.def.radius) continue;
         if (a.tick) {
           e.hp -= a.damage * dt * 6;
@@ -592,7 +660,8 @@ export class World {
       if (p.hostile) continue;
       this.grid.query(p.x, p.y, p.radius + 64, this.near);
       for (const e of this.near) {
-        if (e.hitBySerial === p.serial || e.hp <= 0) continue;
+        // You cannot shoot a document (G-018).
+        if (e.def.invulnerable || e.hitBySerial === p.serial || e.hp <= 0) continue;
         const r = e.def.radius + p.radius;
         if ((e.x - p.x) ** 2 + (e.y - p.y) ** 2 > r * r) continue;
 

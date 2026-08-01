@@ -304,6 +304,12 @@ over time in transit. Damage ramps over the run, starting below baseline.
 
 ### 4.4 · The shape of the build space
 
+> **Superseded by §7 (2026-08-01, same day).** The bots measured this map and it
+> was wrong in both directions — the two builds it names as the act's spine came
+> last, and the item it names as the likely cut came first. Left standing rather
+> than corrected in place, because the reasoning below is exactly the reasoning
+> that failed and the corrected map in §7 is only legible next to it.
+
 | | Speed | Durability | Range |
 |---|---|---|---|
 | **Midpiece** | ↑ | ↓ | — |
@@ -389,12 +395,166 @@ force or people.
 
 ## 6 · What is still open
 
-- **The Egg's item drop.** The boss should hand the act's last item, and none of
-  the seven above is shaped like a reward for beating it. Deferred until the
-  Conception loop is playable end to end, because the right answer depends on
-  what the build space actually feels like.
-- **Whether Motility survives.** Named above as the likely cut. Decided by the
-  bots, not by me.
+- ~~**The Egg's item drop.**~~ **Settled — `G-017`, see §7.4.** An inheritance,
+  assigned rather than chosen. Design closed, implementation gated on act 2.
+- ~~**Whether Motility survives.**~~ **Settled — `G-016`, see §7.3.** It stays.
+  The bots picked it and it won.
 - **Act 2 onward.** Not started. The reserved lists (`G-011`) are per act, and
   School's — the bright hard rectangle the substitute's clipboard needs — should
   be written before any School asset is generated, not after.
+
+---
+
+## 7 · Amendment — 2026-08-01, after the first bot runs
+
+Appended rather than edited in. §4.4 stays where it is.
+
+### 7.1 · What the evidence supports, and what it does not
+
+The caveats are right and I am not going to launder them. Three separate claims
+here and they are not equally strong:
+
+**Load-bearing, and it does not depend on the sample size.** Membrane+Acrosome
+left **97%** of the boss standing; Midpiece+Wake left **86%**. Those are not low
+win rates, they are *non-participation* — the builds did not meaningfully damage
+the Egg. That is a mechanism observation, not a rate comparison, so overlapping
+Wilson intervals do not touch it. Sixteen runs is plenty to establish that a
+build does approximately nothing, because the effect size is the whole quantity.
+
+**Not established, and I am not treating it as such.** The ordering among
+Motility, greedy-Capacitation and random. Those intervals overlap heavily and
+nothing below rests on which is actually best.
+
+**A confound worth naming, which happens to argue the same way.** The bot's
+standoff now derives from what the run is holding — so a Wake run stands at
+roughly 26px from a boss firing aimed five-shot spreads. For the shortest-range
+items, *correct* positioning and *survivable* positioning may be incompatible by
+construction. That is not noise in the measurement; it is the shape problem
+appearing a second time in a different place.
+
+And the honest asterisk: the bot's movement is mediocre on purpose, so this
+measures whether the curve is fair to an average player. A human who kites the
+Egg well may find Wake fine. That does not rescue the design — an item that
+requires expert play to do anything at all against the act's only boss is not a
+build, it is a skill check wearing an item's clothes.
+
+### 7.2 · The call — the Egg pulls (`G-015`)
+
+Option **(b)**, with one correction to how it was framed. Not a *phase* that
+closes the distance — a **constant radial attraction**, live from spawn,
+unchanged at every health value, never reacting to anything.
+
+A phase would contradict `G-006`, because a phase is the boss responding to the
+fight. A constant field does the opposite: it is the boss not responding to
+anything, ever, while the space near it stops being neutral. That is the most
+indifferent thing the Egg could possibly do, and it makes "it has already decided
+and is waiting for you to catch up" mechanical instead of decorative. It also
+happens to be what an egg actually does.
+
+The fight becomes an orbit, and every item answers the same question — *how close
+do I let it take me* — differently. Full reasoning and the three rejected shapes
+are in `G-015`.
+
+Tuning constraint, and it is the one thing here that is not negotiable: **a player
+swimming directly outward must make progress.** If the pull cannot be beaten,
+Motility has no counterplay and the fix has replaced one dead build with another.
+Somewhere around a third of base player speed is my starting guess and it is only
+a guess; the bots own the number.
+
+Not changed: the 320 HP. Shape and tuning in the same pass teaches nothing about
+either.
+
+### 7.3 · The corrected build map (`G-016`)
+
+Motility stays. The pre-commitment in §4.4 said "cut it if the bots never chose
+it"; they chose it and it won, so it resolves the way it was written. Unbuffed,
+untouched.
+
+What §4.4 got wrong is more useful than the item. That map was drawn entirely
+against the crowd phase — and it is probably still correct about the crowd phase.
+It predicted item value over five minutes of horde, and then the run was decided
+by a final minute that contains no horde at all. Motility is plausibly the weak
+crowd pick §4.4 called it, and it wins regardless because it is the only pick
+that can participate in the boss.
+
+So the corrected map is not "Motility is good." It is:
+
+> **The act has two skill checks. §4.4 designed items for one of them and then
+> scored them on the other.**
+
+| Build | Crowd phase | Boss, before `G-015` | Boss, after `G-015` (predicted) |
+|---|---|---|---|
+| Motility | Weak — one line, no area | The only real answer | Workable, no longer dominant |
+| Midpiece + Wake | Strong — the kiting fantasy | Cannot reach it | Rides the pull into a close orbit |
+| Membrane + Acrosome | Strong — farms the crowd | Cannot reach it | Rides it all the way in; Membrane pays for it |
+| Chemotaxis | Enables both area builds | Nothing to pull | Competes with the Egg's own pull — untested |
+| Capacitation | Weak early, scales | Arrives exactly on time | Unchanged; still the greedy pick |
+
+Chemotaxis is the one I cannot predict. A player-placed attractor inside a field
+that already attracts is either a genuinely interesting interaction or an
+incoherent one, and I do not know which. Flagging it as the thing to watch rather
+than pretending I designed it.
+
+### 7.4 · The Egg's drop — inheritance (`G-017`)
+
+Unblocked and settled. Every other item in the game is a choice of three; this
+one is assigned at random at absorption, permanent for the remaining six acts, no
+reroll, no announcement. The first thing that defines the player is unchosen and
+lasts longest, and the game never says so.
+
+Three rolls — **Constitution** (max HP up, XP per level up), **Precocity** (each
+act starts one level ahead, that level assigned at random), **Sensitivity**
+(pickup radius up, contact damage taken up). All physiological, none of them a
+category of person (`D-007`).
+
+**Do not implement yet.** A permanent cross-act modifier validated against the
+only act that exists has been validated against nothing.
+
+### 7.5 · The antibody (`G-018`)
+
+The answer is inevitability, and the fix is not HP.
+
+**The antibody loses its health bar.** Shots pass through it. Contact damage goes
+to zero — it costs speed and never health. Stacks cap, with diminishing drag per
+stack. The only counterplay is not being where it is going.
+
+Median 0 across 80 runs means what shipped is not the enemy §3.3 describes. But
+raising HP to 20 or 30 makes the antibody's presence a function of the player's
+damage output — a treadmill that needs re-tuning against every weapon buff for
+seven acts, and which makes the mechanic fire hardest for the players already
+losing. You cannot shoot a document. It is the one thing in the act that weapons
+do not affect, and that carries `whyThisStage` better than any number.
+
+Implementation: an `invulnerable` flag rather than a large `hp`, and drop its XP —
+it is not a kill. §3.4's `hp: 2` and `contactDamage: 1` both go.
+
+### 7.6 · Predictions, recorded before the changes land
+
+So that a wrong call gets caught rather than absorbed. If these do not come out,
+the diagnosis in `G-015` and `G-018` was wrong and the entries need reopening —
+not the numbers quietly adjusted until they agree.
+
+**On the pull:**
+
+- Motility falls out of first place, to roughly the middle of the table.
+- Membrane+Acrosome and Midpiece+Wake both clear 20%, from 0% and 6%.
+- Boss HP remaining at death for both short builds drops below 50%, from 97% and
+  86%. **This is the one that matters** — it is the participation measure, and it
+  is the claim that does not need a large sample to test.
+- **Falsifier:** if Motility is still near 50% and either short build is still
+  under 10% after the pull is in, reach was not the cause and `G-015` is wrong.
+
+**On the antibody:**
+
+- Median stacks at the 300s mark rises from 0 to somewhere in the range 4–12.
+- The spread *between* policies is wide — a careful policy should carry
+  meaningfully fewer than a careless one.
+- **Falsifier:** if every policy converges on the same stack count, the drag is
+  not dodgeable and the antibody is a timer in an enemy costume. That would mean
+  `G-018` overcorrected, and the honest response is to cut the enemy rather than
+  keep tuning it.
+
+**Standing risk, not a prediction:** the pull makes the Egg fight more forgiving
+for four builds at once. If win rates rise across the board and the table flattens
+near 50%, the fight has become easy rather than fair, and *that* is when 320 HP
+moves — after the shape is settled, not alongside it.

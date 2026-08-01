@@ -335,3 +335,152 @@ Rejected: **trades priced to be net-neutral**, tuned so no item is ever wrong.
 Fairer and duller. An item that is correct in every build is not a decision, and
 the point of a seven-item act is that picking one should mean losing a run you
 could otherwise have had.
+
+## G-015 · 2026-08-01 · The Egg pulls the player in, and it still does not move
+A constant radial attraction toward the Egg, live from the moment it spawns,
+identical at full health and at one HP. It does not ramp, does not phase, does
+not react to the player's build or position. Weak enough that swimming directly
+outward makes progress; strong enough that tangential movement is the efficient
+path, which turns the fight into an orbit.
+
+**This is not a concession to the short-range builds — it is better
+characterisation than what is there now.** `G-006` says the Egg has already
+decided and is waiting for the player to catch up. A thing that stays put is
+*passive*. A thing that stays put and draws you in anyway is **inevitable**, and
+inevitable is what that entry was reaching for. It is also what an egg actually
+does: chemoattraction is the real mechanism, and it is the least aggressive
+possible way for a boss to close a distance, because the boss is not the thing
+that moves. The player is.
+
+Mechanically it gives every item the same question — how close do I let it take
+me — and a different answer per build. Motility fights the pull from 520px and
+pays in constant repositioning against an aimed spread. Wake rides it into a
+close orbit, which is the first time in the act that "kills by having already
+been somewhere" describes something the player can actually do. Acrosome lets it
+take them all the way in. Membrane is what makes that survivable. One field,
+five builds, no per-item special cases.
+
+The measured problem was that the act had two skill checks and the items only
+addressed one: seven items were designed for crowd combat and the boss is a
+single stationary target with no crowd. That is a shape error and it is mine.
+
+Rejected: **(a) leave it a ranged check** — short-range builds are expected to
+have picked up reach by 300s. Defensible, and it makes the requirement invisible:
+nothing in five minutes of crowd tells the player that range is mandatory, so the
+level-up screen becomes a trap that pays out at 300s. It also guts `G-014`.
+Acrosome's stated trade is range; if range is compulsory at the act's end, that
+is not a trade, it is a delayed loss, and every honest `tradesAway` line in the
+file becomes a warning the player cannot act on.
+
+Rejected: **(c) a boss-relevant clause on Acrosome and Wake** — double damage to
+bosses, or similar. Cheapest, and it is an admission with a coat of paint. It
+leaves the fight a stationary damage check where position does not matter, it
+turns seven items into seven items and seven exceptions, and it recurs at every
+boss in seven acts. A clause that exists because the design does not work is a
+design that does not work.
+
+Rejected: **adds** — the Egg spawns cells that must be fought at contact range.
+The genre default, it would work, and it costs the act its best moment. Three
+hundred seconds of horde resolving into one enormous still thing on an empty
+screen is the strongest tonal beat in the act, and filling that screen back up
+with chaff to solve a reach problem is trading the scene for a patch.
+
+Rejected also: **moving the 320 HP number now.** It is a knob and it may well
+need to move, but changing the shape and the tuning in the same pass means
+learning nothing from either. Shape first, re-measure, then tune.
+
+## G-016 · 2026-08-01 · Motility stays, and the build map in ROSTER §4.4 was wrong
+§4.4 pre-committed to cutting Motility if the bots never picked it. They picked
+it and it won by a wide margin, so the pre-commitment resolves in the direction
+it was written for: it stays, unbuffed and untouched.
+
+The interesting part is not the item, it is that the map was wrong and *why*. The
+map was drawn entirely against the crowd phase, where a single piercing line is
+genuinely worse than area damage — and it is probably still right about that. It
+predicted an item's value over five minutes of horde and then measured a run
+whose last minute is a fight with no horde in it. Motility likely is the weak
+crowd pick §4.4 called it, and it wins anyway because it is the only pick that
+can participate in the boss.
+
+That is a claim rather than a conclusion, and `G-015` is the experiment that
+tests it. The corrected map is appended to `CONCEPTION-ROSTER.md` §7 rather than
+edited over the original, so the wrong version stays legible.
+
+Rejected: **cutting Motility to protect the map** — honouring §4.4's intent
+("neither build wants it") over its stated condition ("if the bots never chose
+it"). That is choosing the prediction over the measurement, and it is exactly the
+failure the pre-commitment existed to prevent. A pre-commitment that only binds
+when it agrees with you is not one.
+
+Rejected: **nerfing Motility to 50% win rate parity** with the rest. Fastest way
+to a flat table and it fixes nothing — the short builds are not losing to
+Motility, they are losing to a boss they cannot reach. Equalising the outcome
+while the cause stands would hide the finding under a number that looks healthy.
+
+## G-017 · 2026-08-01 · The Egg's drop is an inheritance, and the player does not choose it
+Every other item in the game arrives as a choice of three. The Egg's does not.
+At absorption the run is assigned one **inheritance** at random — permanent for
+the remaining six acts, with a real upside and a real downside, and no reroll.
+The player is not told it is coming and is not asked.
+
+It is the only unchosen item in the game, it is the first one, and it lasts the
+longest. That is the theme delivered by the shape of a UI element and not one
+word of it is said out loud, which is the only channel `G-001` permits. It also
+satisfies `G-014` harder than anything in §4: the trade is real *and* unconsented.
+
+Three rolls, deliberately about the body and never about a category of person
+(`D-007`):
+
+| | Gives | Costs |
+|---|---|---|
+| **Constitution** | Higher maximum health for the whole run | XP required per level rises; slower to become anything |
+| **Precocity** | Every act starts with one level already taken | That level is assigned at random from the act's pool |
+| **Sensitivity** | Much larger pickup radius | Contact damage taken is higher |
+
+**Do not build this yet.** It is worth nothing until a second act exists to carry
+it into, and a permanent modifier validated against one act is a modifier that
+has been validated against nothing. Design is settled; implementation is gated on
+act 2.
+
+Rejected: **a conventional strong item as the reward** — an eighth act-1 weapon,
+handed over for winning. It is what the drop slot is for and it breaks the
+content budget for a payoff the player enjoys for zero seconds, because the act
+ends immediately after. A reward granted at the exact moment it stops being
+usable is a number, not an item.
+
+Rejected: **no drop at all** — you get absorbed, the reward is that the game
+continues. Clean, honest, thematically defensible, and it wastes the single best
+placed slot in the game. The one moment the player is guaranteed to be paying
+attention is the transition out of the act they just survived.
+
+## G-018 · 2026-08-01 · The antibody cannot be killed
+It has no health bar. Shots pass through it. It drifts, it attaches, it stacks,
+and the only counterplay is not being where it is going. Contact damage drops to
+zero — it never costs health, only speed — and stacks are capped with a
+diminishing return per stack, so it degrades a run rather than ending one.
+
+The bots found median **0 stacks across all 80 runs, every policy**: at 2 HP it
+dies at range before it ever reaches anyone who is fighting back. §3.3 describes
+an enemy that arrives regardless and is not remarked upon; what shipped is an
+enemy that any competent build deletes and never sees. Those are different
+enemies.
+
+Raising the HP is the wrong axis. It converts "unkillable" into "killed slightly
+later", it has to be re-tuned upward against every weapon buff for seven acts,
+and a strong build still zeroes it — so the mechanic would work only for players
+who are already losing. **The right fix is a different kind of enemy, not a
+tougher one.** You cannot shoot a document. It is the one thing in the act that
+weapons do not affect, and that is a stronger delivery of `whyThisStage` — a
+record opened before you arrived, describing a category rather than a person, and
+binding anyway — than any HP value could be.
+
+Rejected: **raising HP to something that survives contact**, 20 or 30. The
+obvious fix, it is a one-line change, and it makes the antibody's presence a
+function of the player's damage output — which is a treadmill, and which means
+the enemy is most present for the players least able to absorb it. Backwards.
+
+Rejected: **accepting zero as correct** — the drag is avoidable by good play, the
+bots played well, working as intended. Internally consistent, and it means the
+antibody is a 2 HP rival sperm with a debuff nobody experiences. If the mechanic
+only fires against players who are already dying, it is not in the game. Cut it
+or make it real; there is no third option that keeps §3.3 honest.
