@@ -28,3 +28,7 @@ tools/playtest/runs/
 .cursor/
 .claude/
 .DS_Store
+
+# Dev frame captures — regenerable, and not evidence of anything once the
+# game moves on. The pipeline output under assets/ is what gets committed.
+tools/dev/snapshots/

@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Natural Causes</title>
+    <style>
+      /* The page is a frame for the canvas and nothing else. Phaser's scale
+         manager handles fitting; this just removes the default margin and
+         stops the canvas from being letterboxed against white. */
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #12100c;
+        overflow: hidden;
+      }
+      body {
+        display: grid;
+        place-items: center;
+      }
+      canvas {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="game"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
