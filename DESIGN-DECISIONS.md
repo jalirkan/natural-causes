@@ -558,3 +558,70 @@ Rejected: **a pull-toward on the antibody.** Mechanically the most reliable fix,
 and it is the same mechanic being removed from the boss in `G-019` on the same
 day, reintroduced smaller and on something that ought to be indifferent. An
 antibody that draws the player in is an antibody with an interest in the player.
+
+## G-021 · 2026-08-01 · A build may buy its way out of the act's inevitability
+`midpiece+wake` carries a median of 2 antibody stacks against a band of 4–12, and
+that stands. The speed build is allowed to nearly opt out of the one thing in the
+act that is supposed to happen to everyone.
+
+§3.3 wanted an enemy that arrives regardless and is not remarked upon, and §8.4's
+dispersion condition was written specifically to confirm that *play* changes the
+outcome. A build that spends its entire identity on movement, and pays maximum HP
+for it, getting partial immunity to a movement tax is that condition being
+satisfied rather than dodged. An inevitability nothing can reduce is a timer, and
+§8.4 already names that as a failure mode.
+
+There is a caveat on the mechanism that does not change the decision. A fixed
+pixel lead is close to speed-neutral — lateral escape available is `v × (L / v)`
+and the speed cancels — so Midpiece is probably not buying this with velocity at
+all. The likelier purchase is heading volatility: a kiting build changes direction
+constantly and the spawn placement is stale before it matters. If that is right,
+the mechanic rewards direction changes rather than speed, which is a better skill
+expression than the one it was designed for. Measured in Run 5 before anything is
+tuned on it.
+
+Rejected: **shortening lead distance** to bring the outlier into band. The obvious
+dial and the wrong one — four of five policies are already in band, the outlier is
+the *winning* build, and the dial is global, so it would push
+`membrane+acrosome` (median 8, p90 15, and the build already struggling at 38%)
+further up. Fixing the leader by hurting the laggard with the one lever that
+cannot distinguish them.
+
+Rejected: **exempting the antibody from Midpiece's speed bonus**, or otherwise
+special-casing the interaction so the fast build cannot escape. It would work and
+it is a clause of exactly the kind `G-015` was rejected for — a rule that exists
+because the design does not produce the result, and one that would need a sibling
+at every future item that touches movement.
+
+## G-022 · 2026-08-01 · Membrane's compounding stands; its stated cost did not
+`membrane+acrosome` now pays its speed cost twice — once from the item, once from
+carrying the most antibody stacks of any policy (mean 7.4, p90 15) because it is
+too slow to avoid them. Boss HP remaining moved 5% → 22% and the win rate 50% →
+38%. That stands.
+
+22% is not the non-participation signature. That was 86–97%, and a build that
+removes 78% of the boss before losing is a build losing — which is what Membrane
+is for and what its `tradesAway` promises. It is a reinforcing loop, and the stack
+cap from §7.5 is the only reason it is a bounded ceiling rather than a spiral; the
+p90 of 15 is that cap working. If the cap is ever raised, this interaction decides
+how far.
+
+**What was wrong is the item text, not the interaction.** Membrane's `tradesAway`
+names the spermicide ring and the white cell and stops, because antibodies
+arrived at the arena edge when it was written and were dodgeable by anyone. It now
+understates its own cost by a primary consequence. `G-014` warns against a
+`tradesAway` that argues a downside away; a field that quietly understates is that
+failure inverted, and it is worse here, because "the trade was stated" is the
+entire argument for keeping the compounding. Corrected in `CONCEPTION-ROSTER.md`
+§4.3.
+
+Rejected: **capping antibody stacks lower for slow builds**, or scaling drag
+inversely with base speed. It protects the build that most needs protecting and it
+deletes the only interaction in the act where two of the player's own choices
+combine into something neither of them said alone. That emergent combination is
+what a seven-item build space is for.
+
+Rejected: **buffing Membrane to compensate** — more damage reduction, or a smaller
+speed penalty. Restores the win rate and dissolves the item. Membrane exists to be
+the slow durable pick; a Membrane that is no longer meaningfully slow is a strictly
+additive item, which `G-014` rules out for the whole act.

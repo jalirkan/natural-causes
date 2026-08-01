@@ -53,6 +53,24 @@ export interface RunResult {
   dragStacks: number;
   /** Stacks at the 300s mark — the moment §7.6's prediction is stated about. */
   stacksAt300: number;
+  /**
+   * Mean absolute heading change per second across the crowd phase, radians.
+   *
+   * §9.3's hypothesis: antibodies spawn on the player's instantaneous heading,
+   * so a build that changes direction constantly leaves the placement stale
+   * before it matters. If that is the mechanism, this correlates with stacks
+   * and speed does not.
+   */
+  headingChangeRate: number;
+  /** Speed from items alone at 300s. Exogenous — what the build chose. */
+  itemSpeedAt300: number;
+  /** State on arrival at the boss. If a swing is not in the stacks, it is here. */
+  hpAt300: number;
+  hpFractionAt300: number;
+  killsAt300: number;
+  enemiesAt300: number;
+  /** Realised mean speed across the crowd phase. Endogenous: stacks lower it. */
+  meanSpeed: number;
   /** How much of the boss was left when the run ended. Null if it never spawned. */
   bossHpLeft: number | null;
   bossHpFraction: number | null;
@@ -69,7 +87,21 @@ export interface RunResult {
  * perfectly measures the ceiling, and the ceiling is not what a difficulty
  * curve has to be fair to.
  */
-function decideMove(w: World): Input {
+/**
+ * Heading noise, radians of standard deviation per step.
+ *
+ * The intervention that separates §9.3's two candidate mechanisms. Rotating
+ * the movement vector changes how much the player turns and leaves the
+ * magnitude — the speed — untouched, so an arm with jitter differs from the
+ * control in volatility and in nothing else. Correlation could not separate
+ * them because the policy set is collinear; this does not have to.
+ */
+let headingJitter = 0;
+export function setHeadingJitter(radians: number): void {
+  headingJitter = radians;
+}
+
+function decideMove(w: World, rng: () => number): Input {
   let ax = 0;
   let ay = 0;
 
@@ -148,7 +180,22 @@ function decideMove(w: World): Input {
 
   const len = Math.hypot(ax, ay);
   if (len < 0.001) return { moveX: 1, moveY: 0 };
-  return { moveX: ax / len, moveY: ay / len };
+  let nx = ax / len;
+  let ny = ay / len;
+
+  if (headingJitter > 0) {
+    // Box-Muller for a normal deviate, then rotate. Rotation preserves
+    // magnitude exactly, so speed is untouched by construction.
+    const u = Math.max(1e-9, rng());
+    const angle = Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * rng()) * headingJitter;
+    const c = Math.cos(angle);
+    const sn = Math.sin(angle);
+    const rx = nx * c - ny * sn;
+    const ry = nx * sn + ny * c;
+    nx = rx;
+    ny = ry;
+  }
+  return { moveX: nx, moveY: ny };
 }
 
 /** Level past which a greedy policy should look at its other picks first. */
@@ -196,17 +243,49 @@ export function runOnce(
 
   let steps = 0;
   let stacksAt300 = 0;
+  let itemSpeedAt300 = world.itemSpeed;
+  let hpAt300 = world.hp;
+  let hpFractionAt300 = 1;
+  let killsAt300 = 0;
+  let enemiesAt300 = 0;
+  // Heading volatility and realised speed, accumulated over the CROWD phase
+  // only — antibodies stop spawning when the boss arrives, so boss-phase
+  // manoeuvring is not part of what produced the stacks.
+  let headingDelta = 0;
+  let speedSum = 0;
+  let crowdSteps = 0;
+  let prevFx = world.facingX;
+  let prevFy = world.facingY;
+
   const maxSteps = MAX_SECONDS / DT;
   while (!world.dead && !world.won && steps < maxSteps) {
     if (stacksAt300 === 0 && world.time >= CONCEPTION.durationSeconds) {
       stacksAt300 = world.dragStacks;
+      itemSpeedAt300 = world.itemSpeed;
+      hpAt300 = world.hp;
+      hpFractionAt300 = world.hp / world.maxHp;
+      killsAt300 = world.kills;
+      enemiesAt300 = world.enemies.length;
     }
     if (world.offers) {
       world.choose(chooseOffer(policy, world.offers, world.items, rng));
       continue;
     }
-    world.step(DT, decideMove(world));
+    const inCrowdPhase = world.time < CONCEPTION.durationSeconds;
+    world.step(DT, decideMove(world, rng));
     steps++;
+
+    if (inCrowdPhase) {
+      // Angle between successive headings. atan2 of the cross and dot products
+      // gives the signed turn without a quadrant special case.
+      const cross = prevFx * world.facingY - prevFy * world.facingX;
+      const dot = prevFx * world.facingX + prevFy * world.facingY;
+      headingDelta += Math.abs(Math.atan2(cross, dot));
+      speedSum += world.speed;
+      crowdSteps++;
+      prevFx = world.facingX;
+      prevFy = world.facingY;
+    }
   }
 
   return {
@@ -220,6 +299,13 @@ export function runOnce(
     level: world.level,
     dragStacks: world.dragStacks,
     stacksAt300,
+    headingChangeRate: crowdSteps > 0 ? +(headingDelta / (crowdSteps * DT)).toFixed(3) : 0,
+    itemSpeedAt300: +itemSpeedAt300.toFixed(1),
+    hpAt300: +hpAt300.toFixed(1),
+    hpFractionAt300: +hpFractionAt300.toFixed(3),
+    killsAt300,
+    enemiesAt300,
+    meanSpeed: crowdSteps > 0 ? +(speedSum / crowdSteps).toFixed(1) : 0,
     items: Object.fromEntries(world.items),
   };
 }
@@ -228,6 +314,53 @@ export function runOnce(
 // Reporting. Portfolio convention: any statistic shown carries its uncertainty,
 // and a rate from a handful of runs is not a rate.
 // ---------------------------------------------------------------------------
+
+/**
+ * Pearson correlation with a Fisher-z 95% interval.
+ *
+ * The interval is not decoration. An r of 0.4 at n=16 and an r of 0.4 at n=80
+ * are different claims, and this file's first rule is that the interval is the
+ * result.
+ */
+export function pearson(xs: number[], ys: number[]): { r: number; lo: number; hi: number; n: number } {
+  const n = Math.min(xs.length, ys.length);
+  if (n < 4) return { r: 0, lo: -1, hi: 1, n };
+  const mx = xs.reduce((a, b) => a + b, 0) / n;
+  const my = ys.reduce((a, b) => a + b, 0) / n;
+  let num = 0;
+  let dx = 0;
+  let dy = 0;
+  for (let i = 0; i < n; i++) {
+    const a = xs[i]! - mx;
+    const b = ys[i]! - my;
+    num += a * b;
+    dx += a * a;
+    dy += b * b;
+  }
+  if (dx === 0 || dy === 0) return { r: 0, lo: -1, hi: 1, n };
+  const r = num / Math.sqrt(dx * dy);
+  // Fisher z transform, back-transformed.
+  const z = 0.5 * Math.log((1 + r) / (1 - r));
+  const se = 1 / Math.sqrt(n - 3);
+  const lo = Math.tanh(z - 1.96 * se);
+  const hi = Math.tanh(z + 1.96 * se);
+  return { r: +r.toFixed(3), lo: +lo.toFixed(3), hi: +hi.toFixed(3), n };
+}
+
+/**
+ * Correlation of x with y, holding z fixed.
+ *
+ * Needed because heading volatility and item speed are collinear across the
+ * policy set — the fast builds are also the kiting builds — so their raw
+ * correlations with stacks are not separable claims.
+ */
+export function partial(xs: number[], ys: number[], zs: number[]): number {
+  const rxy = pearson(xs, ys).r;
+  const rxz = pearson(xs, zs).r;
+  const ryz = pearson(ys, zs).r;
+  const denom = Math.sqrt((1 - rxz * rxz) * (1 - ryz * ryz));
+  return denom === 0 ? 0 : +((rxy - rxz * ryz) / denom).toFixed(3);
+}
 
 /** Wilson score interval. Sane at small n, unlike normal approximation. */
 export function wilson(successes: number, n: number, z = 1.96): [number, number] {
@@ -278,6 +411,12 @@ export interface PolicySummary {
   medianStacksAt300: number;
   p90StacksAt300: number;
   meanStacksAt300: number;
+  meanHeadingChangeRate: number;
+  meanItemSpeed: number;
+  meanRealisedSpeed: number;
+  medianHpFractionAt300: number;
+  medianKillsAt300: number;
+  medianEnemiesAt300: number;
   /** Median share of the boss still standing when the run ended. */
   medianBossLeft: number | null;
   reachedBoss: number;
@@ -306,6 +445,12 @@ export function summarise(results: RunResult[]): PolicySummary[] {
       medianStacksAt300: median(runs.map((r) => r.stacksAt300)),
       p90StacksAt300: percentile(runs.map((r) => r.stacksAt300), 90),
       meanStacksAt300: +mean(runs.map((r) => r.stacksAt300)).toFixed(1),
+      meanHeadingChangeRate: +mean(runs.map((r) => r.headingChangeRate)).toFixed(3),
+      meanItemSpeed: +mean(runs.map((r) => r.itemSpeedAt300)).toFixed(1),
+      meanRealisedSpeed: +mean(runs.map((r) => r.meanSpeed)).toFixed(1),
+      medianHpFractionAt300: median(runs.map((r) => r.hpFractionAt300)),
+      medianKillsAt300: median(runs.map((r) => r.killsAt300)),
+      medianEnemiesAt300: median(runs.map((r) => r.enemiesAt300)),
       reachedBoss: runs.filter((r) => r.bossHpFraction !== null).length,
       medianBossLeft: (() => {
         const reached = runs.filter((r) => r.bossHpFraction !== null);

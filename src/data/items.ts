@@ -187,8 +187,14 @@ export const ITEMS: Record<string, ItemDef> = {
     maxLevel: 5,
     enables:
       'Standing inside the crowd on purpose, which is the precondition for the Acrosome build and the only way to farm the rival wave rather than outrun it.',
+    // Corrected 2026-08-01 after Run 4 (§9.4). The original named the ring and
+    // the white cell and stopped, because when it was written antibodies
+    // arrived at the arena edge and anyone could dodge them. Under G-020 this
+    // build collects the most stacks of any policy, so the field understated
+    // its own cost by a primary consequence — and the whole argument for
+    // keeping the compounding is that the trade was stated.
     tradesAway:
-      'The speed that made zones optional. A spermicide ring that used to be a detour is now a commitment, and a white cell crossing the lane has to be fought instead of avoided.',
+      'The speed that made zones optional, and then more of it. A spermicide ring that used to be a detour is now a commitment, a white cell crossing the lane has to be fought instead of avoided, and every antibody a faster build swims past is collected instead.',
   },
 
   capacitation: {

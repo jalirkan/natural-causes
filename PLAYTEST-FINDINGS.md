@@ -21,6 +21,162 @@ Running record of what the automated bots measured and what it means for design.
 
 ---
 
+# 2026-08-01 · Run 5 — diagnostic. No design changes.
+
+Two questions, per §9.5. Both answered. Both answers are different from the ones
+§9.3 expected, and both turn out to rest on the instrument rather than the design.
+
+## The short version
+
+1. **Neither volatility nor speed buys the dodge. Chemotaxis does** — it pulls
+   antibodies onto the player. §9.3's mechanism is not supported and §9.3
+   reopens, but not in the direction it anticipated.
+2. **§9.3's volatility hypothesis cannot be tested with this bot**, and the reason
+   matters more than the result: the bot has no stable heading to make stale.
+3. **`midpiece+wake`'s stacks tripled rather than halved** — 0.9 → 2.6 — and it
+   still went 69% → 100%. The expected explanation is wrong in direction.
+4. The real swing is **HP on arrival at the boss: 52% → 66%**, and the cause is
+   the bot fleeing a harmless enemy.
+5. Membrane's corrected `tradesAway` is lifted. Data only, no behaviour change.
+
+## Q1 — what buys the dodge
+
+### Correlations, lead arm, n=80
+
+| pair | r | 95% CI | partial, holding speed |
+|---|---|---|---|
+| stacks vs heading-change rate | −0.399 | [−0.568, −0.196] | **−0.182** |
+| stacks vs item speed (exogenous) | −0.382 | [−0.555, −0.178] | −0.133 (holding turn) |
+| **stacks vs chemotaxis level** | **+0.462** | **[+0.269, +0.619]** | **+0.366** |
+
+Speed is reported as *item* speed — the exogenous half. Correlating stacks
+against realised speed is circular, because stacks are one of the things that
+lower realised speed. That circular figure is −0.46 and means nothing.
+
+**Group means: 6.7 stacks with Chemotaxis (n=38) against 3.3 without (n=42).**
+Double, on one item.
+
+### The intervention
+
+Correlation could not separate volatility from speed, because the policy set is
+collinear — the fast builds are also the kiting builds. So the arms were
+separated by force: a heading-jitter arm rotates the bot's movement vector by a
+normal deviate each step, which changes how much it turns and leaves the
+magnitude exactly untouched.
+
+| policy | turn rad/s (base → jitter) | stacks (base → jitter) |
+|---|---|---|
+| midpiece+wake | 69.1 → 73.8 | 2.6 → 2.6 |
+| membrane+acrosome | 51.7 → 56.6 | 7.4 → 7.5 |
+| motility | 62.7 → 67.5 | 4.0 → 3.4 |
+| greedy-capacitation | 53.6 → 61.3 | 4.4 → 3.4 |
+| random | 55.7 → 60.8 | 6.1 → 6.9 |
+
+Turn rate up by 5–8 rad/s across the board, speed identical by construction, and
+stacks moved by at most 1 with **no consistent direction** — two down, two up,
+one flat. **Null.**
+
+### Why the volatility hypothesis cannot be tested here
+
+The measured turn rates are 52–74 radians per second. That is eight to twelve
+full rotations every second. The bot's heading is not volatile, it is *thrashing*
+— `decideMove` sums repulsion vectors that flip sign frame to frame, and the
+result is nearly uncorrelated with itself between steps.
+
+So for every policy, "spawn on the player's instantaneous heading" is already
+"spawn at a random point 320px away". There is no stable heading to make stale,
+and there is no headroom for the jitter arm to add. §9.3's mechanism may be
+entirely right about a human and is untestable against this bot.
+
+**This is the finding with the longest reach in the file.** A human player holds a
+heading for whole seconds at a time. Against a human, G-020 places antibodies
+much closer to where the player will actually be, and **every stack count in
+Runs 4 and 5 is a floor rather than an estimate.** The band in §8.4 was
+calibrated on bot numbers that understate the mechanic.
+
+### What the mechanism actually appears to be
+
+Chemotaxis drops an attractor that pulls nearby enemies toward a point.
+`applyAttractors` does not exempt antibodies, so a player using Chemotaxis is
+dragging them onto themselves. It survives controlling for speed (+0.366) and it
+is the largest effect measured in either direction.
+
+It also explains the pair the other hypotheses could not.
+`membrane+acrosome` and `greedy-capacitation` have nearly identical item speed
+(162.3 vs 161.8) and nearly identical turn rate (51.7 vs 53.6), and differ by 68%
+in stacks — 7.4 against 4.4. The difference between those two policies is that
+one takes Chemotaxis and the other does not.
+
+This is §7.3's flagged unknown arriving: *"a player-placed attractor inside a
+field that already attracts is either a genuinely interesting interaction or an
+incoherent one, and I do not know which."* The Egg's field is gone, but the
+interaction with the antibody is the live version of the same question, and it is
+currently invisible to the player — nothing signals that the pull tool collects
+the thing that cannot be shot.
+
+## Q2 — why `midpiece+wake` went 69% → 100%
+
+**Not the stacks, and not in the direction §9.3 expected.**
+
+| | edge arm | lead arm |
+|---|---|---|
+| win rate | 69% | 100% |
+| mean stacks at 300s | 0.9 | **2.6** |
+| **HP on arrival at boss** | **52%** | **66%** |
+| kills at 300s | 440 | 361 |
+| enemies alive at 300s | 1498 | 1500 |
+
+Stacks nearly **tripled** rather than halving. The swing is fourteen points of
+health on arrival at the boss, and fewer kills getting there.
+
+**The cause is the bot fleeing something harmless.** Antibodies are invulnerable
+and deal zero contact damage, but `decideMove` repels from every enemy within
+260px with no weighting by how dangerous it is — a 0-damage antibody pushes
+exactly as hard as a 14-damage white cell. Under G-020 antibodies appear at 320px
+instead of 780px, so there are many more harmless repulsors near the player, and
+being pushed around by them incidentally keeps the bot away from the rivals,
+spermicide and white cells that actually do damage.
+
+G-020 accidentally handed the bot a defensive screen. A human would learn within
+one run that antibodies do not hurt, and would stop avoiding them — or would
+avoid them *for the stacks*, which is a different movement pattern entirely.
+
+**INSTRUMENT.** Fourth occurrence in five runs. Not fixed in this pass: correcting
+the bot's threat model changes every number in this file and needs its own control
+arm, which a diagnostic pass should not spend unilaterally.
+
+## What this does to the existing numbers
+
+Both artefacts point the same way — the bots understate G-020 and flatter the
+builds that generate the most antibodies near themselves. That does not overturn
+anything already decided:
+
+- `G-019` was scored on a control arm with spawns forced to the edge, where
+  antibodies are far away and rare. Unaffected.
+- `G-020`'s §8.4 verdict was *working*, and both artefacts suppress the mechanic,
+  so the true effect is at least as large as measured. The direction of the
+  verdict is safe; the magnitude is not.
+- `G-022`'s `membrane+acrosome` at 22% is measured under a bot that gets a free
+  defensive screen from the same enemy taxing it. The 22% is more likely
+  optimistic than pessimistic, which matters for §9.5's 40% threshold.
+
+## Decisions wanted
+
+1. **Chemotaxis pulling antibodies** — intended, or an exemption? It is the
+   largest measured driver of stacks, it is invisible to the player, and it makes
+   the act's control item quietly the act's biggest liability. §7.3 flagged this
+   interaction as unpredictable and it has now been measured.
+2. **§8.4's 4–12 band was calibrated on bot numbers that understate the
+   mechanic.** If a human holds a heading for seconds, the same lead distance
+   produces materially more stacks. The band may need restating against something
+   other than bot medians, or the lead distance re-derived once a human has
+   played it.
+3. **§9.3's volatility hypothesis is unresolved rather than refuted**, and cannot
+   be resolved by this bot. It needs either a bot with heading inertia — which is
+   an instrument change with its own control arm — or a human.
+
+---
+
 # 2026-08-01 · Run 4 — after G-019 (pull dropped) and G-020 (antibodies arrive ahead)
 
 ## The short version

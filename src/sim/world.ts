@@ -301,6 +301,18 @@ export class World {
     return Math.max(ANTIBODY_FLOOR, 1 / (1 + this.dragStacks * ANTIBODY_DRAG_K));
   }
 
+  /**
+   * Speed from items alone — no antibody drag, no engulf.
+   *
+   * The exogenous half of the player's speed: what the build chose, rather
+   * than what happened to it. Correlating stacks against *realised* speed is
+   * circular, because stacks are one of the things that lowers realised speed.
+   * This is the variable §9.3's speed hypothesis is actually about.
+   */
+  get itemSpeed(): number {
+    return PLAYER_BASE_SPEED * this.passiveProduct((d) => d.speedMultiplier);
+  }
+
   /** Movement speed ignoring transient effects. The pull is measured against this. */
   get baseSpeed(): number {
     return PLAYER_BASE_SPEED * this.passiveProduct((d) => d.speedMultiplier) * this.antibodyDrag;

@@ -290,7 +290,10 @@ The mitochondrial spiral. More movement speed, less maximum health.
 Reduced contact damage, reduced movement speed.
 
 - **enables** — `Standing inside the crowd on purpose, which is the precondition for the Acrosome build and the only way to farm the rival wave rather than outrun it.`
-- **tradesAway** — `The speed that made zones optional. A spermicide ring that used to be a detour is now a commitment, and a white cell crossing the lane has to be fought instead of avoided.`
+- **tradesAway** — `The speed that made zones optional, and then more of it. A spermicide ring that used to be a detour is now a commitment, a white cell crossing the lane has to be fought instead of avoided, and every antibody a faster build swims past is collected instead.`
+
+*(`tradesAway` corrected 2026-08-01 after Run 4 — see §9.4. Item text is data
+rather than reasoning, so it is fixed in place; the reasoning is appended.)*
 
 ---
 
@@ -685,6 +688,12 @@ many different runs. Median plus 90th percentile plus mean, per policy.
 
 ### 8.5 · Predictions for Run 4
 
+> **The independence claim below is wrong and is replaced by the standing rule in
+> §9.2.** The two changes do confound each other: antibody stacks tax movement
+> speed, every boss outcome depends on movement speed, and stacks do not expire
+> before the boss. Read naively, Run 4 fired this section's falsifier; a control
+> arm showed the falsification belonged to `G-020`.
+
 Both changes land together; they are independent and do not confound each other.
 
 - **The pull's removal costs nothing that matters.** Boss HP remaining stays at
@@ -711,3 +720,170 @@ resolve on its own once `lash` working is absorbed into the baseline, since that
 bug fix buffed every build simultaneously and its effect is currently
 indistinguishable from everything else. Worth re-reading after Run 4 rather than
 acting on now.
+
+---
+
+## 9 · Amendment — 2026-08-01, after Run 4
+
+Appended. §8 stays; the one part Run 4 reverses is marked in place.
+
+**No design changes in this pass.** Two questions turn on a mechanism nobody has
+measured yet, and the honest response is a diagnostic run rather than a dial.
+
+### 9.1 · What Run 4 established
+
+`G-019` and `G-020` both hold. The control arm reproduces the Run 3 pull-0 numbers
+to identity across every policy, every win rate and every boss figure — which is
+what a deterministic sim with one changed constant should do, and is the cheapest
+evidence available that nothing else drifted.
+
+`G-020` meets §8.4 on both conditions: level for four of five policies, dispersion
+2.8× against a required 2.0×. Neither failure signature is present.
+
+§8.4's instruction to report the distribution rather than the median earned its
+keep immediately. Medians read 2 and 8; the p90s read 4 and 15. The severity was
+in the tail and the median could not see it.
+
+### 9.2 · The independence assumption, replaced (standing rule)
+
+§8.5 said the two changes could not confound each other. The specific coupling is
+mine and I authored it in §3.3: **antibody stacks do not expire before the boss.**
+"They come off only when the act ends" — and the Egg fight happens before the act
+ends, so every stack collected in five minutes of crowd is still on the player
+during the fight. The antibody is not a crowd-phase enemy. It is a crowd-phase
+enemy whose output is a boss-phase debuff.
+
+The general form, which is what future passes need:
+
+> **Independence is a claim about state flow, not about subsystems or phases.** A
+> change is independent of a measurement only if nothing it writes is read by
+> anything the measurement depends on. The antibody writes to player speed; every
+> boss outcome reads player speed. Different system, different phase, same state
+> — coupled.
+
+And the operational rule, which matters more than the reasoning:
+
+> **Every multi-change pass ships with a control arm per change, or it ships one
+> change.** A threshold tells you the outcome moved. It cannot tell you what moved
+> it. Twice now a prediction has fired or failed for a reason outside the
+> hypothesis it was written for — Run 3 an instrument defect, Run 4 a second
+> change — and both times the control arm caught it and the threshold did not.
+
+The sharpest part is that the assumption was not merely wrong, it was
+**unnecessary**. In a seeded deterministic sim a control arm costs one extra batch
+and reproduces to identity. There is no economy in reasoning about what can simply
+be measured, and §8.5 reasoned anyway.
+
+The same error runs through §8.5's other clause — "nothing else changed in this
+pass, so any other shift in the table is a regression rather than a result." That
+treats *no value changed* as *no effect propagated*. It is the same mistake in the
+opposite direction and it would have caused Run 4's `random` movement to be filed
+as a regression.
+
+### 9.3 · `midpiece+wake` at median 2 — accepted, and do not touch lead distance
+
+**Accepted in principle.** Dispersion is the mechanic working, and §8.4's
+dispersion condition exists precisely to detect play affecting outcome. A build
+that spends its entire identity on movement buying partial immunity to a movement
+tax is a purchase, not an exploit, and Midpiece charges maximum HP for it.
+
+**Do not shorten lead distance.** Four of five policies are in band. The one
+outside it is the *winning* build at 100%, and the global dial would push
+`membrane+acrosome` — already median 8, p90 15, and the build at 38% with 22% boss
+HP remaining — further up. That is fixing the leader by hurting the laggard, using
+the only lever that cannot tell them apart.
+
+**And I do not think speed is the mechanism.** Take the geometry: to avoid an
+antibody placed at a fixed pixel lead L, the player needs lateral displacement of
+roughly one collision radius before travelling L forward. Lateral escape available
+is `v × (L / v)` — **speed cancels.** A fixed pixel lead is close to
+speed-neutral, which means Midpiece's 2.6 against Membrane's 7.4 is not being
+bought by velocity.
+
+The likelier mechanism is **heading volatility**. Antibodies spawn on the player's
+*instantaneous* heading. A kiting build changes heading constantly, so the
+placement is stale before the player would ever reach it. `membrane+acrosome`
+stands in the crowd and travels in straighter lines, so it walks into them. If
+that is right, the mechanic is rewarding direction changes rather than speed —
+which is a legitimate and more interesting skill expression than the one it was
+designed for, and it is not something a lead-distance dial can address at all.
+
+**Measure before touching anything:** correlate stacks against heading-change rate
+per policy. Deterministic, cheap, and it settles it.
+
+If confirmed, the lever is **the averaging window, not the distance** — spawn on
+heading averaged over the last one to two seconds instead of the current frame.
+That moves exactly the volatile build and leaves the four stable ones where they
+are, which is what the global dial cannot do. It also tightens the fiction rather
+than bending it: *already where you are going* is more true of a few seconds of
+travel than of one frame.
+
+**One thing I want explained before any of this is acted on.** `midpiece+wake`
+went 69% → 100% on a change that was supposed to be a tax. The likely explanation
+is benign — antibodies moved out of the retreat path a kiting build spends most of
+its time in, so the speed build's speed tax roughly halved — and that is coherent
+without any defect. But three of the last four runs contained an instrument defect
+that first presented as a design finding, and a tax that makes its most exposed
+target stronger has earned a check. Confirm it before tuning on it.
+
+### 9.4 · The Membrane compounding stands — the item text was what was wrong
+
+**Stands.** And I want to be calibrated about the 22% rather than alarmed by it:
+the non-participation signature that started this whole thread was 86–97%. A build
+that removes 78% of the boss and then loses is a build losing, which is what
+Membrane is for. 5% → 22% is a real movement on the measure §7.1 called
+load-bearing, and it is not that measure's failure mode.
+
+Worth naming explicitly: this is a reinforcing loop — more stacks, slower, dodge
+worse, more stacks — and the only reason it is a bounded ceiling instead of a
+death spiral is the stack cap from §7.5. The p90 of 15 is the cap doing that work.
+If the cap is ever raised, this is the interaction that decides how far.
+
+**What was actually wrong is the item's text.** Membrane's `tradesAway` names the
+spermicide ring and the white cell and stops there, because when I wrote it
+antibodies arrived at the arena edge and were dodgeable by anyone. It now
+understates its own cost by a primary consequence.
+
+`G-014` warns against a `tradesAway` filled with a sentence explaining why a
+downside is not really a downside. A field that quietly understates is the same
+failure inverted, and it is worse here, because the whole argument for keeping the
+compounding is that the trade was stated. Corrected in §4.3 — the antibody clause
+is now in the item text, and the item text is data, so it is fixed in place rather
+than appended.
+
+### 9.5 · Run 5 — a diagnostic pass, no changes
+
+Nothing in the design moves. Two measurements, both cheap, both settling questions
+that a dial would otherwise be guessing at. The §9.2 control-arm rule does not
+apply, because there is no change to attribute.
+
+- **Stacks against heading-change rate, per policy.** Confirms or kills the
+  volatility hypothesis in §9.3. If the correlation is strong and the correlation
+  with mean speed is weak, the averaging window is the lever and lead distance is
+  not. If neither correlates, I have the mechanism wrong and §9.3 reopens.
+- **Why `midpiece+wake` went 69% → 100%.** Expected answer: its mean stack count
+  roughly halved relative to the edge-spawn arm, and that is the whole difference.
+  If its stack count did not fall enough to explain a 31pp swing, something else
+  changed and it needs finding before anything is tuned on top of it.
+
+Not a prediction, a standing note: `membrane+acrosome` at 38% / 22% is the number
+to watch next pass. It is acceptable now. If it drifts above roughly 40% boss HP
+remaining it stops being a hard build and starts being an excluded one, and that
+is the point at which the compounding gets revisited rather than defended.
+
+### 9.6 · Flagged, not actioned
+
+`random` at 94% → 75% with the spread widening 50pp → 62pp is §8.6 moving on its
+own, from a change that was not aimed at it. That is the direction §8.6 wanted and
+I am not claiming it — the intervals overlap and one run does not settle it. But
+the mechanism is at least legible: `G-020` made the *choice* of items matter more,
+which is exactly what §8.6 said was missing when a random policy could win
+nineteen times in twenty. Re-read after Run 5.
+
+`BOSS_PULL` remains at zero with the §8.2 expiry recorded on the constant. Nothing
+in this pass touches it and nothing an agent can do closes it — it needs Justin to
+play the fight and say whether a stationary boss at a fixed distance is a
+shooting gallery. Until then the expiry is the right state for it to be in.
+
+320 HP still untouched, still flagged, and now waiting behind one more question
+than it was.

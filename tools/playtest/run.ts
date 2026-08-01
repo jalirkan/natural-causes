@@ -1,6 +1,15 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import { POLICIES, itemUptake, runOnce, summarise, type RunResult } from './bots';
+import {
+  POLICIES,
+  itemUptake,
+  partial,
+  pearson,
+  runOnce,
+  setHeadingJitter,
+  summarise,
+  type RunResult,
+} from './bots';
 
 /**
  * CLI: `pnpm playtest -- --runs=200`
@@ -17,6 +26,8 @@ const pullArg = argv.find((a) => a.startsWith('--pull='))?.slice(7);
 const bossPull = pullArg === undefined ? undefined : Number(pullArg);
 const spawnArg = argv.find((a) => a.startsWith('--spawn='))?.slice(8);
 const spawnOverride = spawnArg === 'edge' || spawnArg === 'lead' ? spawnArg : undefined;
+const jitter = Number(argv.find((a) => a.startsWith('--jitter='))?.slice(9) ?? 0);
+setHeadingJitter(jitter);
 
 const policies = onlyPolicy ? POLICIES.filter((p) => p.name === onlyPolicy) : POLICIES;
 if (policies.length === 0) {
@@ -37,7 +48,8 @@ out.push(
   `${results.length} runs across ${policies.length} policies in ${elapsed.toFixed(1)}s ` +
     `(${runsPerPolicy} per policy, seeds 1000..${1000 + runsPerPolicy - 1}` +
     `${bossPull === undefined ? '' : `, boss pull ${bossPull}`}` +
-    `${spawnOverride === undefined ? '' : `, all spawns forced to ${spawnOverride}`})`,
+    `${spawnOverride === undefined ? '' : `, all spawns forced to ${spawnOverride}`}` +
+    `${jitter > 0 ? `, heading jitter ${jitter} rad` : ''})`,
 );
 out.push('');
 out.push('policy                 runs   win rate (95% CI)      median s   kills   lvl   boss left');
@@ -76,6 +88,71 @@ for (const s of summarise(results)) {
 spread: careless ${careless.toFixed(1)} vs careful ${careful.toFixed(1)} ` +
       `= ${Number.isFinite(ratio) ? `${ratio.toFixed(1)}x` : 'undefined (careful is zero)'}` +
       `  — needs >= 2.0x`,
+  );
+}
+
+// §9.5 diagnostic: is the dodge bought with heading volatility or with speed?
+// §9.3 argues a fixed pixel lead is close to speed-neutral, because lateral
+// escape available is v x (L/v) and the speed cancels.
+out.push('');
+out.push('what buys the dodge — stacks against volatility and against speed');
+out.push('-'.repeat(84));
+out.push('policy                 stacks   turn rad/s   item speed   realised speed');
+for (const s of summarise(results)) {
+  out.push(
+    `${s.policy.padEnd(22)} ${String(s.meanStacksAt300).padStart(6)} ` +
+      `${String(s.meanHeadingChangeRate).padStart(12)} ` +
+      `${String(s.meanItemSpeed).padStart(12)} ` +
+      `${String(s.meanRealisedSpeed).padStart(16)}`,
+  );
+}
+{
+  const stacks = results.map((r) => r.stacksAt300);
+  const turn = pearson(stacks, results.map((r) => r.headingChangeRate));
+  const itemSpeed = pearson(stacks, results.map((r) => r.itemSpeedAt300));
+  const realised = pearson(stacks, results.map((r) => r.meanSpeed));
+  const f = (c: { r: number; lo: number; hi: number }) => `r=${c.r} [${c.lo}, ${c.hi}]`;
+  out.push('');
+  out.push(`  stacks vs heading-change rate   ${f(turn)}   n=${turn.n}`);
+  out.push(`  stacks vs item speed (exogenous) ${f(itemSpeed)}   n=${itemSpeed.n}`);
+  out.push(`  stacks vs realised speed         ${f(realised)}   n=${realised.n}`);
+  out.push(
+    '  Realised speed is endogenous — stacks are one of the things that lower it —',
+  );
+  out.push('  so only the first two lines bear on the hypothesis.');
+  const turnRates = results.map((r) => r.headingChangeRate);
+  const speeds = results.map((r) => r.itemSpeedAt300);
+  out.push('');
+  out.push(`  partial: stacks vs turn, holding speed fixed   ${partial(stacks, turnRates, speeds)}`);
+  out.push(`  partial: stacks vs speed, holding turn fixed   ${partial(stacks, speeds, turnRates)}`);
+
+  // Chemotaxis pulls enemies toward a point, and antibodies are enemies. If a
+  // player-placed attractor is dragging them onto the player, that is a
+  // self-inflicted stack generator and it is neither speed nor volatility.
+  const chemo = results.map((r) => r.items['chemotaxis'] ?? 0);
+  const withChemo = results.filter((r) => (r.items['chemotaxis'] ?? 0) > 0);
+  const without = results.filter((r) => (r.items['chemotaxis'] ?? 0) === 0);
+  const avg = (rs: RunResult[]) =>
+    rs.length === 0 ? 0 : +(rs.reduce((a, b) => a + b.stacksAt300, 0) / rs.length).toFixed(1);
+  const c = pearson(stacks, chemo);
+  out.push('');
+  out.push(`  stacks vs chemotaxis level      r=${c.r} [${c.lo}, ${c.hi}]   n=${c.n}`);
+  out.push(
+    `  mean stacks with chemotaxis ${avg(withChemo)} (n=${withChemo.length})` +
+      `  vs without ${avg(without)} (n=${without.length})`,
+  );
+  out.push(`  partial: stacks vs chemotaxis, holding speed fixed  ${partial(stacks, chemo, speeds)}`);
+}
+
+out.push('');
+out.push('state on arrival at the boss (300s) — where a swing lives if not in the stacks');
+out.push('-'.repeat(84));
+out.push('policy                  hp%   kills   alive   stacks');
+for (const s of summarise(results)) {
+  out.push(
+    `${s.policy.padEnd(22)} ${pct(s.medianHpFractionAt300).padStart(5)} ` +
+      `${String(s.medianKillsAt300).padStart(7)} ${String(s.medianEnemiesAt300).padStart(7)} ` +
+      `${String(s.medianStacksAt300).padStart(8)}`,
   );
 }
 
