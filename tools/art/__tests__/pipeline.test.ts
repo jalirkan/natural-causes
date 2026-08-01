@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { blank, centreOn, crop, index, opaqueBounds, opaqueCount, type Bitmap } from '../bitmap';
-import { cut, detectBackground, keyOutBackground } from '../cut';
+import { cut, despeckle, detectBackground, keyOutBackground } from '../cut';
 import { applyOutline, binariseAlpha, outlineWidthFor, quantise, OUTLINE_RATIO } from '../conform';
 import { check, distanceToleranceFor, DEFAULT_THRESHOLDS } from '../check';
 import { GRAIN_AMPLITUDE, grainTile, texture } from '../texture';
@@ -172,6 +172,61 @@ describe('cut', () => {
     keyOutBackground(bmp);
     expect(bmp.data[index(bmp, 0, 0) + 3], 'true background cleared').toBe(0);
     expect(bmp.data[index(bmp, 32, 32) + 3], 'large subject survived').toBe(255);
+  });
+
+  it('despeckles printer debris outside the subject, keeping detached parts inside it', () => {
+    const bmp = blank(64, 64);
+    const paint = (x: number, y: number) => {
+      const i = index(bmp, x, y);
+      bmp.data[i] = 240;
+      bmp.data[i + 1] = 240;
+      bmp.data[i + 2] = 226;
+      bmp.data[i + 3] = 255;
+    };
+    // Main subject: a block with a thin arm, so its bounding box reaches x=50.
+    for (let y = 10; y < 45; y++) for (let x = 10; x < 45; x++) paint(x, y);
+    for (let x = 45; x < 51; x++) paint(x, 10);
+    // A detached part that belongs — unconnected, but inside that bounding box.
+    paint(47, 20);
+    paint(47, 21);
+    // Debris well outside it, like the dots under the Reorg.
+    paint(4, 58);
+    paint(6, 58);
+    paint(58, 60);
+
+    const removed = despeckle(bmp);
+    expect(removed).toBe(3);
+    expect(bmp.data[index(bmp, 47, 20) + 3], 'detached part inside the bbox kept').toBe(255);
+    expect(bmp.data[index(bmp, 4, 58) + 3], 'debris outside the bbox dropped').toBe(0);
+    expect(bmp.data[index(bmp, 58, 60) + 3], 'debris outside the bbox dropped').toBe(0);
+  });
+
+  it('drops scenery too large to be a fleck — the cloud bank under the drone', () => {
+    const bmp = blank(64, 64);
+    const paint = (x: number, y: number) => {
+      const i = index(bmp, x, y);
+      bmp.data[i] = 240;
+      bmp.data[i + 1] = 240;
+      bmp.data[i + 2] = 226;
+      bmp.data[i + 3] = 255;
+    };
+    // Subject, centred.
+    for (let y = 20; y < 36; y++) for (let x = 16; x < 48; x++) paint(x, y);
+    // A cloud bank along the bottom — bigger than the subject, and the reason
+    // a size-based rule cannot work here.
+    for (let y = 50; y < 64; y++) for (let x = 0; x < 64; x++) paint(x, y);
+
+    despeckle(bmp);
+    expect(bmp.data[index(bmp, 32, 28) + 3], 'subject kept').toBe(255);
+    expect(bmp.data[index(bmp, 32, 56) + 3], 'larger scenery dropped').toBe(0);
+  });
+
+  it('despeckle never touches a lone subject', () => {
+    const bmp = fixture(32);
+    keyOutBackground(bmp);
+    const before = opaqueCount(bmp);
+    expect(despeckle(bmp)).toBe(0);
+    expect(opaqueCount(bmp)).toBe(before);
   });
 
   it('centres the subject on a padded square canvas', () => {

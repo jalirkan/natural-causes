@@ -98,7 +98,7 @@ export async function generate(
     subject: spec.subject,
     whyThisStage: spec.whyThisStage,
     prompt,
-    styleSuffix: styleSuffix(spec.act),
+    styleSuffix: styleSuffix(spec.act, spec.targetSize),
   });
 
   const key = options.key ?? loadKey(options.cwd);

@@ -1,7 +1,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fromPng, toPng, type Bitmap } from './bitmap';
-import { fullPrompt, styleSuffix } from './batch';
+import { DETAIL_THRESHOLD_PX, fullPrompt, styleSuffix } from './batch';
 import { BOSS_THRESHOLDS, DEFAULT_THRESHOLDS, check, type CheckReport } from './check';
 import { conform } from './conform';
 import { cut } from './cut';
@@ -115,7 +115,7 @@ export async function runAsset(
     model: options.model ?? DEFAULT_MODEL,
     seed: spec.seed,
     prompt: fullPrompt(spec),
-    styleSuffix: styleSuffix(spec.act),
+    styleSuffix: styleSuffix(spec.act, spec.targetSize),
     attempt: 0,
     rejected: [],
     checks: [],
@@ -133,7 +133,11 @@ export async function runAsset(
       write(resolve(root, `assets/raw/${spec.id}-${seed}.png`), raw.png);
 
       const bmp = await fromPng(raw.png);
-      const sprite = texture(await conform(cut(bmp), { act: spec.act, targetSize: spec.targetSize }));
+      const conformed = await conform(cut(bmp), { act: spec.act, targetSize: spec.targetSize });
+      // D-018: grain is part of the register, and at swarm scale it is
+      // indistinguishable from noise — it costs contrast and buys nothing a
+      // player can see. Spend it where the camera rests.
+      const sprite = texture(conformed, spec.targetSize >= DETAIL_THRESHOLD_PX ? 1 : 0);
       const report = await check(sprite, spec.act, thresholds);
 
       record.attempt = attempt + 1;

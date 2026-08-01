@@ -53,6 +53,16 @@ export interface CheckThresholds {
   maxSingleColourShare: number;
   /** Edge density at 48px — the proxy for "features survive to gameplay size". */
   minEdgeDensity48: number;
+  /**
+   * Distinct palette colours still present at 48px (D-018).
+   *
+   * This is the check that enforces the detail budget. An asset authored with
+   * the full register's fine line and halftone looks superb at 1024px and
+   * arrives in play as a pale smudge — two colours where there were six. The
+   * sprite has to carry its structure at the size it is actually seen, not at
+   * the size it was generated.
+   */
+  minDistinctColours48: number;
 }
 
 export const DEFAULT_THRESHOLDS: CheckThresholds = {
@@ -63,6 +73,7 @@ export const DEFAULT_THRESHOLDS: CheckThresholds = {
   minDistinctColours: 3,
   maxSingleColourShare: 0.9,
   minEdgeDensity48: 0.06,
+  minDistinctColours48: 3,
 };
 
 /** Bosses are meant to fill the frame; the coverage band has to allow it. */
@@ -220,6 +231,19 @@ export async function check(
     pass: smallBounds !== null && smallCoverage >= thresholds.minCoverage * 0.7,
     measured: +smallCoverage.toFixed(4),
     expected: `>= ${(thresholds.minCoverage * 0.7).toFixed(3)} coverage at ${GAMEPLAY_PX}px`,
+  });
+
+  const smallHist = paletteHistogram(small, act);
+  // Ignore colours clinging on as a handful of anti-aliased pixels; they are
+  // present in the histogram but invisible to a player.
+  const smallOpaque = Math.max(1, opaqueCount(small, 96));
+  const survivingColours = [...smallHist.values()].filter((n) => n / smallOpaque >= 0.02).length;
+  results.push({
+    name: 'readable-48px-structure',
+    pass: survivingColours >= thresholds.minDistinctColours48,
+    measured: survivingColours,
+    expected: `>= ${thresholds.minDistinctColours48} palette colours still visible at ${GAMEPLAY_PX}px`,
+    note: 'D-018: an asset that only reads at the size it was generated has failed',
   });
 
   const density = edgeDensity(small);

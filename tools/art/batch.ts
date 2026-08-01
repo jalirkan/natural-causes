@@ -36,9 +36,6 @@ const SHARED_STYLE = [
   // insurance pamphlets, safety posters and annual reports.
   'mid-century modern commercial illustration, 1950s 1960s printed institutional graphic design',
   'limited spot-colour screenprint, two or three flat muted ink colours on off-white paper stock',
-  'visible halftone dot texture, paper grain, slightly misregistered ink edges',
-  'fine even line weight, thin restrained linework, no heavy black outlines',
-  'simplified geometric stylised forms, flat graphic shapes',
   // Flatness is load-bearing twice over: it is the register, and the first
   // batch's Reorg read as a dresser because the boxes were drawn in 3D.
   'strictly flat two-dimensional, no perspective, no depth, no 3D, no isometric view',
@@ -59,8 +56,43 @@ const SHARED_STYLE = [
   // solid rectangle because of it. The pipeline now works around a frame, but
   // not asking for one is still cheaper than removing it.
   'full bleed, no frame, no border, no rule around the image, no poster edge, no panel',
-  'no text, no letters, no numbers, no watermark, no signature',
+  'no text, no letters, no numbers, no watermark, no signature, no artist signature',
+  'no stamp, no seal, no chop mark, no printed margin, no caption',
 ];
+
+/**
+ * D-018: the detail budget is uneven, and the prompt is where it starts.
+ *
+ * Mid-century institutional is built out of fine line and halftone, both of
+ * which are illegible below about 100px. A swarm enemy that is authored with
+ * that detail arrives in play as a pale smudge — which is exactly what the
+ * second test batch produced. So small assets are asked for the register's
+ * SHAPES and colour without its surface, and bosses get the whole thing.
+ *
+ * The register is not being watered down; it is being spent where the camera
+ * rests, the same logic as the animation budget in D-006.
+ */
+const DETAIL_CLAUSE: Record<'small' | 'large', string> = {
+  small: [
+    'bold simplified flat shapes with a strong clear silhouette',
+    'very few interior details, large uninterrupted areas of flat colour',
+    'heavy confident line weight, chunky and readable',
+    'high contrast between shapes, designed to be recognised at a glance from a distance',
+    'no halftone dots, no fine hairlines, no small detail, no surface texture, no cross-hatching',
+  ].join(', '),
+  large: [
+    'visible halftone dot texture, paper grain, slightly misregistered ink edges',
+    'fine even line weight, thin restrained linework, no heavy black outlines',
+    'simplified geometric stylised forms, flat graphic shapes',
+  ].join(', '),
+};
+
+/**
+ * Where the detail budget divides. Below this the sprite is displayed at
+ * roughly 48px in play and cannot carry surface texture; above it, the camera
+ * rests long enough for the register to be worth rendering.
+ */
+export const DETAIL_THRESHOLD_PX = 200;
 
 /**
  * The one clause that varies, and the only place the style is allowed to.
@@ -82,8 +114,11 @@ const PROPORTION_CLAUSE: Record<ActId, string> = {
     'the wrongness coming entirely from the arrangement and never from the shapes',
 };
 
-export function styleSuffix(act: ActId): string {
-  return [SHARED_STYLE[0]!, PROPORTION_CLAUSE[act], ...SHARED_STYLE.slice(1)].join(', ');
+export function styleSuffix(act: ActId, targetSize = DETAIL_THRESHOLD_PX + 1): string {
+  const detail = DETAIL_CLAUSE[targetSize >= DETAIL_THRESHOLD_PX ? 'large' : 'small'];
+  return [SHARED_STYLE[0]!, SHARED_STYLE[1]!, detail, PROPORTION_CLAUSE[act], ...SHARED_STYLE.slice(2)].join(
+    ', ',
+  );
 }
 
 /** The style as it applies to every act but the Office. Used in provenance. */
@@ -234,5 +269,5 @@ export const TEST_BATCH: AssetSpec[] = [
 ];
 
 export function fullPrompt(spec: AssetSpec): string {
-  return `${spec.subject}, ${styleSuffix(spec.act)}`;
+  return `${spec.subject}, ${styleSuffix(spec.act, spec.targetSize)}`;
 }

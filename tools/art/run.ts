@@ -46,7 +46,7 @@ async function cmdBatch(argv: string[]): Promise<number> {
         subject: spec.subject,
         whyThisStage: spec.whyThisStage,
         prompt: fullPrompt(spec),
-        styleSuffix: styleSuffix(spec.act),
+        styleSuffix: styleSuffix(spec.act, spec.targetSize),
       });
       log(`\n=== ${spec.id} (${spec.act}, ${spec.role}, ${spec.targetSize}px) ===`);
       log(fullPrompt(spec));

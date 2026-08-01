@@ -1,4 +1,4 @@
-import { CHANNELS, centreOn, crop, index, opaqueBounds, type Bitmap } from './bitmap';
+import { CHANNELS, centreOn, crop, index, opaqueBounds, type Bitmap, type Bounds } from './bitmap';
 import { oklabDistance, rgbToOklab, type Oklab } from './palette';
 
 /**
@@ -312,6 +312,105 @@ export function sameHueAsBackground(lab: Oklab, bg: Oklab, tolerance: number): b
   return Math.min(diff, Math.PI * 2 - diff) <= tolerance;
 }
 
+/**
+ * Drops debris the generator scattered around the subject.
+ *
+ * The mid-century register produces stray printer's marks — the Reorg came
+ * back with a row of loose dots below the chart. They survive the flood fill
+ * because they are genuinely not background, and they wreck the sprite: the
+ * bounding box stretches to include them, so CONFORM scales the real subject
+ * down to fit debris in the frame.
+ *
+ * It also drops scenery. The register does not just add specks — it composes
+ * pictures: the drone came back as a poster with a cloud bank along the bottom
+ * and a second aircraft in the distance. Those are far too large to be flecks,
+ * so the rule is positional rather than size-based: anything lying wholly
+ * outside the subject's bounding box is not part of the subject. A detached
+ * part that belongs — an antenna, a floating eye, a speech bubble — overlaps
+ * that box and is kept regardless of size.
+ *
+ * The subject is identified as the largest component overlapping the middle of
+ * the frame, not simply the largest component. Every prompt asks for a centred
+ * subject, and picking by size alone would let a big enough piece of scenery
+ * become "the subject" and delete the actual one.
+ */
+export function despeckle(bmp: Bitmap): number {
+  const total = bmp.width * bmp.height;
+  const label = new Int32Array(total).fill(-1);
+  const components: Array<{ size: number; pixels: number[]; bounds: Bounds }> = [];
+
+  for (let p = 0; p < total; p++) {
+    if (label[p] !== -1 || bmp.data[p * CHANNELS + 3] === 0) continue;
+    const id = components.length;
+    const pixels: number[] = [];
+    const bounds: Bounds = {
+      left: bmp.width,
+      top: bmp.height,
+      right: -1,
+      bottom: -1,
+    };
+    const stack = [p];
+    label[p] = id;
+
+    while (stack.length > 0) {
+      const q = stack.pop()!;
+      pixels.push(q);
+      const x = q % bmp.width;
+      const y = (q / bmp.width) | 0;
+      if (x < bounds.left) bounds.left = x;
+      if (x > bounds.right) bounds.right = x;
+      if (y < bounds.top) bounds.top = y;
+      if (y > bounds.bottom) bounds.bottom = y;
+
+      const neighbours = [
+        x > 0 ? q - 1 : -1,
+        x < bmp.width - 1 ? q + 1 : -1,
+        y > 0 ? q - bmp.width : -1,
+        y < bmp.height - 1 ? q + bmp.width : -1,
+      ];
+      for (const n of neighbours) {
+        if (n < 0 || label[n] !== -1 || bmp.data[n * CHANNELS + 3] === 0) continue;
+        label[n] = id;
+        stack.push(n);
+      }
+    }
+    components.push({ size: pixels.length, pixels, bounds });
+  }
+
+  if (components.length <= 1) return 0;
+
+  // The subject is centred by prompt, so prefer components that reach the
+  // middle of the frame. Falling back to the largest overall keeps this safe
+  // when nothing does.
+  const midLeft = bmp.width * 0.25;
+  const midRight = bmp.width * 0.75;
+  const midTop = bmp.height * 0.25;
+  const midBottom = bmp.height * 0.75;
+  const central = components.filter(
+    (c) =>
+      c.bounds.right >= midLeft &&
+      c.bounds.left <= midRight &&
+      c.bounds.bottom >= midTop &&
+      c.bounds.top <= midBottom,
+  );
+  const pool = central.length > 0 ? central : components;
+  const main = pool.reduce((a, b) => (b.size > a.size ? b : a));
+
+  let removed = 0;
+  for (const comp of components) {
+    if (comp === main) continue;
+    const outside =
+      comp.bounds.right < main.bounds.left ||
+      comp.bounds.left > main.bounds.right ||
+      comp.bounds.bottom < main.bounds.top ||
+      comp.bounds.top > main.bounds.bottom;
+    if (!outside) continue;
+    for (const q of comp.pixels) bmp.data[q * CHANNELS + 3] = 0;
+    removed += comp.size;
+  }
+  return removed;
+}
+
 export class CutError extends Error {}
 
 /**
@@ -323,6 +422,7 @@ export function cut(input: Bitmap, options: CutOptions = {}): Bitmap {
   const bmp: Bitmap = { data: Buffer.from(input.data), width: input.width, height: input.height };
 
   keyOutBackground(bmp, opts);
+  despeckle(bmp);
 
   const bounds = opaqueBounds(bmp);
   if (!bounds) throw new CutError('background removal left nothing — the whole image keyed out');

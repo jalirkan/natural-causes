@@ -154,3 +154,53 @@ right angles everywhere" in one sentence. The proportion clause is now selected
 per act by `styleSuffix()`, and a test asserts only the Office act gets the
 clean variant. An exception a document states and a prompt contradicts is not an
 exception, it is a bug.
+
+## D-017 · 2026-08-01 · The register is mid-century institutional, not Adult Swim
+Replaces the Adult Swim direction after the first test batch was judged. The
+verdict was "too toony", and the diagnosis matters more than the verdict: the
+original choice had been made as a binary against mid-century instructional,
+which was rejected as "too precious". Two options is not a search.
+
+The register is now the visual language of the institutions the game is about —
+insurance pamphlets, safety posters, annual-report diagrams. Muted spot inks on
+stock, fine even line, strictly flat, halftone. That is a joke the Adult Swim
+register cannot make, because it *is* the thing being satirised rather than a
+comment on it.
+
+**Two of the three toon signals were this pipeline's, not the generator's:** a
+pure-black uniform contour applied in post, and a twenty-colour saturated
+palette. Worth recording because the first instinct was to blame Flux, and the
+fix was in `conform.ts` and `palette.ts`.
+
+Rejected: alt-comix / editorial ink — closest to the content, and it dies at
+sprite scale even harder than this does, being made entirely of hatching.
+Rejected: risograph zine — the texture is the whole idea, and texture is
+exactly what does not survive to 48px.
+
+The creative rationale still needs a `DESIGN-DECISIONS.md` entry and a rewrite
+of `ART-DIRECTION.md`, both of which are Cowork's to own. This entry records
+only what the pipeline now does.
+
+## D-018 · 2026-08-01 · Detail budget by role — the register lives where the camera rests
+Mid-century institutional is built out of fine line weight and halftone, and
+both are illegible below roughly 100px. The full-size generations are the best
+images the project has produced; the 96px sprites made from them are pale
+smudges. That is not a tuning problem, it is the register meeting the genre.
+
+So the detail budget is uneven on purpose, the same way the animation budget is
+(D-006). Swarm enemies and the player are authored as bold flat shapes with
+strong silhouettes and almost no interior detail. Bosses, backgrounds, UI, the
+title and the end-of-run certificate carry the full register. The prompt now
+varies by role, and grain is applied at boss scale but not at swarm scale,
+where it is indistinguishable from noise.
+
+Enforced rather than intended: `check.ts` measures edge density at full size
+and again at 48px, and rejects a small sprite whose detail collapses between
+the two. An asset that only reads at the resolution it was generated in fails,
+which is the failure this decision exists to prevent.
+
+Rejected: bigger, fewer enemies — sprites at 150–200px so the texture survives.
+It would work, and horde density is most of what makes the genre feel good;
+trading it for surface texture is trading the game for the picture.
+Rejected: dropping the register back to something that survives at any size —
+that is how the first batch happened.
