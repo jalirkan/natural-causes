@@ -94,3 +94,63 @@ A Vampire Survivors–like lives or dies on the feel of a single act. If the
 Conception act is not fun, seven acts will not fix it. Phase 2 ships one act
 tuned by playtest bots and judged by a human before any further act is designed.
 Better three excellent acts and a stated roadmap than seven thin ones.
+
+## D-012 · 2026-08-01 · fal, not Replicate — and the reason is not quality
+D-004 named "Replicate or fal" and left the pick open. fal, on `fal-ai/flux/dev`:
+a synchronous endpoint that returns an image URL in about one second, so the
+pipeline needs no polling loop and no job-state machine. Replicate's prediction
+API is a create-then-poll cycle, which is more code to write and more code to
+get wrong at 4am. Nothing about image quality decided this and nothing should
+have — D-004 already settled that the metric is assets per unattended hour.
+Switching is a one-function change in `tools/art/generate.ts`; the pipeline
+depends on "a function that returns a PNG", not on fal.
+
+## D-013 · 2026-08-01 · Background removal is a flood fill, not a model call
+CUT keys the backdrop out with a border-seeded flood fill in Oklab rather than
+calling a segmentation model. It costs nothing per asset, adds no second
+provider, and is deterministic — rerunning the pipeline on the same raw image
+produces the identical cut, which a model call does not guarantee.
+
+The fill is seeded from the image edge and constrained to connected regions, so
+a background-coloured area *enclosed by the subject* survives; a global
+"delete every pixel near this colour" pass would eat it.
+
+Rejected: `fal-ai/birefnet` and similar. Better on photographs, irrelevant here
+— the input is a flat cartoon on a flat backdrop, which is the easy case.
+
+**The generator ignores the requested backdrop colour.** The prompt asks for
+`#FF00FF`; Flux returns pink, salmon, whatever it likes. So the background
+colour is *detected* from the border ring rather than assumed. Anything that
+hard-codes the chroma colour will break.
+
+## D-014 · 2026-08-01 · Contrast against the act background is a median, not a mean
+The first test batch rejected the drone four times on `background-contrast`,
+measuring 0.0156 for a sprite with obviously strong contrast. The check was
+computing `|mean(L) - background.L|`, and a sprite that is half black outline
+and half bone averages to mid-grey — which is what a mid-tone act background
+also is. The mean cancelled a real contrast to nearly zero.
+
+Now the median per-pixel separation, which has no such failure. Kept alongside
+it: the fraction of the sprite sitting within the contrast floor, because a
+sprite can pass on aggregate while one whole limb disappears.
+
+Recorded because the check nearly got "fixed" by loosening its threshold, which
+would have kept the bug and disabled the test.
+
+## D-015 · 2026-08-01 · Grain runs after quantisation, and the palette check is tolerant of exactly the grain
+ART-DIRECTION orders the stages TEXTURE then CHECK, so the grain perturbs
+colours before palette conformance is measured. Rather than move the stages or
+drop the guarantee, palette conformance asserts every opaque pixel is within
+the grain's declared amplitude of a palette entry. A rogue colour still fails by
+an order of magnitude; the intended texture passes. The tolerance is derived
+from `GRAIN_AMPLITUDE` in code, not typed in as a constant, so the two cannot
+drift apart.
+
+## D-016 · 2026-08-01 · The Office act's exception to law 4 lives in the prompt builder
+Law 4 is "lumpy, never geometric — except the Office act, where clean is the
+joke." Left in prose, that exception produced a prompt ordering the generator to
+make the org chart both "lumpy asymmetric, never corporate-clean" and "rigid,
+right angles everywhere" in one sentence. The proportion clause is now selected
+per act by `styleSuffix()`, and a test asserts only the Office act gets the
+clean variant. An exception a document states and a prompt contradicts is not an
+exception, it is a bug.

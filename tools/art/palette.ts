@@ -1,0 +1,164 @@
+/**
+ * The locked palette (ART-DIRECTION.md law 3).
+ *
+ * Twenty colours, act tints included. Every asset is quantised to this after
+ * generation; an asset that quantises badly is regenerated rather than
+ * hand-corrected. Nothing outside this list may appear in a shipped sprite.
+ *
+ * PROVISIONAL. ART-DIRECTION.md is a draft until Justin has judged the test
+ * batch, and these values are part of the hypothesis being tested, not a
+ * settled decision. The structure is the point: one list, enforced in code.
+ */
+
+export interface Colour {
+  readonly name: string;
+  readonly hex: string;
+  readonly rgb: readonly [number, number, number];
+}
+
+const c = (name: string, hex: string): Colour => ({
+  name,
+  hex,
+  rgb: [
+    parseInt(hex.slice(1, 3), 16),
+    parseInt(hex.slice(3, 5), 16),
+    parseInt(hex.slice(5, 7), 16),
+  ] as const,
+});
+
+/** Universal. Present in every act. */
+export const INK = c('ink', '#17140F');
+export const SHADOW = c('shadow', '#3C3527');
+export const PAPER = c('paper', '#F4F0E2');
+export const BONE = c('bone', '#D8D0B8');
+
+/**
+ * Threat colours (law 6). These overlay the act palette and mean the same
+ * thing in every act: colour carries threat, silhouette carries identity.
+ */
+export const THREAT = {
+  contact: c('threat-contact', '#E8452F'),
+  ranged: c('threat-ranged', '#F2B138'),
+  elite: c('threat-elite', '#9B5DE5'),
+  boss: c('threat-boss', '#29B6A8'),
+} as const;
+
+export type ThreatClass = keyof typeof THREAT;
+
+/** Act tints. Three tones each: deep doubles as the act's background. */
+const ACT_TONES = {
+  conception: [
+    c('conception-deep', '#5E1F2E'),
+    c('conception-mid', '#A33B4F'),
+    c('conception-light', '#D9727F'),
+  ],
+  school: [
+    c('school-deep', '#2E5B4E'),
+    c('school-mid', '#4C7A35'),
+    c('school-light', '#93B84A'),
+  ],
+  service: [
+    c('service-deep', '#7E7259'),
+    c('service-mid', '#B8A886'),
+    c('service-light', '#E0D5B8'),
+  ],
+  office: [
+    c('office-deep', '#2F4257'),
+    c('office-mid', '#5B7A99'),
+    c('office-light', '#AEC4D6'),
+  ],
+} as const;
+
+export type ActId = keyof typeof ACT_TONES;
+export const ACT_IDS = Object.keys(ACT_TONES) as ActId[];
+
+/** The act's background. Deep tone, so the palette stays at twenty. */
+export function actBackground(act: ActId): Colour {
+  return ACT_TONES[act][0];
+}
+
+/**
+ * The colours an asset in this act may use: the act's own tones, the
+ * universal neutrals, and the threat colours. Restricting the quantiser per
+ * act is most of what makes an act read as a place rather than a colour wheel.
+ */
+export function actPalette(act: ActId): Colour[] {
+  return [INK, SHADOW, PAPER, BONE, ...ACT_TONES[act], ...Object.values(THREAT)];
+}
+
+/** The full locked palette. Law 3 caps this at twenty. */
+export const FULL_PALETTE: Colour[] = [
+  INK,
+  SHADOW,
+  PAPER,
+  BONE,
+  ...ACT_IDS.flatMap((a) => [...ACT_TONES[a]]),
+  ...Object.values(THREAT),
+];
+
+// ---------------------------------------------------------------------------
+// Oklab. Nearest-colour matching in sRGB picks visibly wrong neighbours on
+// saturated fills, which is exactly what this palette is made of.
+// ---------------------------------------------------------------------------
+
+export interface Oklab {
+  L: number;
+  a: number;
+  b: number;
+}
+
+function srgbToLinear(v: number): number {
+  const s = v / 255;
+  return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+}
+
+export function rgbToOklab(r: number, g: number, b: number): Oklab {
+  const lr = srgbToLinear(r);
+  const lg = srgbToLinear(g);
+  const lb = srgbToLinear(b);
+
+  const l = Math.cbrt(0.4122214708 * lr + 0.5363325363 * lg + 0.0514459929 * lb);
+  const m = Math.cbrt(0.2119034982 * lr + 0.6806995451 * lg + 0.1073969566 * lb);
+  const s = Math.cbrt(0.0883024619 * lr + 0.2817188376 * lg + 0.6299787005 * lb);
+
+  return {
+    L: 0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s,
+    a: 1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s,
+    b: 0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s,
+  };
+}
+
+export function oklabDistance(x: Oklab, y: Oklab): number {
+  return Math.hypot(x.L - y.L, x.a - y.a, x.b - y.b);
+}
+
+/** Perceptual lightness, 0..1. Used by the contrast check. */
+export function lightness(colour: Colour): number {
+  return rgbToOklab(colour.rgb[0], colour.rgb[1], colour.rgb[2]).L;
+}
+
+/** Nearest palette colour to an arbitrary RGB triple, in Oklab. */
+export function nearest(palette: Colour[], r: number, g: number, b: number): Colour {
+  const target = rgbToOklab(r, g, b);
+  let best = palette[0]!;
+  let bestD = Infinity;
+  for (const p of palette) {
+    const d = oklabDistance(target, rgbToOklab(p.rgb[0], p.rgb[1], p.rgb[2]));
+    if (d < bestD) {
+      bestD = d;
+      best = p;
+    }
+  }
+  return best;
+}
+
+/** Distance from an RGB triple to the closest palette entry. */
+export function distanceToPalette(palette: Colour[], r: number, g: number, b: number): number {
+  const target = rgbToOklab(r, g, b);
+  let bestD = Infinity;
+  for (const p of palette) {
+    const d = oklabDistance(target, rgbToOklab(p.rgb[0], p.rgb[1], p.rgb[2]));
+    if (d < bestD) bestD = d;
+  }
+  return bestD;
+}

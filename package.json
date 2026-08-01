@@ -11,9 +11,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc -b --noEmit",
-    "art:generate": "tsx tools/art/generate.ts",
-    "art:conform": "tsx tools/art/conform.ts",
-    "art:pack": "tsx tools/art/pack.ts",
+    "art:batch": "tsx tools/art/run.ts batch",
+    "art:pack": "tsx tools/art/run.ts pack",
+    "art:sheet": "tsx tools/art/run.ts sheet",
     "playtest": "tsx tools/playtest/run.ts"
   },
   "dependencies": {

@@ -1,8 +1,16 @@
 # Natural Causes
 
-> **Status: planned 2026-08-01, nothing built.** Plan in [`PLAN.md`](./PLAN.md),
-> art spec in [`ART-DIRECTION.md`](./ART-DIRECTION.md) (draft until the test
-> batch), decisions in [`DECISIONS.md`](./DECISIONS.md). Name is provisional.
+> **Status: phases 0 and 1 built, awaiting art review.** Plan in
+> [`PLAN.md`](./PLAN.md), art spec in [`ART-DIRECTION.md`](./ART-DIRECTION.md)
+> (**still a draft** — it does not become binding until Justin has judged the
+> test batch), decisions in [`DECISIONS.md`](./DECISIONS.md). Name is
+> provisional.
+>
+> A blank scene renders in the browser and the art pipeline generates, cuts,
+> conforms, textures, checks and packs assets unattended. The six-asset test
+> batch is generated and waiting at
+> [`assets/review/test-batch.html`](./assets/review/test-batch.html). Nothing
+> has been built against the style yet, on purpose.
 
 **A horde-survival roguelike where the progression is a human life.** You begin
 as one sperm cell among millions. If you survive long enough, you die of natural
@@ -49,6 +57,29 @@ Phaser 3 · TypeScript · Vite · browser target, playable from a link. Art
 generated via API and conformed to a locked palette by an in-repo pipeline —
 consistency is enforced in code, not in prompts.
 
+## Running it
+
+```bash
+pnpm install
+pnpm dev          # the game — a green field and a dot, so far
+pnpm test         # 82 tests, mostly the art pipeline
+pnpm art:batch    # regenerate the test batch (needs FAL_KEY in .env)
+pnpm art:batch -- --dry   # print the prompts and run the content rule, no API calls
+```
+
 ## Status
 
-Scaffold and plan only. Nothing runs yet.
+| Phase | | |
+|---|---|---|
+| **0** | Scaffold, Phaser + Vite, blank scene | done |
+| **1** | Art pipeline + six-asset test batch | **built, awaiting Justin's judgement** |
+| **2** | Core loop, Conception act | not started — blocked on the art review |
+
+The art pipeline is six stages (`tools/art/`): generate via Flux on fal, cut the
+background, conform to a locked 20-colour palette with a uniform outline,
+texture, check, pack. The check stage is what makes it unattended — a failed
+asset is regenerated with a mutated seed rather than escalated to a human.
+
+`tools/art/content-rule.ts` enforces D-007 as a build failure: no enemy may be
+defined by religion, ethnicity, nationality or race, and a prompt that does is
+never sent to the API.

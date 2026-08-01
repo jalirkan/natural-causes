@@ -1,0 +1,162 @@
+import { describe, expect, it } from 'vitest';
+import { TEST_BATCH, styleSuffix, fullPrompt } from '../batch';
+import { ACT_IDS } from '../palette';
+import { ContentRuleViolation, assertContentRule, findViolations } from '../content-rule';
+
+/**
+ * D-007 is the one rule in this repository that is a build failure rather than
+ * a review comment, so it gets the most tests. The two failure modes that
+ * matter are opposite: a checker that misses a real violation is useless, and
+ * a checker that fires on "thick black outline" gets switched off within a day.
+ */
+
+describe('D-007 content rule', () => {
+  describe('rejects enemies defined by identity', () => {
+    const violations: Array<[string, string]> = [
+      ['religion', 'a muslim fighter with a rifle'],
+      ['religion', 'an angry islamist militant'],
+      ['religion', 'a jewish banker cartoon'],
+      ['religion', 'a christian missionary enemy'],
+      ['religion', 'a taliban insurgent'],
+      ['religion', 'a woman wearing a hijab'],
+      ['ethnicity', 'an arab man in the desert'],
+      ['ethnicity', 'a tribal warrior'],
+      ['ethnicity', 'a hispanic gardener'],
+      ['ethnicity', 'gypsy caravan enemy'],
+      ['nationality', 'an afghan villager'],
+      ['nationality', 'iraqi soldiers advancing'],
+      ['nationality', 'a russian tank commander'],
+      ['nationality', 'middle eastern fighters'],
+      ['nationality', 'a group of refugees'],
+      ['skin colour', 'a black man holding a clipboard'],
+      ['skin colour', 'two white women in a meeting'],
+      ['skin colour', 'a dark-skinned soldier'],
+      ['skin colour', 'a brown-skinned child'],
+      ['skin colour', 'people of colour in an office'],
+    ];
+
+    for (const [category, prompt] of violations) {
+      it(`${category}: "${prompt}"`, () => {
+        expect(findViolations(prompt).length).toBeGreaterThan(0);
+      });
+    }
+  });
+
+  describe('does not fire on the house style', () => {
+    const clean = [
+      'thick uniform black outline of even weight around every shape',
+      'an off-white oval head with two big flat eyes',
+      'flat saturated fills only, no gradients, no shading',
+      'a bright white clipboard held at chest height',
+      'bone and sand coloured, almost no colour at all',
+      'corporate blue-grey and white, clean and rigid',
+      'a black and white photocopied homework sheet with a face',
+      'a red threat colour on the head rim only',
+      'a lumpy cartoon uncrewed surveillance aircraft with crooked antennae',
+      'a mustard yellow sweater vest in a colour that was never in fashion',
+      'a jewel-bright pickup that restores health',
+      'a parable about a mortgage with a face on it',
+      'the white noise of an open floor plan',
+      'a tired office worker with a lanyard',
+      'a hall monitor, a substitute teacher, a performance review',
+    ];
+
+    for (const prompt of clean) {
+      it(`clean: "${prompt.slice(0, 48)}..."`, () => {
+        expect(findViolations(prompt)).toEqual([]);
+      });
+    }
+  });
+
+  it('word boundaries: "jew" does not fire on "jewellery" or "jewel"', () => {
+    expect(findViolations('a jewel, some jewellery, a jeweller')).toEqual([]);
+  });
+
+  it('word boundaries: "arab" does not fire on "parable"', () => {
+    expect(findViolations('a parable, a scarab beetle')).toEqual([]);
+  });
+
+  it('assertContentRule throws with every offending field named', () => {
+    let caught: unknown;
+    try {
+      assertContentRule('test asset', {
+        name: 'Afghan Fighter',
+        subject: 'a muslim soldier',
+        prompt: 'clean text here',
+      });
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeInstanceOf(ContentRuleViolation);
+    const v = (caught as ContentRuleViolation).violations;
+    expect(v.map((x) => x.field).sort()).toEqual(['name', 'subject']);
+    expect((caught as Error).message).toContain('D-007');
+  });
+
+  it('assertContentRule passes clean fields', () => {
+    expect(() =>
+      assertContentRule('ok', { name: 'The Reorg', subject: 'an org chart with faces' }),
+    ).not.toThrow();
+  });
+});
+
+describe('the shipped test batch', () => {
+  it('every prompt in the batch is clean, including the style suffix', () => {
+    for (const spec of TEST_BATCH) {
+      expect(
+        () =>
+          assertContentRule(spec.id, {
+            name: spec.name,
+            subject: spec.subject,
+            whyThisStage: spec.whyThisStage,
+            prompt: fullPrompt(spec),
+            styleSuffix: styleSuffix(spec.act),
+          }),
+        `asset "${spec.id}" violates D-007`,
+      ).not.toThrow();
+    }
+  });
+
+  it('every act style suffix is clean, not just the ones in the batch', () => {
+    for (const act of ACT_IDS) {
+      expect(findViolations(styleSuffix(act)), `style suffix for "${act}"`).toEqual([]);
+    }
+  });
+
+  it('law 4: only the Office act gets clean geometry; every other act is lumpy', () => {
+    for (const act of ACT_IDS) {
+      const suffix = styleSuffix(act);
+      if (act === 'office') {
+        expect(suffix).toMatch(/rigid geometric|true right angles/);
+        expect(suffix).not.toMatch(/lumpy/);
+      } else {
+        expect(suffix).toMatch(/lumpy asymmetric/);
+        expect(suffix).not.toMatch(/rigid geometric/);
+      }
+    }
+  });
+
+  it('the Reorg prompt does not order the generator to be lumpy and rigid at once', () => {
+    const reorg = TEST_BATCH.find((s) => s.id === 'boss-reorg')!;
+    const prompt = fullPrompt(reorg);
+    expect(prompt).toMatch(/right angles/);
+    expect(prompt).not.toMatch(/lumpy asymmetric hand-drawn/);
+  });
+
+  it('the drone prompt names no operator, force, nationality or insignia', () => {
+    const drone = TEST_BATCH.find((s) => s.id === 'surveillance-drone');
+    expect(drone).toBeDefined();
+    expect(findViolations(drone!.subject)).toEqual([]);
+    // It must also positively suppress markings, which is where a generator
+    // reaches for a flag without being asked.
+    expect(drone!.subject).toMatch(/no markings|no insignia|no flags/);
+  });
+
+  it('every enemy answers "why this life stage" (PLAN.md mechanism 2)', () => {
+    for (const spec of TEST_BATCH) {
+      if (spec.role === 'player') continue;
+      expect(spec.whyThisStage, `"${spec.id}" has no whyThisStage`).toBeTruthy();
+      expect(spec.whyThisStage!.length).toBeGreaterThan(20);
+    }
+  });
+});
