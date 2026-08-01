@@ -1234,3 +1234,142 @@ survival numbers are downstream of the model shape that §11.4 is replacing.
 
 320 HP untouched. `BOSS_PULL` at zero, expiry open, now one of five on the
 critical path rather than one of four on a side list.
+
+---
+
+## 12 · Amendment — 2026-08-01, after Run 7
+
+Appended. Both shapes landed as specified and the curve did its job: §8.4's
+dispersion measures the right quantity again. It also fails, and the reason it
+fails turns out to be a conflict with the design rather than a wrong number.
+
+### 12.1 · What Run 7 settled, and one thing it did not corroborate
+
+§11.2's diagnosis reproduces exactly — 1.00× experienced dispersion under the old
+clamp while the criterion reported 2.51× and passed. That is the clearest possible
+confirmation that a passing number can measure nothing, and it is now in the
+record with the arithmetic attached.
+
+The tail is fixed. Marginal cost at n=30 goes from 0.000% to 0.296%, at n=76 from
+0.000% to 0.098%. Every stack in the act now does something.
+
+**One correction to how the result is written up.** Run 7 records the failing
+dispersion as agreeing with §11.2's argument that 0.65 is too generous, "from an
+independent direction". It cannot. The floor cancels out of the ratio — Run 7
+proves this algebraically and has a test asserting it — so a dispersion figure
+carries no information about the floor whatsoever. Two arguments both concluding
+that the current settings are wrong, for causally unrelated reasons, is not
+corroboration. It is a coincidence, and filing it as mutual confirmation is how a
+project ends up with two beliefs propping each other up and nothing underneath.
+
+### 12.2 · `k` is perceptual, just not as a ratio (`G-028`)
+
+The premise is right and the conclusion does not follow. A person cannot feel a
+ratio between two runs they did not have — agreed. But that is a claim about
+dispersion, not about `k`.
+
+`k` sets curvature, and curvature has a single-run signature that a player feels
+directly: **when the drag becomes noticeable, and when it stops growing.** High
+`k` reads as *I got slow early and then it stopped mattering*. Low `k` reads as *I
+kept getting slower all the way to the boss*. Both are perceptible in one sitting
+by one person.
+
+And §3.3 stated its requirement in exactly that form: *by minute four the player is
+moving visibly slower*. That is a claim about a trajectory, not about an endpoint,
+and the floor cannot express it. Only `k` can.
+
+So `k` goes to §11.5 with the floor, as a separate question with a
+trajectory-shaped prompt: **at minute two, at minute four, and at the boss — is it
+still getting worse, or did it stop mattering early?** Answerable in one session.
+Not answerable by anyone else.
+
+### 12.3 · §8.4's dispersion condition is retired (`G-027`)
+
+Not because 2.0× is stale. Because **2.0× and §3.3's severity intent cannot both
+be satisfied under `G-025`'s curve family.**
+
+`k` trades dispersion against achievable severity, monotonically. Take the ceiling
+case — floor at 0, the most severe curve the family permits — at the careless
+policy's current mean of 61.8 stacks:
+
+| k | dispersion | max possible drag at n=61.8, floor = 0 |
+|---|---|---|
+| 0.030 (current) | 1.53× | 65.0% |
+| 0.007 | 2.06× | **30.2%** |
+
+Pushing `k` down far enough to reach 2.0× more than halves the worst drag the
+mechanic can ever produce at the stack counts this act actually generates. And
+30.2% is *below* the 35% I argued in §11.2 was already too generous to satisfy
+§3.3's "a careless run ends because of it".
+
+So the condition is not a criterion. It is a second design constraint competing
+with the first, and it wins by construction because it was written down as a test.
+
+`G-026` independently condemns it: the achievable range is 1.0 to 2.512, and 2.0×
+sits at 66% of the way up it — a threshold calibrated near the operating point, of
+exactly the species `G-026` retires. Worse, the range itself is a property of a
+curve family chosen two amendments *after* the threshold was set.
+
+**What the bot keeps:** the ordinal claim. *Careless experiences strictly more
+drag than careful, and the ordering is stable across seeds.* That is the actual
+"does play matter" question, it is instrument-independent, and it is what a bot
+can establish. Currently satisfied at 1.53×.
+
+**What goes to the human:** the magnitude. Whether 1.53× is enough separation is a
+question about whether a careless run feels like it was the player's fault, and no
+ratio answers that.
+
+**Third criterion off the instrument in three passes** — §10.4's level, §11.3's
+40%, now this. That is a pattern rather than three coincidences, and the reading
+is this: §3.3 specified the antibody entirely in perceptual terms, and every
+attempt to proxy those with a bot number has eventually measured something else.
+The bot can establish the mechanic's *presence* and its *ordering*. It cannot
+establish its *calibration*, and four passes of trying is enough evidence.
+
+### 12.4 · §11.5 is six questions, and it has been the bottleneck since Run 3
+
+| Question | Origin | Owner |
+|---|---|---|
+| Is the Egg a shooting gallery? | §8.2 | Justin |
+| Is the drag the right size? | §10.4, §11.2 — the floor | Justin |
+| **Is the drag the right shape?** | §12.2 — `k`, trajectory | Justin |
+| Does Chemotaxis read? | §10.2 | Justin |
+| How long do you hold a heading? | §11.4 — logged, not asked | Justin |
+| Is any of it funny? | `PLAN.md` | Justin |
+
+Five need one session; the sixth is a log file from the same session.
+
+**And this is worth recording as a process finding, because the study is
+observational and this is an observation.** The first human-blocking question
+opened after Run 3. Runs 4 through 7 each added to that list and none closed one.
+The split is honest rather than damning: the instrument work in Runs 5 and 6 was
+correctly unblocked and correctly done — the bots *were* broken and four real
+defects came out of it. But the **design calibration** has been blocked on a
+person for four passes, and the loop kept producing passes because it could, not
+because they were the bottleneck.
+
+`PLAN.md` calls Phase 2 the risk gate and says a human judges whether the act is
+fun. That gate has been standing open and unattended for four runs while the
+agents worked around it.
+
+### 12.5 · Run 8
+
+**Do not run one.** There is no bot number that moves any open question.
+
+- The floor, `k`, and the cadence are all placeholders waiting on one session.
+- The dispersion condition that would have justified another pass is retired.
+- Arm D's win rates remain unread and untuned against.
+
+What is worth doing with no bots and no session: nothing in this file. The next
+useful agent-hours are elsewhere in the project — School's reserved-silhouette
+list (§6, blocking any School asset generation) and the human-figure question
+still open in `ART-DIRECTION.md`, which is the largest unvalidated assumption in
+the art direction and blocks four of seven acts.
+
+**On resumption**, after the session: re-derive the floor and `k` from what Justin
+reports, set the cadence from the input log, then re-baseline once with a control
+arm per change (§9.2). That is a §13.
+
+320 HP untouched, and it is now the least interesting open item in the file.
+`BOSS_PULL` at zero with its expiry, still waiting on the same session as
+everything else.

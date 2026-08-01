@@ -1,5 +1,6 @@
 import { CHANNELS, index, opaqueBounds, opaqueCount, resizeSmooth, type Bitmap } from './bitmap';
 import {
+  THREAT,
   actBackground,
   actPalette,
   distanceToPalette,
@@ -281,6 +282,31 @@ export async function check(
 
   const failures = results.filter((r) => !r.pass).map((r) => `${r.name} (${r.measured})`);
   return { pass: failures.length === 0, results, failures };
+}
+
+/**
+ * Law 10, enforced: no threat colour on a player or pickup frame.
+ *
+ * "Contact, ranged, elite and boss appear on things that will hurt the player
+ * and on nothing else." This is the one law a single well-meaning "flash red
+ * on hit" commit would quietly delete — and it had already been deleted in four
+ * places by the time this check was written, all of them mine.
+ *
+ * Tolerant of exactly the grain amplitude, like palette conformance: a pixel
+ * within the grain's reach of a threat colour IS that colour to a player.
+ */
+export function threatColourViolations(bmp: Bitmap): string[] {
+  const tolerance = distanceToleranceFor(GRAIN_AMPLITUDE);
+  const found = new Set<string>();
+  for (let i = 0; i < bmp.data.length; i += CHANNELS) {
+    if (bmp.data[i + 3] === 0) continue;
+    const lab = rgbToOklab(bmp.data[i]!, bmp.data[i + 1]!, bmp.data[i + 2]!);
+    for (const [name, colour] of Object.entries(THREAT)) {
+      const t = rgbToOklab(colour.rgb[0], colour.rgb[1], colour.rgb[2]);
+      if (Math.hypot(lab.L - t.L, lab.a - t.a, lab.b - t.b) <= tolerance) found.add(name);
+    }
+  }
+  return [...found];
 }
 
 /**

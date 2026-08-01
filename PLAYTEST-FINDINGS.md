@@ -59,9 +59,17 @@ arriving at the same speed, dispersion **1.00×** while the criterion reported
 2.51× and passed.
 
 The curve makes it evaluable. **It reads 1.53× against a required 2.0×, so the
-condition now fails.** That is a genuine result and it agrees with §11.2's design
-argument from an independent direction — Cowork argued 0.65 is too generous from
-§3.3's intent; the newly-evaluable measurement says the same.
+condition now fails.** That is a genuine result.
+
+> **Corrected 2026-08-01 (§12.1).** This entry originally said the failing
+> dispersion agreed with §11.2's floor argument "from an independent direction".
+> It cannot. The floor cancels out of the ratio — proved algebraically below and
+> asserted by a test — so a dispersion figure carries no information about the
+> floor whatsoever. Two arguments concluding that the current settings are wrong
+> for causally unrelated reasons is a coincidence, not corroboration, and filing
+> it as mutual confirmation is how a project ends up with two beliefs propping
+> each other up and nothing underneath. The error was mine and it was in the
+> same entry that proved why it was an error.
 
 The tail is also fixed. Marginal cost of the *n*th stack:
 
@@ -114,15 +122,22 @@ and that assigning one is a §12 question.
 No Run 7. No tuning. Nothing read against arm D's win rates. Both remaining
 values wait on §11.5.
 
-## Decisions wanted
+## Decisions wanted — both answered in §12
 
-1. **Who owns `k`, and against what?** It is the only lever that moves §8.4's
-   dispersion, it is not perceptual in the way the floor is, and it is currently
-   a placeholder inherited from a formula that has been replaced.
-2. **Does §8.4's dispersion condition survive its own re-read?** It now measures
-   the right quantity and fails at 1.53×. Per G-026 that could mean the mechanic
-   needs `k`, or that 2.0× was a level set against an instrument that has since
-   changed three times — the exact species of criterion G-026 retires.
+1. ~~Who owns `k`?~~ **Justin (G-028).** The premise that a person cannot feel a
+   ratio was right; the conclusion did not follow. `k` sets curvature, and
+   curvature has a single-run signature — *when the drag becomes noticeable and
+   when it stops growing* — which one person feels in one sitting. §3.3 stated
+   its requirement in exactly that form: "by minute four the player is moving
+   visibly slower" is a claim about a trajectory, and the floor cannot express
+   it.
+2. ~~Does the dispersion condition survive?~~ **Retired (G-027)**, and not for
+   being stale. 2.0× and §3.3's severity intent cannot both be satisfied under
+   this curve family: the `k` that reaches 2.0× caps the worst achievable drag
+   at 30.2%, below the 35% already judged too generous. It was a second design
+   constraint competing with the first and winning by construction because it
+   was written down as a test. The bot keeps the ordinal claim — careless
+   strictly more than careful, stable across seeds — which holds at 1.53×.
 
 ---
 

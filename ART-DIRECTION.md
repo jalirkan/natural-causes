@@ -156,9 +156,12 @@ G-013. What remains is that none of them is enforced yet:
   silhouettes, reserved threat colours, and which asset holds each. Conception's
   is written out in `CONCEPTION-ROSTER.md` §2 and should be lifted into whatever
   shape the pipeline wants rather than kept in prose.
-- **Law 4's exception moved from per-act to per-asset** and `styleSuffix()` has
-  not caught up. Until it does, either the whole Office act gets ruled geometry
-  or none of it does, and both are wrong.
+- ~~**Law 4's exception moved from per-act to per-asset** and `styleSuffix()` has
+  not caught up.~~ **Done, Run 4.** `AssetSpec.geometry` selects it per asset,
+  `styleSuffixFor()` applies it, and two tests assert that every act defaults to
+  hand-cut and that exactly `boss-reorg` and `antibody` declare `ruled`. The
+  antibody forced it — CONCEPTION-ROSTER §2 reserves the Y as the act's only
+  straight lines, inside an otherwise hand-cut act.
 
 Genuinely open, and mine rather than the pipeline's:
 
@@ -166,9 +169,22 @@ Genuinely open, and mine rather than the pipeline's:
   School asset is generated, not after — the substitute's clipboard needs to be
   the only bright hard rectangle in the act, and that is a claim about every
   other School enemy, none of which are designed yet.
-- **What the register does with a human figure.** The batch never got a passing
-  human asset: the substitute failed under the old register and has not been
-  regenerated under this one. Law 9 says what to aim for and the safety-poster
-  figure is the reference, but nothing has been tested. It is the largest
-  unvalidated assumption in the art direction, and four of seven acts depend on
-  it.
+- **What the register does with a human figure.** Still open, and narrower than
+  stated — **the pipeline half is already answered.**
+
+  Correction of fact: the substitute *was* regenerated under this register and
+  *did* pass. `assets/sprites/school/substitute-teacher.png`, seed `11923`,
+  attempt 2, generated 2026-08-01T09:13Z. Its committed prompt in
+  `assets/prompts/substitute-teacher.md` carries the mid-century style suffix and
+  the law-9 rewrite — role forward, clipboard and lanyard as the character,
+  average build, affectless — and it cleared CUT, CONFORM and all three 48px
+  checks. Repeated in two amendments; the disk is the authority and it disagrees.
+
+  What is genuinely unvalidated is the **creative** half, and it is a different
+  and cheaper question than it has been filed as. Justin judged the *old*
+  teacher "kind of mean". Nobody has judged the new one. So the assumption is
+  untested because nobody has looked, not because it could not be built — and
+  the asset is already sitting in the review sheet waiting for a verdict.
+
+  It remains the largest unvalidated assumption and four of seven acts still
+  depend on it. It just needs five minutes of a person, not a generation run.

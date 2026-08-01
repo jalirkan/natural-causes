@@ -21,6 +21,18 @@ export const PAPER = 0xefe7d6;
 export const BONE = 0xd2c6ac;
 export const SHADOW = 0x6e6353;
 
+/**
+ * Pickups and UI chrome. Deliberately NOT a threat colour (law 10).
+ *
+ * "Contact, ranged, elite and boss appear on things that will hurt the player
+ * and on nothing else — not on the player sprite, not on pickups, not on UI
+ * chrome." The moment an XP gem is elite-violet, that colour means "collect
+ * me" in one place and "this will hurt" everywhere else, and law 6's whole
+ * claim is that colour carries threat.
+ */
+export const PICKUP = BONE;
+export const UI_FILL = BONE;
+
 /** Locked palette — threat colours. Colour carries threat (law 6). */
 export const THREAT_CONTACT = 0xc4472e;
 export const THREAT_RANGED = 0xd69a3c;

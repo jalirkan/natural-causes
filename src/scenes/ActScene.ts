@@ -10,7 +10,17 @@ import {
   type GemState,
   type ProjectileState,
 } from '../sim/world';
-import { INK, PAPER, THREAT_BOSS, THREAT_CONTACT, THREAT_ELITE, WORLD_HEIGHT, WORLD_WIDTH } from '../config';
+import {
+  BONE,
+  INK,
+  PAPER,
+  PICKUP,
+  THREAT_BOSS,
+  THREAT_CONTACT,
+  UI_FILL,
+  WORLD_HEIGHT,
+  WORLD_WIDTH,
+} from '../config';
 
 /**
  * The renderer. It owns no rules.
@@ -239,7 +249,8 @@ export class ActScene extends Phaser.Scene {
   private syncGems(): void {
     const list: GemState[] = this.world.gems;
     this.fit(this.gemSprites, list.length, () =>
-      this.add.circle(0, 0, GEM_SIZE, THREAT_ELITE).setDepth(3),
+      // Law 10: a pickup never wears a threat colour.
+      this.add.circle(0, 0, GEM_SIZE, PICKUP).setDepth(3),
     );
     for (let i = 0; i < list.length; i++) {
       this.gemSprites[i]!.setPosition(list[i]!.x, list[i]!.y).setVisible(true);
@@ -269,7 +280,9 @@ export class ActScene extends Phaser.Scene {
       const fade = 1 - a.age / a.seconds;
       this.areaSprites[i]!.setPosition(a.x, a.y)
         .setRadius(a.radius)
-        .setFillStyle(a.pull ? THREAT_ELITE : PAPER, (a.pull ? 0.1 : 0.16) * fade)
+        // The attractor is the player's own field and does not hurt them, so
+        // law 10 keeps a threat colour off it too.
+        .setFillStyle(a.pull ? BONE : PAPER, (a.pull ? 0.1 : 0.16) * fade)
         .setVisible(true);
     }
   }
@@ -333,16 +346,22 @@ export class ActScene extends Phaser.Scene {
     this.bars.clear();
     // Health.
     this.bars.fillStyle(INK, 0.5).fillRect(14, 36, 220, 9);
-    this.bars.fillStyle(w.invulnerable > 0 ? THREAT_CONTACT : PAPER, 1);
+    // Law 10 names this case directly: damage feedback goes to value, never to
+    // tint, because a player flashing contact-red makes the colour mean
+    // "someone is being hurt" instead of "this hurts". The player sprite
+    // already dims on i-frames, which is the value channel doing the job.
+    this.bars.fillStyle(PAPER, w.invulnerable > 0 ? 0.45 : 1);
     this.bars.fillRect(14, 36, (220 * Math.max(0, w.hp)) / w.maxHp, 9);
     // Experience.
     this.bars.fillStyle(INK, 0.5).fillRect(14, 48, 220, 4);
-    this.bars.fillStyle(THREAT_ELITE, 1).fillRect(14, 48, (220 * w.xp) / w.xpToNext, 4);
+    this.bars.fillStyle(UI_FILL, 1).fillRect(14, 48, (220 * w.xp) / w.xpToNext, 4);
     // The boss carries its own bar across the top.
     if (w.boss) {
       const width = this.cameras.main.width - 240;
       this.bars.fillStyle(INK, 0.6).fillRect(120, 68, width, 10);
-      this.bars.fillStyle(THREAT_BOSS, 1).fillRect(120, 68, (width * w.boss.hp) / w.boss.maxHp, 10);
+      // Debatable — the bar represents a thing that does hurt — but law 10
+      // says UI chrome, without an exception. Flagged rather than argued.
+      this.bars.fillStyle(UI_FILL, 1).fillRect(120, 68, (width * w.boss.hp) / w.boss.maxHp, 10);
     }
 
     if (w.offers) {

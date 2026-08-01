@@ -79,7 +79,7 @@ for (const s of summarise(results)) {
 // distribution needs a level condition AND a dispersion condition, and the
 // median alone supplies neither at these counts.
 out.push('');
-out.push('antibody stacks at 300s — working band is median 4-12, careless >= 2x careful');
+out.push('antibody stacks at 300s — median below 3 means absent (§10.4); no upper bound');
 out.push('-'.repeat(84));
 out.push('policy                 median    p90    mean   n@300   median@death');
 for (const s of summarise(results)) {
@@ -113,11 +113,19 @@ spread, raw stack counts: careless ${careless.toFixed(1)} vs careful ` +
   out.push(
     `spread, experienced drag:  careless ${(dCareless * 100).toFixed(1)}% vs careful ` +
       `${(dCareful * 100).toFixed(1)}% speed lost = ` +
-      `${Number.isFinite(dRatio) ? `${dRatio.toFixed(2)}x` : 'undefined'}` +
-      `  — needs >= 2.0x`,
+      `${Number.isFinite(dRatio) ? `${dRatio.toFixed(2)}x` : 'undefined'}`,
+  );
+  // G-027: the 2.0x threshold is RETIRED. It was not stale — it was
+  // unsatisfiable jointly with §3.3's severity intent, because the k that
+  // reaches 2.0x caps the worst achievable drag at 30.2%, below the 35%
+  // already judged too generous. What survives is the ordinal claim, which is
+  // instrument-independent and is what a bot can actually establish.
+  out.push(
+    `  ordinal claim (G-027): careless > careful — ${dCareless > dCareful ? 'HOLDS' : 'FAILS'}. ` +
+      `Magnitude is a human question, not a threshold.`,
   );
   out.push(
-    `  (floor ${ANTIBODY_FLOOR} is the retired safety-valve value, not a design choice — §11.2)`,
+    `  (floor ${ANTIBODY_FLOOR} and k are placeholders awaiting §11.5 — §11.2, G-028)`,
   );
 }
 

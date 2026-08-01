@@ -773,3 +773,75 @@ each pass. Immune to instrument drift and it discards the mechanism that makes
 this project's findings checkable at all — a prediction with no threshold cannot
 fail, and §7.6's thresholds are why three instrument defects were caught rather
 than absorbed. The answer is better-placed numbers, not fewer.
+
+## G-027 · 2026-08-01 · §8.4's dispersion condition is retired; the bot keeps the ordering, the human gets the magnitude
+Not because 2.0× is a stale level. Because **2.0× and §3.3's severity intent
+cannot both be satisfied** under the curve family `G-025` chose.
+
+`drag(n) = (1 − floor) · kn/(1 + kn)`. The floor cancels out of any ratio, so `k`
+is the only lever on dispersion — and `k` trades dispersion against achievable
+severity, monotonically. At `k` = 0.030 the ratio is 1.53× and the worst drag the
+family can produce at the act's current stack counts is 65%. At `k` = 0.007 the
+ratio reaches 2.06× and that ceiling falls to **30.2%**, floor set to zero, which
+is the most severe curve the family permits. §11.2 already argued that 35% is too
+generous to satisfy §3.3's *a careless run ends because of it*.
+
+So the condition is not a criterion. It is a second design constraint competing
+with the first, and it wins by construction because it was written down as a test
+and the other was written down as intent. `G-026` condemns it independently: the
+achievable range is 1.0 to 2.512 and 2.0× sits two-thirds of the way up it, which
+is the exact species of near-the-operating-point threshold that entry retires.
+
+**The bot keeps the ordinal claim** — careless experiences strictly more drag than
+careful, stable across seeds. That is the real "does play matter" question, it is
+instrument-independent, and it currently passes. **The magnitude goes to the
+human**, because whether 1.53× separation makes a careless run feel deserved is
+not a thing a ratio answers.
+
+This is the third criterion to come off the instrument in three passes (§10.4's
+level, §11.3's 40%, this). The reading is that §3.3 specified the antibody
+entirely in perceptual terms, and every proxy for those has eventually measured
+something else. A bot can establish this mechanic's presence and its ordering. It
+cannot establish its calibration.
+
+Rejected: **lowering `k` to 0.007 to make the condition pass.** It is the only
+move that satisfies the criterion as written, and it does so by capping the
+mechanic's severity below the level the design already rejected. Passing a test by
+breaking the thing the test was protecting is the worst available outcome and it
+would have looked like progress in the table.
+
+Rejected: **restating the threshold lower** — 1.4×, say, so the current curve
+passes. Fastest, and it is re-calibration against an instrument that has changed
+three times, which `G-026` retires by name. It also leaves a number in the file
+whose only justification is that the current value clears it.
+
+## G-028 · 2026-08-01 · `k` is set by the single-run trajectory, not by the ratio
+`k` goes to the human pass with the floor, as a separate question.
+
+The argument for handing it elsewhere was that `k` is not perceptual the way the
+floor is, because a person cannot feel a ratio between two runs they did not have.
+The premise is right and it is about dispersion, not about `k`. Curvature has a
+single-run signature a player feels directly: high `k` reads as *I got slow early
+and then it stopped mattering*; low `k` reads as *I kept getting slower all the
+way to the boss*.
+
+And §3.3 stated the requirement in exactly that form — *by minute four the player
+is moving visibly slower*. That is a claim about a trajectory. The floor cannot
+express it and only `k` can, so the parameter and the requirement already match;
+nobody had noticed they were the same axis.
+
+The question for the session is trajectory-shaped, not ratio-shaped: **at minute
+two, at minute four, and at the boss — is it still getting worse, or did it stop
+mattering early?**
+
+Rejected: **fitting `k` to a target dispersion** and treating the trajectory as
+whatever falls out. The obvious move once `k` is identified as the only lever on
+the ratio, and it inverts the priority — §3.3's trajectory is the design intent
+and the dispersion figure is an instrument for checking it. `G-027` retires the
+instrument; fitting to it afterwards would be keeping the tail.
+
+Rejected: **splitting curvature into two parameters** so trajectory and dispersion
+can be set independently. Technically available, and it buys a second tuning knob
+for a mechanic that already has more knobs than measured facts. Two parameters
+neither of which anyone can perceive separately is worse than one that a person
+can actually answer a question about.
