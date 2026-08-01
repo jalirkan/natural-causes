@@ -11,6 +11,8 @@ import {
   SHADOW as ART_SHADOW,
   THREAT as ART_THREAT,
   actBackground,
+  actLight,
+  ACT_IDS,
   FULL_PALETTE,
 } from '../../../tools/art/palette';
 
@@ -82,6 +84,37 @@ describe('behaviours are fully specified (CONCEPTION-ROSTER §5.2)', () => {
       if (def.burst) expect(def.movement).not.toBe('chase');
     });
   }
+});
+
+describe("law 10 / G-030 — pickups take the act's light tone", () => {
+  const threats = [THREAT_CONTACT, THREAT_RANGED, THREAT_ELITE, THREAT_BOSS];
+
+  it('every registered act draws pickups in its own light tone', () => {
+    for (const [act, v] of Object.entries(ACT_VISUALS)) {
+      const expected = parseInt(actLight(act as 'conception').hex.slice(1), 16);
+      expect(v.pickup, `act "${act}" pickup is not its light tone`).toBe(expected);
+    }
+  });
+
+  it('no pickup colour is a threat colour', () => {
+    for (const [act, v] of Object.entries(ACT_VISUALS)) {
+      expect(threats, `act "${act}" pickup is a threat colour`).not.toContain(v.pickup);
+    }
+  });
+
+  it("no enemy wears its act's light tone — the rule costs nothing today", () => {
+    // The whole argument for assigning pickups the light tone is that it was
+    // sitting idle in both designed acts. If an enemy ever takes it, pickups
+    // and that enemy collide, and this fails before anyone sees it in play.
+    for (const [id, def] of Object.entries(ENEMIES)) {
+      for (const act of ACT_IDS) {
+        const light = parseInt(actLight(act).hex.slice(1), 16);
+        expect(def.tint, `enemy "${id}" wears ${act}-light, which belongs to pickups`).not.toBe(
+          light,
+        );
+      }
+    }
+  });
 });
 
 describe('the reserved list (G-011, CONCEPTION-ROSTER §2)', () => {

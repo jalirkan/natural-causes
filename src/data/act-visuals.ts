@@ -16,6 +16,17 @@ export interface ActVisuals {
   atlas: { key: string; png: string; json: object };
   playerFrame: string;
   bossFrame: string;
+  /**
+   * Pickups take the ACT'S LIGHT TONE (law 10, G-030), so this is per act
+   * rather than one global colour.
+   *
+   * Threat colours to threats, paper to the player, this to pickups. That
+   * separates pickups from the player by hue and from enemies by exclusivity,
+   * and costs nothing today because no enemy in either designed act uses its
+   * act's light tone. Bone lost on the player-competition margin and on
+   * colliding with the antibody's bone junction tag.
+   */
+  pickup: number;
 }
 
 export const ACT_VISUALS: Record<string, ActVisuals> = {
@@ -25,6 +36,8 @@ export const ACT_VISUALS: Record<string, ActVisuals> = {
     atlas: { key: 'conception', png: conceptionAtlasPng, json: conceptionAtlasJson },
     playerFrame: 'player-sperm.png',
     bossFrame: 'boss-egg.png',
+    // conception-light.
+    pickup: 0xc99b8c,
   },
 };
 

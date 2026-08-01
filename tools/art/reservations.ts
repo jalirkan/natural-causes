@@ -60,7 +60,10 @@ export const RESERVATIONS: Partial<Record<ActId, ActReservations>> = {
       {
         silhouette: 'Y',
         heldBy: 'antibody',
-        consequence: 'The only straight lines in the act.',
+        // Narrowed by G-030. Pickups are hard-edged and sit outside the act
+        // vocabulary, so the original "only straight lines in the act" was
+        // false the moment pickups were assigned a shape.
+        consequence: "The only straight lines among the act's enemies.",
       },
     ],
     reservedThreat: {
@@ -69,13 +72,65 @@ export const RESERVATIONS: Partial<Record<ActId, ActReservations>> = {
     },
   },
 
-  // school: NOT YET WRITTEN — and no School asset may be generated until it is.
+  // Lifted from SCHOOL-ROSTER.md §1. Five shapes: one more than Conception,
+  // because the act adds a pressure Conception did not have and the substitute
+  // is a fixed point the roster had to be built around.
   //
-  // The substitute's clipboard has to be the only bright hard rectangle in the
-  // act, which is a claim about every other School enemy, none of which are
-  // designed yet. That is Cowork's to author (G-011); this file is the shape it
-  // goes into.
+  // The clipboard reservation is the one most at risk — School is full of paper
+  // — and it is what forced homework into a wedge and the hall monitor's sash
+  // off both edges of the body. Both would naturally have been rectangles.
+  school: {
+    silhouettes: [
+      {
+        silhouette: 'bright hard rectangle',
+        heldBy: 'substitute-teacher',
+        consequence:
+          'Nothing else in the act is a bright hard-edged rectangle. The act is built around this one.',
+      },
+      {
+        silhouette: 'circle',
+        heldBy: 'dodgeball',
+        consequence: 'The only perfect circle. Nothing else is radially symmetric.',
+      },
+      {
+        silhouette: 'wedge',
+        heldBy: 'homework',
+        consequence: 'A leaning stack, triangular in profile. Paper that is deliberately not a rectangle.',
+      },
+      {
+        silhouette: 'sash',
+        heldBy: 'hall-monitor',
+        consequence:
+          'The only hard diagonal in the act. It runs off both edges so it reads as a stripe, never a slab.',
+      },
+      {
+        silhouette: 'cluster',
+        heldBy: 'clique',
+        consequence: 'The only silhouette with more than one head. Nothing else is a fused mass.',
+      },
+    ],
+    reservedThreat: {
+      // Conception's first aimed thing was the boss; School's is a swarm
+      // enemy, and that escalation is the act's whole point (G-010).
+      ranged: 'substitute-teacher',
+    },
+  },
+
+  // boss-gym-teacher is deliberately absent. It has no concept yet, so
+  // assertReserved refuses it — which is G-011's before-not-after ordering
+  // doing its job rather than an oversight to work around.
 };
+
+/**
+ * Pickups sit outside every act's silhouette vocabulary and hold one shape
+ * game-wide (G-030).
+ *
+ * The vocabulary answers *how does this hurt me*. A pickup does not hurt you,
+ * so folding it into the act's shape budget is a category error — and it would
+ * spend one of four or five reserved shapes per act on something that is the
+ * same object in all seven.
+ */
+export const PICKUP_SILHOUETTE = 'lozenge';
 
 export class ReservationError extends Error {}
 
@@ -110,6 +165,9 @@ export function assertReserved(act: ActId, assetIds: string[]): void {
 
   const holders = new Set(reserved.silhouettes.map((r) => r.heldBy));
   for (const id of assetIds) {
+    // Pickups are exempt: they hold PICKUP_SILHOUETTE game-wide rather than an
+    // act shape (G-030).
+    if (id.startsWith('pickup-')) continue;
     if (!holders.has(id) && !Object.values(reserved.reservedThreat).includes(id)) {
       throw new ReservationError(
         `Act "${act}": asset "${id}" holds no reserved silhouette. Every asset in ` +

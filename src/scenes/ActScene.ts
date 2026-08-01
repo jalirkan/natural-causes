@@ -11,10 +11,8 @@ import {
   type ProjectileState,
 } from '../sim/world';
 import {
-  BONE,
   INK,
   PAPER,
-  PICKUP,
   THREAT_BOSS,
   THREAT_CONTACT,
   UI_FILL,
@@ -249,8 +247,11 @@ export class ActScene extends Phaser.Scene {
   private syncGems(): void {
     const list: GemState[] = this.world.gems;
     this.fit(this.gemSprites, list.length, () =>
-      // Law 10: a pickup never wears a threat colour.
-      this.add.circle(0, 0, GEM_SIZE, PICKUP).setDepth(3),
+      // Law 10 / G-030: a pickup wears the act's light tone. Not a threat
+      // colour, and not bone — bone put it in competition with the player for
+      // lightest thing on screen, which is the one read a horde game cannot
+      // afford to blur.
+      this.add.circle(0, 0, GEM_SIZE, this.visuals.pickup).setDepth(3),
     );
     for (let i = 0; i < list.length; i++) {
       this.gemSprites[i]!.setPosition(list[i]!.x, list[i]!.y).setVisible(true);
@@ -282,7 +283,7 @@ export class ActScene extends Phaser.Scene {
         .setRadius(a.radius)
         // The attractor is the player's own field and does not hurt them, so
         // law 10 keeps a threat colour off it too.
-        .setFillStyle(a.pull ? BONE : PAPER, (a.pull ? 0.1 : 0.16) * fade)
+        .setFillStyle(a.pull ? this.visuals.pickup : PAPER, (a.pull ? 0.1 : 0.16) * fade)
         .setVisible(true);
     }
   }

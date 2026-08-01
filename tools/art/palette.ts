@@ -94,6 +94,23 @@ export function actBackground(act: ActId): Colour {
 }
 
 /**
+ * The act's light tone, which law 10 assigns to pickups (G-030).
+ *
+ * Threat colours to threats, paper to the player, this to pickups. Pickups are
+ * then separated from the player by hue and from enemies by exclusivity, and
+ * the rule costs nothing today because no enemy in either designed act uses
+ * its act's light tone.
+ *
+ * Bone lost on two counts: it sits 0.03 above the luminance gap the enemy test
+ * already enforces against the player, and it collides with the antibody's
+ * bone junction tag — a small bone square on a grey Y reading as collectable
+ * in an act where touching the wrong thing costs health.
+ */
+export function actLight(act: ActId): Colour {
+  return ACT_TONES[act][2];
+}
+
+/**
  * The colours an asset in this act may use: the act's own tones, the
  * universal neutrals, and the threat colours. Restricting the quantiser per
  * act is most of what makes an act read as a place rather than a colour wheel.

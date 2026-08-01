@@ -30,8 +30,12 @@ export const SHADOW = 0x6e6353;
  * me" in one place and "this will hurt" everywhere else, and law 6's whole
  * claim is that colour carries threat.
  */
-export const PICKUP = BONE;
 export const UI_FILL = BONE;
+/**
+ * NOT a pickup colour any more. G-030 assigns pickups the ACT'S light tone,
+ * which is per act and lives in `act-visuals.ts`. Bone stays for UI chrome
+ * only, which is act-independent.
+ */
 
 /** Locked palette — threat colours. Colour carries threat (law 6). */
 export const THREAT_CONTACT = 0xc4472e;

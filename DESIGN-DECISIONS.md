@@ -845,3 +845,69 @@ can be set independently. Technically available, and it buys a second tuning kno
 for a mechanic that already has more knobs than measured facts. Two parameters
 neither of which anyone can perceive separately is worse than one that a person
 can actually answer a question about.
+
+## G-029 · 2026-08-01 · School reserves five shapes, and the clipboard is what forces the other four
+`SCHOOL-ROSTER.md` §1. Bright hard rectangle (substitute), circle (dodgeball),
+wedge (homework), sash (hall monitor), cluster (clique). Ranged gold held to the
+substitute, which is the only thing in School that aims.
+
+Five rather than Conception's four, because School adds a pressure Conception did
+not have and because one asset already exists and passed — the reservation list
+had to be built around `substitute-teacher` rather than the reverse.
+
+The reservation is generative in the way `G-011` claimed it would be, and twice
+in one act. **Homework is a wedge because the rectangle is taken** — it is a stack
+of paper and the obvious silhouette is a slab, so it became a leaning triangular
+pile in `shadow`, separating from the clipboard on shape, edge and value at once.
+**The hall monitor's sash runs off both edges of the body** for the same reason: a
+badge or a rectangular name tag was the natural read and would have put a second
+bright hard rectangle in the act. Both are better drawings than the obvious ones
+were.
+
+Homework also carries **no threat colour at all**, because it does no damage. It
+takes the room instead. That keeps the act's threat palette to four meanings and
+gives School a pressure Conception did not have — an enemy that changes the shape
+of the arena rather than the state of the player.
+
+Rejected: **four shapes, to match Conception's budget.** Symmetry for its own
+sake, and it would have meant cutting the clique or the dodgeball — density and
+velocity, which are genuinely different pressures and the two most basic things a
+School act has. The budget is "small and exclusive", not "four".
+
+Rejected: **letting the substitute hold a softer silhouette** and freeing the
+bright rectangle for the act generally. It would relax the constraint on every
+other enemy, and it throws away the one asset in the act that has already been
+generated and passed all nine checks. The clipboard *is* the character (law 9);
+a substitute whose clipboard is not the read is a drawing of a person, which is
+what failed the first time.
+
+## G-030 · 2026-08-01 · Every colour has one job, and pickups take the act's light tone
+Law 10 enforced and immediately found that it had a **gap rather than a hole** —
+threat colours were reserved for threats and paper for the player, and nothing had
+ever been assigned to pickups. XP gems were in threat-elite; moving them to bone
+was legal and put them in competition with the player for lightest thing on
+screen, which is the one read a horde game cannot afford to blur.
+
+So law 10 becomes a complete assignment: threat colours to threats, paper to the
+player, **the act's light tone to pickups**, everything else to everything else.
+Pickups are then separated from the player by hue and from enemies by an
+exclusivity, and the rule **costs nothing today** — no enemy in either designed
+act uses its act's light tone.
+
+Pickups also sit outside the act silhouette vocabulary and hold one shape
+game-wide. The vocabulary answers *how does this hurt me*; a pickup does not hurt
+you, so folding it in is a category error. It did surface one real collision:
+Conception's antibody reserved "the only straight lines in the act" and pickups
+are hard-edged, so that clause is narrowed to the act's *enemies*.
+
+Rejected: **reserving bone for pickups game-wide.** The obvious fix, no new
+colour, and it leaves pickups at luminance 0.779 against the player's 0.908 — a
+gap of 0.03 above the threshold the enemy test already enforces. It also collides
+with the antibody's bone junction tag, so a small bone square on a grey Y would
+read as collectable in an act where touching the wrong thing costs health.
+
+Rejected: **adding a colour to the palette** for pickups. Cleanest semantically
+and it opens law 3, which is binding, in order to solve a problem that an existing
+unused colour already solves. The act-light tones were sitting there doing nothing
+in both designed acts; spending a palette slot before spending an idle colour is
+the wrong order.

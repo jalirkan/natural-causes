@@ -74,19 +74,34 @@ Enforced in code. The check that enforces each one is named.
    performs — the clipboard and the lanyard are the character; the person
    carries them. An enemy the player pities is aimed at the wrong target, and
    is the same failure as D-007 one step over.
-10. **The player never wears a threat colour** (G-012). Contact, ranged, elite
-    and boss appear on things that will hurt the player and on nothing else —
-    not on the player sprite, not on pickups, not on UI chrome. Damage feedback
-    goes to value and outline weight, never to tint, because the moment the
-    player flashes contact red the colour means "someone is being hurt" instead
-    of "this hurts". **No check yet** — wants a palette scan of the player and
-    pickup frames.
-11. **Each act reserves its silhouettes and its threat colours** (G-011). A
-    small exclusive shape vocabulary per act, declared before any asset in that
-    act is generated. Conception is the worked example — comet, blot, ring, Y,
-    with gold held for the boss (`CONCEPTION-ROSTER.md` §2). Law 6 only delivers
-    at horde density if the vocabulary is small and nothing shares. **No check
-    yet** — the reservation list has to exist as data before it can be enforced.
+10. **Every colour has exactly one job** (G-012, extended by G-030). The
+    original rule was that the player never wears a threat colour; enforcement
+    found that it left a gap rather than a hole, and XP gems fell in it. The
+    complete assignment, inside the play field:
+
+    | | |
+    |---|---|
+    | **Threat colours** | Things that hurt the player. Nothing else — not the player, not pickups, not UI chrome. |
+    | **Paper `#EFE7D6`** | The player. Nothing else. |
+    | **The act's light tone** | Pickups. No enemy in any act may take it. |
+    | **Act deep and mid, shadow, ink, bone** | Everything else. |
+
+    Damage feedback goes to value and outline weight, never to tint, because the
+    moment the player flashes contact red the colour means "someone is being
+    hurt" instead of "this hurts". **Enforced** — the palette scan caught four
+    violations on its first run.
+11. **Each act reserves its silhouettes and its threat colours** (G-011).
+    A small exclusive shape vocabulary per act, declared before any asset in
+    that act is generated. Conception is the worked example — comet, blot, ring,
+    Y, with gold held for the boss (`CONCEPTION-ROSTER.md` §2); School is comet's
+    successor at five shapes (`SCHOOL-ROSTER.md` §1). Law 6 only delivers at
+    horde density if the vocabulary is small and nothing shares. **Enforced** —
+    `tools/art/reservations.ts`, and an act with no entry refuses generation.
+
+    **Pickups sit outside the act vocabulary and hold one shape game-wide**
+    (G-030). The vocabulary exists to say *how a thing hurts you*; a pickup does
+    not, so folding it in is a category error. Instead it is reserved globally:
+    one shape, the same in every act, and no enemy in any act may take it.
 
 ## The detail budget (D-018)
 
@@ -147,15 +162,18 @@ the border ring, never assumed.
 
 The three questions raised by `TEST-BATCH-CONCEPTS.md` are **settled** — they are
 now laws 10 and 11 and the amendment to law 4, recorded as G-011, G-012 and
-G-013. What remains is that none of them is enforced yet:
+G-013. All three are now enforced as well:
 
-- **Law 10 needs a check.** A palette scan asserting no threat colour appears in
-  any player or pickup frame. Cheap, and it is the one law a single well-meaning
-  "flash red on hit" commit would quietly delete.
-- **Law 11 needs the reservation list to be data.** Per act: reserved
-  silhouettes, reserved threat colours, and which asset holds each. Conception's
-  is written out in `CONCEPTION-ROSTER.md` §2 and should be lifted into whatever
-  shape the pipeline wants rather than kept in prose.
+- ~~**Law 10 needs a check.**~~ **Done.** The palette scan caught four
+  violations on its first run, including XP gems in threat-elite. Moving them to
+  bone was legal and exposed that the law had a *gap* rather than a hole — no
+  colour was assigned to pickups at all. Law 10 is now a complete role→colour
+  assignment (G-030) and pickups take the act's light tone, which no enemy uses
+  in any act designed so far, so the rule costs nothing today.
+- ~~**Law 11 needs the reservation list to be data.**~~ **Done.**
+  `tools/art/reservations.ts`, and an act with no entry refuses generation rather
+  than defaulting to permissive. School's list is `SCHOOL-ROSTER.md` §1;
+  `boss-gym-teacher` is deliberately absent and therefore not generatable.
 - ~~**Law 4's exception moved from per-act to per-asset** and `styleSuffix()` has
   not caught up.~~ **Done, Run 4.** `AssetSpec.geometry` selects it per asset,
   `styleSuffixFor()` applies it, and two tests assert that every act defaults to
@@ -163,12 +181,36 @@ G-013. What remains is that none of them is enforced yet:
   antibody forced it — CONCEPTION-ROSTER §2 reserves the Y as the act's only
   straight lines, inside an otherwise hand-cut act.
 
+- **Law 3 is not enforced at render time, and every tinted enemy currently
+  breaks it.** The pipeline quantises the sprite and checks it; the game then
+  multiplies that sprite by a tint on the GPU, and a multiply of two palette
+  colours is not generally a palette colour. Measured across all four Conception
+  enemies: each is 0.0000 off-palette as checked and 0.084–0.107 off-palette as
+  drawn, against a tolerance of 0.0353. Three times over, on every one.
+
+  This is a gap between what CHECK sees and what a player sees, not a bad tint
+  value — the same shape of gap as the bot instrument problems. Three ways out,
+  and the choice is a real one: bake the tint at pack time and re-quantise
+  (honest, and re-packs every existing sprite); restrict tints to multiplies
+  that are palette-closed (cheap, and severely limits the tint set); or drop
+  render tinting and have the generator produce final colours (which is what the
+  tint exists to work around, because it would not).
+
 Genuinely open, and mine rather than the pipeline's:
 
-- **Per-act reserved lists for School onward.** School's needs writing before any
-  School asset is generated, not after — the substitute's clipboard needs to be
-  the only bright hard rectangle in the act, and that is a claim about every
-  other School enemy, none of which are designed yet.
+- ~~**Per-act reserved lists for School onward.**~~ **School done** —
+  `SCHOOL-ROSTER.md` §1, five shapes, written together with the roster because
+  the clipboard reservation is a claim about every other enemy in the act. The
+  remaining five acts still need theirs, each before its first asset.
+- **Law 3 may be unsatisfiable as written, and I do not think it is.** "Twenty
+  colours, act tints included" reads as a whole-game total, and the palette is
+  already at twenty with only four of seven acts toned — the remaining three need
+  nine more. The reading that works is that **twenty is the on-screen budget, not
+  the catalogue**: any single act shows four universals, four threat colours and
+  three act tones, which is eleven, comfortably inside the law. Twenty at once is
+  a real constraint on how a screen looks; twenty across seven acts is arbitrary.
+  Recorded rather than edited into the law, because it changes what a binding
+  document means and Justin should see it before it does.
 - **What the register does with a human figure.** Still open, and narrower than
   stated — **the pipeline half is already answered.**
 

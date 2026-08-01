@@ -47,9 +47,15 @@ colour.
 | **Comet** — smooth dome + trailing tail | Rival sperm | No other enemy has a tail |
 | **Blot** — round lobed mass, scalloped edge | White cell | No other enemy is lobed |
 | **Ring** — open annulus, even weight | Spermicide | Nothing else in the act is a ring, including VFX |
-| **Y** — hard angular fork | Antibody | The only straight lines in the act |
+| **Y** — hard angular fork | Antibody | The only straight lines among the act's *enemies* |
 | **Gold `#D69A3C`** (ranged) | The Egg | Does not appear before the boss |
 | **Paper `#EFE7D6`** | The player | Law 10 — the lightest thing on screen |
+| **Conception-light `#C99B8C`** | Pickups | Law 10 (G-030) — no enemy in the act may take it |
+
+*(Last two rows amended 2026-08-01 after the law 10 palette scan — see `G-030`.
+The antibody's clause said "in the act" and pickups are hard-edged, so it was
+narrowed to enemies; pickups sit outside the act vocabulary and hold one shape
+game-wide.)*
 
 Four shapes is the budget. The constraint is generative, not limiting: *the ring
 is taken* is what produced the antibody's Y.
