@@ -1,19 +1,28 @@
 /**
- * Phase 0 constants. Deliberately tiny — this file exists so the numbers the
- * scene uses are named rather than buried, not as a pre-emptive settings
- * system. It grows when there is something real to put in it.
+ * Constants shared across scenes.
+ *
+ * Colours here are the locked palette's (ART-DIRECTION law 3) as Phaser hex
+ * numbers. They are duplicated from `tools/art/palette.ts` rather than
+ * imported because that module is Node-side and pulls in sharp; a test asserts
+ * the two agree, so the duplication cannot drift silently.
  */
 
-/** Internal render size. The scale manager fits this to whatever the window is. */
+/** Internal render size. The scale manager fits this to the window. */
 export const VIEW_WIDTH = 1280;
 export const VIEW_HEIGHT = 720;
 
-/** The field. Flat, green, and for now the entire art budget. */
-export const FIELD_COLOUR = 0x4c7a35;
+/** The playfield. Larger than the viewport; the camera follows the player. */
+export const WORLD_WIDTH = 3200;
+export const WORLD_HEIGHT = 2200;
 
-/** The player stand-in. Lightest thing on screen, per TEST-BATCH-CONCEPTS §2. */
-export const DOT_COLOUR = 0xf4f0e2;
-export const DOT_RADIUS = 13;
+/** Locked palette — universals. */
+export const INK = 0x2a2521;
+export const PAPER = 0xefe7d6;
+export const BONE = 0xd2c6ac;
+export const SHADOW = 0x6e6353;
 
-/** Pixels per second. Tuned by feel later; this is only "does input work". */
-export const DOT_SPEED = 340;
+/** Locked palette — threat colours. Colour carries threat (law 6). */
+export const THREAT_CONTACT = 0xc4472e;
+export const THREAT_RANGED = 0xd69a3c;
+export const THREAT_ELITE = 0x7c5c8a;
+export const THREAT_BOSS = 0x2f7370;
