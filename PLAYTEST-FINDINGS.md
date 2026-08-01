@@ -21,6 +21,126 @@ Running record of what the automated bots measured and what it means for design.
 
 ---
 
+# 2026-08-01 · Run 4 — after G-019 (pull dropped) and G-020 (antibodies arrive ahead)
+
+## The short version
+
+1. **G-019 holds.** Its falsifier did not fire. Isolated, dropping the pull costs
+   nothing: boss HP remaining stays at 0% and 5% for the two short builds, and
+   the pull-0 arm reproduces exactly.
+2. **G-020 works** by §8.4's corrected criteria — level condition met for four of
+   five policies, dispersion 2.8× against a required 2.0×.
+3. **§8.5's independence assumption is wrong.** G-020 moves the boss table. Read
+   naively, Run 4 fires G-019's falsifier; the falsification belongs to G-020.
+4. `random` fell from 94% to 75%, which bears on §8.6 and was not asked for.
+
+## §8.5 said the two changes cannot confound each other. They do.
+
+Run 4 as first measured, both changes live:
+
+| policy | win rate | boss left |
+|---|---|---|
+| midpiece+wake | 100% [81–100%] | 0% |
+| membrane+acrosome | 38% [18–61%] | **22%** |
+| motility | 63% [39–82%] | 0% |
+| greedy-capacitation | 94% [72–99%] | 0% |
+| random | 75% [51–90%] | 0% |
+
+22% is above §8.5's 20% threshold, which as written means "`G-019` is wrong and
+the pull was doing work the A/B did not capture."
+
+It is not. A control arm — pull still 0, antibodies forced back to the arena
+edge — reproduces the earlier pull-0 numbers **exactly**:
+
+| policy | Run 4 (lead) | control (edge) | pull-0 arm, Run 3 |
+|---|---|---|---|
+| midpiece+wake | 100% / 0% | 69% / 0% | 69% / 0% |
+| membrane+acrosome | 38% / **22%** | 50% / **5%** | 50% / **5%** |
+| motility | 63% / 0% | 56% / 0% | 56% / 0% |
+| greedy-capacitation | 94% / 0% | 100% / 0% | 100% / 0% |
+| random | 75% / 0% | 94% / 0% | 94% / 0% |
+
+**The mechanism.** Antibody stacks are a speed tax. Every build's boss
+performance depends on speed — reaching the Egg, holding a working distance,
+leaving a ring. Membrane is already a speed cost by design, and membrane+acrosome
+now carries the most stacks of any policy (mean 7.4, p90 15). The two compound on
+the one build with the least speed to spare, so moving where antibodies arrive
+moved the boss table.
+
+Worth carrying: **an enemy that taxes a movement stat is never independent of a
+fight decided by movement.** Nothing about the boss changed in this pass and the
+boss result still moved.
+
+## `G-019` scored against §8.5
+
+Using the control arm, which is the arm that isolates it.
+
+| prediction | measured | verdict |
+|---|---|---|
+| Boss HP remaining stays 0–5% for both short builds | 0% and 5% | met |
+| **Falsifier:** either short build above 20% | 0% and 5% | did not fire |
+| Mean win rate ≈ 74% | 73.8% | met |
+| Spread ≈ 50pp | 50pp | met |
+
+The reproduction check passes to the point of identity — the control arm and the
+Run 3 pull-0 arm agree on every policy, every boss figure and every win rate.
+That is what a deterministic simulation with one changed constant should look
+like, and it is the cheapest available evidence that nothing else drifted.
+
+## `G-020` scored against §8.4
+
+Antibody stacks at 300s. The distribution, not the median.
+
+| policy | median | p90 | mean |
+|---|---|---|---|
+| midpiece+wake | 2 | 4 | 2.6 |
+| membrane+acrosome | 8 | 15 | 7.4 |
+| motility | 4 | 6 | 4.0 |
+| greedy-capacitation | 4 | 7 | 4.4 |
+| random | 5 | 11 | 6.1 |
+
+- **Level condition** (median in 4–12): met for four of five. `midpiece+wake` sits
+  at 2, below the band.
+- **Dispersion condition** (careless ≥ 2× careful): **2.8×**, from 7.4 against
+  2.6. Met.
+
+**Verdict: working.** Neither §8.4 failure signature is present — not "absent"
+(medians 4–8 across most policies, p90 up to 15) and not "undodgeable" (the
+policies separate cleanly).
+
+`midpiece+wake` under the band looks like the mechanic behaving rather than
+failing: it is the speed build, it dodges best, and it carries a third of what
+the slowest build carries. That is play affecting the outcome, which is the
+property §8.4's dispersion condition exists to detect. Whether a build should be
+able to opt out this cheaply is a design question, not a measurement one.
+
+§8.4's instruction to report the distribution was load-bearing. On medians alone
+`midpiece+wake` reads 2 and `membrane+acrosome` reads 8; the p90s are 4 and 15,
+which is where the severity actually lives.
+
+## Not asked for, relevant to §8.6
+
+`random` fell from **94% [72–99%] to 75% [51–90%]** and the build spread widened
+from 50pp to 62pp. G-020 made choices matter more, which is the direction §8.6
+wanted `random` to move. Not actioned and not a claim — the intervals overlap and
+one run does not settle it.
+
+## Decisions wanted
+
+1. **§8.5's independence assumption needs replacing**, and the general form is
+   more useful than the specific correction: a change to an enemy that taxes
+   movement is not separable from a fight decided by movement. Future
+   multi-change passes want a control arm rather than an assumption.
+2. **Is `midpiece+wake` at median 2 acceptable?** The speed build can nearly opt
+   out of the act's one inevitability. Lead distance is the dial, and shortening
+   it raises every policy rather than just that one.
+3. **Does the compounding stand?** Membrane pays a speed cost by design and now
+   pays it twice — once from the item, once from carrying the most stacks. That
+   is defensible as the item's stated trade, and it is also why its boss
+   participation more than quadrupled. Cowork's call, not a bug.
+
+---
+
 # 2026-08-01 · Run 3 — after the G-015 pull and the G-018 antibody
 
 ## The short version

@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { CONCEPTION } from '../../data/acts';
 import { ITEMS } from '../../data/items';
-import { ANTIBODY_FLOOR, BOSS_HP, BOSS_PULL, PLAYER_BASE_SPEED, World } from '../world';
+import {
+  ANTIBODY_FLOOR,
+  ANTIBODY_LEAD,
+  BOSS_HP,
+  BOSS_PULL,
+  PLAYER_BASE_SPEED,
+  SPAWN_RADIUS,
+  World,
+} from '../world';
 import { ENEMIES } from '../../data/enemies';
 import { Grid } from '../grid';
 
@@ -120,8 +128,23 @@ describe('passives change the player', () => {
   });
 });
 
-describe('the Egg pulls (G-015)', () => {
-  it('THE NON-NEGOTIABLE: the slowest legal build still makes progress outward', () => {
+describe('the Egg does not pull (G-019), and the guard outlives the feature', () => {
+  it('the shipped pull is zero', () => {
+    expect(BOSS_PULL).toBe(0);
+  });
+
+  it('a run with the shipped constant has no inward force at all', () => {
+    const w = new World({ act: CONCEPTION, seed: 4, startingItems: [] });
+    w.time = CONCEPTION.durationSeconds;
+    run(w, 0.1);
+    w.x = w.boss!.x + 600;
+    w.y = w.boss!.y;
+    const before = w.x;
+    for (let i = 0; i < 60; i++) w.step(1 / 60, { moveX: 0, moveY: 0 });
+    expect(w.x).toBeCloseTo(before, 6);
+  });
+
+  it('THE NON-NEGOTIABLE: any reintroduced pull must leave the slowest build moving', () => {
     // CONCEPTION-ROSTER §7.2: "a player swimming directly outward must make
     // progress. If the pull cannot be beaten, Motility has no counterplay and
     // the fix has replaced one dead build with another."
@@ -134,16 +157,27 @@ describe('the Egg pulls (G-015)', () => {
       membrane.kind === 'passive' ? membrane.speedMultiplier ** membrane.maxLevel : 1;
     const slowest = PLAYER_BASE_SPEED * slowestMultiplier * ANTIBODY_FLOOR;
 
-    expect(BOSS_PULL, `pull ${BOSS_PULL} vs slowest legal speed ${slowest.toFixed(1)}`).toBeLessThan(
-      slowest,
-    );
-    // And by a margin worth calling progress, not a rounding error.
-    expect((slowest - BOSS_PULL) / slowest).toBeGreaterThan(0.2);
+    // Checked against the largest value anyone has proposed, not against the
+    // shipped zero — at zero this assertion is vacuous and would go green
+    // through any future change to Membrane or the antibody curve.
+    const largestProposed = 55;
+    expect(
+      largestProposed,
+      `pull ${largestProposed} vs slowest legal speed ${slowest.toFixed(1)}`,
+    ).toBeLessThan(slowest);
+    expect((slowest - largestProposed) / slowest).toBeGreaterThan(0.2);
+    expect(BOSS_PULL).toBeLessThanOrEqual(largestProposed);
   });
 
-  it('is live from spawn and identical at full health and at one HP', () => {
+  // The remaining tests drive the pull PATH through the experiment override.
+  // The feature is off, the mechanism is kept (§8.2), and a mechanism nobody
+  // exercises is a mechanism that has quietly stopped working by the time
+  // anyone wants it back.
+  const PROBE_PULL = 55;
+
+  it('when reintroduced, it is identical at full health and at one HP', () => {
     const measure = (hp: number): number => {
-      const w = new World({ act: CONCEPTION, seed: 4, startingItems: [] });
+      const w = new World({ act: CONCEPTION, seed: 4, startingItems: [], bossPull: PROBE_PULL });
       w.time = CONCEPTION.durationSeconds;
       run(w, 0.1);
       w.boss!.hp = hp;
@@ -158,11 +192,11 @@ describe('the Egg pulls (G-015)', () => {
     const atOne = measure(1);
     expect(atFull).toBeGreaterThan(0);
     expect(atFull).toBeCloseTo(atOne, 3);
-    expect(atFull).toBeCloseTo(BOSS_PULL, 0);
+    expect(atFull).toBeCloseTo(PROBE_PULL, 0);
   });
 
-  it('a player swimming outward actually gains ground', () => {
-    const w = new World({ act: CONCEPTION, seed: 4, startingItems: [] });
+  it('when reintroduced, a player swimming outward still gains ground', () => {
+    const w = new World({ act: CONCEPTION, seed: 4, startingItems: [], bossPull: PROBE_PULL });
     w.time = CONCEPTION.durationSeconds;
     run(w, 0.1);
     w.x = w.boss!.x + 400;
@@ -174,11 +208,55 @@ describe('the Egg pulls (G-015)', () => {
   });
 
   it('there is no pull before the Egg exists', () => {
-    const w = new World({ act: CONCEPTION, seed: 4, startingItems: [] });
+    const w = new World({ act: CONCEPTION, seed: 4, startingItems: [], bossPull: PROBE_PULL });
     const before = w.x;
     for (let i = 0; i < 60; i++) w.step(1 / 60, { moveX: 0, moveY: 0 });
     expect(w.boss).toBeNull();
     expect(w.x).toBeCloseTo(before, 6);
+  });
+});
+
+describe('antibodies arrive ahead of the player (G-020)', () => {
+  it('spawns at the lead distance along the current heading, not at the rim', () => {
+    const w = new World({ act: CONCEPTION, seed: 21, startingItems: [] });
+    w.facingX = 0;
+    w.facingY = -1;
+    w.spawnEnemy('antibody');
+    const e = w.enemies[0]!;
+    expect(Math.hypot(e.x - w.x, e.y - w.y)).toBeCloseTo(ANTIBODY_LEAD, 3);
+    // Ahead, meaning along the heading rather than anywhere on a ring.
+    expect(e.y).toBeLessThan(w.y);
+    expect(e.x).toBeCloseTo(w.x, 3);
+  });
+
+  it('turning changes where the next one appears — the lead is the dial', () => {
+    const w = new World({ act: CONCEPTION, seed: 22, startingItems: [] });
+    w.facingX = 1;
+    w.facingY = 0;
+    w.spawnEnemy('antibody');
+    w.facingX = -1;
+    w.spawnEnemy('antibody');
+    const [a, b] = w.enemies;
+    expect(a!.x).toBeGreaterThan(w.x);
+    expect(b!.x).toBeLessThan(w.x);
+  });
+
+  it('everything else still enters at the rim', () => {
+    const w = new World({ act: CONCEPTION, seed: 23, startingItems: [] });
+    for (const id of ['rival-sperm', 'spermicide', 'white-cell']) {
+      w.enemies.length = 0;
+      w.spawnEnemy(id);
+      const e = w.enemies[0]!;
+      expect(Math.hypot(e.x - w.x, e.y - w.y), id).toBeCloseTo(SPAWN_RADIUS, 3);
+    }
+  });
+
+  it('only the entry point moved — speed, invulnerability and damage are untouched', () => {
+    const def = ENEMIES['antibody']!;
+    expect(def.speed).toBe(34);
+    expect(def.invulnerable).toBe(true);
+    expect(def.contactDamage).toBe(0);
+    expect(def.spawnAt).toBe('lead');
   });
 });
 

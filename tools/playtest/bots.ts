@@ -1,6 +1,6 @@
 import { CONCEPTION } from '../../src/data/acts';
 import { ITEMS, isActive } from '../../src/data/items';
-import { World, type Input } from '../../src/sim/world';
+import { World, type Input, type WorldOptions } from '../../src/sim/world';
 
 /**
  * Automated playtest bots. The part of PLAN.md that genuinely runs for hours
@@ -175,10 +175,16 @@ function chooseOffer(
   return offers[Math.floor(rng() * offers.length)] ?? offers[0]!;
 }
 
-export function runOnce(policy: BotPolicy, seed: number, bossPull?: number): RunResult {
-  const world = new World(
-    bossPull === undefined ? { act: CONCEPTION, seed } : { act: CONCEPTION, seed, bossPull },
-  );
+export function runOnce(
+  policy: BotPolicy,
+  seed: number,
+  bossPull?: number,
+  spawnOverride?: 'edge' | 'lead',
+): RunResult {
+  const options: WorldOptions = { act: CONCEPTION, seed };
+  if (bossPull !== undefined) options.bossPull = bossPull;
+  if (spawnOverride !== undefined) options.spawnOverride = spawnOverride;
+  const world = new World(options);
   // A separate stream for choices, so a policy change does not shift spawns.
   let a = (seed * 2654435761) >>> 0;
   const rng = () => {
@@ -233,6 +239,25 @@ export function wilson(successes: number, n: number, z = 1.96): [number, number]
   return [Math.max(0, (centre - spread) / d), Math.min(1, (centre + spread) / d)];
 }
 
+/**
+ * Nearest-rank percentile. Used for the antibody's 90th (§8.4).
+ *
+ * At integer counts near zero the median saturates and hides the tail —
+ * "1, 2, 1, 1, 1" is compatible with a great many different distributions,
+ * including one where a careless run carries fifteen.
+ */
+export function percentile(xs: number[], p: number): number {
+  if (xs.length === 0) return 0;
+  const s = [...xs].sort((a, b) => a - b);
+  const rank = Math.ceil((p / 100) * s.length);
+  return s[Math.min(s.length - 1, Math.max(0, rank - 1))]!;
+}
+
+export function mean(xs: number[]): number {
+  if (xs.length === 0) return 0;
+  return xs.reduce((a, b) => a + b, 0) / xs.length;
+}
+
 export function median(xs: number[]): number {
   if (xs.length === 0) return 0;
   const s = [...xs].sort((a, b) => a - b);
@@ -251,6 +276,8 @@ export interface PolicySummary {
   medianLevel: number;
   medianDragStacks: number;
   medianStacksAt300: number;
+  p90StacksAt300: number;
+  meanStacksAt300: number;
   /** Median share of the boss still standing when the run ended. */
   medianBossLeft: number | null;
   reachedBoss: number;
@@ -277,6 +304,8 @@ export function summarise(results: RunResult[]): PolicySummary[] {
       medianLevel: median(runs.map((r) => r.level)),
       medianDragStacks: median(runs.map((r) => r.dragStacks)),
       medianStacksAt300: median(runs.map((r) => r.stacksAt300)),
+      p90StacksAt300: percentile(runs.map((r) => r.stacksAt300), 90),
+      meanStacksAt300: +mean(runs.map((r) => r.stacksAt300)).toFixed(1),
       reachedBoss: runs.filter((r) => r.bossHpFraction !== null).length,
       medianBossLeft: (() => {
         const reached = runs.filter((r) => r.bossHpFraction !== null);

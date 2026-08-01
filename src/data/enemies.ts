@@ -74,6 +74,11 @@ export interface EnemyDef {
    * already losing. You cannot shoot a document.
    */
   invulnerable?: boolean;
+  /**
+   * Where it enters (G-020). `edge` is the arena rim; `lead` is a fixed
+   * distance ahead of the player's current heading. Defaults to `edge`.
+   */
+  spawnAt?: 'edge' | 'lead';
   /** Zone hazards. Bursts on a timer, never on proximity. */
   burst?: { fuseSeconds: number; ringRadius: number; ringSeconds: number; ringDamage: number };
   /** One sentence. Required. */
@@ -116,6 +121,10 @@ export const ENEMIES: Record<string, EnemyDef> = {
     tint: 0x6e6353,
     movement: 'drift',
     contact: 'attach',
+    // G-020: arrival was the binding constraint, not toughness. Only the entry
+    // point moved — speed, invulnerability, contact damage and rate are all
+    // unchanged.
+    spawnAt: 'lead',
     // Retained for reference; the curve now lives in World.antibodyDrag,
     // because G-018 made the per-stack cost diminishing rather than flat.
     attach: { drag: 0.03 },

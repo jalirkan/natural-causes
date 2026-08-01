@@ -544,7 +544,10 @@ not the numbers quietly adjusted until they agree.
 - **Falsifier:** if Motility is still near 50% and either short build is still
   under 10% after the pull is in, reach was not the cause and `G-015` is wrong.
 
-**On the antibody:**
+**On the antibody:** *(falsifier superseded — see §8.4. It fired on dispersion
+alone, and dispersion alone cannot tell "everyone gets the same lot" from
+"nobody gets any". Run 3 produced the second and the falsifier read it as the
+first.)*
 
 - Median stacks at the 300s mark rises from 0 to somewhere in the range 4–12.
 - The spread *between* policies is wide — a careful policy should carry
@@ -558,3 +561,153 @@ not the numbers quietly adjusted until they agree.
 for four builds at once. If win rates rise across the board and the table flattens
 near 50%, the fight has become easy rather than fair, and *that* is when 320 HP
 moves — after the shape is settled, not alongside it.
+
+---
+
+## 8 · Amendment — 2026-08-01, after Run 3
+
+Appended. §7 stays where it is; the parts Run 3 reverses are marked in place and
+answered here.
+
+### 8.1 · What Run 3 actually established
+
+§7.1 drew a line between a *participation* claim and a *rate* claim, and leaned
+the whole of §7 on the participation claim because it does not need a large
+sample. That reasoning was sound and it was applied to a corrupt measurement.
+97% and 86% boss HP remaining were `nearestEnemy()` never seeing the boss and a
+standoff derived from maximum reach instead of minimum. Both in the instrument.
+
+The correct lesson is not "trust participation measures less." It is that a
+mechanism observation is only as good as the mechanism being observed, and §7.1
+never asked whether the builds were *firing* — only whether the boss took damage.
+Those come apart exactly when a weapon has no target. Worth carrying: **before
+concluding a build cannot do damage, confirm it is attacking at all.** Run 3's
+per-item dps probe is the check §7 should have asked for and did not.
+
+I am not treating the +19pp and +13pp the pull is worth as established. Both sit
+inside overlapping intervals at n=16 and the file's own first rule applies.
+
+### 8.2 · The pull is dropped (`G-019`)
+
+**`BOSS_PULL` goes to 0.** Set on purpose, not inherited.
+
+The mechanical case died with the bug fixes — boss HP remaining is 0% and 5% at
+pull 0, so the participation problem §7.6 called "the one that matters" is
+already solved without it. That leaves characterisation, and I said in `G-015`
+that characterisation was the stronger half of the argument. Having now had to
+test it alone, it does not hold up, for a reason the A/B shows rather than
+anything I reasoned my way to:
+
+> **Motility, greedy-capacitation and random score identically in both arms.**
+> 56/56, 100/100, 94/94.
+
+`G-015` pitched a universal positional question — *how close do I let it take
+me* — answered differently by every build. If that were what shipped, a ranged
+build would pay something to hold station. Three of five policies pay nothing
+measurable. What is actually in the game is a range-dependent assist to the two
+builds that wanted to be close anyway, invisible to everyone else. That is not
+the mechanic the entry describes, and it is not worth a mechanic.
+
+The characterisation argument fails a second time on perception. The act is set
+in fluid. A gentle inward drift near the Egg does not obviously read as *the Egg
+doing something inevitable*; it reads as a current, or as nothing. That claim
+needs a human and has never had one — and `PLAN.md` is explicit that a human
+decides what lands and no agent can stand in for that. An aesthetic effect no bot
+can measure and no player has confirmed is not a reason to keep a mechanic that
+does no mechanical work.
+
+Dropping it also lowers mean win rate from 80.2% to 73.8% and widens the spread
+from 44pp to 50pp. Small, free, and pointed the right way given that the standing
+risk has fired.
+
+**Keep the code and keep the test.** `BOSS_PULL` stays as a constant at zero and
+the §7.2 non-negotiable test stays live, because it now guards against anyone
+reintroducing an inward force without re-deriving the slowest legal build. That
+test is worth more than the feature was.
+
+**With an expiry, because inert features rot.** If Justin plays the Egg fight and
+does not ask for something in that space, delete the constant and the pull path at
+the next close. The one piece of missing evidence is a human's read of a
+shooting-gallery boss; this holds the door open for exactly as long as it takes to
+get one, and no longer.
+
+### 8.3 · The antibody's lever is arrival (`G-020`)
+
+Right diagnosis. `G-018` was correct and insufficient — not overcorrected.
+
+**The change: antibodies stop entering at the arena edge and start already being
+where the player is going.** Spawn at a fixed lead distance ahead of the player's
+current heading, then hold the existing slow drift. Speed stays 34. Nothing about
+the enemy changes except where it enters.
+
+This is the most law-8-compliant behaviour available. The antibody does not
+pursue, does not steer, does not react — it is simply already there, and the
+player's own forward motion does all the closing. It is also `whyThisStage` made
+literal: *the first record about the player is opened before they arrived*. You
+swim into your own file.
+
+And it hands the tuning a clean dial. **Lead distance is monotonic between the two
+failure modes:** long lead gives more time to change heading and fewer stacks;
+short lead gives less and more. That is a far better surface than HP ever was,
+and it is the dial to move if Run 4 lands outside the band. Spawn rate is the
+second knob and should stay fixed until lead distance is settled.
+
+One check that makes `G-018` load-bearing rather than incidental: under
+spawn-ahead, a motility build fires a 520px piercing line straight down its own
+heading, which is precisely where antibodies now appear. At 2 HP it would delete
+every one of them and the mechanic would exist for every build except the one
+that shoots forward. Invulnerability is doing necessary work here. It was right
+for its own reason and is now also load-bearing for this one.
+
+### 8.4 · §7.6's antibody falsifier, corrected
+
+The original conflated a claim about *level* with a claim about *dispersion* and
+tested only the second. Convergence at 12 means undodgeable; convergence at 1
+means absent; the falsifier could not tell them apart and read the second as the
+first.
+
+Any falsifier over a distribution needs both. Replacing it:
+
+**Working** — median stacks at 300s in the range 4–12, **and** the careless
+policy carries at least twice the careful one.
+
+Two distinct failures, which are not the same problem and do not have the same
+fix:
+
+| | Signature | Reading | Response |
+|---|---|---|---|
+| **Absent** | Median below 3, at any dispersion | It does not arrive | Shorten lead distance |
+| **Undodgeable** | Median in band or above, careless within noise of careful | Play does not affect it | Lengthen lead distance; if that does not separate the policies, cut the enemy |
+
+**Report the distribution, not the median.** At integer counts near zero the
+median saturates and hides the tail — "1, 2, 1, 1, 1" is compatible with a great
+many different runs. Median plus 90th percentile plus mean, per policy.
+
+### 8.5 · Predictions for Run 4
+
+Both changes land together; they are independent and do not confound each other.
+
+- **The pull's removal costs nothing that matters.** Boss HP remaining stays at
+  0–5% for both short builds. If either climbs above 20% with the pull off and
+  the bug fixes in, `G-019` is wrong and the pull was doing work the A/B did not
+  capture.
+- **Mean win rate falls to roughly 74% and the spread widens to about 50pp**,
+  reproducing the pull-0 arm. This is a reproduction check on the A/B rather than
+  a new claim; if it does not reproduce, something other than `BOSS_PULL` differs
+  between the arms.
+- **Antibody median lands in 4–12 with careless ≥ 2× careful.** Falsifiers as
+  §8.4.
+- **Nothing else moves.** No item, no enemy, no HP value changed in this pass, so
+  any other shift in the table is a regression rather than a result.
+
+### 8.6 · One observation, not actioned
+
+Out of scope by your framing and I am not touching it, but it should be on the
+record before the next tuning pass: **`random` at 94% [72–99%] is a different
+problem from 320 HP.** A policy that picks items at random and wins nineteen
+times in twenty means the level-up choice is barely load-bearing, and no boss
+health value fixes that — it is a claim about the item set, which is mine. It may
+resolve on its own once `lash` working is absorbed into the baseline, since that
+bug fix buffed every build simultaneously and its effect is currently
+indistinguishable from everything else. Worth re-reading after Run 4 rather than
+acting on now.

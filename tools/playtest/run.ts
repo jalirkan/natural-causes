@@ -15,6 +15,8 @@ const runsPerPolicy = Number(argv.find((a) => a.startsWith('--runs='))?.slice(7)
 const onlyPolicy = argv.find((a) => a.startsWith('--policy='))?.slice(9);
 const pullArg = argv.find((a) => a.startsWith('--pull='))?.slice(7);
 const bossPull = pullArg === undefined ? undefined : Number(pullArg);
+const spawnArg = argv.find((a) => a.startsWith('--spawn='))?.slice(8);
+const spawnOverride = spawnArg === 'edge' || spawnArg === 'lead' ? spawnArg : undefined;
 
 const policies = onlyPolicy ? POLICIES.filter((p) => p.name === onlyPolicy) : POLICIES;
 if (policies.length === 0) {
@@ -25,7 +27,7 @@ if (policies.length === 0) {
 const started = Date.now();
 const results: RunResult[] = [];
 for (const policy of policies) {
-  for (let i = 0; i < runsPerPolicy; i++) results.push(runOnce(policy, 1000 + i, bossPull));
+  for (let i = 0; i < runsPerPolicy; i++) results.push(runOnce(policy, 1000 + i, bossPull, spawnOverride));
 }
 const elapsed = (Date.now() - started) / 1000;
 
@@ -34,10 +36,11 @@ const out: string[] = [];
 out.push(
   `${results.length} runs across ${policies.length} policies in ${elapsed.toFixed(1)}s ` +
     `(${runsPerPolicy} per policy, seeds 1000..${1000 + runsPerPolicy - 1}` +
-    `${bossPull === undefined ? '' : `, boss pull overridden to ${bossPull}`})`,
+    `${bossPull === undefined ? '' : `, boss pull ${bossPull}`}` +
+    `${spawnOverride === undefined ? '' : `, all spawns forced to ${spawnOverride}`})`,
 );
 out.push('');
-out.push('policy                 runs   win rate (95% CI)      median s   kills   lvl  stk@300  boss reached / left');
+out.push('policy                 runs   win rate (95% CI)      median s   kills   lvl   boss left');
 out.push('-'.repeat(84));
 for (const s of summarise(results)) {
   const [lo, hi] = s.winRateInterval;
@@ -46,9 +49,33 @@ for (const s of summarise(results)) {
       `${pct(s.winRate).padStart(4)} [${pct(lo)}-${pct(hi)}]`.padEnd(22) +
       `${String(s.medianSeconds).padStart(8)}   ` +
       `${String(s.medianKills).padStart(5)}   ${String(s.medianLevel).padStart(3)}   ` +
-      `${String(s.medianStacksAt300).padStart(6)}   ` +
-      `${String(s.reachedBoss).padStart(3)}  ` +
-      `${s.medianBossLeft === null ? '   -' : pct(s.medianBossLeft).padStart(5)} left`,
+      `${s.medianBossLeft === null ? '     -' : pct(s.medianBossLeft).padStart(6)}`,
+  );
+}
+
+// §8.4: report the distribution, not the median. A falsifier over a
+// distribution needs a level condition AND a dispersion condition, and the
+// median alone supplies neither at these counts.
+out.push('');
+out.push('antibody stacks at 300s — working band is median 4-12, careless >= 2x careful');
+out.push('-'.repeat(84));
+out.push('policy                 median    p90    mean');
+for (const s of summarise(results)) {
+  out.push(
+    `${s.policy.padEnd(22)} ${String(s.medianStacksAt300).padStart(6)} ` +
+      `${String(s.p90StacksAt300).padStart(6)} ${String(s.meanStacksAt300).padStart(7)}`,
+  );
+}
+{
+  const rows = summarise(results);
+  const careful = Math.min(...rows.map((r) => r.meanStacksAt300));
+  const careless = Math.max(...rows.map((r) => r.meanStacksAt300));
+  const ratio = careful > 0 ? careless / careful : Infinity;
+  out.push(
+    `
+spread: careless ${careless.toFixed(1)} vs careful ${careful.toFixed(1)} ` +
+      `= ${Number.isFinite(ratio) ? `${ratio.toFixed(1)}x` : 'undefined (careful is zero)'}` +
+      `  — needs >= 2.0x`,
   );
 }
 

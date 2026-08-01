@@ -484,3 +484,77 @@ bots played well, working as intended. Internally consistent, and it means the
 antibody is a 2 HP rival sperm with a debuff nobody experiences. If the mechanic
 only fires against players who are already dying, it is not in the game. Cut it
 or make it real; there is no third option that keeps §3.3 honest.
+
+## G-019 · 2026-08-01 · The pull is dropped; the Egg holds still and does nothing
+`BOSS_PULL` to zero. **Reverses `G-015`**, which was chosen to fix a problem that
+did not exist: the 97% and 86% boss-HP-remaining that motivated it were two
+defects in the instrument, and with those fixed the short builds participate
+fully with the pull switched off.
+
+`G-015` claimed characterisation was the stronger half of the argument, so the
+honest test is whether it survives alone. It does not, and the A/B is what shows
+it rather than any reasoning of mine. **Motility, greedy-capacitation and random
+score identically in both arms — 56/56, 100/100, 94/94.** The entry pitched a
+universal positional question that every build answers differently; three of five
+policies pay nothing measurable for it. What shipped is a range-dependent assist
+to the two builds that already wanted to be close, invisible to everyone else.
+That is not the mechanic the entry describes.
+
+It fails on perception too. The act is set in fluid, so a gentle inward drift near
+the Egg does not obviously read as *the Egg being inevitable* — it reads as a
+current, or as nothing at all. That is a claim about what a person notices, no bot
+can settle it, and `PLAN.md` is explicit that a human decides what lands.
+
+Rejected: **keeping it on characterisation alone.** The tempting option, since the
+argument in `G-015` reads well and the code is already written and tested. It
+loses because I wrote that argument while also believing a mechanical claim that
+was false, and I cannot cleanly separate how much of it was reasoning and how much
+was justification. A decision that would not be made fresh today should not
+survive on the strength of having already been made.
+
+Rejected: **deleting the pull path outright.** Cleanest, and it throws away the
+cheapest experiment available if the fight turns out to be a shooting gallery in
+front of a human. The constant stays at zero with an expiry — if Justin does not
+ask for something in that space, it is deleted at the next close. This portfolio
+already has one inert feature reading a setting nothing writes; it does not need a
+second, and an expiry is the difference between a knob and a fossil.
+
+Rejected: **keeping it at a lower value** — halve it and call the difference
+tuning. Worst of both: it retains the maintenance surface and the mechanic still
+does nothing for three of five builds, while making the next A/B harder to read
+because the control arm is no longer clean.
+
+## G-020 · 2026-08-01 · Antibodies are already where the player is going
+They stop entering at the arena edge. They spawn at a fixed lead distance ahead of
+the player's current heading and hold the existing slow drift. Speed unchanged,
+invulnerability unchanged, rate unchanged. **Only the entry point moves.**
+
+`G-018` was right and insufficient: survivability was never the binding
+constraint, arrival is. A thing drifting at 34 against a player at 190 that the
+bot routes around at 260px does not need to be tougher, it needs to not be
+approaching from somewhere the player is leaving.
+
+This is the most law-8-compliant answer available — the antibody does not pursue,
+steer or react; it is simply already there, and the player's own forward motion
+does all the closing. It is `whyThisStage` made literal: the first record about
+the player is opened before they arrived, and now they swim into it. It also gives
+tuning a monotonic dial where HP gave a treadmill: **lead distance runs cleanly
+between "never lands" and "always lands"**, which are the two failure modes §8.4
+now separates.
+
+Rejected: **raising antibody speed.** The obvious lever and it is two bad options
+wearing one name. Fast plus homing is an enemy that reacts to the player, which
+law 8 forbids outright. Fast plus straight-line is a small hard shape crossing the
+screen at speed, which is a projectile, and `G-010` reserves the act's first aimed
+thing for the Egg.
+
+Rejected: **giving the antibody area denial** — a lingering field it leaves
+behind. It would certainly increase contact, and the ring is spermicide's under
+`G-011`. It also collapses the act's four-pressure design: the antibody's job is
+the debuff and the spermicide's is the zone, and an act with two zone enemies has
+three pressures and a duplicate.
+
+Rejected: **a pull-toward on the antibody.** Mechanically the most reliable fix,
+and it is the same mechanic being removed from the boss in `G-019` on the same
+day, reintroduced smaller and on something that ought to be indifferent. An
+antibody that draws the player in is an antibody with an interest in the player.

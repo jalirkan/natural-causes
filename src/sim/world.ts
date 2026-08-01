@@ -48,19 +48,46 @@ export const SPAWN_RADIUS = 780;
 /** The Egg is roughly 8x player height and does not move from centre. */
 export const BOSS_RADIUS = 150;
 /**
- * The Egg's constant radial pull (G-015), in pixels per second.
+ * The Egg's constant radial pull, in pixels per second. **Zero: dropped.**
  *
- * Live from the moment it spawns, identical at full health and at one HP,
- * never reacting to anything. It is not a phase: a phase would be the boss
- * responding to the fight, and this is the boss responding to nothing at all
- * while the space near it stops being neutral.
+ * G-019 reverses G-015. The pull was chosen to fix a participation problem that
+ * did not exist — the 97% and 86% boss-HP-remaining that motivated it were two
+ * defects in the playtest instrument, and with those fixed the short builds
+ * participate fully with this at zero. What remained was characterisation, and
+ * the A/B killed that too: motility, greedy-capacitation and random score
+ * identically in both arms (56/56, 100/100, 94/94), so what shipped was a
+ * range-dependent assist to the two builds that already wanted to be close
+ * rather than the universal positional question G-015 described.
  *
- * The non-negotiable constraint is that a player swimming directly outward
- * makes progress. `world.test.ts` computes the slowest legal build from the
- * item data and fails if this number beats it, so a future Membrane buff
- * cannot quietly make the Egg inescapable.
+ * The constant and the code path stay, deliberately (§8.2). Two reasons:
+ *
+ * 1. The §7.2 non-negotiable test stays live, and now guards against anyone
+ *    reintroducing an inward force without re-deriving the slowest legal
+ *    build. That is worth more than the feature was.
+ * 2. It is the cheapest experiment available if the fight reads as a shooting
+ *    gallery in front of a human, which is the one piece of evidence nobody
+ *    has.
+ *
+ * **EXPIRY (§8.2).** If Justin plays the Egg fight and does not ask for
+ * something in this space, delete this constant and `applyBossPull` at the next
+ * close. An inert feature is a fossil; an expiry is what makes it a knob.
  */
-export const BOSS_PULL = 55;
+export const BOSS_PULL = 0;
+
+/**
+ * How far ahead of the player an antibody appears (G-020).
+ *
+ * Antibodies stop entering at the arena edge. Survivability was never the
+ * binding constraint on them — arrival was. A thing drifting at 34 against a
+ * player at 190, which the bot routes around at 260px, does not need to be
+ * tougher; it needs to not be approaching from somewhere the player is leaving.
+ *
+ * This is the tuning dial and it is monotonic between the two failure modes
+ * §8.4 separates: a longer lead gives more time to change heading and fewer
+ * stacks, a shorter lead gives less and more. Spawn rate is the second knob and
+ * stays fixed until this one is settled.
+ */
+export const ANTIBODY_LEAD = 320;
 /**
  * Calibrated against measured bot damage, not guessed.
  *
@@ -166,6 +193,15 @@ export interface WorldOptions {
    * the same pass. Not a difficulty setting — the shipped value is BOSS_PULL.
    */
   bossPull?: number;
+  /**
+   * Forces every enemy's entry point, for A/B experiments only.
+   *
+   * G-020 and G-019 landed together and §8.5 assumed they could not confound
+   * each other. They can: antibody stacks cost speed, so moving where
+   * antibodies arrive moves every policy's effective speed, and a slower
+   * short-range build participates in the boss fight less. This isolates it.
+   */
+  spawnOverride?: 'edge' | 'lead';
 }
 
 function mulberry32(seed: number): () => number {
@@ -231,10 +267,12 @@ export class World {
   boss: BossState | null = null;
 
   readonly bossPull: number;
+  readonly spawnOverride: 'edge' | 'lead' | undefined;
 
   constructor(options: WorldOptions) {
     this.act = options.act;
     this.bossPull = options.bossPull ?? BOSS_PULL;
+    this.spawnOverride = options.spawnOverride;
     this.seed = options.seed ?? 1;
     this.rng = mulberry32(this.seed);
     this.streams = spawnStreams(options.act.waves);
@@ -368,9 +406,21 @@ export class World {
 
   spawnEnemy(id: string): void {
     const def = enemyDef(id);
-    const angle = this.rng() * Math.PI * 2;
-    const x = this.x + Math.cos(angle) * SPAWN_RADIUS;
-    const y = this.y + Math.sin(angle) * SPAWN_RADIUS;
+    let x: number;
+    let y: number;
+
+    if ((this.spawnOverride ?? def.spawnAt) === 'lead') {
+      // G-020: already where the player is going. It does not pursue, steer or
+      // react — the player's own forward motion does all the closing, which is
+      // the most law-8-compliant behaviour available. It is also whyThisStage
+      // made literal: the record was opened before they arrived.
+      x = this.x + this.facingX * ANTIBODY_LEAD;
+      y = this.y + this.facingY * ANTIBODY_LEAD;
+    } else {
+      const angle = this.rng() * Math.PI * 2;
+      x = this.x + Math.cos(angle) * SPAWN_RADIUS;
+      y = this.y + Math.sin(angle) * SPAWN_RADIUS;
+    }
     let vx = 0;
     let vy = 0;
 
