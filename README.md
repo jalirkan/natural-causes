@@ -61,19 +61,57 @@ consistency is enforced in code, not in prompts.
 
 ```bash
 pnpm install
-pnpm dev          # the game — a green field and a dot, so far
-pnpm test         # 82 tests, mostly the art pipeline
-pnpm art:batch    # regenerate the test batch (needs FAL_KEY in .env)
+```
+
+```bash
+pnpm dev
+```
+
+Then open <http://localhost:5173>. On Windows use `pwsh`, not PowerShell 5.1 —
+it is set to `AllSigned` here and blocks pnpm's shim; `pnpm.cmd dev` also works.
+
+Other tasks:
+
+```bash
+pnpm test                 # 173 tests: the sim, the content rules, the art pipeline
+pnpm playtest -- --runs=40 # the bots, with intervals
+pnpm art:batch            # regenerate sprites (needs FAL_KEY in .env)
 pnpm art:batch -- --dry   # print the prompts and run the content rule, no API calls
 ```
+
+### Playing
+
+**WASD** or the arrow keys to move. You fire automatically — there is no attack
+button. **1, 2 or 3** takes an upgrade when the game stops to offer three.
+**P** or **Esc** pauses. **R** restarts once the run is over.
+
+One act, Conception, about five minutes to the Egg. Rival sperm from the start,
+antibodies at 0:45, spermicide at 1:30, white cells at 2:10. Kill the Egg and
+you win by being absorbed.
+
+### Dev mode
+
+Press **`** in a `pnpm dev` build for a panel: god mode, no antibody drag, an
+empty field, 0.25x–4x speed, jump the clock or skip straight to the boss, set
+any item to any level, spawn anything, and damage or kill the Egg.
+
+It exists in development builds only — production bundles do not contain it —
+and it never touches `World`. Every cheat is applied from `ActScene` after the
+step, so nothing in the panel can reach the playtest bots or a test.
+
+**Any cheat taints the run.** The HUD says `DEV · RUN TAINTED` for the rest of
+it and only a restart clears the flag. §12.4 needs six questions answered by
+someone playing honestly, and a badge is cheaper than remembering whether god
+mode was still on twenty minutes ago.
 
 ## Status
 
 | Phase | | |
 |---|---|---|
 | **0** | Scaffold, Phaser + Vite, blank scene | done |
-| **1** | Art pipeline + six-asset test batch | **built, awaiting Justin's judgement** |
-| **2** | Core loop, Conception act | not started — blocked on the art review |
+| **1** | Art pipeline + test batch, art direction judged | done — `ART-DIRECTION.md` is binding |
+| **2** | Core loop, Conception act | playable start to Egg; tuning frozen pending a session with a human |
+| **3** | The School act | roster and reserved list written, no enemies built |
 
 The art pipeline is six stages (`tools/art/`): generate via Flux on fal, cut the
 background, conform to a locked 20-colour palette with a uniform outline,

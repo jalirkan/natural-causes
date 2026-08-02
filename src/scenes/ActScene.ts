@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import type { ActDef } from '../data/acts';
 import { actVisuals, type ActVisuals } from '../data/act-visuals';
 import { itemDef } from '../data/items';
+import { neutralDevState, type DevState } from '../dev/state';
 import {
   BOSS_RADIUS,
   World,
@@ -60,10 +61,20 @@ export class ActScene extends Phaser.Scene {
   /** Set by P or Escape. Distinct from the offer freeze, which is the rules. */
   private paused = false;
 
+  /**
+   * Dev-mode cheats. Development builds only, and deliberately NOT inside
+   * `World` — the playtest bots construct a World directly, and a `god` field
+   * on the rules object is a field that can be set during a measured run.
+   * Everything here is applied from outside the simulation instead.
+   */
+  private dev: DevState = neutralDevState();
+  private detachDev?: () => void;
+
   private hud!: Phaser.GameObjects.Text;
   private bars!: Phaser.GameObjects.Graphics;
   private overlay!: Phaser.GameObjects.Text;
   private offerText!: Phaser.GameObjects.Text;
+  private devBadge!: Phaser.GameObjects.Text;
 
   constructor() {
     super('act');
@@ -118,7 +129,10 @@ export class ActScene extends Phaser.Scene {
     keyboard.on('keydown-P', togglePause);
     keyboard.on('keydown-ESC', togglePause);
     keyboard.on('keydown-R', () => {
-      if (this.world.dead || this.world.won) this.scene.restart({ act: this.act });
+      // Mid-run restarts are a dev affordance. In a clean run R still only
+      // works once the run is over, so it cannot be a panic button.
+      const anytime = import.meta.env.DEV && this.dev.tainted;
+      if (this.world.dead || this.world.won || anytime) this.scene.restart({ act: this.act });
     });
     for (const [i, key] of ['ONE', 'TWO', 'THREE'].entries()) {
       keyboard.on(`keydown-${key}`, () => {
@@ -128,6 +142,22 @@ export class ActScene extends Phaser.Scene {
     }
 
     this.createHud();
+
+    // A restart is the only thing that clears the taint, which is why the
+    // state is rebuilt here rather than kept across scene restarts.
+    this.dev = neutralDevState();
+    if (import.meta.env.DEV) {
+      this.detachDev?.();
+      void import('../dev/panel').then(({ attachDevPanel }) => {
+        this.detachDev = attachDevPanel({
+          world: this.world,
+          dev: this.dev,
+          durationSeconds: this.act.durationSeconds,
+          restart: () => this.scene.restart({ act: this.act }),
+        });
+      });
+      this.events.once('shutdown', () => this.detachDev?.());
+    }
 
     // Controls, stated. The first level-up arrives about fourteen seconds in
     // and freezes the world until a choice is made, which without a prompt is
@@ -184,6 +214,18 @@ export class ActScene extends Phaser.Scene {
       .setScrollFactor(0)
       .setDepth(200)
       .setVisible(false);
+    this.devBadge = this.add
+      .text(this.cameras.main.width - 14, 12, 'DEV · RUN TAINTED', {
+        fontFamily: 'monospace',
+        fontSize: '13px',
+        color: '#EFE7D6',
+        backgroundColor: '#2A2521',
+        padding: { x: 7, y: 3 },
+      })
+      .setOrigin(1, 0)
+      .setScrollFactor(0)
+      .setDepth(210)
+      .setVisible(false);
     this.offerText = this.add
       .text(this.cameras.main.width / 2, this.cameras.main.height / 2, '', {
         fontFamily: 'monospace',
@@ -217,10 +259,19 @@ export class ActScene extends Phaser.Scene {
     const right = this.cursors.right.isDown || this.wasd.D.isDown;
     const up = this.cursors.up.isDown || this.wasd.W.isDown;
     const down = this.cursors.down.isDown || this.wasd.S.isDown;
-    this.world.step(dt, {
+    const input = {
       moveX: (right ? 1 : 0) - (left ? 1 : 0),
       moveY: (down ? 1 : 0) - (up ? 1 : 0),
-    });
+    };
+
+    // Fast-forward runs whole extra steps rather than a longer one: a 4x dt
+    // would be a 200ms step, and things that move at 640px/s tunnel straight
+    // through a 15px enemy at that size.
+    const scale = this.dev.timeScale;
+    if (scale >= 1) for (let i = 0; i < Math.round(scale); i++) this.world.step(dt, input);
+    else this.world.step(dt * scale, input);
+
+    this.applyDevCheats();
 
     // Keep the player inside the field. The world has no walls; the camera does.
     this.world.x = Phaser.Math.Clamp(this.world.x, 0, WORLD_WIDTH);
@@ -235,6 +286,25 @@ export class ActScene extends Phaser.Scene {
     this.syncBoss();
     this.syncAttached();
     this.drawHud();
+  }
+
+  /**
+   * The cheats, applied after the step rather than inside it.
+   *
+   * None of this is reachable from `World`, so no bot run and no test can be
+   * affected by it — which is the point of doing it here.
+   */
+  private applyDevCheats(): void {
+    if (!import.meta.env.DEV) return;
+    const w = this.world;
+    if (this.dev.god) {
+      w.hp = w.maxHp;
+      w.invulnerable = Math.max(w.invulnerable, 0.5);
+      w.engulfTimer = 0;
+      w.dead = false;
+    }
+    if (this.dev.noDrag) w.dragStacks = 0;
+    if (this.dev.emptyField) w.enemies.length = 0;
   }
 
   private syncPlayer(): void {
@@ -443,6 +513,11 @@ export class ActScene extends Phaser.Scene {
     } else {
       this.offerText.setVisible(false);
     }
+
+    // On the canvas, not in the DOM panel, so it is present in a screenshot
+    // and present with the panel hidden. Paper on ink rather than a threat
+    // colour: law 10 keeps those off UI chrome without an exception.
+    this.devBadge.setVisible(import.meta.env.DEV && this.dev.tainted);
 
     if (this.paused) {
       this.overlay.setText('paused\n\nP or Esc to resume\n\nR restarts the run').setVisible(true);
