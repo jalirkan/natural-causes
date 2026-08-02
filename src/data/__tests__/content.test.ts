@@ -95,6 +95,20 @@ describe('every item states what it enables and what it trades away (mechanism 5
     it(`${id}`, () => {
       expect(def.enables.length, `"${id}" does not say what build it enables`).toBeGreaterThan(30);
       expect(def.tradesAway.length, `"${id}" does not say what it trades away`).toBeGreaterThan(30);
+      // The offer screen shows `gain`/`cost`, not these. It used to show these
+      // truncated at 78 characters, which ended every line mid-clause. The cap
+      // is what keeps the panel inside the viewport, so it is a test.
+      for (const field of ['gain', 'cost'] as const) {
+        expect(def[field].length, `"${id}" has no offer-screen ${field}`).toBeGreaterThan(10);
+        expect(def[field].length, `"${id}" ${field} overflows the panel`).toBeLessThan(64);
+      }
+      // The offer screen shows `gain`/`cost`, not these. It used to show these
+      // cut at 78 characters, which ended every line mid-clause. The cap is
+      // what keeps the panel inside the viewport, so it is a test, not a habit.
+      for (const field of ['gain', 'cost'] as const) {
+        expect(def[field].length, `"${id}" has no offer-screen ${field}`).toBeGreaterThan(10);
+        expect(def[field].length, `"${id}" ${field} is too long for the panel`).toBeLessThan(64);
+      }
     });
   }
 });

@@ -16,6 +16,7 @@ import {
   THREAT_CONTACT,
   THREAT_RANGED,
   UI_FILL,
+  VIEW_WIDTH,
   WORLD_HEIGHT,
   WORLD_WIDTH,
 } from '../config';
@@ -54,6 +55,9 @@ export class ActScene extends Phaser.Scene {
   private areaSprites: Phaser.GameObjects.Arc[] = [];
   private attachedSprites: Phaser.GameObjects.Image[] = [];
   private bossSprite?: Phaser.GameObjects.Image;
+
+  /** Set by P or Escape. Distinct from the offer freeze, which is the rules. */
+  private paused = false;
 
   private hud!: Phaser.GameObjects.Text;
   private bars!: Phaser.GameObjects.Graphics;
@@ -103,6 +107,15 @@ export class ActScene extends Phaser.Scene {
     if (!keyboard) throw new Error('No keyboard input available.');
     this.cursors = keyboard.createCursorKeys();
     this.wasd = keyboard.addKeys('W,A,S,D') as typeof this.wasd;
+    // A pause. Not a rules pause — the offer freeze is that, and it is in the
+    // world. This one exists because a run is five minutes long and the world
+    // does not care that someone is at the door.
+    const togglePause = () => {
+      if (this.world.dead || this.world.won || this.world.offers) return;
+      this.paused = !this.paused;
+    };
+    keyboard.on('keydown-P', togglePause);
+    keyboard.on('keydown-ESC', togglePause);
     keyboard.on('keydown-R', () => {
       if (this.world.dead || this.world.won) this.scene.restart({ act: this.act });
     });
@@ -123,7 +136,7 @@ export class ActScene extends Phaser.Scene {
       .text(
         this.cameras.main.width / 2,
         this.cameras.main.height - 54,
-        'WASD or arrows to move   ·   you fire automatically   ·   1/2/3 to pick an upgrade',
+        'WASD or arrows to move   ·   you fire automatically   ·   1/2/3 choose an upgrade   ·   P pauses',
         { fontFamily: 'monospace', fontSize: '15px', color: '#EFE7D6' },
       )
       .setOrigin(0.5)
@@ -179,6 +192,10 @@ export class ActScene extends Phaser.Scene {
         lineSpacing: 6,
         backgroundColor: '#2A2521',
         padding: { x: 22, y: 18 },
+        // The panel is centred with origin 0.5, so anything wider than the
+        // viewport hangs off both edges. Item copy is capped at 64 characters
+        // to fit; this wrap is the guard for the next time that cap is edited.
+        wordWrap: { width: VIEW_WIDTH - 200, useAdvancedWrap: true },
       })
       .setOrigin(0.5)
       .setScrollFactor(0)
@@ -187,6 +204,11 @@ export class ActScene extends Phaser.Scene {
   }
 
   override update(_time: number, deltaMs: number): void {
+    if (this.paused) {
+      this.drawHud();
+      return;
+    }
+
     // Clamp: a stalled tab must not teleport the horde.
     const dt = Math.min(deltaMs, 50) / 1000;
 
@@ -393,21 +415,26 @@ export class ActScene extends Phaser.Scene {
     }
 
     if (w.offers) {
-      this.offerText
-        .setText(
-          [
-            `LEVEL ${w.level}  —  PRESS 1, 2 OR 3`,
-            '',
-            ...w.offers.map((id, i) => {
-              const def = itemDef(id);
-              const level = w.items.get(id) ?? 0;
-              return `${i + 1}.  ${def.name}${level > 0 ? `  (lv ${level} → ${level + 1})` : '  (new)'}\n     + ${def.enables.slice(0, 78)}…\n     − ${def.tradesAway.slice(0, 78)}…`;
-            }),
-          ].join('\n'),
-        )
-        .setVisible(true);
+      // Each item supplies its own one-line gain and cost. The design strings
+      // are three sentences of argument apiece and were being cut at 78
+      // characters, which ended every line mid-clause.
+      const lines = [`LEVEL ${w.level}  —  CHOOSE ONE`, ''];
+      for (const [i, id] of w.offers.entries()) {
+        const def = itemDef(id);
+        const owned = w.items.get(id) ?? 0;
+        lines.push(`[${i + 1}]  ${def.name.padEnd(15)}${owned > 0 ? `lv ${owned} → ${owned + 1}` : 'new'}`);
+        lines.push(`     + ${def.gain}`);
+        lines.push(`     − ${def.cost}`);
+        if (i < w.offers.length - 1) lines.push('');
+      }
+      this.offerText.setText(lines).setVisible(true);
     } else {
       this.offerText.setVisible(false);
+    }
+
+    if (this.paused) {
+      this.overlay.setText('paused\n\nP or Esc to resume\n\nR restarts the run').setVisible(true);
+      return;
     }
 
     if (w.dead) {

@@ -23,10 +23,25 @@ interface ItemBase {
   id: string;
   name: string;
   kind: ItemKind;
-  /** What build this makes possible. Required, over 30 characters. */
+  /**
+   * What build this makes possible. Required, over 30 characters.
+   *
+   * `enables` and `tradesAway` are the DESIGN record — they exist to force the
+   * mechanism-5 argument and they are written for the roster document. They
+   * are not offer-screen copy, and the offer screen tried to use them by
+   * truncating at 78 characters, which produced sentences that stopped
+   * mid-clause. `gain` and `cost` are the player-facing pair.
+   */
   enables: string;
   /** What it costs. Required, over 30 characters. */
   tradesAway: string;
+  /**
+   * Offer-screen copy: one line each, present tense, under 64 characters so it
+   * fits the panel without wrapping or truncation. Says the same thing as
+   * `enables`/`tradesAway` — if it does not, one of the two is lying.
+   */
+  gain: string;
+  cost: string;
   maxLevel: number;
 }
 
@@ -79,6 +94,8 @@ export const ITEMS: Record<string, ItemDef> = {
     radius: 7,
     pierce: 1,
     maxLevel: 5,
+    gain: 'Fires on its own at whatever is nearest.',
+    cost: 'No area, no control, no answer to a crowd.',
     enables:
       'The default build. Fires at whatever is nearest, so it rewards nothing and asks nothing — the baseline every other weapon is measured against.',
     tradesAway:
@@ -97,6 +114,8 @@ export const ITEMS: Record<string, ItemDef> = {
     radius: 10,
     pierce: 99,
     maxLevel: 5,
+    gain: 'A piercing line. A whole column dies at once.',
+    cost: 'Only fires where you point. Nothing covers your back.',
     enables:
       'A positioning build: line the crowd up along one axis and the whole column dies at once, which turns the act’s density from a threat into the reason the weapon works.',
     tradesAway:
@@ -115,6 +134,8 @@ export const ITEMS: Record<string, ItemDef> = {
     radius: 96,
     pierce: 99,
     maxLevel: 5,
+    gain: 'A burst all around you. Rewards being deep in it.',
+    cost: 'No reach at all. You take a hit to land one.',
     enables:
       'A body-check build that wants to be inside the crowd rather than away from it, and the only weapon in the act that scales with how bad the player’s position is.',
     tradesAway:
@@ -133,6 +154,8 @@ export const ITEMS: Record<string, ItemDef> = {
     radius: 26,
     pierce: 99,
     maxLevel: 5,
+    gain: 'A damaging trail behind you. Kills while you retreat.',
+    cost: 'Nothing in front of you. Cornered, you have no weapon.',
     enables:
       'A kiting build where the player never faces the crowd at all and kills by having already been somewhere, which is the only build in the act that rewards retreating.',
     tradesAway:
@@ -152,6 +175,8 @@ export const ITEMS: Record<string, ItemDef> = {
     radius: 330,
     pierce: 0,
     maxLevel: 5,
+    gain: 'Drags the crowd into one point for your area weapons.',
+    cost: 'No damage of its own, and it gathers antibodies too.',
     enables:
       'Every area weapon in the act at once, by choosing where the crowd will be instead of reacting to it. It is the item that makes Acrosome and Wake into builds rather than options.',
     // Extended 2026-08-01 after Run 5 (§10.2). Chemotaxis is the largest
@@ -174,6 +199,8 @@ export const ITEMS: Record<string, ItemDef> = {
     damageMultiplier: 1,
     rampTo: 1,
     maxLevel: 5,
+    gain: '+12% speed. Outrun what you cannot kill.',
+    cost: '-10% health. Less room for one bad half-second.',
     enables:
       'Every build that depends on not being touched, and it is the only item that makes the white cell’s fixed heading and the spermicide’s timer into things a player can simply ignore.',
     tradesAway:
@@ -190,6 +217,8 @@ export const ITEMS: Record<string, ItemDef> = {
     damageMultiplier: 1,
     rampTo: 1,
     maxLevel: 5,
+    gain: '-18% damage taken. Stand in the crowd on purpose.',
+    cost: '-8% speed. Zones you used to skip are commitments.',
     enables:
       'Standing inside the crowd on purpose, which is the precondition for the Acrosome build and the only way to farm the rival wave rather than outrun it.',
     // REVERTED 2026-08-01 to the original wording (§10.3). §9.4 added an
@@ -213,6 +242,8 @@ export const ITEMS: Record<string, ItemDef> = {
     damageMultiplier: 0.7,
     rampTo: 1.85,
     maxLevel: 5,
+    gain: 'Damage climbs all act. Strongest in the last minute.',
+    cost: 'Weaker than nothing for two minutes, on a hard timer.',
     enables:
       'A late-act scaling build that outperforms every other item in the last ninety seconds, and it is the only item in the game whose power is a function of the act clock rather than the player.',
     tradesAway:
