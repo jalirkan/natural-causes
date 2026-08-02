@@ -252,6 +252,24 @@ export function antibodyDragFor(stacks: number): number {
   return ANTIBODY_FLOOR + (1 - ANTIBODY_FLOOR) / (1 + stacks * ANTIBODY_DRAG_K);
 }
 
+/**
+ * The playfield, in world pixels.
+ *
+ * Lives here rather than in `config.ts` because the boss needs it and the
+ * simulation must stay Node-safe for the bots. `config.ts` re-exports these.
+ *
+ * NOTE: the sim does not clamp the PLAYER to these — `ActScene` does that after
+ * `step()`, which means the bots simulate a game with no walls and a person
+ * plays one with walls. That divergence is real and is not fixed here, because
+ * closing it moves every frozen playtest baseline. Recorded in AUDIT.md.
+ */
+export const ARENA_WIDTH = 3200;
+export const ARENA_HEIGHT = 2200;
+
+function clamp(v: number, lo: number, hi: number): number {
+  return v < lo ? lo : v > hi ? hi : v;
+}
+
 /** Removes index `i` in O(1). Reorders the array — walk backwards. */
 function swapRemove<T>(arr: T[], i: number): void {
   const last = arr.pop()!;
@@ -293,6 +311,8 @@ export class World {
   xp = 0;
   xpToNext = 5;
   kills = 0;
+  /** Levels reached but not yet spent. See `presentOffers`. */
+  private pendingLevels = 0;
   /** Non-null while a level-up is waiting. The world does not advance. */
   offers: string[] | null = null;
   readonly items = new Map<string, number>();
@@ -740,8 +760,12 @@ export class World {
         }
         e.hitFlash = 0.08;
       }
-      this.reapDead();
     }
+    // Once, after every area — not once per area. Reaping inside the loop
+    // made this O(areas x enemies), which is exactly the cost the grid was
+    // added to remove: Wake alone keeps ~13 areas alive against a 1500-enemy
+    // cap, so it was ~20,000 needless checks a frame for one item.
+    this.reapDead();
   }
 
   private updateGems(dt: number): void {
@@ -828,7 +852,12 @@ export class World {
       }
       if (this.invulnerable > 0) continue;
       this.hurt(e.def.contactDamage);
-      return;
+      // `break`, not `return`. Returning here skipped the boss-shot loop
+      // below for the whole frame, so on any frame the player was touching a
+      // rival a boss projectile passed through them and stayed alive to be
+      // re-evaluated later. The i-frames just set will stop it doing damage;
+      // it still has to be consumed.
+      break;
     }
 
     // Boss shots. The only things in the act that were aimed.
@@ -862,7 +891,29 @@ export class World {
       this.xp -= this.xpToNext;
       this.level++;
       this.xpToNext = Math.round(5 + this.level * 4.5);
-      this.offers = this.rollOffers();
+      // Levels QUEUE. Assigning `offers` here discarded a pending one: two
+      // gems collected in the same frame — routine once white cells drop 12
+      // apiece — took the player from level 1 to level 3 and presented a
+      // single choice for both.
+      this.pendingLevels++;
+    }
+    this.presentOffers();
+  }
+
+  /**
+   * Hands the player the next queued choice, if there is one to make.
+   *
+   * `rollOffers` returns an empty array once every item is at max level, and
+   * an empty array is truthy: `step()` opens with `if (this.offers) return`,
+   * so assigning one froze the world permanently behind a panel listing
+   * nothing, with no key that would dismiss it. A level with nothing to offer
+   * is still a level; it is just not a decision.
+   */
+  private presentOffers(): void {
+    while (!this.offers && this.pendingLevels > 0) {
+      this.pendingLevels--;
+      const rolled = this.rollOffers();
+      if (rolled.length > 0) this.offers = rolled;
     }
   }
 
@@ -888,15 +939,24 @@ export class World {
     if (after < before) this.hp = Math.min(this.hp, after);
     else this.hp += after - before;
     this.offers = null;
+    this.presentOffers();
   }
 
   // --- the boss ---------------------------------------------------------
 
   private spawnBoss(): void {
     // The act stops producing. Everything already on the field stays.
+    //
+    // Placed 420px above the player, then held inside the arena. Unclamped,
+    // a player standing in the top of the field got an Egg at negative y:
+    // the camera is bounded by the arena and cannot scroll to it, and the
+    // player cannot walk above y=0 to bring it into view, so the fight was a
+    // health bar over an empty screen. Reachable from anywhere in the top
+    // quarter of the field.
+    const margin = BOSS_RADIUS + 40;
     this.boss = {
-      x: this.x,
-      y: this.y - 420,
+      x: clamp(this.x, margin, ARENA_WIDTH - margin),
+      y: clamp(this.y - 420, margin, ARENA_HEIGHT - margin),
       hp: BOSS_HP,
       maxHp: BOSS_HP,
       phase: 'idle',

@@ -4,7 +4,6 @@ import { actVisuals, type ActVisuals } from '../data/act-visuals';
 import { itemDef } from '../data/items';
 import {
   BOSS_RADIUS,
-  PLAYER_BASE_SPEED,
   World,
   type EnemyState,
   type GemState,
@@ -55,6 +54,8 @@ export class ActScene extends Phaser.Scene {
   private areaSprites: Phaser.GameObjects.Arc[] = [];
   private attachedSprites: Phaser.GameObjects.Image[] = [];
   private bossSprite?: Phaser.GameObjects.Image;
+  /** Scale the boss frame sits at when idle. The telegraph pulses around it. */
+  private bossBaseScale = 1;
 
   /** Set by P or Escape. Distinct from the offer freeze, which is the rules. */
   private paused = false;
@@ -345,16 +346,22 @@ export class ActScene extends Phaser.Scene {
         .image(b.x, b.y, this.visuals.atlas.key, this.visuals.bossFrame)
         .setDepth(6);
       this.bossSprite.setDisplaySize(BOSS_RADIUS * 2, BOSS_RADIUS * 2);
+      this.bossBaseScale = this.bossSprite.scaleX;
     }
     // The telegraph has to be legible from across the arena. With one authored
-    // frame it is carried by scale and tint rather than by a drawn frame —
+    // frame it is carried by scale and value rather than by a drawn frame —
     // D-006 wants real frames here and there is only one.
     const telegraph = b.phase === 'telegraph';
-    // Value and scale, not tint (G-032, law 10). The telegraph still has to be
-    // legible from across the arena, which is what the scale pulse is for.
+    // A PULSE, not a ratchet. This used to add 0.0008 to the scale on every
+    // telegraph frame and never subtract it: a 40-second fight contains 459
+    // telegraph frames, so the Egg finished 47% wider than the hitbox it kept,
+    // and shots visibly passed through its outer third. It was also frame-rate
+    // dependent — 2.4x the growth on a 144Hz display.
+    const target = this.bossBaseScale * (telegraph ? 1.06 : 1);
     this.bossSprite
       .setPosition(b.x, b.y)
-      .setScale(this.bossSprite.scaleX + (telegraph ? 0.0008 : 0))
+      .setScale(Phaser.Math.Linear(this.bossSprite.scaleX, target, 0.14))
+      // Value, not tint (G-032, law 10).
       .setAlpha(b.phase === 'absorbing' ? Math.max(0, b.timer / 1.8) : telegraph ? 0.72 : 1);
   }
 
@@ -386,10 +393,15 @@ export class ActScene extends Phaser.Scene {
 
   private drawHud(): void {
     const w = this.world;
-    const slow = Math.round((1 - w.speed / PLAYER_BASE_SPEED) * 100);
+    // The antibodies' OWN cost, not the deviation from base speed. The latter
+    // folded in passive item speed and so lied in both directions: Membrane
+    // alone printed "0 attached (-8%)", and Midpiece hid a real 13% antibody
+    // drag entirely by pushing the total back above base. §3.3 asks whether a
+    // player can tell when it went wrong; this is the only instrument they get.
+    const drag = Math.round((1 - w.antibodyDrag) * 100);
     this.hud.setText(
       `${this.formatTime()}   lv${w.level}   ${w.kills} killed   ${w.enemies.length} on screen   ` +
-        `${w.dragStacks} attached${slow > 0 ? ` (-${slow}%)` : ''}   ` +
+        `${w.dragStacks} attached${drag > 0 ? ` (-${drag}% speed)` : ''}   ` +
         `${Math.round(this.game.loop.actualFps)} fps`,
     );
 

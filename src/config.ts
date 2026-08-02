@@ -11,9 +11,14 @@
 export const VIEW_WIDTH = 1280;
 export const VIEW_HEIGHT = 720;
 
-/** The playfield. Larger than the viewport; the camera follows the player. */
-export const WORLD_WIDTH = 3200;
-export const WORLD_HEIGHT = 2200;
+/**
+ * The playfield. Larger than the viewport; the camera follows the player.
+ *
+ * Re-exported from the simulation, which is where the boss needs them. Two
+ * copies of the arena size is how the camera ends up bounded to a rectangle
+ * the world does not use.
+ */
+export { ARENA_WIDTH as WORLD_WIDTH, ARENA_HEIGHT as WORLD_HEIGHT } from './sim/world';
 
 /** Locked palette — universals. */
 export const INK = 0x2a2521;

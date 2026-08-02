@@ -69,7 +69,10 @@ for (const s of summarise(results)) {
   out.push(
     `${s.policy.padEnd(22)} ${String(s.runs).padStart(4)}   ` +
       `${pct(s.winRate).padStart(4)} [${pct(lo)}-${pct(hi)}]`.padEnd(22) +
-      `${String(s.medianSeconds).padStart(8)}   ` +
+      // `seconds` is an accumulation of dt, so the median of an even-sized
+      // sample lands on things like 357.79999999999995 and takes the column
+      // width with it.
+      `${s.medianSeconds.toFixed(1).padStart(8)}   ` +
       `${String(s.medianKills).padStart(5)}   ${String(s.medianLevel).padStart(3)}   ` +
       `${s.medianBossLeft === null ? '     -' : pct(s.medianBossLeft).padStart(6)}`,
   );
