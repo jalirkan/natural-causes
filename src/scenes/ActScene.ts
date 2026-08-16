@@ -92,9 +92,8 @@ export class ActScene extends Phaser.Scene {
   }
 
   create(): void {
+    // The world places the player itself — the arena is its own now.
     this.world = new World({ act: this.act, seed: Date.now() & 0xffff });
-    this.world.x = WORLD_WIDTH / 2;
-    this.world.y = WORLD_HEIGHT / 2;
 
     this.enemySprites = [];
     this.projectileSprites = [];
@@ -273,10 +272,6 @@ export class ActScene extends Phaser.Scene {
 
     this.applyDevCheats();
 
-    // Keep the player inside the field. The world has no walls; the camera does.
-    this.world.x = Phaser.Math.Clamp(this.world.x, 0, WORLD_WIDTH);
-    this.world.y = Phaser.Math.Clamp(this.world.y, 0, WORLD_HEIGHT);
-
     this.syncPlayer();
     this.syncEnemies();
     this.syncProjectiles();
@@ -448,10 +443,21 @@ export class ActScene extends Phaser.Scene {
       s.setData('dist', 12 + Math.random() * 12);
       this.attachedSprites.push(s);
     }
-    for (const s of this.attachedSprites) {
+    // Hide the surplus. Stacks only ever rise in play, so this looked dead —
+    // but dev mode's "no drag" takes them to zero and left sixteen antibodies
+    // welded to the player for the rest of the run.
+    for (let i = 0; i < this.attachedSprites.length; i++) {
+      const s = this.attachedSprites[i]!;
+      if (i >= want) {
+        s.setVisible(false);
+        continue;
+      }
       const angle = s.getData('angle') as number;
       const dist = s.getData('dist') as number;
-      s.setPosition(this.world.x + Math.cos(angle) * dist, this.world.y + Math.sin(angle) * dist);
+      s.setVisible(true).setPosition(
+        this.world.x + Math.cos(angle) * dist,
+        this.world.y + Math.sin(angle) * dist,
+      );
     }
   }
 

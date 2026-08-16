@@ -116,7 +116,7 @@ Three options: the win latches the moment the Egg reaches 0; the player becomes
 invulnerable during the absorb; or it stands, and dying on the doorstep is the
 joke. The third is defensible and is the only one nobody has argued for.
 
-### 11. The bots play a game with no walls
+### 11. ~~The bots play a game with no walls~~ — FIXED 2026-08-01, see part two
 
 `ActScene` clamps the player to the arena **after** `step()`. The simulation
 itself has no bounds, so the playtest bots — which call `step()` directly —
@@ -177,3 +177,91 @@ One cosmetic thing left alone deliberately: pooled enemy sprites only get
 `setFlipX` when the enemy chases, so a drifting antibody can inherit a flip from
 whatever used that pool slot last frame. It is symmetrical art and nobody will
 see it.
+
+
+---
+
+# Part two — 2026-08-01, playing it rather than reading it
+
+The first pass was a code read. This one drove the game: 24 full runs in the
+simulation with every invariant checked each frame, then long sessions through
+the real renderer in a browser, then targeted measurements.
+
+**No invariant broke.** Over 24 complete runs nothing produced a NaN, a negative
+HP, an item above its max level, a duplicate in an offer, a backwards clock, a
+level that went down, or a sprite pool out of step with the array it mirrors.
+Six restarts in a row leaked nothing: display objects returned to 9, textures
+held at 12, one dev panel and one stylesheet. Every text surface fits the
+viewport at its worst realistic values — HUD at `5:59 lv28 2270 killed 1501 on
+screen 76 attached (-24% speed)` is 658px inside 1280.
+
+## Fixed
+
+### 13. The bots played a game with no walls — and it was distorting everything
+
+Finding 11 from part one, now measured and closed. `ActScene` clamped the player
+to the arena *after* `step()`, so the simulation had no boundary and the bots
+could flee forever. Thirty seeds of identical input, with and without the clamp:
+
+| | no walls (the bots) | walls (a person) |
+|---|---|---|
+| median survival | 92s | 76s |
+| median level | 7 | 5 |
+| median kills | 174 | 109 |
+| time spent against a wall | — | 7% |
+
+The clamp now lives in `step()`, unconditionally and after every path that can
+move the player — hanging it off `movePlayer` meant a frame with no input did
+not clamp at all.
+
+Re-baselining afterwards moved the **ranking of builds**, not just the
+difficulty. Same 40 seeds:
+
+| policy | before walls | after walls |
+|---|---|---|
+| midpiece+wake | 15% [7–29] | 28% [16–43] |
+| membrane+acrosome | 18% [9–32] | **40% [26–55]** |
+| motility | 33% [20–48] | **8% [3–20]** |
+| greedy-capacitation | 70% [55–82] | 57% [42–71] |
+| random | 57% [42–71] | 50% [35–65] |
+
+Motility's collapse is the one that reads as real rather than noise — its
+intervals barely overlap, and the mechanism is obvious once stated: it fires
+only along the facing, so a cornered player shoots into the wall. Antibody
+stacks roughly doubled across the board (random 64 → 113 mean), because a
+cornered player cannot dodge.
+
+**Every playtest number recorded before today was taken on the wrong game.**
+
+### 14. The player started in the corner of the arena
+
+Found by the two tests that broke when walls arrived. `World` defaulted `x` and
+`y` to `(0, 0)` and only `ActScene` moved the player to the middle, so every bot
+run in the project's history began in the top-left corner of a 3200×2200 field.
+Invisible while the simulation had no boundary. The world now places the player
+itself.
+
+### 15. Dev mode's "no drag" left the antibodies welded on
+
+Zeroing the stacks left sixteen Y-shapes orbiting the player for the rest of the
+run. `syncAttached` grew its pool but never hid the surplus — dead code in normal
+play, since stacks only rise, and immediately visible the moment a cheat lowered
+them.
+
+## Two things that looked like bugs and were not
+
+Recorded because both cost real time and the next person will suspect them too.
+
+- **The spawner is not dropping enemies.** A first measurement said 97–100% of
+  the schedule never spawned. The player in that harness had died at 40.7s and
+  `step()` early-returns when dead, so 86% of the frames measured nothing. With
+  the player kept alive: 0% dropped, all four enemies arriving on schedule.
+- **The 1500-enemy cap is not reached in real play.** Peak across thirty seeds
+  is 123 median, 325 maximum. A god-mode session did pile up 1500, but that
+  requires surviving four minutes on a level-3 build, which is only possible
+  with god mode on.
+- **Seeking weapons do target the Egg.** The fallback only fires when no enemy
+  is in range, which looked like it would never happen with a crowded field —
+  but measured damage standing 200px from the Egg is identical with the crowd
+  present and with the field cleared (51.3 either way), because shots pass
+  through the boss hitbox on their way to whatever they were aimed at.

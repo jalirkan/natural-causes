@@ -258,10 +258,9 @@ export function antibodyDragFor(stacks: number): number {
  * Lives here rather than in `config.ts` because the boss needs it and the
  * simulation must stay Node-safe for the bots. `config.ts` re-exports these.
  *
- * NOTE: the sim does not clamp the PLAYER to these — `ActScene` does that after
- * `step()`, which means the bots simulate a game with no walls and a person
- * plays one with walls. That divergence is real and is not fixed here, because
- * closing it moves every frozen playtest baseline. Recorded in AUDIT.md.
+ * The player is clamped to these inside `step()` — see `clampPlayer`. It used
+ * to be done by `ActScene` afterwards, which gave the bots a field with no
+ * walls and measurably distorted every baseline (AUDIT.md finding 11).
  */
 export const ARENA_WIDTH = 3200;
 export const ARENA_HEIGHT = 2200;
@@ -296,6 +295,15 @@ export class World {
   /** Set when the run ends, for the bots' report. */
   outcome: 'alive' | 'died' | 'won' = 'alive';
 
+  /**
+   * Set to the middle of the arena by the constructor.
+   *
+   * These defaulted to (0, 0) and only `ActScene` moved the player to the
+   * centre, so every bot run started in the top-left CORNER. With no walls in
+   * the simulation that was invisible; adding them made it a real handicap and
+   * it broke two tests that had been passing only because the player could
+   * flee off the field forever.
+   */
   x = 0;
   y = 0;
   facingX = 1;
@@ -334,6 +342,8 @@ export class World {
     this.seed = options.seed ?? 1;
     this.rng = mulberry32(this.seed);
     this.streams = spawnStreams(options.act.waves);
+    this.x = ARENA_WIDTH / 2;
+    this.y = ARENA_HEIGHT / 2;
     for (const id of options.startingItems ?? ['lash']) this.items.set(id, 1);
   }
 
@@ -423,6 +433,10 @@ export class World {
 
     this.movePlayer(dt, input);
     this.applyBossPull(dt);
+    // Unconditional, and after every path that can move the player. Hanging it
+    // off `movePlayer` meant a frame with no input did not clamp at all, so any
+    // other way of setting a position escaped the field.
+    this.clampPlayer();
     if (!this.boss) this.spawn(dt);
     this.moveEnemies(dt);
     // Rebuilt after movement so every query this step sees current positions.
@@ -449,6 +463,23 @@ export class World {
     this.facingY = ny;
     this.x += nx * this.speed * dt;
     this.y += ny * this.speed * dt;
+  }
+
+  /**
+   * The arena has walls, and they belong HERE.
+   *
+   * `ActScene` used to do this after `step()`, which meant the bots simulated a
+   * field a player could walk out of forever. That is not a tidiness point: a
+   * cornered player cannot keep running, and measuring it showed the bots were
+   * playing a materially easier game — median survival 92s against 76s, 174
+   * kills against 109, over thirty seeds of identical input. Every baseline
+   * taken before this was biased in the same direction, and re-running them
+   * moved the ranking of builds, not just the difficulty: motility fell 33% to
+   * 8% because a cornered player fires into the wall they are facing.
+   */
+  private clampPlayer(): void {
+    this.x = clamp(this.x, 0, ARENA_WIDTH);
+    this.y = clamp(this.y, 0, ARENA_HEIGHT);
   }
 
   /**

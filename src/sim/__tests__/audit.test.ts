@@ -71,6 +71,32 @@ describe('the Egg is placed where it can be seen', () => {
   });
 });
 
+describe('the arena has walls, and the simulation owns them', () => {
+  it('starts the player in the middle of the field, not in a corner', () => {
+    const w = new World({ act: CONCEPTION, seed: 1 });
+    // These defaulted to (0, 0) and only ActScene moved the player. Harmless
+    // while the sim had no walls; a corner start once it did.
+    expect(w.x).toBe(ARENA_WIDTH / 2);
+    expect(w.y).toBe(ARENA_HEIGHT / 2);
+  });
+
+  it('holds the player inside the field, so bots and players play one game', () => {
+    const w = new World({ act: CONCEPTION, seed: 2 });
+    for (let i = 0; i < 60 * 60; i++) {
+      if (w.dead) break;
+      w.hp = w.maxHp;
+      if (w.offers) { w.choose(w.offers[0]!); continue; }
+      w.step(1 / 60, { moveX: 1, moveY: 1 });
+      expect(w.x).toBeLessThanOrEqual(ARENA_WIDTH);
+      expect(w.y).toBeLessThanOrEqual(ARENA_HEIGHT);
+    }
+    // A minute of holding one heading must actually reach the corner, or the
+    // clamp is not being exercised by this test.
+    expect(w.x).toBe(ARENA_WIDTH);
+    expect(w.y).toBe(ARENA_HEIGHT);
+  });
+});
+
 describe('a boss shot is evaluated on every frame', () => {
   it('is consumed even on a frame the player is touching an enemy', () => {
     const w = new World({ act: CONCEPTION, seed: 5 });

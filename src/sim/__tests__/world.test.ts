@@ -28,6 +28,29 @@ function run(w: World, seconds: number, moveX = 1, moveY = 0): void {
   }
 }
 
+/**
+ * The same, with the player kept alive.
+ *
+ * For tests whose subject is not survival. Holding one heading used to run
+ * forever because the simulation had no walls; now it reaches the arena edge
+ * in about nine seconds and dies pinned there at roughly fifty. That is the
+ * game being right, so the tests that only needed a world still ticking say so
+ * explicitly rather than depending on a bug.
+ */
+function runAlive(w: World, seconds: number, moveX = 1, moveY = 0): void {
+  const steps = Math.round(seconds * 60);
+  for (let i = 0; i < steps; i++) {
+    if (w.offers) {
+      w.choose(w.offers[0]!);
+      continue;
+    }
+    w.hp = w.maxHp;
+    w.dead = false;
+    if (w.won) return;
+    w.step(1 / 60, { moveX, moveY });
+  }
+}
+
 describe('the simulation is deterministic', () => {
   it('the same seed produces the same run', () => {
     const a = new World({ act: CONCEPTION, seed: 42 });
@@ -52,7 +75,7 @@ describe('the simulation is deterministic', () => {
 describe('levelling', () => {
   it('a level-up freezes the world until a choice is made', () => {
     const w = new World({ act: CONCEPTION, seed: 7 });
-    run(w, 120);
+    runAlive(w, 120);
     // Force the pending state and confirm nothing advances.
     w.offers = ['midpiece'];
     const time = w.time;
@@ -364,10 +387,10 @@ describe('the act runs to its end', () => {
 
   it('the boss is the first thing in the act that aims at the player', () => {
     const w = new World({ act: CONCEPTION, seed: 12 });
-    run(w, 100);
+    runAlive(w, 100);
     expect(w.projectiles.some((p) => p.hostile)).toBe(false);
     w.time = CONCEPTION.durationSeconds;
-    run(w, 8);
+    runAlive(w, 8);
     expect(w.boss).not.toBeNull();
     expect(w.projectiles.some((p) => p.hostile)).toBe(true);
   });
