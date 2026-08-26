@@ -150,6 +150,13 @@ export interface ProjectileState {
   radius: number;
   /** Boss shots. The only things in the act that aim at the player. */
   hostile: boolean;
+  /**
+   * The item id that fired this, or 'boss'. Presentation metadata: the
+   * renderer draws a Lash shot and a Motility shot as different objects, and
+   * radius/pierce heuristics are a bug waiting to happen. Optional so tests
+   * and tools that hand-build projectiles are not forced to care.
+   */
+  source?: string;
   /** Identifies this shot to enemies it has already hit. */
   serial: number;
 }
@@ -678,6 +685,7 @@ export class World {
           pierce: def.pierce,
           radius: def.radius,
           hostile: false,
+          source: def.id,
           serial: this.nextSerial++,
         });
         return true;
@@ -695,6 +703,7 @@ export class World {
           pierce: def.pierce,
           radius: def.radius,
           hostile: false,
+          source: def.id,
           serial: this.nextSerial++,
         });
         return true;
@@ -1088,6 +1097,7 @@ export class World {
         pierce: 1,
         radius: 10,
         hostile: true,
+        source: 'boss',
         serial: this.nextSerial++,
       });
     }

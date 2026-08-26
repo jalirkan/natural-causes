@@ -93,6 +93,10 @@ export class ActScene extends Phaser.Scene {
 
   /** Kill/attach ripples. A pool, like every other transient. */
   private puffs: Phaser.GameObjects.Arc[] = [];
+  /** Weapon-effect stamps: starbursts, footprints, the magnet. Pooled. */
+  private areaIcons: Phaser.GameObjects.Image[] = [];
+  /** Passive cues drawn around the player: Membrane's ring, Midpiece's streaks. */
+  private playerFx!: Phaser.GameObjects.Graphics;
   private prevGemCount = 0;
   private absorbZoomed = false;
 
@@ -132,6 +136,7 @@ export class ActScene extends Phaser.Scene {
     delete this.bossSprite;
 
     this.puffs = [];
+    this.areaIcons = [];
     this.prevGemCount = 0;
     this.absorbZoomed = false;
     this.cameras.main.setZoom(1);
@@ -144,6 +149,7 @@ export class ActScene extends Phaser.Scene {
     // actors, below the HUD.
     addVignette(this, VIEW_WIDTH, VIEW_HEIGHT, 90);
 
+    this.playerFx = this.add.graphics().setDepth(9);
     this.player = this.add
       .image(this.world.x, this.world.y, this.visuals.atlas.key, this.visuals.playerFrame)
       .setDepth(10);
@@ -402,6 +408,41 @@ export class ActScene extends Phaser.Scene {
     // The swim: quick small wiggle. It is the player character in an act
     // where the whole field is alive; a rigid sprite reads as a cursor.
     this.player.setRotation(Math.sin(this.world.time * 9) * 0.09);
+
+    // Passive cues (G-036): the invisible items get a presence. Membrane is a
+    // ring — you can see the thicker skin. Midpiece is motion streaks behind
+    // the heading. Capacitation stays invisible on purpose: it is the late
+    // bloomer, and not showing yet is its whole joke.
+    const w = this.world;
+    this.playerFx.clear();
+    const membrane = w.items.get('membrane') ?? 0;
+    if (membrane > 0) {
+      this.playerFx
+        .lineStyle(2 + membrane, UI_FILL, 0.14 + membrane * 0.04)
+        .strokeCircle(w.x, w.y, 33 + membrane);
+    }
+    const midpiece = w.items.get('midpiece') ?? 0;
+    if (midpiece > 0 && (w.facingX !== 0 || w.facingY !== 0)) {
+      const bx = -w.facingX;
+      const by = -w.facingY;
+      for (let k = 1; k <= Math.min(3, midpiece); k++) {
+        const d = 26 + k * 11;
+        this.playerFx
+          .lineStyle(3, PAPER, 0.16 - k * 0.035)
+          .lineBetween(
+            w.x + bx * d - by * 7,
+            w.y + by * d + bx * 7,
+            w.x + bx * (d + 12) - by * 7,
+            w.y + by * (d + 12) + bx * 7,
+          )
+          .lineBetween(
+            w.x + bx * d + by * 7,
+            w.y + by * d - bx * 7,
+            w.x + bx * (d + 12) + by * 7,
+            w.y + by * (d + 12) - bx * 7,
+          );
+      }
+    }
   }
 
   /** Grows a sprite pool to match a world array, hiding the surplus. */
@@ -474,19 +515,30 @@ export class ActScene extends Phaser.Scene {
 
   private syncProjectiles(): void {
     const list: ProjectileState[] = this.world.projectiles;
-    // A shot is a dash that flies point-first, not a sliding circle. G-031:
-    // ranged gold lives on the PROJECTILE, game-wide — the Egg's body is boss
-    // teal and gold first appears as its first shot.
+    // The weapon IS the object (G-036): Lash fires the manicule — a little
+    // pointing hand flying at whatever is nearest — and Motility fires the
+    // paper dart. The card icon and the field effect are the same drawing, so
+    // a weapon chosen on a card is recognised the first time it fires. G-031
+    // unchanged: hostile gold stays on the Egg's shots and nothing else.
     this.fit(this.projectileSprites, list.length, () => this.add.image(0, 0, 'nc-shot').setDepth(8));
     for (let i = 0; i < list.length; i++) {
       const p = list[i]!;
       const s = this.projectileSprites[i]!;
+      const heading = Math.atan2(p.vy, p.vx);
       if (p.hostile) {
         s.setTexture('nc-shot-hostile').setDisplaySize(p.radius * 2, p.radius * 2).setRotation(0);
+      } else if (p.source === 'lash') {
+        s.setTexture(ITEM_ICON_ATLAS.key, itemIconFrame('strike'))
+          .setDisplaySize(30, 30)
+          .setRotation(heading);
+      } else if (p.source === 'motility') {
+        s.setTexture(ITEM_ICON_ATLAS.key, itemIconFrame('pierce'))
+          .setDisplaySize(42, 42)
+          .setRotation(heading);
       } else {
         s.setTexture('nc-shot')
           .setDisplaySize(p.radius * 3.2, p.radius * 1.3)
-          .setRotation(Math.atan2(p.vy, p.vx));
+          .setRotation(heading);
       }
       s.setPosition(p.x, p.y).setVisible(true);
     }
@@ -552,18 +604,99 @@ export class ActScene extends Phaser.Scene {
     }
   }
 
+  /**
+   * Area effects, each wearing its own card's art (G-036).
+   *
+   * An AreaState says what it is without a source tag: an attractor is
+   * `pull`, Wake's trail ticks, Acrosome's burst does not. Three different
+   * objects on screen — a starburst pop, footprints, the classroom magnet —
+   * instead of three faint circles.
+   */
   private syncAreas(): void {
     const list = this.world.areas;
     this.fit(this.areaSprites, list.length, () => this.add.circle(0, 0, 10).setDepth(2));
+    this.fit(this.areaIcons, list.length, () => this.add.image(0, 0, 'nc-shot').setDepth(4));
+
+    // Wake stamps point along the path, so each needs the NEXT footprint to
+    // aim at. Collect the trail's indices once; the newest aims at the player.
+    const wakeOrder: number[] = [];
+    for (let i = 0; i < list.length; i++) {
+      const a = list[i]!;
+      if (a.tick && !a.pull && a.damage > 0) wakeOrder.push(i);
+    }
+    const wakeNext = new Map<number, { x: number; y: number }>();
+    const wakeStride = new Map<number, number>();
+    for (let k = 0; k < wakeOrder.length; k++) {
+      const here = list[wakeOrder[k]!]!;
+      const next = k + 1 < wakeOrder.length ? list[wakeOrder[k + 1]!]! : this.world;
+      wakeNext.set(wakeOrder[k]!, { x: next.x - here.x, y: next.y - here.y });
+      wakeStride.set(wakeOrder[k]!, k);
+    }
+
     for (let i = 0; i < list.length; i++) {
       const a = list[i]!;
       const fade = 1 - a.age / a.seconds;
-      this.areaSprites[i]!.setPosition(a.x, a.y)
-        .setRadius(a.radius)
-        // The attractor is the player's own field and does not hurt them, so
-        // law 10 keeps a threat colour off it too.
-        .setFillStyle(a.pull ? this.visuals.pickup : PAPER, (a.pull ? 0.1 : 0.16) * fade)
-        .setVisible(true);
+      const circle = this.areaSprites[i]!;
+      const icon = this.areaIcons[i]!;
+
+      if (a.pull) {
+        // Chemotaxis: the classroom magnet, planted where everything is
+        // asked to go, with a ring contracting toward it. The fill stays as
+        // the honest area of effect; law 10 keeps threat colours off it.
+        circle
+          .setPosition(a.x, a.y)
+          .setRadius(a.radius * (1 - ((a.age * 0.9) % 1) * 0.85))
+          .setFillStyle()
+          .setStrokeStyle(2, this.visuals.pickup, 0.35 * fade)
+          .setVisible(true);
+        icon
+          .setTexture(ITEM_ICON_ATLAS.key, itemIconFrame('pull'))
+          .setPosition(a.x, a.y)
+          .setDisplaySize(40, 40)
+          .setRotation(0)
+          .setFlipX(false)
+          .setAlpha(0.9 * fade)
+          .setVisible(true);
+      } else if (a.tick) {
+        // Wake: footprints. "Everything behind you regrets it" — the trail
+        // is literally where you have walked, stamped left, right, left.
+        // Every SECOND stamp: areas arrive every 0.18s (~34px apart at full
+        // speed), and prints that dense merge into a caterpillar. Skipping
+        // alternate ones gives a stride; the damage areas underneath are
+        // unchanged, this is only what is drawn.
+        const stride = wakeStride.get(i) ?? 0;
+        const d = wakeNext.get(i);
+        circle.setVisible(false);
+        if (stride % 2 === 1) {
+          icon.setVisible(false);
+          continue;
+        }
+        icon
+          .setTexture(ITEM_ICON_ATLAS.key, itemIconFrame('trail'))
+          .setPosition(a.x, a.y)
+          .setDisplaySize(26, 26)
+          .setRotation(d ? Math.atan2(d.y, d.x) + Math.PI / 2 : 0)
+          .setFlipX(stride % 4 === 0)
+          .setAlpha(0.6 * fade)
+          .setVisible(true);
+      } else {
+        // Acrosome: its own starburst, popping at full burst size and gone in
+        // the same 0.12s the damage is.
+        circle
+          .setPosition(a.x, a.y)
+          .setRadius(a.radius)
+          .setFillStyle(PAPER, 0.12 * fade)
+          .setStrokeStyle()
+          .setVisible(true);
+        icon
+          .setTexture(ITEM_ICON_ATLAS.key, itemIconFrame('burst'))
+          .setPosition(a.x, a.y)
+          .setDisplaySize(a.radius * 1.7 * (0.85 + 0.3 * (a.age / a.seconds)), a.radius * 1.7 * (0.85 + 0.3 * (a.age / a.seconds)))
+          .setRotation(0)
+          .setFlipX(false)
+          .setAlpha(0.75 * fade)
+          .setVisible(true);
+      }
     }
   }
 

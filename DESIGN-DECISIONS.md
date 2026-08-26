@@ -1050,3 +1050,33 @@ objects deadpan. Programmer art on the most-read panel in the game was the
 Rejected: **depicting the mechanics literally** (a projectile for Lash, a
 damage field for Wake). Accurate and game-y: it spends the card's only image
 on information the blurb already carries, and says nothing about a life.
+
+## G-036 · 2026-08-01 · The weapon in the field is the card's own object
+Every active item's field effect is now its icon made kinetic: Lash fires the
+manicule — a small pointing hand flying at whatever is nearest — Motility
+fires the paper dart, Acrosome pops its retail starburst at full burst
+radius, Wake stamps footprints behind the player (every second damage area,
+alternating feet, rotated along the path), and Chemotaxis plants the
+classroom magnet with a ring contracting toward it. Passives get quiet
+presence: Membrane is a visible ring around the player, Midpiece is motion
+streaks. Capacitation stays invisible on purpose — it is the late bloomer,
+and not showing yet is its whole joke.
+
+Justin's report was that the power-ups were invisible, and he was right
+twice: you could not see what a weapon did, and you could not see that you
+had it. Card icon and field effect being the same drawing fixes both at
+once — a weapon chosen on a card is recognised the first time it fires.
+
+The one rules-layer change is honest metadata: `ProjectileState.source`
+names the item that fired it, because telling Lash from Motility by radius
+and pierce is a heuristic waiting to break. Optional, so hand-built
+projectiles in tests carry no obligation.
+
+Rejected: **a second generation batch of bespoke effect art** (muzzle
+flashes, beams, impact sprites). Doubles the asset surface for things
+glimpsed at 400px/s, and it would give the cards and the field two different
+vocabularies for the same weapon — the exact disconnect this fixes.
+
+Rejected: **colour-coding the existing circles per weapon.** Tinting is
+retired (G-032) and every colour in this game already has one job (law 10,
+G-030). Shape carries identity here; hue is spoken for.
