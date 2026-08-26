@@ -1080,3 +1080,25 @@ vocabularies for the same weapon — the exact disconnect this fixes.
 Rejected: **colour-coding the existing circles per weapon.** Tinting is
 retired (G-032) and every colour in this game already has one job (law 10,
 G-030). Shape carries identity here; hue is spoken for.
+
+## G-037 · 2026-08-01 · Icons speak the sleek half of the period — a third geometry clause
+The style system gains `pictogram` alongside `hand-cut` and `ruled`: 1960s
+international-style iconography — airline and Olympic pictograms, Bass and
+Rand — clean confident geometry, precisely balanced. It is the icon role's
+default. Same period as the field's hand-cut register, other tradition, and
+the split is by SURFACE: hand-cut is for creatures in the field, where
+irregular reads as alive; on a card at 52px it reads as crude, which is
+exactly what Justin reported. All eight icons regenerated under the new
+clause; the cards hold them in a drawn medallion with a keycap box, so the
+art sits in the card rather than floating on it.
+
+Rejected: **keeping hand-cut for icons and tightening subjects one at a
+time.** Tried, in effect, across two passes: the subject prompt fights the
+style clause every single time, and per-subject patches against a wrong
+register is exactly the failure D-005 exists to prevent — style belongs in
+the style system.
+
+Rejected: **a hand-drawn vector icon set outside the pipeline.** Sleekness
+by fiat, and it forfeits provenance, the content rule, the palette lock and
+the mechanical checks — the icons would be the only unchecked art in the
+game, on its most-read panel.

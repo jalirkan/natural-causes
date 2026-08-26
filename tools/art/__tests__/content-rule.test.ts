@@ -132,12 +132,19 @@ describe('the shipped test batch', () => {
     }
   });
 
-  it('only assets that declare ruled geometry get it, and they lose hand-cut', () => {
+  it('every asset gets exactly one geometry clause, and the right one', () => {
     for (const spec of ALL_ASSETS) {
       const prompt = fullPrompt(spec);
       if (spec.geometry === 'ruled') {
         expect(prompt, `"${spec.id}"`).toMatch(/precise ruled geometry|true right angles/);
         expect(prompt, `"${spec.id}"`).not.toMatch(/hand-cut paper/);
+      } else if (spec.role === 'icon') {
+        // Card-surface pictograms: the sleek half of the period. Hand-cut is
+        // for creatures in the field, where irregular reads as alive; at 52px
+        // on a card it reads as crude.
+        expect(prompt, `"${spec.id}"`).toMatch(/precisely designed pictogram/);
+        expect(prompt, `"${spec.id}"`).not.toMatch(/hand-cut paper/);
+        expect(prompt, `"${spec.id}"`).not.toMatch(/precise ruled geometry/);
       } else {
         expect(prompt, `"${spec.id}"`).toMatch(/hand-cut paper/);
         expect(prompt, `"${spec.id}"`).not.toMatch(/precise ruled geometry/);
@@ -152,8 +159,10 @@ describe('the shipped test batch', () => {
     // the antibody's reservation, which is about the FIELD read: cards appear
     // on an ink panel with the world stopped, where nothing can be mistaken
     // for a swarm object. A ruled FIELD asset in conception is still a bug.
+    // The dart moved to the icon-wide pictogram clause, which carries its own
+    // precision; ruled is back to exactly two holders.
     const ruled = ALL_ASSETS.filter((s) => s.geometry === 'ruled').map((s) => s.id).sort();
-    expect(ruled).toEqual(['antibody', 'boss-reorg', 'icon-pierce']);
+    expect(ruled).toEqual(['antibody', 'boss-reorg']);
     const fieldRuled = ALL_ASSETS.filter(
       (s) => s.geometry === 'ruled' && s.act === 'conception' && s.role !== 'icon',
     ).map((s) => s.id);

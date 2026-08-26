@@ -16,6 +16,7 @@ import {
 import {
   INK,
   PAPER,
+  SHADOW,
   THREAT_CONTACT,
   THREAT_RANGED,
   UI_FILL,
@@ -797,22 +798,31 @@ export class ActScene extends Phaser.Scene {
       const g = this.add.graphics();
       g.fillStyle(INK, 1).fillRoundedRect(-W / 2, -H / 2, W, H, 10);
       g.lineStyle(2, UI_FILL, 0.5).strokeRoundedRect(-W / 2, -H / 2, W, H, 10);
+      // The medallion: a quiet plate under the icon, so the art sits IN the
+      // card instead of floating on it. A drawn keycap box for the number,
+      // for the same reason.
+      g.fillStyle(SHADOW, 0.3).fillCircle(-W / 2 + 54, -12, 36);
+      g.lineStyle(1.5, UI_FILL, 0.25).strokeCircle(-W / 2 + 54, -12, 36);
+      g.lineStyle(1.5, UI_FILL, 0.4).strokeRoundedRect(-W / 2 + 12, -H / 2 + 10, 22, 22, 5);
 
-      const keycap = this.add.text(-W / 2 + 16, -H / 2 + 12, String(i + 1), {
-        fontFamily: 'monospace',
-        fontSize: '14px',
-        color: '#D2C6AC',
-      });
+      const keycap = this.add
+        .text(-W / 2 + 23, -H / 2 + 21, String(i + 1), {
+          fontFamily: 'monospace',
+          fontSize: '14px',
+          color: '#D2C6AC',
+        })
+        .setOrigin(0.5);
       const icon = this.add
-        .image(-W / 2 + 52, -14, ITEM_ICON_ATLAS.key, itemIconFrame(def.icon))
+        .image(-W / 2 + 54, -12, ITEM_ICON_ATLAS.key, itemIconFrame(def.icon))
         .setDisplaySize(52, 52);
-      const name = this.add.text(-W / 2 + 88, -42, def.name, {
+      const name = this.add.text(-W / 2 + 100, -42, def.name, {
         fontFamily: 'monospace',
         fontSize: '20px',
         color: '#EFE7D6',
+        letterSpacing: 1,
       });
       const pips = this.add.text(
-        -W / 2 + 88,
+        -W / 2 + 100,
         -12,
         owned === 0
           ? 'new'

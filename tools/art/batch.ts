@@ -122,7 +122,7 @@ export const DETAIL_THRESHOLD_PX = 200;
  * generator to make the org chart lumpy while the subject asks for rigid
  * boxes, and the two would fight inside one prompt.
  */
-export type Geometry = 'hand-cut' | 'ruled';
+export type Geometry = 'hand-cut' | 'ruled' | 'pictogram';
 
 const GEOMETRY_CLAUSE: Record<Geometry, string> = {
   'hand-cut':
@@ -130,6 +130,15 @@ const GEOMETRY_CLAUSE: Record<Geometry, string> = {
   ruled:
     'precise ruled geometry with true right angles and straight edges, drafted rather than drawn, ' +
     'the wrongness coming entirely from the arrangement and never from the shapes',
+  // Card-surface icons only. The hand-cut clause is right for creatures in
+  // the field and wrong for UI at 52px, where irregular reads as crude rather
+  // than deliberate. Same period, other tradition: the sleek half of
+  // mid-century — international-style pictograms, airline and Olympic
+  // iconography, Bass and Rand — confident, balanced, precisely designed.
+  pictogram:
+    'an elegant precisely designed pictogram in the manner of 1960s international graphic design, ' +
+    'clean confident geometry, smooth crisp edges, perfectly balanced simplified form, ' +
+    'the refined clarity of classic airline and olympic iconography',
 };
 
 /**
@@ -171,7 +180,7 @@ export function styleSuffixFor(spec: AssetSpec): string {
   return styleSuffix(
     spec.act,
     spec.targetSize,
-    spec.geometry ?? ACT_DEFAULT_GEOMETRY[spec.act],
+    spec.geometry ?? (spec.role === 'icon' ? 'pictogram' : ACT_DEFAULT_GEOMETRY[spec.act]),
     spec.role === 'swarm' || spec.role === 'boss',
   );
 }
@@ -437,7 +446,7 @@ export const ITEM_ICONS: AssetSpec[] = [
     act: 'conception',
     role: 'icon',
     targetSize: 96,
-    seed: 61001,
+    seed: 61011,
     tests: 'a manicule that reads at 40px on an ink card',
     subject: [
       'a vintage printed pointing-hand ornament, a manicule, one hand with the index finger extended pointing to the right',
@@ -450,14 +459,13 @@ export const ITEM_ICONS: AssetSpec[] = [
     name: 'Motility icon',
     act: 'conception',
     role: 'icon',
-    geometry: 'ruled',
     targetSize: 96,
-    seed: 61002,
-    tests: 'ruled fold lines on a hand-cut card (law 4 per-asset override)',
+    seed: 61022,
+    tests: 'a sleek dart, long and slender, unmistakably a paper aeroplane',
     subject: [
-      'a folded paper dart aeroplane seen from directly above, nose pointing to the right, filling most of the frame',
-      'crisp straight fold lines, simple triangular geometry',
-      'flat pale warm paper colouring with one darker shadow tone along the folds',
+      'a folded paper dart made from a single sheet of folded paper, seen from directly above, a slim elegant triangle with the point to the right, filling most of the frame',
+      'two flat wing panels meeting at a centre crease, nothing but folded paper, not an aircraft, no fuselage, no tail, no engines',
+      'flat pale warm paper colouring with one darker shadow tone along the centre crease',
     ].join(', '),
   },
   {
@@ -466,7 +474,7 @@ export const ITEM_ICONS: AssetSpec[] = [
     act: 'conception',
     role: 'icon',
     targetSize: 96,
-    seed: 61003,
+    seed: 61013,
     tests: 'a starburst that stays a badge and never becomes a sun',
     subject: [
       'a retail price-tag starburst badge with about twelve irregular points, seen perfectly flat, filling most of the frame',
@@ -479,12 +487,12 @@ export const ITEM_ICONS: AssetSpec[] = [
     act: 'conception',
     role: 'icon',
     targetSize: 96,
-    seed: 61004,
+    seed: 61034,
     tests: 'two footprints reading as a stride at 40px',
     subject: [
-      'two bare shoe footprints seen from directly above, a left print low and a right print higher, offset as a walking stride',
-      'simple flat sole shapes with a separate heel pad, nothing else in the frame',
-      'flat muted dusty rose, one darker shadow tone',
+      'a bare footprint pressed in sand, seen from directly above, toes pointing up, as on a beach safety sign',
+      'one smooth foot-sole shape narrow at the arch and wide at the ball, with five small round toe dots arranged in an arc above it',
+      'flat muted brick red, one darker shadow tone',
     ].join(', '),
   },
   {
@@ -493,11 +501,11 @@ export const ITEM_ICONS: AssetSpec[] = [
     act: 'conception',
     role: 'icon',
     targetSize: 96,
-    seed: 61005,
+    seed: 61015,
     tests: 'the classroom magnet, instantly legible',
     subject: [
-      'a classic horseshoe magnet, a thick U shape with two straight pole tips at the top, seen perfectly flat, filling most of the frame',
-      'flat muted brick red body with flat pale warm tips',
+      'a classic horseshoe magnet with two clean parallel arms of even width and a smooth semicircular bend, pole tips pointing downward, seen perfectly flat, filling most of the frame',
+      'flat muted brick red body with flat pale warm rectangular tips',
     ].join(', '),
   },
   {
@@ -506,12 +514,12 @@ export const ITEM_ICONS: AssetSpec[] = [
     act: 'conception',
     role: 'icon',
     targetSize: 96,
-    seed: 61006,
+    seed: 61036,
     tests: 'Youth as an object',
     subject: [
-      'a single low-top canvas sneaker seen in profile facing right, filling most of the frame',
-      'simple rounded toe cap, flat sole, three short lace crosses, no logos, no text',
-      'flat muted dusty rose canvas with a pale warm sole and toe, one darker shadow tone',
+      'a single chunky high-top basketball sneaker seen in profile facing right, filling most of the frame',
+      'a tall rounded ankle, a thick flat pale rubber sole, a rounded pale toe cap, three short lace crosses',
+      'the fabric one single flat unbroken brick red colour, completely plain, no pattern, no mottling, no spots',
     ].join(', '),
   },
   {
@@ -520,7 +528,7 @@ export const ITEM_ICONS: AssetSpec[] = [
     act: 'conception',
     role: 'icon',
     targetSize: 96,
-    seed: 61007,
+    seed: 61017,
     tests: 'Adulthood as an object',
     subject: [
       'an open umbrella seen in profile, a wide simple canopy with a few flat panels and a straight shaft with a curved handle below',
@@ -537,7 +545,7 @@ export const ITEM_ICONS: AssetSpec[] = [
     act: 'conception',
     role: 'icon',
     targetSize: 96,
-    seed: 61008,
+    seed: 61018,
     tests: 'the only item about time, wearing the object for it',
     subject: [
       'a twin-bell alarm clock seen straight on, a round face with two small bells on top and two short splayed legs, filling most of the frame',
