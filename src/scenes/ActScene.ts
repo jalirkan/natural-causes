@@ -3,6 +3,7 @@ import type { ActDef } from '../data/acts';
 import { actVisuals, type ActVisuals } from '../data/act-visuals';
 import { itemDef } from '../data/items';
 import { neutralDevState, type DevState } from '../dev/state';
+import { addVignette, ensureFieldTile, ensureGemTexture, ensureShotTextures } from './dressing';
 import { sfx } from '../audio/sfx';
 import {
   BOSS_RADIUS,
@@ -17,6 +18,8 @@ import {
   THREAT_CONTACT,
   THREAT_RANGED,
   UI_FILL,
+  VIEW_HEIGHT,
+  VIEW_WIDTH,
   WORLD_HEIGHT,
   WORLD_WIDTH,
 } from '../config';
@@ -49,8 +52,8 @@ export class ActScene extends Phaser.Scene {
   private wasd!: Record<'W' | 'A' | 'S' | 'D', Phaser.Input.Keyboard.Key>;
 
   private enemySprites: Phaser.GameObjects.Image[] = [];
-  private projectileSprites: Phaser.GameObjects.Arc[] = [];
-  private gemSprites: Phaser.GameObjects.Arc[] = [];
+  private projectileSprites: Phaser.GameObjects.Image[] = [];
+  private gemSprites: Phaser.GameObjects.Image[] = [];
   private ringSprites: Phaser.GameObjects.Arc[] = [];
   private areaSprites: Phaser.GameObjects.Arc[] = [];
   private attachedSprites: Phaser.GameObjects.Image[] = [];
@@ -77,10 +80,20 @@ export class ActScene extends Phaser.Scene {
    */
   private heard = { kills: 0, hp: 0, stacks: 0, offers: false, boss: false, dead: false, won: false, xp: 0, level: 1 };
 
-  private hud!: Phaser.GameObjects.Text;
+  private hudLevel!: Phaser.GameObjects.Text;
+  private hudClock!: Phaser.GameObjects.Text;
+  private hudRight!: Phaser.GameObjects.Text;
+  private hudDrag!: Phaser.GameObjects.Text;
+  private hudBossLabel!: Phaser.GameObjects.Text;
   private bars!: Phaser.GameObjects.Graphics;
   private overlay!: Phaser.GameObjects.Text;
+  private endScrim!: Phaser.GameObjects.Rectangle;
   private devBadge!: Phaser.GameObjects.Text;
+
+  /** Kill/attach ripples. A pool, like every other transient. */
+  private puffs: Phaser.GameObjects.Arc[] = [];
+  private prevGemCount = 0;
+  private absorbZoomed = false;
 
   /** The offer cards. Built when offers appear, torn down on the choice. */
   private offerCards: Phaser.GameObjects.Container[] = [];
@@ -116,8 +129,18 @@ export class ActScene extends Phaser.Scene {
     this.attachedSprites = [];
     delete this.bossSprite;
 
+    this.puffs = [];
+    this.prevGemCount = 0;
+    this.absorbZoomed = false;
+    this.cameras.main.setZoom(1);
+
     this.cameras.main.setBackgroundColor(this.visuals.background);
+    ensureShotTextures(this, THREAT_RANGED);
+    ensureGemTexture(this, this.visuals.pickup);
     this.createField();
+    // Corners that fall away instead of ending. Above the field and the
+    // actors, below the HUD.
+    addVignette(this, VIEW_WIDTH, VIEW_HEIGHT, 90);
 
     this.player = this.add
       .image(this.world.x, this.world.y, this.visuals.atlas.key, this.visuals.playerFrame)
@@ -208,30 +231,58 @@ export class ActScene extends Phaser.Scene {
    * one texture, and reads as paper tooth, which is the register.
    */
   private createField(): void {
-    const key = 'field-tile';
-    if (!this.textures.exists(key)) {
-      const g = this.add.graphics();
-      g.fillStyle(PAPER, 0.09);
-      g.fillCircle(8, 8, 2.5);
-      g.fillCircle(40, 32, 2);
-      g.fillCircle(24, 52, 1.5);
-      g.generateTexture(key, 64, 64);
-      g.destroy();
-    }
+    const key = ensureFieldTile(this);
     this.add.tileSprite(0, 0, WORLD_WIDTH, WORLD_HEIGHT, key).setOrigin(0, 0).setDepth(0);
   }
 
   private createHud(): void {
-    this.hud = this.add
-      .text(14, 12, '', { fontFamily: 'monospace', fontSize: '15px', color: '#EFE7D6' })
+    const cam = this.cameras.main;
+    const style = (size: number, colour: string) => ({
+      fontFamily: 'monospace',
+      fontSize: `${size}px`,
+      color: colour,
+    });
+
+    // The old HUD was one debug string — time, level, kills, entity count and
+    // an fps counter, comma-spliced. Structured now: bars in a plate top-left,
+    // the clock alone top-centre (it is the act's real antagonist), counts
+    // right-aligned top-right. The fps counter is dev-only; a frame counter in
+    // a shipped HUD is the single fastest way to say "unfinished".
+    this.hudLevel = this.add.text(20, 12, '', style(13, '#D2C6AC')).setScrollFactor(0).setDepth(100);
+    this.hudClock = this.add
+      .text(cam.width / 2, 12, '', {
+        ...style(24, '#EFE7D6'),
+        letterSpacing: 3,
+      })
+      .setOrigin(0.5, 0)
       .setScrollFactor(0)
       .setDepth(100);
+    this.hudRight = this.add
+      .text(cam.width - 16, 12, '', style(15, '#EFE7D6'))
+      .setOrigin(1, 0)
+      .setScrollFactor(0)
+      .setDepth(100);
+    this.hudDrag = this.add
+      .text(cam.width - 16, 34, '', style(13, '#D2C6AC'))
+      .setOrigin(1, 0)
+      .setScrollFactor(0)
+      .setDepth(100);
+    this.hudBossLabel = this.add
+      .text(cam.width / 2, 50, 'the egg', style(12, '#D2C6AC'))
+      .setOrigin(0.5, 0)
+      .setScrollFactor(0)
+      .setDepth(100)
+      .setVisible(false);
     this.bars = this.add.graphics().setScrollFactor(0).setDepth(100);
+
+    this.endScrim = this.add
+      .rectangle(cam.width / 2, cam.height / 2, cam.width, cam.height, INK, 0.45)
+      .setScrollFactor(0)
+      .setDepth(199)
+      .setVisible(false);
     this.overlay = this.add
-      .text(this.cameras.main.width / 2, this.cameras.main.height / 2, '', {
-        fontFamily: 'monospace',
-        fontSize: '20px',
-        color: '#EFE7D6',
+      .text(cam.width / 2, cam.height / 2, '', {
+        ...style(20, '#EFE7D6'),
         align: 'center',
         lineSpacing: 8,
       })
@@ -240,10 +291,8 @@ export class ActScene extends Phaser.Scene {
       .setDepth(200)
       .setVisible(false);
     this.devBadge = this.add
-      .text(this.cameras.main.width - 14, 12, 'DEV · RUN TAINTED', {
-        fontFamily: 'monospace',
-        fontSize: '13px',
-        color: '#EFE7D6',
+      .text(cam.width - 14, 58, 'DEV · RUN TAINTED', {
+        ...style(13, '#EFE7D6'),
         backgroundColor: '#2A2521',
         padding: { x: 7, y: 3 },
       })
@@ -299,8 +348,15 @@ export class ActScene extends Phaser.Scene {
     if (w.kills > h.kills) sfx.kill();
     // XP rises only on pickup; it falls at a level-up, which is not a pickup.
     if (w.xp > h.xp && w.level === h.level) sfx.gem();
-    if (w.hp < h.hp - 0.01) sfx.hurt();
-    if (w.dragStacks > h.stacks) sfx.attach();
+    if (w.hp < h.hp - 0.01) {
+      sfx.hurt();
+      // Three pixels for ninety milliseconds. Feedback, not an earthquake.
+      this.cameras.main.shake(90, 0.0035);
+    }
+    if (w.dragStacks > h.stacks) {
+      sfx.attach();
+      this.spawnPuff(w.x, w.y);
+    }
     if (!!w.offers && !h.offers) sfx.offer();
     if (w.boss && !h.boss) sfx.bossSpawn();
     if (w.projectiles.some((p) => p.hostile && p.life > 3.9)) sfx.bossShot();
@@ -342,6 +398,9 @@ export class ActScene extends Phaser.Scene {
     this.player.setPosition(this.world.x, this.world.y);
     if (this.world.facingX !== 0) this.player.setFlipX(this.world.facingX < 0);
     this.player.setAlpha(this.world.invulnerable > 0 ? 0.55 : 1);
+    // The swim: quick small wiggle. It is the player character in an act
+    // where the whole field is alive; a rigid sprite reads as a cursor.
+    this.player.setRotation(Math.sin(this.world.time * 9) * 0.09);
   }
 
   /** Grows a sprite pool to match a world array, hiding the surplus. */
@@ -380,36 +439,101 @@ export class ActScene extends Phaser.Scene {
       // whatever used the slot last frame, and a drifting antibody was
       // arriving pre-flipped by a dead rival.
       s.setFlipX(e.def.movement === 'chase' ? this.world.x < e.x : false);
+      // Ambient motion — the art direction promised tween-driven life
+      // (squash, bob, rotate) and until this pass nothing in the field moved
+      // except positions, which is most of what read as unfinished. Driven
+      // from the world clock and the enemy's uid, so pooled sprites need no
+      // per-sprite state and a paused world holds still.
+      const t = this.world.time;
+      const ph = (e.uid % 61) * 0.618;
+      switch (e.def.id) {
+        case 'rival-sperm':
+          s.setRotation(Math.sin(t * 7 + ph) * 0.1);
+          break;
+        case 'antibody':
+          s.setRotation(t * 0.5 + ph);
+          break;
+        case 'spermicide': {
+          s.setRotation(Math.sin(t * 0.9 + ph) * 0.1);
+          const pulse = Math.sin(t * 2.2 + ph) * 0.045;
+          s.setScale(s.scaleX * (1 + pulse), s.scaleY * (1 - pulse));
+          break;
+        }
+        case 'white-cell': {
+          s.setRotation(Math.sin(t * 0.7 + ph) * 0.06);
+          const pulse = Math.sin(t * 1.4 + ph) * 0.02;
+          s.setScale(s.scaleX * (1 + pulse), s.scaleY * (1 - pulse));
+          break;
+        }
+        default:
+          s.setRotation(Math.sin(t * 2 + ph) * 0.08);
+      }
     }
   }
 
   private syncProjectiles(): void {
     const list: ProjectileState[] = this.world.projectiles;
-    this.fit(this.projectileSprites, list.length, () => this.add.circle(0, 0, 5, PAPER).setDepth(8));
+    // A shot is a dash that flies point-first, not a sliding circle. G-031:
+    // ranged gold lives on the PROJECTILE, game-wide — the Egg's body is boss
+    // teal and gold first appears as its first shot.
+    this.fit(this.projectileSprites, list.length, () => this.add.image(0, 0, 'nc-shot').setDepth(8));
     for (let i = 0; i < list.length; i++) {
       const p = list[i]!;
-      this.projectileSprites[i]!.setPosition(p.x, p.y)
-        .setRadius(p.radius)
-        // G-031: ranged gold lives on the PROJECTILE, game-wide. The Egg's
-        // body is boss teal and gold first appears as its first shot, which
-        // is closer to what G-010 wanted than colouring the body.
-        .setFillStyle(p.hostile ? THREAT_RANGED : PAPER)
-        .setVisible(true);
+      const s = this.projectileSprites[i]!;
+      if (p.hostile) {
+        s.setTexture('nc-shot-hostile').setDisplaySize(p.radius * 2, p.radius * 2).setRotation(0);
+      } else {
+        s.setTexture('nc-shot')
+          .setDisplaySize(p.radius * 3.2, p.radius * 1.3)
+          .setRotation(Math.atan2(p.vy, p.vx));
+      }
+      s.setPosition(p.x, p.y).setVisible(true);
     }
   }
 
   private syncGems(): void {
     const list: GemState[] = this.world.gems;
+    // Law 11 wrote the pickup silhouette down as a LOZENGE, and until this
+    // pass the renderer drew circles — the art bible said one thing and the
+    // screen said another. Law 10 / G-030 give it the act's light tone.
     this.fit(this.gemSprites, list.length, () =>
-      // Law 10 / G-030: a pickup wears the act's light tone. Not a threat
-      // colour, and not bone — bone put it in competition with the player for
-      // lightest thing on screen, which is the one read a horde game cannot
-      // afford to blur.
-      this.add.circle(0, 0, GEM_SIZE, this.visuals.pickup).setDepth(3),
+      this.add.image(0, 0, 'nc-gem').setDisplaySize(GEM_SIZE * 1.7, GEM_SIZE * 2.1).setDepth(3),
     );
-    for (let i = 0; i < list.length; i++) {
-      this.gemSprites[i]!.setPosition(list[i]!.x, list[i]!.y).setVisible(true);
+    // Kill feedback: a gem appearing IS a death, so the ripple keys off the
+    // gems the world just added rather than needing the sim to emit events.
+    for (let i = this.prevGemCount; i < list.length; i++) {
+      this.spawnPuff(list[i]!.x, list[i]!.y);
     }
+    this.prevGemCount = list.length;
+    const t = this.world.time;
+    for (let i = 0; i < list.length; i++) {
+      const g = this.gemSprites[i]!;
+      g.setPosition(list[i]!.x, list[i]!.y).setVisible(true);
+      // A slow one-by-one glimmer, phase-spread so the field never pulses in
+      // unison. ABSOLUTE size each frame — multiplying the current scale
+      // compounds it, and a gem became a screen-height beam in about a second.
+      g.setDisplaySize(GEM_SIZE * 1.7, GEM_SIZE * 2.1 * (1 + 0.08 * Math.sin(t * 2.1 + i * 1.7)));
+    }
+  }
+
+  /** A small expanding ring. Kills, attaches — anything that ends. */
+  private spawnPuff(x: number, y: number): void {
+    let a = this.puffs.find((c) => !c.visible);
+    if (!a) {
+      a = this.add.circle(0, 0, 8).setDepth(7);
+      this.puffs.push(a);
+    }
+    a.setPosition(x, y).setRadius(7).setFillStyle().setStrokeStyle(3, UI_FILL, 0.5).setVisible(true);
+    this.tweens.add({
+      targets: a,
+      radius: 22,
+      alpha: 0,
+      duration: 190,
+      ease: 'Quad.easeOut',
+      onComplete: () => {
+        a!.setVisible(false).setAlpha(1);
+      },
+    });
   }
 
   private syncRings(): void {
@@ -461,7 +585,15 @@ export class ActScene extends Phaser.Scene {
     // telegraph frames, so the Egg finished 47% wider than the hitbox it kept,
     // and shots visibly passed through its outer third. It was also frame-rate
     // dependent — 2.4x the growth on a 144Hz display.
-    const target = this.bossBaseScale * (telegraph ? 1.06 : 1);
+    // Breathing at idle, a firmer pulse on the telegraph. It has already
+    // decided; it is not in a hurry.
+    const breathe = 1 + 0.012 * Math.sin(this.world.time * 1.6);
+    const target = this.bossBaseScale * (telegraph ? 1.06 : breathe);
+    if (b.phase === 'absorbing' && !this.absorbZoomed) {
+      // The ending leans in. Presentation only — the outcome latched already.
+      this.absorbZoomed = true;
+      this.cameras.main.zoomTo(1.1, 1500, 'Sine.easeInOut');
+    }
     this.bossSprite
       .setPosition(b.x, b.y)
       .setScale(Phaser.Math.Linear(this.bossSprite.scaleX, target, 0.14))
@@ -491,7 +623,7 @@ export class ActScene extends Phaser.Scene {
         s.setVisible(false);
         continue;
       }
-      const angle = s.getData('angle') as number;
+      const angle = (s.getData('angle') as number) + this.world.time * 0.18;
       const dist = s.getData('dist') as number;
       s.setVisible(true).setPosition(
         this.world.x + Math.cos(angle) * dist,
@@ -696,31 +828,41 @@ export class ActScene extends Phaser.Scene {
     // drag entirely by pushing the total back above base. §3.3 asks whether a
     // player can tell when it went wrong; this is the only instrument they get.
     const drag = Math.round((1 - w.antibodyDrag) * 100);
-    this.hud.setText(
-      `${this.formatTime()}   lv${w.level}   ${w.kills} killed   ${w.enemies.length} on screen   ` +
-        `${w.dragStacks} attached${drag > 0 ? ` (-${drag}% speed)` : ''}   ` +
-        `${Math.round(this.game.loop.actualFps)} fps`,
+    this.hudLevel.setText(`lv ${w.level}`);
+    this.hudClock.setText(this.formatTime());
+    this.hudRight.setText(
+      `${w.kills} killed${import.meta.env.DEV ? `   ${Math.round(this.game.loop.actualFps)} fps` : ''}`,
+    );
+    this.hudDrag.setText(
+      w.dragStacks > 0 ? `${w.dragStacks} attached  −${drag}% speed` : '',
     );
 
     this.bars.clear();
+    // The plate: one quiet ink surface holding both bars, so the corner reads
+    // as an instrument instead of two floating rectangles.
+    this.bars.fillStyle(INK, 0.4).fillRoundedRect(12, 8, 236, 46, 7);
     // Health.
-    this.bars.fillStyle(INK, 0.5).fillRect(14, 36, 220, 9);
+    this.bars.fillStyle(INK, 0.55).fillRect(22, 30, 216, 9);
     // Law 10 names this case directly: damage feedback goes to value, never to
     // tint, because a player flashing contact-red makes the colour mean
     // "someone is being hurt" instead of "this hurts". The player sprite
     // already dims on i-frames, which is the value channel doing the job.
     this.bars.fillStyle(PAPER, w.invulnerable > 0 ? 0.45 : 1);
-    this.bars.fillRect(14, 36, (220 * Math.max(0, w.hp)) / w.maxHp, 9);
+    this.bars.fillRect(22, 30, (216 * Math.max(0, w.hp)) / w.maxHp, 9);
     // Experience.
-    this.bars.fillStyle(INK, 0.5).fillRect(14, 48, 220, 4);
-    this.bars.fillStyle(UI_FILL, 1).fillRect(14, 48, (220 * w.xp) / w.xpToNext, 4);
-    // The boss carries its own bar across the top.
+    this.bars.fillStyle(INK, 0.55).fillRect(22, 43, 216, 4);
+    this.bars.fillStyle(UI_FILL, 1).fillRect(22, 43, (216 * w.xp) / w.xpToNext, 4);
+    // The boss carries its own bar across the top, under its name.
+    this.hudBossLabel.setVisible(!!w.boss);
     if (w.boss) {
-      const width = this.cameras.main.width - 240;
-      this.bars.fillStyle(INK, 0.6).fillRect(120, 68, width, 10);
+      const width = this.cameras.main.width - 480;
+      this.bars.fillStyle(INK, 0.6).fillRoundedRect(240, 68, width, 8, 4);
       // Debatable — the bar represents a thing that does hurt — but law 10
       // says UI chrome, without an exception. Flagged rather than argued.
-      this.bars.fillStyle(UI_FILL, 1).fillRect(120, 68, (width * w.boss.hp) / w.boss.maxHp, 10);
+      const frac = w.boss.hp / w.boss.maxHp;
+      if (frac > 0.02) {
+        this.bars.fillStyle(UI_FILL, 1).fillRoundedRect(240, 68, width * frac, 8, 4);
+      }
     }
 
     // Cards, not a text panel. drawHud runs every frame; the key turns
@@ -742,7 +884,8 @@ export class ActScene extends Phaser.Scene {
     this.devBadge.setVisible(import.meta.env.DEV && this.dev.tainted);
 
     if (this.paused) {
-      this.overlay.setText('paused\n\nP or Esc to resume\n\nR restarts the run').setVisible(true);
+      this.endScrim.setVisible(true);
+      this.overlay.setText('paused' + '\n\n' + 'P or Esc to resume').setVisible(true);
       return;
     }
 
@@ -753,6 +896,7 @@ export class ActScene extends Phaser.Scene {
       const build = [...w.items.entries()].map(([id, lv]) => `${itemDef(id).name} ${lv}`);
       const buildLines: string[] = [];
       for (let i = 0; i < build.length; i += 4) buildLines.push(build.slice(i, i + 4).join('  ·  '));
+      this.endScrim.setVisible(true);
       this.overlay
         .setText(
           [
@@ -767,6 +911,7 @@ export class ActScene extends Phaser.Scene {
         .setVisible(true);
     } else {
       this.overlay.setVisible(false);
+      this.endScrim.setVisible(false);
     }
   }
 }
