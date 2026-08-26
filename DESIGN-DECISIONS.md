@@ -993,3 +993,30 @@ joke, but it is act seven's joke. This game already has a scripted death as
 its ending; spending an accidental version of it in act one, delivered by a
 scoring quirk rather than by design, wastes it and reads as a bug — which is
 exactly how it was found.
+
+## G-034 · 2026-08-01 · The offer is three cards with one line of copy each
+The level-up screen is three cards on a dimmed field: a glyph for what kind of
+thing the item is (a sight, an arrow, chevrons, a shield, a clock), the name,
+level pips, and ONE line that carries the mechanic and the joke together —
+"Faster and more fragile. Youth." A card is chosen by key or by click. The
+measure a menu in this genre has to pass: the player decides in about two
+seconds and is back in the field. Justin's play report was that the old panel
+forced more time in the menu than in the game, and he was right — it showed a
+gain line and a cost line per item, which is a design document's sentence
+structure, not a player's.
+
+The glyph is a semantic tag on the item (`icon: 'speed'`) and the drawing
+lives in the renderer, generated in-house from palette-locked line art at
+boot — no assets, and `items.ts` stays Node-safe.
+
+Rejected: **the gain/cost pair per card** (the first fix for the overflowing
+panel, cut the same day). Balanced and honest, and it reads as homework: two
+clauses to weigh per item is six clauses per decision, at 60 rivals per
+minute. The full argument already lives in `enables`/`tradesAway`, where it
+is a design record and not copy.
+
+Rejected: **stat readouts** (damage numbers, cooldowns, percentages — the
+genre-standard detailed card). Numbers invite optimising in the menu, and
+this game's stated bet is that the menu is not where the game is. The one-line
+blurb keeps the choice a judgement about how you want to play, which is the
+only judgement the items are designed to differentiate.

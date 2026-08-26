@@ -19,6 +19,9 @@
 
 export type ItemKind = 'weapon' | 'control' | 'passive';
 
+/** The offer-card glyph vocabulary. One per item today; categories if it grows. */
+export type ItemIcon = 'strike' | 'pierce' | 'burst' | 'trail' | 'pull' | 'speed' | 'guard' | 'clock';
+
 interface ItemBase {
   id: string;
   name: string;
@@ -36,12 +39,17 @@ interface ItemBase {
   /** What it costs. Required, over 30 characters. */
   tradesAway: string;
   /**
-   * Offer-screen copy: one line each, present tense, under 64 characters so it
-   * fits the panel without wrapping or truncation. Says the same thing as
-   * `enables`/`tradesAway` — if it does not, one of the two is lying.
+   * Which glyph the offer card wears. A semantic tag, not an image — the
+   * renderer owns the drawing, so this file stays Node-safe.
    */
-  gain: string;
-  cost: string;
+  icon: ItemIcon;
+  /**
+   * Offer-card copy: ONE line, under 64 characters, carrying the mechanic and
+   * the joke together. A gain/cost pair was tried first and read as homework
+   * at decision speed — a survivors run decides in two seconds, and the
+   * design argument already lives in `enables`/`tradesAway`.
+   */
+  blurb: string;
   maxLevel: number;
 }
 
@@ -94,8 +102,8 @@ export const ITEMS: Record<string, ItemDef> = {
     radius: 7,
     pierce: 1,
     maxLevel: 5,
-    gain: 'Fires on its own at whatever is nearest.',
-    cost: 'No area, no control, no answer to a crowd.',
+    icon: 'strike',
+    blurb: 'Flails at whatever is nearest. It got you this far.',
     enables:
       'The default build. Fires at whatever is nearest, so it rewards nothing and asks nothing — the baseline every other weapon is measured against.',
     tradesAway:
@@ -114,8 +122,8 @@ export const ITEMS: Record<string, ItemDef> = {
     radius: 10,
     pierce: 99,
     maxLevel: 5,
-    gain: 'A piercing line. A whole column dies at once.',
-    cost: 'Only fires where you point. Nothing covers your back.',
+    icon: 'pierce',
+    blurb: 'Forward, harder. The only direction you believe in.',
     enables:
       'A positioning build: line the crowd up along one axis and the whole column dies at once, which turns the act’s density from a threat into the reason the weapon works.',
     tradesAway:
@@ -134,8 +142,8 @@ export const ITEMS: Record<string, ItemDef> = {
     radius: 96,
     pierce: 99,
     maxLevel: 5,
-    gain: 'A burst all around you. Rewards being deep in it.',
-    cost: 'No reach at all. You take a hit to land one.',
+    icon: 'burst',
+    blurb: 'Hurts everything you touch. You will have to touch them.',
     enables:
       'A body-check build that wants to be inside the crowd rather than away from it, and the only weapon in the act that scales with how bad the player’s position is.',
     tradesAway:
@@ -154,8 +162,8 @@ export const ITEMS: Record<string, ItemDef> = {
     radius: 26,
     pierce: 99,
     maxLevel: 5,
-    gain: 'A damaging trail behind you. Kills while you retreat.',
-    cost: 'Nothing in front of you. Cornered, you have no weapon.',
+    icon: 'trail',
+    blurb: 'Everything behind you regrets it. Keep moving.',
     enables:
       'A kiting build where the player never faces the crowd at all and kills by having already been somewhere, which is the only build in the act that rewards retreating.',
     tradesAway:
@@ -175,8 +183,8 @@ export const ITEMS: Record<string, ItemDef> = {
     radius: 330,
     pierce: 0,
     maxLevel: 5,
-    gain: 'Drags the crowd into one point for your area weapons.',
-    cost: 'No damage of its own, and it gathers antibodies too.',
+    icon: 'pull',
+    blurb: 'Everything finds you attractive. This is not a compliment.',
     enables:
       'Every area weapon in the act at once, by choosing where the crowd will be instead of reacting to it. It is the item that makes Acrosome and Wake into builds rather than options.',
     // Extended 2026-08-01 after Run 5 (§10.2). Chemotaxis is the largest
@@ -199,8 +207,8 @@ export const ITEMS: Record<string, ItemDef> = {
     damageMultiplier: 1,
     rampTo: 1,
     maxLevel: 5,
-    gain: '+12% speed. Outrun what you cannot kill.',
-    cost: '-10% health. Less room for one bad half-second.',
+    icon: 'speed',
+    blurb: 'Faster and more fragile. Youth.',
     enables:
       'Every build that depends on not being touched, and it is the only item that makes the white cell’s fixed heading and the spermicide’s timer into things a player can simply ignore.',
     tradesAway:
@@ -217,8 +225,8 @@ export const ITEMS: Record<string, ItemDef> = {
     damageMultiplier: 1,
     rampTo: 1,
     maxLevel: 5,
-    gain: '-18% damage taken. Stand in the crowd on purpose.',
-    cost: '-8% speed. Zones you used to skip are commitments.',
+    icon: 'guard',
+    blurb: 'Tougher and slower. Adulthood.',
     enables:
       'Standing inside the crowd on purpose, which is the precondition for the Acrosome build and the only way to farm the rival wave rather than outrun it.',
     // REVERTED 2026-08-01 to the original wording (§10.3). §9.4 added an
@@ -242,8 +250,8 @@ export const ITEMS: Record<string, ItemDef> = {
     damageMultiplier: 0.7,
     rampTo: 1.85,
     maxLevel: 5,
-    gain: 'Damage climbs all act. Strongest in the last minute.',
-    cost: 'Weaker than nothing for two minutes, on a hard timer.',
+    icon: 'clock',
+    blurb: 'Worthless for two minutes, then unstoppable. A late bloomer.',
     enables:
       'A late-act scaling build that outperforms every other item in the last ninety seconds, and it is the only item in the game whose power is a function of the act clock rather than the player.',
     tradesAway:

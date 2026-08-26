@@ -13,10 +13,12 @@ answer, and it has not been asked yet.
 ## 1. What is actually built
 
 Seven items, in `src/data/items.ts`. Four weapons, one control, three passives.
-Each carries four strings: `enables` and `tradesAway` (the design argument,
-required over 30 characters, enforced by test) and `gain`/`cost` (offer-screen
-copy, capped at 64 characters, added 2026-08-01 when the panel was found
-truncating the design prose mid-clause).
+Each carries three player-visible strings: `enables` and `tradesAway` (the
+design argument, required over 30 characters, enforced by test) and `blurb`
+(offer-card copy — ONE line under 64 characters carrying the mechanic and the
+joke together, plus an `icon` tag the renderer draws). A `gain`/`cost` pair was
+tried first and cut the same day: two lines per item read as homework at
+decision speed.
 
 | Item | Kind | Gain | Cost |
 |---|---|---|---|

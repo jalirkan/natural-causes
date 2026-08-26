@@ -17,7 +17,6 @@ import {
   THREAT_CONTACT,
   THREAT_RANGED,
   UI_FILL,
-  VIEW_WIDTH,
   WORLD_HEIGHT,
   WORLD_WIDTH,
 } from '../config';
@@ -81,8 +80,14 @@ export class ActScene extends Phaser.Scene {
   private hud!: Phaser.GameObjects.Text;
   private bars!: Phaser.GameObjects.Graphics;
   private overlay!: Phaser.GameObjects.Text;
-  private offerText!: Phaser.GameObjects.Text;
   private devBadge!: Phaser.GameObjects.Text;
+
+  /** The offer cards. Built when offers appear, torn down on the choice. */
+  private offerCards: Phaser.GameObjects.Container[] = [];
+  private offerScrim?: Phaser.GameObjects.Rectangle;
+  private offerHeader?: Phaser.GameObjects.Text;
+  /** What the current cards were built from, so drawHud can diff cheaply. */
+  private shownOffers = '';
 
   constructor() {
     super('act');
@@ -158,6 +163,12 @@ export class ActScene extends Phaser.Scene {
 
     // A restart is the only thing that clears the taint, which is why the
     // state is rebuilt here rather than kept across scene restarts.
+    this.offerCards = [];
+    this.shownOffers = '';
+    delete this.offerScrim;
+    delete this.offerHeader;
+    this.ensureItemIcons();
+
     this.dev = neutralDevState();
     this.heard = { kills: 0, hp: this.world.hp, stacks: 0, offers: false, boss: false, dead: false, won: false, xp: 0, level: 1 };
     if (import.meta.env.DEV) {
@@ -239,24 +250,6 @@ export class ActScene extends Phaser.Scene {
       .setOrigin(1, 0)
       .setScrollFactor(0)
       .setDepth(210)
-      .setVisible(false);
-    this.offerText = this.add
-      .text(this.cameras.main.width / 2, this.cameras.main.height / 2, '', {
-        fontFamily: 'monospace',
-        fontSize: '16px',
-        color: '#EFE7D6',
-        align: 'left',
-        lineSpacing: 6,
-        backgroundColor: '#2A2521',
-        padding: { x: 22, y: 18 },
-        // The panel is centred with origin 0.5, so anything wider than the
-        // viewport hangs off both edges. Item copy is capped at 64 characters
-        // to fit; this wrap is the guard for the next time that cap is edited.
-        wordWrap: { width: VIEW_WIDTH - 200, useAdvancedWrap: true },
-      })
-      .setOrigin(0.5)
-      .setScrollFactor(0)
-      .setDepth(200)
       .setVisible(false);
   }
 
@@ -507,6 +500,188 @@ export class ActScene extends Phaser.Scene {
     }
   }
 
+  /**
+   * The offer glyphs, drawn in-house at boot. No assets, palette-locked, and
+   * the drawing lives here so `items.ts` stays Node-safe — the item carries
+   * only the tag (`icon: 'speed'`), the renderer owns what a speed looks like.
+   */
+  private ensureItemIcons(): void {
+    if (this.textures.exists('nc-icon-strike')) return;
+    const draw = (key: string, fn: (g: Phaser.GameObjects.Graphics) => void): void => {
+      const g = this.make.graphics({ x: 0, y: 0 }, false);
+      g.lineStyle(3, PAPER, 1);
+      fn(g);
+      g.generateTexture(key, 40, 40);
+      g.destroy();
+    };
+    // strike: a sight — what Lash does to whatever is nearest.
+    draw('nc-icon-strike', (g) => {
+      g.strokeCircle(20, 20, 10);
+      g.lineBetween(20, 2, 20, 9);
+      g.lineBetween(20, 31, 20, 38);
+      g.lineBetween(2, 20, 9, 20);
+      g.lineBetween(31, 20, 38, 20);
+    });
+    // pierce: one long arrow. The only direction Motility believes in.
+    draw('nc-icon-pierce', (g) => {
+      g.lineBetween(4, 20, 34, 20);
+      g.lineBetween(34, 20, 24, 11);
+      g.lineBetween(34, 20, 24, 29);
+    });
+    // burst: rays from a centre.
+    draw('nc-icon-burst', (g) => {
+      for (let i = 0; i < 6; i++) {
+        const a = (i * Math.PI) / 3 + Math.PI / 6;
+        g.lineBetween(
+          20 + Math.cos(a) * 6, 20 + Math.sin(a) * 6,
+          20 + Math.cos(a) * 16, 20 + Math.sin(a) * 16,
+        );
+      }
+    });
+    // trail: a body and what it left behind.
+    draw('nc-icon-trail', (g) => {
+      g.fillStyle(PAPER, 1);
+      g.fillCircle(31, 20, 5);
+      g.lineBetween(4, 12, 15, 12);
+      g.lineBetween(8, 20, 19, 20);
+      g.lineBetween(4, 28, 15, 28);
+    });
+    // pull: everything converging on a point.
+    draw('nc-icon-pull', (g) => {
+      g.fillStyle(PAPER, 1);
+      g.fillCircle(20, 20, 4);
+      g.lineBetween(5, 11, 13, 19);
+      g.lineBetween(5, 29, 13, 21);
+      g.lineBetween(35, 11, 27, 19);
+      g.lineBetween(35, 29, 27, 21);
+    });
+    // speed: chevrons.
+    draw('nc-icon-speed', (g) => {
+      g.lineBetween(9, 9, 19, 20);
+      g.lineBetween(19, 20, 9, 31);
+      g.lineBetween(21, 9, 31, 20);
+      g.lineBetween(31, 20, 21, 31);
+    });
+    // guard: a shield. Deliberately not a plain ring — law 11 reserves the
+    // ring silhouette to the spermicide, and a UI glyph should not rhyme with
+    // an enemy even though the law only binds field sprites.
+    draw('nc-icon-guard', (g) => {
+      g.beginPath();
+      g.moveTo(8, 8);
+      g.lineTo(32, 8);
+      g.lineTo(32, 20);
+      g.lineTo(20, 34);
+      g.lineTo(8, 20);
+      g.closePath();
+      g.strokePath();
+    });
+    // clock: Capacitation is the only item that is about time.
+    draw('nc-icon-clock', (g) => {
+      g.strokeCircle(20, 20, 13);
+      g.lineBetween(20, 20, 20, 11);
+      g.lineBetween(20, 20, 27, 24);
+    });
+  }
+
+  /** One card per offer: glyph, name, level pips, one line of copy. */
+  private buildOfferUi(offers: string[]): void {
+    const cam = this.cameras.main;
+    this.offerScrim = this.add
+      .rectangle(cam.width / 2, cam.height / 2, cam.width, cam.height, INK, 0.45)
+      .setScrollFactor(0)
+      .setDepth(195);
+    this.offerHeader = this.add
+      .text(cam.width / 2, 232, `LEVEL ${this.world.level}`, {
+        fontFamily: 'monospace',
+        fontSize: '15px',
+        color: '#D2C6AC',
+        letterSpacing: 8,
+      })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(200);
+
+    const W = 350;
+    const H = 176;
+    const GAP = 26;
+    const total = offers.length * W + (offers.length - 1) * GAP;
+
+    offers.forEach((id, i) => {
+      const def = itemDef(id);
+      const owned = this.world.items.get(id) ?? 0;
+      const x = cam.width / 2 - total / 2 + W / 2 + i * (W + GAP);
+
+      const g = this.add.graphics();
+      g.fillStyle(INK, 1).fillRoundedRect(-W / 2, -H / 2, W, H, 10);
+      g.lineStyle(2, UI_FILL, 0.5).strokeRoundedRect(-W / 2, -H / 2, W, H, 10);
+
+      const keycap = this.add.text(-W / 2 + 16, -H / 2 + 12, String(i + 1), {
+        fontFamily: 'monospace',
+        fontSize: '14px',
+        color: '#D2C6AC',
+      });
+      const icon = this.add
+        .image(-W / 2 + 52, -18, `nc-icon-${def.icon}`)
+        .setDisplaySize(36, 36)
+        .setAlpha(0.95);
+      const name = this.add.text(-W / 2 + 88, -42, def.name, {
+        fontFamily: 'monospace',
+        fontSize: '20px',
+        color: '#EFE7D6',
+      });
+      const pips = this.add.text(
+        -W / 2 + 88,
+        -12,
+        owned === 0
+          ? 'new'
+          : '● '.repeat(owned) + '○ '.repeat(def.maxLevel - owned),
+        { fontFamily: 'monospace', fontSize: '13px', color: '#D2C6AC' },
+      );
+      const blurb = this.add
+        .text(-W / 2 + 24, 20, def.blurb, {
+          fontFamily: 'monospace',
+          fontSize: '15px',
+          color: '#EFE7D6',
+          lineSpacing: 6,
+          wordWrap: { width: W - 48, useAdvancedWrap: true },
+        })
+        .setAlpha(0.88);
+
+      const card = this.add
+        .container(x, 396, [g, keycap, icon, name, pips, blurb])
+        .setDepth(200)
+        .setScrollFactor(0)
+        .setSize(W, H)
+        .setAlpha(0)
+        .setScale(0.94);
+      card.setInteractive({ useHandCursor: true });
+      card.on('pointerdown', () => {
+        if (this.world.offers?.includes(id)) {
+          this.world.choose(id);
+          sfx.choose();
+        }
+      });
+      this.tweens.add({
+        targets: card,
+        alpha: 1,
+        scale: 1,
+        duration: 150,
+        delay: i * 55,
+        ease: 'Cubic.easeOut',
+      });
+      this.offerCards.push(card);
+    });
+  }
+
+  private destroyOfferUi(): void {
+    for (const c of this.offerCards) c.destroy();
+    this.offerCards = [];
+    this.offerScrim?.destroy();
+    this.offerHeader?.destroy();
+    delete this.offerScrim;
+    delete this.offerHeader;
+  }
+
   private formatTime(): string {
     const m = Math.floor(this.world.time / 60);
     const s = Math.floor(this.world.time % 60);
@@ -548,22 +723,17 @@ export class ActScene extends Phaser.Scene {
       this.bars.fillStyle(UI_FILL, 1).fillRect(120, 68, (width * w.boss.hp) / w.boss.maxHp, 10);
     }
 
-    if (w.offers) {
-      // Each item supplies its own one-line gain and cost. The design strings
-      // are three sentences of argument apiece and were being cut at 78
-      // characters, which ended every line mid-clause.
-      const lines = [`LEVEL ${w.level}  —  CHOOSE ONE`, ''];
-      for (const [i, id] of w.offers.entries()) {
-        const def = itemDef(id);
-        const owned = w.items.get(id) ?? 0;
-        lines.push(`[${i + 1}]  ${def.name.padEnd(15)}${owned > 0 ? `lv ${owned} → ${owned + 1}` : 'new'}`);
-        lines.push(`     + ${def.gain}`);
-        lines.push(`     − ${def.cost}`);
-        if (i < w.offers.length - 1) lines.push('');
-      }
-      this.offerText.setText(lines).setVisible(true);
-    } else {
-      this.offerText.setVisible(false);
+    // Cards, not a text panel. drawHud runs every frame; the key turns
+    // build-vs-teardown into a string comparison instead of a state machine.
+    // Owned levels are part of the key: two queued level-ups can roll the
+    // same three items, and the pips must not show the pre-choice level.
+    const offerKey = w.offers
+      ? `${w.level}:${w.offers.map((id) => `${id}@${w.items.get(id) ?? 0}`).join(',')}`
+      : '';
+    if (offerKey !== this.shownOffers) {
+      this.destroyOfferUi();
+      if (w.offers) this.buildOfferUi(w.offers);
+      this.shownOffers = offerKey;
     }
 
     // On the canvas, not in the DOM panel, so it is present in a screenshot
