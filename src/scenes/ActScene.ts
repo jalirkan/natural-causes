@@ -4,6 +4,7 @@ import { actVisuals, type ActVisuals } from '../data/act-visuals';
 import { itemDef } from '../data/items';
 import { neutralDevState, type DevState } from '../dev/state';
 import { addVignette, ensureFieldTile, ensureGemTexture, ensureShotTextures } from './dressing';
+import { ITEM_ICON_ATLAS, itemIconFrame } from '../data/item-visuals';
 import { sfx } from '../audio/sfx';
 import {
   BOSS_RADIUS,
@@ -115,6 +116,7 @@ export class ActScene extends Phaser.Scene {
 
   preload(): void {
     this.load.atlas(this.visuals.atlas.key, this.visuals.atlas.png, this.visuals.atlas.json);
+    this.load.atlas(ITEM_ICON_ATLAS.key, ITEM_ICON_ATLAS.png, ITEM_ICON_ATLAS.json);
   }
 
   create(): void {
@@ -190,7 +192,6 @@ export class ActScene extends Phaser.Scene {
     this.shownOffers = '';
     delete this.offerScrim;
     delete this.offerHeader;
-    this.ensureItemIcons();
 
     this.dev = neutralDevState();
     this.heard = { kills: 0, hp: this.world.hp, stacks: 0, offers: false, boss: false, dead: false, won: false, xp: 0, level: 1 };
@@ -632,89 +633,6 @@ export class ActScene extends Phaser.Scene {
     }
   }
 
-  /**
-   * The offer glyphs, drawn in-house at boot. No assets, palette-locked, and
-   * the drawing lives here so `items.ts` stays Node-safe — the item carries
-   * only the tag (`icon: 'speed'`), the renderer owns what a speed looks like.
-   */
-  private ensureItemIcons(): void {
-    if (this.textures.exists('nc-icon-strike')) return;
-    const draw = (key: string, fn: (g: Phaser.GameObjects.Graphics) => void): void => {
-      const g = this.make.graphics({ x: 0, y: 0 }, false);
-      g.lineStyle(3, PAPER, 1);
-      fn(g);
-      g.generateTexture(key, 40, 40);
-      g.destroy();
-    };
-    // strike: a sight — what Lash does to whatever is nearest.
-    draw('nc-icon-strike', (g) => {
-      g.strokeCircle(20, 20, 10);
-      g.lineBetween(20, 2, 20, 9);
-      g.lineBetween(20, 31, 20, 38);
-      g.lineBetween(2, 20, 9, 20);
-      g.lineBetween(31, 20, 38, 20);
-    });
-    // pierce: one long arrow. The only direction Motility believes in.
-    draw('nc-icon-pierce', (g) => {
-      g.lineBetween(4, 20, 34, 20);
-      g.lineBetween(34, 20, 24, 11);
-      g.lineBetween(34, 20, 24, 29);
-    });
-    // burst: rays from a centre.
-    draw('nc-icon-burst', (g) => {
-      for (let i = 0; i < 6; i++) {
-        const a = (i * Math.PI) / 3 + Math.PI / 6;
-        g.lineBetween(
-          20 + Math.cos(a) * 6, 20 + Math.sin(a) * 6,
-          20 + Math.cos(a) * 16, 20 + Math.sin(a) * 16,
-        );
-      }
-    });
-    // trail: a body and what it left behind.
-    draw('nc-icon-trail', (g) => {
-      g.fillStyle(PAPER, 1);
-      g.fillCircle(31, 20, 5);
-      g.lineBetween(4, 12, 15, 12);
-      g.lineBetween(8, 20, 19, 20);
-      g.lineBetween(4, 28, 15, 28);
-    });
-    // pull: everything converging on a point.
-    draw('nc-icon-pull', (g) => {
-      g.fillStyle(PAPER, 1);
-      g.fillCircle(20, 20, 4);
-      g.lineBetween(5, 11, 13, 19);
-      g.lineBetween(5, 29, 13, 21);
-      g.lineBetween(35, 11, 27, 19);
-      g.lineBetween(35, 29, 27, 21);
-    });
-    // speed: chevrons.
-    draw('nc-icon-speed', (g) => {
-      g.lineBetween(9, 9, 19, 20);
-      g.lineBetween(19, 20, 9, 31);
-      g.lineBetween(21, 9, 31, 20);
-      g.lineBetween(31, 20, 21, 31);
-    });
-    // guard: a shield. Deliberately not a plain ring — law 11 reserves the
-    // ring silhouette to the spermicide, and a UI glyph should not rhyme with
-    // an enemy even though the law only binds field sprites.
-    draw('nc-icon-guard', (g) => {
-      g.beginPath();
-      g.moveTo(8, 8);
-      g.lineTo(32, 8);
-      g.lineTo(32, 20);
-      g.lineTo(20, 34);
-      g.lineTo(8, 20);
-      g.closePath();
-      g.strokePath();
-    });
-    // clock: Capacitation is the only item that is about time.
-    draw('nc-icon-clock', (g) => {
-      g.strokeCircle(20, 20, 13);
-      g.lineBetween(20, 20, 20, 11);
-      g.lineBetween(20, 20, 27, 24);
-    });
-  }
-
   /** One card per offer: glyph, name, level pips, one line of copy. */
   private buildOfferUi(offers: string[]): void {
     const cam = this.cameras.main;
@@ -753,9 +671,8 @@ export class ActScene extends Phaser.Scene {
         color: '#D2C6AC',
       });
       const icon = this.add
-        .image(-W / 2 + 52, -18, `nc-icon-${def.icon}`)
-        .setDisplaySize(36, 36)
-        .setAlpha(0.95);
+        .image(-W / 2 + 52, -14, ITEM_ICON_ATLAS.key, itemIconFrame(def.icon))
+        .setDisplaySize(52, 52);
       const name = this.add.text(-W / 2 + 88, -42, def.name, {
         fontFamily: 'monospace',
         fontSize: '20px',

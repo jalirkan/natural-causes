@@ -1,6 +1,11 @@
 import type { ActId } from './palette';
 
-export type AssetRole = 'player' | 'swarm' | 'boss' | 'pickup';
+/**
+ * `icon` is UI art: it lives on the offer cards' ink surface, never on the
+ * field, so CHECK judges it against ink and the enemy value ceiling does not
+ * apply — an icon may wear paper, which on the field is the player's alone.
+ */
+export type AssetRole = 'player' | 'swarm' | 'boss' | 'pickup' | 'icon';
 
 export interface AssetSpec {
   /** Filename stem. Also the key in the packed atlas. */

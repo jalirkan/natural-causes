@@ -145,11 +145,19 @@ describe('the shipped test batch', () => {
     }
   });
 
-  it('the two assets that are meant to be ruled actually are', () => {
+  it('ruled geometry stays scarce, and every holder can say why', () => {
     // The Reorg, because a diagram was drawn by nobody. The antibody, because
     // CONCEPTION-ROSTER §2 reserves the Y as the act's only straight lines.
+    // The paper dart, because folds are its identity — and it does not breach
+    // the antibody's reservation, which is about the FIELD read: cards appear
+    // on an ink panel with the world stopped, where nothing can be mistaken
+    // for a swarm object. A ruled FIELD asset in conception is still a bug.
     const ruled = ALL_ASSETS.filter((s) => s.geometry === 'ruled').map((s) => s.id).sort();
-    expect(ruled).toEqual(['antibody', 'boss-reorg']);
+    expect(ruled).toEqual(['antibody', 'boss-reorg', 'icon-pierce']);
+    const fieldRuled = ALL_ASSETS.filter(
+      (s) => s.geometry === 'ruled' && s.act === 'conception' && s.role !== 'icon',
+    ).map((s) => s.id);
+    expect(fieldRuled).toEqual(['antibody']);
   });
 
   it('the Reorg prompt names connectors and forbids the failure it already hit', () => {

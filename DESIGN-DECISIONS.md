@@ -1020,3 +1020,33 @@ genre-standard detailed card). Numbers invite optimising in the menu, and
 this game's stated bet is that the menu is not where the game is. The one-line
 blurb keeps the choice a judgement about how you want to play, which is the
 only judgement the items are designed to differentiate.
+
+## G-035 · 2026-08-01 · Item icons are objects from the life, made by the pipeline
+The offer cards' icons are illustrated objects in the mid-century register,
+generated, conformed and mechanically checked by the same pipeline as every
+sprite: a printer's manicule for Lash (the reflex), a folded paper dart for
+Motility, a retail starburst for Acrosome, a footprint for Wake, the classroom
+horseshoe magnet for Chemotaxis, a canvas sneaker for Midpiece (Youth), an
+open umbrella for Membrane (Adulthood), a twin-bell alarm clock for
+Capacitation (the late bloomer). The items are the life script and the icons
+say so — the card art carries theme, not just category.
+
+Pipeline honesty came first: icons got a `card` surface in CHECK, judged for
+contrast against the INK they actually sit on rather than the act background,
+and exempt from the enemy value ceiling (card art may wear paper; field art
+may not). The umbrella failed four straight attempts at contrast ZERO because
+"deep plum" quantised to ink — an ink canopy on an ink card — and was
+recoloured to a palette colour that exists. The paper dart takes the ruled
+geometry override; the antibody's "only straight lines in the act" reservation
+is about the field read, and a card on a stopped world cannot be mistaken for
+a swarm object — the test now states that boundary.
+
+Rejected: **keeping the drawn geometric glyphs** (a sight, chevrons, rays).
+Legible and cheap, and they contribute nothing — every survivors game has an
+abstract icon set, and this game's one visual asset is a register that makes
+objects deadpan. Programmer art on the most-read panel in the game was the
+"cheap" Justin kept naming.
+
+Rejected: **depicting the mechanics literally** (a projectile for Lash, a
+damage field for Wake). Accurate and game-y: it spends the card's only image
+on information the blurb already carries, and says nothing about a life.

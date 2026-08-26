@@ -2,7 +2,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fromPng, toPng, type Bitmap } from './bitmap';
 import { DETAIL_THRESHOLD_PX, fullPrompt, styleSuffixFor } from './batch';
-import { BOSS_THRESHOLDS, SWARM_THRESHOLDS, check, type CheckReport } from './check';
+import { BOSS_THRESHOLDS, ICON_THRESHOLDS, SWARM_THRESHOLDS, check, type CheckReport } from './check';
 import { conform } from './conform';
 import { RESERVATIONS } from './reservations';
 import type { ThreatClass } from './palette';
@@ -110,7 +110,8 @@ export async function runAsset(
   const root = options.root ?? process.cwd();
   const maxAttempts = options.maxAttempts ?? 4;
   const log = options.onProgress ?? (() => {});
-  const thresholds = spec.role === 'boss' ? BOSS_THRESHOLDS : SWARM_THRESHOLDS;
+  const thresholds =
+    spec.role === 'boss' ? BOSS_THRESHOLDS : spec.role === 'icon' ? ICON_THRESHOLDS : SWARM_THRESHOLDS;
 
   const record: GenerationRecord = {
     assetId: spec.id,

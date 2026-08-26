@@ -1,6 +1,7 @@
 import { CHANNELS, index, opaqueBounds, opaqueCount, resizeSmooth, type Bitmap } from './bitmap';
 import {
   BONE,
+  INK,
   PAPER,
   THREAT,
   actBackground,
@@ -60,6 +61,13 @@ export interface CheckThresholds {
   /** Edge density at 48px — the proxy for "features survive to gameplay size". */
   minEdgeDensity48: number;
   /**
+   * Where the sprite will actually sit. `field` (default) checks contrast
+   * against the act background and enforces the enemy value ceiling; `card`
+   * checks against INK — the offer cards' surface — and skips the ceiling,
+   * because UI art may legally wear paper.
+   */
+  surface?: 'field' | 'card';
+  /**
    * Distinct palette colours still present at 48px (D-018).
    *
    * This is the check that enforces the detail budget. An asset authored with
@@ -111,6 +119,21 @@ export const SWARM_THRESHOLDS: CheckThresholds = {
   minDistinctColours: 2,
   maxSingleColourShare: 0.97,
   minDistinctColours48: 2,
+};
+
+/**
+ * Item icons: card-surface UI art. Small objects with real negative space
+ * (a manicule, an umbrella), so the coverage floor drops; two palette
+ * colours plus ink is a legitimate mid-century pictogram.
+ */
+export const ICON_THRESHOLDS: CheckThresholds = {
+  ...DEFAULT_THRESHOLDS,
+  minCoverage: 0.1,
+  maxCoverage: 0.8,
+  minDistinctColours: 2,
+  maxSingleColourShare: 0.97,
+  minDistinctColours48: 2,
+  surface: 'card',
 };
 
 function paletteHistogram(bmp: Bitmap, act: ActId): Map<string, number> {
@@ -173,7 +196,8 @@ export async function check(
   const results: CheckResult[] = [];
   const total = bmp.width * bmp.height;
   const opaque = opaqueCount(bmp);
-  const bg = actBackground(act);
+  // Card-surface art is read against the offer cards' ink, not the field.
+  const bg = thresholds.surface === 'card' ? INK : actBackground(act);
   const bgL = lightness(bg);
 
   // 1. Silhouette area.
@@ -279,6 +303,9 @@ export async function check(
   // 5. Value ceiling (G-032). Replaces render tinting: the sprite must arrive
   //    dark enough on its own rather than being darkened on the GPU, because
   //    a GPU multiply is invisible to every other check in this function.
+  //    Field art only — the ceiling exists so the player is the lightest
+  //    thing on the FIELD, and card art never reaches the field.
+  if (thresholds.surface !== 'card') {
   let brightest = 0;
   for (let i = 0; i < bmp.data.length; i += CHANNELS) {
     if (bmp.data[i + 3] === 0) continue;
@@ -292,6 +319,7 @@ export async function check(
     expected: `<= ${MAX_ENEMY_LIGHTNESS.toFixed(3)} Oklab L (bone); paper belongs to the player`,
     note: 'law 10 — the player is the lightest thing on screen',
   });
+  }
 
   const density = edgeDensity(small);
   results.push({

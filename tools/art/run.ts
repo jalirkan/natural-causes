@@ -1,7 +1,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fromPng, toPng } from './bitmap';
-import { ALL_ASSETS, CONCEPTION_ROSTER, TEST_BATCH } from './batch';
+import { ALL_ASSETS, CONCEPTION_ROSTER, ITEM_ICONS, TEST_BATCH } from './batch';
 import { pack, type PackEntry } from './pack';
 import { runBatch } from './pipeline';
 import { ACT_IDS, type ActId } from './palette';
@@ -31,7 +31,15 @@ async function cmdBatch(argv: string[]): Promise<number> {
   // Default stays TEST_BATCH so a bare `art:batch` never silently regenerates
   // approved art. --only searches everything; --set picks a named collection.
   const source =
-    set === 'roster' ? CONCEPTION_ROSTER : set === 'all' ? ALL_ASSETS : only ? ALL_ASSETS : TEST_BATCH;
+    set === 'roster'
+      ? CONCEPTION_ROSTER
+      : set === 'icons'
+        ? ITEM_ICONS
+        : set === 'all'
+          ? ALL_ASSETS
+          : only
+            ? ALL_ASSETS
+            : TEST_BATCH;
   const specs: AssetSpec[] = only
     ? source.filter((s) => s.id === only || s.act === only)
     : source;
@@ -84,9 +92,35 @@ async function cmdBatch(argv: string[]): Promise<number> {
 
 async function cmdPack(): Promise<number> {
   let packed = 0;
+  // Icons are game-wide UI art and get their own atlas: an act atlas is loaded
+  // per act, and reloading School should not re-fetch the offer cards' art.
+  {
+    const entries: PackEntry[] = [];
+    for (const spec of ITEM_ICONS) {
+      const file = resolve(root, `assets/sprites/${spec.act}/${spec.id}.png`);
+      try {
+        entries.push({ id: spec.id, bitmap: await fromPng(readFileSync(file)) });
+      } catch {
+        // Not generated yet.
+      }
+    }
+    if (entries.length > 0) {
+      const result = pack(entries, 'icons.png');
+      const png = resolve(root, 'assets/atlas/icons.png');
+      mkdirSync(dirname(png), { recursive: true });
+      writeFileSync(png, await toPng(result.image));
+      writeFileSync(
+        resolve(root, 'assets/atlas/icons.json'),
+        `${JSON.stringify(result.atlas, null, 2)}
+`,
+      );
+      log(`packed ${entries.length} icon(s) into assets/atlas/icons.png`);
+      packed++;
+    }
+  }
   for (const act of ACT_IDS) {
     const entries: PackEntry[] = [];
-    for (const spec of ALL_ASSETS.filter((s) => s.act === act)) {
+    for (const spec of ALL_ASSETS.filter((s) => s.act === act && s.role !== 'icon')) {
       const file = resolve(root, `assets/sprites/${act}/${spec.id}.png`);
       try {
         entries.push({ id: spec.id, bitmap: await fromPng(readFileSync(file)) });
