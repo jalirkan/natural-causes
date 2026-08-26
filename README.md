@@ -81,9 +81,11 @@ pnpm art:batch -- --dry   # print the prompts and run the content rule, no API c
 
 ### Playing
 
-**WASD** or the arrow keys to move. You fire automatically — there is no attack
-button. **1, 2 or 3** takes an upgrade when the game stops to offer three.
-**P** or **Esc** pauses. **R** restarts once the run is over.
+The game opens on a title screen; any key starts the run (and unlocks the
+browser's audio — the sound is synthesised in-house, no files). **WASD** or the
+arrow keys to move. You fire automatically — there is no attack button.
+**1, 2 or 3** takes an upgrade when the game stops to offer three. **P** or
+**Esc** pauses. **M** mutes. **R** restarts once the run is over.
 
 One act, Conception, about five minutes to the Egg. Rival sperm from the start,
 antibodies at 0:45, spermicide at 1:30, white cells at 2:10. Kill the Egg and
@@ -110,7 +112,7 @@ mode was still on twenty minutes ago.
 |---|---|---|
 | **0** | Scaffold, Phaser + Vite, blank scene | done |
 | **1** | Art pipeline + test batch, art direction judged | done — `ART-DIRECTION.md` is binding |
-| **2** | Core loop, Conception act | playable start to Egg; tuning frozen pending a session with a human |
+| **2** | Core loop, Conception act | **complete** — title to Egg to win/loss, sound, no known bugs; numeric tuning awaits a human session (§11.5) |
 | **3** | The School act | roster and reserved list written, no enemies built |
 
 The art pipeline is six stages (`tools/art/`): generate via Flux on fal, cut the

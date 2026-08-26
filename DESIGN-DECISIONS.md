@@ -975,3 +975,21 @@ Rejected: **restricting tints to palette-closed multiplies.** Cheapest by far an
 it is the same harm in a smaller domain: it still multiplies, it just lands on
 palette entries when it does. It would also freeze the legal tint set against a
 palette that three unfinished acts still have to extend.
+
+## G-033 · 2026-08-01 · The outcome latches the moment the Egg reaches zero
+Once the Egg's health hits zero, nothing can hurt the player. The absorb
+animation is presentation, and presentation cannot change what already
+happened: a rival wandering through the final 1.8 seconds was turning a win
+into "you did not make it" (AUDIT finding 10). The fight the player won stays
+won, and the 1.8 seconds belong to the ending, not to the horde.
+
+Rejected: **i-frames during the absorb** — mechanically identical from the
+player's side but framed as a buff, which invites later tuning ("should the
+absorb grant i-frames?") of something that is not a mechanic at all. Latching
+the outcome states the actual rule.
+
+Rejected: **leaving it — dying on the doorstep is the joke.** It is a real
+joke, but it is act seven's joke. This game already has a scripted death as
+its ending; spending an accidental version of it in act one, delivered by a
+scoring quirk rather than by design, wastes it and reads as a bug — which is
+exactly how it was found.

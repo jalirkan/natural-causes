@@ -97,6 +97,30 @@ describe('the arena has walls, and the simulation owns them', () => {
   });
 });
 
+describe('G-033 — the outcome latches when the Egg reaches zero', () => {
+  it('dying during the absorb does not turn a win into a loss', () => {
+    const w = new World({ act: CONCEPTION, seed: 4 });
+    w.time = CONCEPTION.durationSeconds;
+    w.step(1 / 60, { moveX: 0, moveY: 0 });
+    w.boss!.hp = 0;
+    w.boss!.phase = 'absorbing';
+    w.boss!.timer = 1.8;
+    w.hp = 1;
+    // A rival standing on the player through the whole absorb.
+    w.spawnEnemy('rival-sperm');
+    const e = w.enemies[w.enemies.length - 1]!;
+    for (let i = 0; i < 130; i++) {
+      e.x = w.x;
+      e.y = w.y;
+      w.step(1 / 60, { moveX: 0, moveY: 0 });
+    }
+    expect(w.outcome).toBe('won');
+    expect(w.won).toBe(true);
+    expect(w.dead).toBe(false);
+    expect(w.hp).toBeGreaterThan(0);
+  });
+});
+
 describe('a boss shot is evaluated on every frame', () => {
   it('is consumed even on a frame the player is touching an enemy', () => {
     const w = new World({ act: CONCEPTION, seed: 5 });

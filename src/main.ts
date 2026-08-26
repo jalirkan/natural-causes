@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { ActScene } from './scenes/ActScene';
-import { CONCEPTION } from './data/acts';
+import { TitleScene } from './scenes/TitleScene';
 import { VIEW_HEIGHT, VIEW_WIDTH } from './config';
 
 const config: Phaser.Types.Core.GameConfig = {
@@ -16,11 +16,11 @@ const config: Phaser.Types.Core.GameConfig = {
   // browser gives it no rAF, which is the case we would want to see fail
   // loudly rather than have papered over.
   fps: { target: 60, forceSetTimeOut: false },
-  scene: [ActScene],
+  // The first scene in the list auto-starts; the title hands off to the act.
+  scene: [TitleScene, ActScene],
 };
 
 const game = new Phaser.Game(config);
-game.scene.start('act', { act: CONCEPTION });
 
 // Dev-only handle, stripped from production builds by the `import.meta.env.DEV`
 // guard. Exists so the running game can be inspected and driven from the

@@ -104,17 +104,17 @@ Mine, written earlier today: "R restarts the run". `R` is gated on
 
 ## Open — these need a decision, not a correction
 
-### 10. Dying during the win animation reports a loss
+### 10. ~~Dying during the win animation reports a loss~~ — FIXED as G-033, 2026-08-01
 
 Killing the Egg sets `phase = 'absorbing'` for 1.8 seconds. The world keeps
 running: enemies still move and still deal damage. Reproduced — the Egg at 0 HP,
 the player killed during the absorb, and the run ends `outcome: "died"`, overlay
 `you did not make it`.
 
-Not fixed because the fix is a design choice and this act's ending is loaded.
-Three options: the win latches the moment the Egg reaches 0; the player becomes
-invulnerable during the absorb; or it stands, and dying on the doorstep is the
-joke. The third is defensible and is the only one nobody has argued for.
+Ruled as G-033: the outcome latches the moment the Egg reaches zero — the
+absorb is presentation, and presentation cannot change what already happened.
+The doorstep-death joke was considered and rejected as act seven's joke spent
+early by a scoring quirk. Regression test in `audit.test.ts`.
 
 ### 11. ~~The bots play a game with no walls~~ — FIXED 2026-08-01, see part two
 

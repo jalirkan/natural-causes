@@ -855,6 +855,9 @@ export class World {
   }
 
   private resolveContact(dt: number): void {
+    // See outcomeDecided: the engulf tick and attach damage do not go through
+    // hurt(), so the guard has to sit above them too.
+    if (this.outcomeDecided) return;
     if (this.engulfTimer > 0) {
       this.engulfTimer -= dt;
       this.hp -= this.engulfDps * dt * this.damageTaken;
@@ -902,7 +905,18 @@ export class World {
     }
   }
 
+  /**
+   * G-033: the outcome latches the moment the Egg reaches zero. The absorb is
+   * presentation, and nothing that happens during presentation can change what
+   * already happened. Without this, a rival wandering through the final 1.8
+   * seconds turned a win into "you did not make it" (AUDIT finding 10).
+   */
+  private get outcomeDecided(): boolean {
+    return this.dead || this.won || this.boss?.phase === 'absorbing';
+  }
+
   private hurt(amount: number): void {
+    if (this.outcomeDecided) return;
     this.hp -= amount * this.damageTaken;
     this.invulnerable = IFRAMES;
     if (this.hp <= 0) this.die();

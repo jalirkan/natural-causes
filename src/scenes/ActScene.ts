@@ -3,6 +3,7 @@ import type { ActDef } from '../data/acts';
 import { actVisuals, type ActVisuals } from '../data/act-visuals';
 import { itemDef } from '../data/items';
 import { neutralDevState, type DevState } from '../dev/state';
+import { sfx } from '../audio/sfx';
 import {
   BOSS_RADIUS,
   World,
@@ -70,6 +71,13 @@ export class ActScene extends Phaser.Scene {
   private dev: DevState = neutralDevState();
   private detachDev?: () => void;
 
+  /**
+   * Last frame's world counters, for sound. The simulation emits no events —
+   * it must not know sound exists — so the renderer notices changes the same
+   * way it notices everything else: by reading state and diffing.
+   */
+  private heard = { kills: 0, hp: 0, stacks: 0, offers: false, boss: false, dead: false, won: false, xp: 0, level: 1 };
+
   private hud!: Phaser.GameObjects.Text;
   private bars!: Phaser.GameObjects.Graphics;
   private overlay!: Phaser.GameObjects.Text;
@@ -126,6 +134,9 @@ export class ActScene extends Phaser.Scene {
       this.paused = !this.paused;
     };
     keyboard.on('keydown-P', togglePause);
+    keyboard.on('keydown-M', () => sfx.toggleMute());
+    // In case the title screen's unlock was missed (hot reload lands here).
+    keyboard.on('keydown', () => sfx.unlock());
     keyboard.on('keydown-ESC', togglePause);
     keyboard.on('keydown-R', () => {
       // Mid-run restarts are a dev affordance. In a clean run R still only
@@ -136,7 +147,10 @@ export class ActScene extends Phaser.Scene {
     for (const [i, key] of ['ONE', 'TWO', 'THREE'].entries()) {
       keyboard.on(`keydown-${key}`, () => {
         const offers = this.world.offers;
-        if (offers && offers[i]) this.world.choose(offers[i]!);
+        if (offers && offers[i]) {
+          this.world.choose(offers[i]!);
+          sfx.choose();
+        }
       });
     }
 
@@ -145,6 +159,7 @@ export class ActScene extends Phaser.Scene {
     // A restart is the only thing that clears the taint, which is why the
     // state is rebuilt here rather than kept across scene restarts.
     this.dev = neutralDevState();
+    this.heard = { kills: 0, hp: this.world.hp, stacks: 0, offers: false, boss: false, dead: false, won: false, xp: 0, level: 1 };
     if (import.meta.env.DEV) {
       this.detachDev?.();
       void import('../dev/panel').then(({ attachDevPanel }) => {
@@ -272,6 +287,7 @@ export class ActScene extends Phaser.Scene {
 
     this.applyDevCheats();
 
+    this.hearWorld();
     this.syncPlayer();
     this.syncEnemies();
     this.syncProjectiles();
@@ -281,6 +297,33 @@ export class ActScene extends Phaser.Scene {
     this.syncBoss();
     this.syncAttached();
     this.drawHud();
+  }
+
+  /** Reads what changed this frame and gives it a sound. */
+  private hearWorld(): void {
+    const w = this.world;
+    const h = this.heard;
+    if (w.kills > h.kills) sfx.kill();
+    // XP rises only on pickup; it falls at a level-up, which is not a pickup.
+    if (w.xp > h.xp && w.level === h.level) sfx.gem();
+    if (w.hp < h.hp - 0.01) sfx.hurt();
+    if (w.dragStacks > h.stacks) sfx.attach();
+    if (!!w.offers && !h.offers) sfx.offer();
+    if (w.boss && !h.boss) sfx.bossSpawn();
+    if (w.projectiles.some((p) => p.hostile && p.life > 3.9)) sfx.bossShot();
+    if (w.dead && !h.dead) sfx.death();
+    if (w.won && !h.won) sfx.win();
+    this.heard = {
+      kills: w.kills,
+      hp: w.hp,
+      stacks: w.dragStacks,
+      offers: !!w.offers,
+      boss: !!w.boss,
+      dead: w.dead,
+      won: w.won,
+      xp: w.xp,
+      level: w.level,
+    };
   }
 
   /**
@@ -340,7 +383,10 @@ export class ActScene extends Phaser.Scene {
         .setDisplaySize(e.def.displaySize, e.def.displaySize)
         .setAlpha(e.hitFlash > 0 ? 0.55 : 1)
         .setVisible(true);
-      if (e.def.movement === 'chase') s.setFlipX(this.world.x < e.x);
+      // Reset the flip for non-chasers: pooled sprites inherit state from
+      // whatever used the slot last frame, and a drifting antibody was
+      // arriving pre-flipped by a dead rival.
+      s.setFlipX(e.def.movement === 'chase' ? this.world.x < e.x : false);
     }
   }
 
@@ -530,14 +576,23 @@ export class ActScene extends Phaser.Scene {
       return;
     }
 
-    if (w.dead) {
-      this.overlay
-        .setText(`you did not make it\n\n${this.formatTime()}   ${w.kills} killed\n\nR to try again`)
-        .setVisible(true);
-    } else if (w.won) {
+    if (w.dead || w.won) {
+      // The run's receipt: what you took is as much the story as how far you
+      // got, and it is the input to "what would I do differently" — which is
+      // the thought that makes a survivors run repeatable.
+      const build = [...w.items.entries()].map(([id, lv]) => `${itemDef(id).name} ${lv}`);
+      const buildLines: string[] = [];
+      for (let i = 0; i < build.length; i += 4) buildLines.push(build.slice(i, i + 4).join('  ·  '));
       this.overlay
         .setText(
-          `you were let in\n\n${this.formatTime()}   ${w.kills} killed   level ${w.level}\n\nR to try again`,
+          [
+            w.dead ? 'you did not make it' : 'you were let in',
+            '',
+            `${this.formatTime()}   ${w.kills} killed   level ${w.level}`,
+            ...buildLines,
+            '',
+            'R to try again',
+          ].join('\n'),
         )
         .setVisible(true);
     } else {
