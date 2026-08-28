@@ -63,9 +63,9 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
-      # 188 tests: the sim, the content rules, the art pipeline laws. The
+      # 239 tests: the sim, the content rules, the art pipeline laws. The
       # suite touches the network nowhere - verified by running it inside a
-      # network namespace with no interfaces, where all 188 still pass - so a
+      # network namespace with no interfaces, where all 239 still pass - so a
       # failure here is a failure in the code and never in a CDN.
       - name: Test
         run: pnpm test

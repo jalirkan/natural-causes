@@ -75,7 +75,7 @@ it is set to `AllSigned` here and blocks pnpm's shim; `pnpm.cmd dev` also works.
 Other tasks:
 
 ```bash
-pnpm test                 # 188 tests: the sim, the content rules, the art pipeline
+pnpm test                 # 239 tests: the sim, the content rules, the art pipeline
 pnpm playtest -- --runs=40 # the bots, with intervals
 pnpm art:batch            # regenerate sprites (needs FAL_KEY in .env)
 pnpm art:batch -- --dry   # print the prompts and run the content rule, no API calls
@@ -90,7 +90,7 @@ nobody here owns — the point being that "the tests pass" stops being something
 you have to take on trust from one person's terminal.
 
 The suite needs no network: it was run inside a namespace with no interfaces
-and all 188 tests still passed. The dry art run has no `FAL_KEY` in CI and
+and all 239 tests still passed. The dry art run has no `FAL_KEY` in CI and
 never will, so a regression that made `--dry` reach the API would fail the step
 rather than quietly spend money.
 
