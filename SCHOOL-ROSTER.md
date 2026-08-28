@@ -391,3 +391,63 @@ regenerate. Four Conception enemies and one School asset. That is the whole
 exposure, and this is the cheapest moment it will ever be — the alternative is
 carrying a corrective that breaks two laws to enforce a third, into five more
 acts.
+
+---
+
+## 7 · Implementation note — 2026-08-28, Claude Code
+
+Appended rather than edited into the sections above, per `PLAN.md`. Nothing in
+§1–§6 is changed by this; it records what is in the repository and what is not.
+
+**The header is stale.** §1 says `tools/art/reservations.ts` has no `school`
+entry and that this blocks every School asset. It was lifted on 2026-08-01
+(commit `0fa4ce1`) and the data has matched §1 since. What was actually missing
+was a level down: **nothing in the pipeline ever called the reservation layer.**
+`assertReserved` was exercised only by tests. It now runs inside `generate()`,
+before the key is read, and `pnpm art:batch -- --dry` prints a law-11 verdict
+per asset (`D-020`).
+
+**Landed.**
+
+- §1 verified against the data, and now enforced on the generation path rather
+  than only asserted in a test.
+- §3's five enemies are in `src/data/enemies.ts` with §3.6's starting numbers
+  transcribed, each `whyThisStage` lifted verbatim, and each cross-checked
+  against §1 by a test — an enemy in this file must hold a reserved silhouette
+  in its own act.
+- §4's three behaviours are implemented and tested: `bounce`, `patrol`,
+  `merge`. Merging conserves — area-preserving radius, summed HP and XP —
+  because §3.3 says larger and leaves the number to playtest.
+- §3.1's four missing prompts are written to §3's visual specs and are in the
+  batch. **Nothing has been generated**; they have never been sent to a model.
+
+**Not built, and why. Every item here needs a number nobody has set.**
+
+- **The substitute's attack.** §3.5's dependency stands: the intended
+  projectile needs a player name, which does not exist. The placeholder the
+  roster asks for needs a consult time, a cadence, a projectile speed, a damage
+  and a range, and all five are tuning. **So School currently has no ranged
+  pressure at all**, which is the one thing §2 says the act is for.
+- **Homework's arrival point.** §3.3 says it lands where the player has
+  recently been. *Recently* is a dial of exactly the kind `G-020` showed
+  decides whether an arrival mechanic exists. Left at the default entry point,
+  which is a placeholder and not a decision.
+- **The hall monitor's momentary stop** (§3.4). A duration, unset.
+- **The wave schedule and the act clock** (§3.6, §5). Undesigned by §5's own
+  statement, and downstream of the session in `CONCEPTION-ROSTER.md` §12.4.
+  School therefore has **no `ActDef`**: the enemies exist, the behaviours work,
+  and nothing spawns them in a run. The act is not playable and is not claimed
+  to be.
+- **`ACT_VISUALS` for School.** Needs a player frame and a boss frame for the
+  act; the boss is §5's first open item and the player's School form is not
+  designed. The act background and the pickup tone are both already in the
+  locked palette and are not the blocker.
+- **Items.** This roster defines none, so none were written. `CONCEPTION-ROSTER`
+  §4 spends seven of a game-wide budget of roughly thirty on act one; School's
+  allocation is unwritten and is a design question, not an implementation one.
+
+**One thing for Cowork.** The `boss-gym-teacher` absence now shows up in the
+dry run as a refusal rather than only in a test, which is §1 working. Service
+and Office print as refused too — both have shipped assets and no reserved
+list, which is `G-011`'s ordering violated by history rather than by anything
+here.

@@ -225,3 +225,74 @@ you. Re-measured: 15 stacks by minute four, player speed 190 → 119.
 Recorded rather than folded in silently because it is a deviation from the
 design's literal wording, decided on a number the design could not have had.
 If the wording matters more than the mechanic, this is the line to change.
+
+## D-020 · 2026-08-28 · Law 11 is enforced where the money is, and reported where it is read
+`assertReserved` and `RESERVATIONS` existed and nothing called them. Six tests
+exercised the reserved list and the pipeline did not, so law 11 constrained a
+test file rather than a generation run — while `ART-DIRECTION.md` recorded it
+as enforced. The list is now asserted inside `generate()`, next to the D-007
+check and before the key is read, so an unreserved asset costs nothing instead
+of costing an image, and `pipeline.ts` treats the refusal as non-retryable
+alongside a content-rule violation: a mutated seed has never fixed a document.
+
+The refusal comes in two kinds and they are not the same kind. An asset missing
+from a list its act *has* is this repository contradicting itself. An act with
+no list at all is a document nobody has written yet — Cowork's open item,
+already recorded in `ART-DIRECTION.md`. `--dry` fails on the first and names
+the second, printing a verdict line per asset and a tally; `generate()` refuses
+both. Service and Office currently print as refused, which is the honest state
+of the project rather than a regression.
+
+The first run of this refused `player-sperm`. That is the find: the vocabulary
+answers *how does this hurt me* — G-030 had already narrowed the antibody's
+clause to "among the act's ENEMIES" for the same reason — and the player is a
+comet with a tuft in an act where the comet belongs to the rivals. Pickups were
+exempt; the player never was, because no test had passed a player id in.
+Verdicts are role-aware now.
+
+Rejected: `--dry` fails on any refusal. It is the stricter rule and it turns CI
+red over two assets that shipped before law 11 existed, in acts whose lists are
+somebody else's to write. A check that a person cannot act on gets switched off.
+Rejected: enforce in `runBatch` rather than in `generate()`. It reads tidier and
+it leaves a hole — anything calling `generate()` directly, which the pipeline
+tests do, would skip the law. The check belongs at the last point before the
+request, which is exactly where D-007 already sits.
+
+## D-021 · 2026-08-28 · School's three behaviours are flags on `EnemyDef`, and the rest is not built
+`SCHOOL-ROSTER.md` §4 hands over `bounce`, `patrol` and `merge` as per-enemy
+flags rather than systems, and that is what they are. Bounce reflects the
+component that crossed the arena bound; patrol negates both and retraces its
+line; merge is static, combines with its own kind on arrival, and is solid to
+every mover. The difference between the first two is four lines of arithmetic
+and it is the entire difference between "the arena edges matter" (dodgeball)
+and "there is a lane you have to time" (hall monitor).
+
+Two consequences worth recording. Enemies that belong to the arena are exempt
+from the distance cull, or the room quietly resets itself whenever the player
+walks away from it. And `contact: 'none'` is a new mode rather than
+`contactDamage: 0`, because zero damage still takes the `hurt` path, which sets
+i-frames — harmless homework would have been a free source of invulnerability,
+and nothing about that bug looks wrong on screen.
+
+Merging conserves rather than chooses: area-preserving radius, summed HP and
+XP. The roster says the merged pile is LARGER and leaves the rest to playtest
+("playtest owns the number, not the shape"), and conservation is the only
+growth rule available that adds no free parameter for playtest to have to own.
+
+NOT BUILT, each because building it means picking a balance number nobody has
+set, while tuning is frozen pending §12.4: the substitute's attack (gated on a
+player name that does not exist, and every placeholder number is a number);
+homework's arrival point ("where the player has recently been" — *recently* is
+the same class of dial as `ANTIBODY_LEAD`); the hall monitor's momentary stop;
+and School's wave schedule and act clock, which §5 leaves undesigned. School
+therefore has enemies and no `ActDef`: the data and the behaviour exist and
+nothing spawns them in a run.
+
+Rejected: implement the wave schedule from the roster's introduction ORDER and
+invent the rates. It would make the act playable this afternoon and it would
+put five invented numbers into a project whose entire current bottleneck is
+that one person has not yet answered six questions about numbers.
+Rejected: a `SCHOOL_ENEMIES` registry beside `ENEMIES`. It is the sibling-
+collection trap CONCEPTION-ROSTER §5.3 names for items — the content tests
+enforce their rules by iterating one collection, so a second one is a rule that
+silently stops applying to an act. School is a section inside the registry.

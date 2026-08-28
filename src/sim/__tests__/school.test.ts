@@ -1,0 +1,304 @@
+import { describe, expect, it } from 'vitest';
+import type { ActDef } from '../../data/acts';
+import { CONCEPTION } from '../../data/acts';
+import { ENEMIES } from '../../data/enemies';
+import {
+  ARENA_WIDTH,
+  DESPAWN_RADIUS,
+  PLAYER_RADIUS,
+  World,
+  type EnemyState,
+} from '../world';
+
+/**
+ * The three behaviours SCHOOL-ROSTER.md §4 says `EnemyDef` could not express:
+ * `bounce`, `patrol`, `merge`.
+ *
+ * All three are tested by placing an enemy and stepping, rather than by
+ * running an act. School HAS no act: §5 leaves the wave schedule and the act
+ * clock undesigned, and both are tuning, which is frozen. So there is no
+ * School `ActDef` to run and these tests do not invent one — the fixture below
+ * has no waves at all, spawns nothing by itself, and carries no number that
+ * could be mistaken for a balance decision.
+ */
+const EMPTY_ACT: ActDef = {
+  id: 'school-behaviour-fixture',
+  name: 'Fixture',
+  durationSeconds: 300,
+  waves: [],
+};
+
+/**
+ * A world whose enemies all arrive at one predictable point.
+ *
+ * `spawnOverride` is the sim's existing A/B hook (it isolated G-019 from
+ * G-020). Used here because merging happens ON ARRIVAL and the default entry
+ * point is a random angle on a 780px ring, so two piles never land on each
+ * other by chance. It also stands in for the thing that is NOT built: homework
+ * is supposed to arrive where the player has recently been, and "recently" is
+ * a number nobody has set.
+ */
+function arrivingAtLead(seed = 7): World {
+  return new World({ act: EMPTY_ACT, seed, spawnOverride: 'lead' });
+}
+
+/** A world with nothing in it, and one enemy placed exactly where we want it. */
+function place(
+  id: string,
+  at: { x: number; y: number; vx?: number; vy?: number },
+): { world: World; enemy: EnemyState } {
+  const world = new World({ act: EMPTY_ACT, seed: 7 });
+  world.spawnEnemy(id);
+  const enemy = world.enemies[0]!;
+  enemy.x = at.x;
+  enemy.y = at.y;
+  if (at.vx !== undefined) enemy.vx = at.vx;
+  if (at.vy !== undefined) enemy.vy = at.vy;
+  return { world, enemy };
+}
+
+function step(world: World, seconds: number, moveX = 0, moveY = 0): void {
+  const steps = Math.round(seconds * 60);
+  for (let i = 0; i < steps; i++) {
+    if (world.offers) {
+      world.choose(world.offers[0]!);
+      continue;
+    }
+    world.hp = world.maxHp;
+    world.dead = false;
+    world.step(1 / 60, { moveX, moveY });
+  }
+}
+
+describe('dodgeball — bounce (§3.2)', () => {
+  it('reflects off the arena edge and keeps going', () => {
+    const { world, enemy } = place('dodgeball', {
+      x: ARENA_WIDTH - 10,
+      y: 600,
+      vx: 165,
+      vy: 0,
+    });
+    step(world, 0.5);
+    expect(world.enemies.length, 'the ball left the field').toBe(1);
+    expect(enemy.vx, 'did not turn around').toBeLessThan(0);
+    expect(enemy.x).toBeLessThan(ARENA_WIDTH + 10);
+  });
+
+  it('reflects only the component that crossed, so it goes somewhere new', () => {
+    // This is the whole difference between a bounce and a patrol, and it is
+    // the difference between "the arena edges matter" and "there is a thing
+    // on a rail".
+    const { world, enemy } = place('dodgeball', { x: 5, y: 600, vx: -120, vy: -80 });
+    step(world, 0.2);
+    expect(enemy.vx).toBeGreaterThan(0);
+    expect(enemy.vy, 'the untouched component was reversed too').toBeLessThan(0);
+  });
+
+  it('does not turn around before it has arrived', () => {
+    // Enemies enter from a spawn ring that is outside the arena more often
+    // than not. A naive "past the bound, reverse" test bounces the ball back
+    // out of the field it was entering, and the enemy never plays.
+    const { world, enemy } = place('dodgeball', { x: -300, y: 600, vx: 165, vy: 0 });
+    step(world, 0.5);
+    expect(enemy.vx, 'bounced on the way in').toBeGreaterThan(0);
+    expect(enemy.x).toBeGreaterThan(-300);
+  });
+
+  it('never despawns, however far the player walks away', () => {
+    const { world, enemy } = place('dodgeball', { x: 200, y: 200, vx: 0, vy: 0 });
+    world.x = 200 + DESPAWN_RADIUS + 400;
+    world.y = 200;
+    step(world, 1);
+    expect(world.enemies).toContain(enemy);
+  });
+
+  it('a drifting Conception enemy is still culled at the same distance', () => {
+    // The exemption is for the three that belong to the arena, not a hole in
+    // the cull. If this stops passing, the exemption has widened.
+    const { world, enemy } = place('spermicide', { x: 200, y: 200, vx: 0, vy: 0 });
+    world.x = 200 + DESPAWN_RADIUS + 400;
+    world.y = 200;
+    step(world, 0.2);
+    expect(world.enemies).not.toContain(enemy);
+  });
+});
+
+describe('hall monitor — patrol (§3.4)', () => {
+  it('reverses both components at the end and comes back along its own line', () => {
+    const { world, enemy } = place('hall-monitor', { x: 40, y: 900, vx: -18, vy: -13 });
+    const before = { x: enemy.x, y: enemy.y, vx: enemy.vx, vy: enemy.vy };
+
+    step(world, 6);
+    expect(enemy.vx, 'never turned around').toBe(-before.vx);
+    expect(enemy.vy).toBe(-before.vy);
+
+    // Retracing, not merely returning: the point it reaches after the turn is
+    // on the line it went out on. Cross product of the two offsets is zero.
+    const after = { x: enemy.x, y: enemy.y };
+    const cross = (after.x - before.x) * before.vy - (after.y - before.y) * before.vx;
+    expect(Math.abs(cross)).toBeLessThan(0.001);
+  });
+
+  it('never reacts to the player, wherever the player goes', () => {
+    const { world, enemy } = place('hall-monitor', { x: 1600, y: 1100, vx: 22, vy: 0 });
+    world.x = 1600;
+    world.y = 1400;
+    step(world, 2, 0, -1);
+    expect(enemy.vy).toBe(0);
+    expect(enemy.vx).toBe(22);
+  });
+
+  it('closes a line rather than occupying a point — it crosses the whole arena', () => {
+    const { world, enemy } = place('hall-monitor', { x: 20, y: 500, vx: 22, vy: 0 });
+    const seen: number[] = [];
+    for (let i = 0; i < 60 * 200; i++) {
+      world.hp = world.maxHp;
+      world.step(1 / 60, { moveX: 0, moveY: 0 });
+      seen.push(enemy.x);
+    }
+    expect(Math.min(...seen)).toBeLessThan(100);
+    expect(Math.max(...seen)).toBeGreaterThan(ARENA_WIDTH - 100);
+  });
+});
+
+describe('homework — merge, static, solid (§3.3)', () => {
+  const def = ENEMIES['homework']!;
+
+  it('does not move, ever', () => {
+    const { world, enemy } = place('homework', { x: 900, y: 900 });
+    step(world, 3, 1, 1);
+    expect(enemy.x).toBe(900);
+    expect(enemy.y).toBe(900);
+  });
+
+  it('a pile that lands on a pile makes one larger pile, not two', () => {
+    const world = arrivingAtLead();
+    world.spawnEnemy('homework');
+    const pile = world.enemies[0]!;
+    const before = { radius: pile.radius, hp: pile.hp, xp: pile.xp, size: pile.displaySize };
+
+    // Same player, same heading, so the second one lands on the first.
+    world.spawnEnemy('homework');
+
+    expect(world.enemies.length, 'two piles where there should be one').toBe(1);
+    // Area-preserving: the paper that arrived is the paper that is there.
+    expect(pile.radius).toBeCloseTo(Math.hypot(before.radius, def.radius), 6);
+    expect(pile.radius).toBeGreaterThan(before.radius);
+    expect(pile.displaySize).toBeGreaterThan(before.size);
+    expect(pile.hp).toBe(before.hp + def.hp);
+    expect(pile.xp).toBe(before.xp + def.xp);
+  });
+
+  it('grows with every pile that lands on it, and never stops mattering', () => {
+    const world = arrivingAtLead();
+    for (let i = 0; i < 9; i++) world.spawnEnemy('homework');
+    const pile = world.enemies[0]!;
+    expect(world.enemies.length).toBe(1);
+    // Nine piles of radius 30, area-preserving: sqrt(9) x 30.
+    expect(pile.radius).toBeCloseTo(def.radius * 3, 6);
+    expect(pile.hp).toBe(def.hp * 9);
+  });
+
+  it('does not merge with a pile it is not touching', () => {
+    const world = arrivingAtLead();
+    world.spawnEnemy('homework');
+    world.x += 2000;
+    world.spawnEnemy('homework');
+    expect(world.enemies.length).toBe(2);
+  });
+
+  it('drops the merged pile’s XP, not one pile’s', () => {
+    const world = arrivingAtLead();
+    world.spawnEnemy('homework');
+    world.spawnEnemy('homework');
+    expect(world.enemies.length).toBe(1);
+
+    world.enemies[0]!.hp = 0;
+    step(world, 1 / 60);
+    expect(world.gems.map((g) => g.value)).toEqual([def.xp * 2]);
+  });
+
+  it('is solid: the player cannot stand inside it', () => {
+    const { world, enemy } = place('homework', { x: 900, y: 900 });
+    world.x = 900;
+    world.y = 900;
+    step(world, 1 / 60);
+    const d = Math.hypot(world.x - enemy.x, world.y - enemy.y);
+    expect(d).toBeGreaterThanOrEqual(enemy.radius + PLAYER_RADIUS - 0.001);
+  });
+
+  it('is solid to everything else as well', () => {
+    const { world, enemy } = place('homework', { x: 900, y: 900 });
+    world.x = 1800;
+    world.y = 900;
+    world.spawnEnemy('rival-sperm');
+    const rival = world.enemies[1]!;
+    rival.x = 905;
+    rival.y = 902;
+    step(world, 1 / 60);
+    const d = Math.hypot(rival.x - enemy.x, rival.y - enemy.y);
+    expect(d).toBeGreaterThanOrEqual(enemy.radius + rival.radius - 0.001);
+  });
+
+  it('cannot hurt the player, and cannot hand out i-frames either', () => {
+    // `contact: 'none'` rather than zero damage. Zero damage still takes the
+    // `hurt` path, which sets IFRAMES — so a harmless enemy would become a
+    // free source of invulnerability, which is a nastier bug than a wrong
+    // number because nothing about it looks wrong.
+    //
+    // Stepped raw rather than through the helper: the helper tops the player
+    // up every frame, which is exactly what this test must not do.
+    const { world } = place('homework', { x: 900, y: 900 });
+    world.x = 900;
+    world.y = 900;
+    world.hp = 50;
+    for (let i = 0; i < 120; i++) world.step(1 / 60, { moveX: 1, moveY: 0 });
+    expect(world.hp).toBe(50);
+    expect(world.invulnerable).toBe(0);
+  });
+
+  it('is destructible — it is not the antibody', () => {
+    // §3.3 wants clearing it to be a real choice against the act clock, which
+    // requires that it can be cleared at all. The antibody's `invulnerable`
+    // is the opposite ruling for the opposite reason (G-018).
+    expect(def.invulnerable).toBeUndefined();
+    expect(def.hp).toBeGreaterThan(0);
+  });
+});
+
+describe('none of this reaches Conception', () => {
+  it('no Conception enemy declares a School behaviour', () => {
+    for (const def of Object.values(ENEMIES)) {
+      if (def.act !== 'conception') continue;
+      expect(def.bounce, `${def.id}`).toBeUndefined();
+      expect(def.patrol, `${def.id}`).toBeUndefined();
+      expect(def.merge, `${def.id}`).toBeUndefined();
+      expect(def.movement, `${def.id}`).not.toBe('static');
+      expect(def.contact, `${def.id}`).not.toBe('none');
+    }
+  });
+
+  it('a Conception run is still deterministic and still kills things', () => {
+    // The per-instance radius/XP change touched every hit test in the file.
+    // If it moved anything, it moved it for Conception too.
+    const a = new World({ act: CONCEPTION, seed: 99 });
+    const b = new World({ act: CONCEPTION, seed: 99 });
+    step(a, 45, 1, 0);
+    step(b, 45, 1, 0);
+    expect(a.kills).toBe(b.kills);
+    expect(a.kills).toBeGreaterThan(0);
+    expect(a.x).toBe(b.x);
+  });
+
+  it('every enemy still has a radius and an XP value at spawn', () => {
+    const world = new World({ act: EMPTY_ACT, seed: 3 });
+    for (const id of Object.keys(ENEMIES)) {
+      world.enemies.length = 0;
+      world.spawnEnemy(id);
+      const e = world.enemies[0]!;
+      expect(e.radius, id).toBe(ENEMIES[id]!.radius);
+      expect(e.xp, id).toBe(ENEMIES[id]!.xp);
+      expect(e.displaySize, id).toBe(ENEMIES[id]!.displaySize);
+    }
+  });
+});

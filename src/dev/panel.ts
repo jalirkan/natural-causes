@@ -183,14 +183,20 @@ export function attachDevPanel(host: DevPanelHost): () => void {
       ),
     );
 
+    // This act's enemies only. The registry holds every act's, and an atlas
+    // holds one act's — a button that spawns a School clique into Conception
+    // spawns a real enemy with no frame to draw it, which reads as a renderer
+    // bug and is a dev panel offering something that does not exist.
     section(
       'spawn',
-      ...Object.values(ENEMIES).map((def) =>
-        line(
-          button(`1x ${def.name}`, act(() => w.spawnEnemy(def.id))),
-          button('10x', act(() => { for (let i = 0; i < 10; i++) w.spawnEnemy(def.id); })),
+      ...Object.values(ENEMIES)
+        .filter((def) => def.act === w.act.id)
+        .map((def) =>
+          line(
+            button(`1x ${def.name}`, act(() => w.spawnEnemy(def.id))),
+            button('10x', act(() => { for (let i = 0; i < 10; i++) w.spawnEnemy(def.id); })),
+          ),
         ),
-      ),
     );
 
     if (w.boss) {

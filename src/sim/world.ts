@@ -137,6 +137,18 @@ export interface EnemyState {
   hp: number;
   age: number;
   hitFlash: number;
+  /**
+   * Size and worth, per instance rather than per definition.
+   *
+   * They were read off `def` everywhere until homework arrived, and homework
+   * merges: two piles become one larger pile, so an enemy's radius, drawn
+   * size and XP stop being properties of its kind. Every other enemy in the
+   * game initialises these from its def and never changes them, so nothing
+   * about Conception moves.
+   */
+  radius: number;
+  displaySize: number;
+  xp: number;
 }
 
 export interface ProjectileState {
@@ -285,6 +297,23 @@ export class World {
   private readonly grid = new Grid<EnemyState>();
   /** Reused query buffer. The hot path must not allocate. */
   private readonly near: EnemyState[] = [];
+  /**
+   * Solid enemies, refilled during the movement pass each step.
+   *
+   * Rebuilt rather than maintained, for the reason `Grid` gives: there is no
+   * stale state to get wrong, and a pile killed last step cannot be pushed
+   * out of by this one.
+   */
+  private readonly solids: EnemyState[] = [];
+  /**
+   * The widest enemy alive, for query padding.
+   *
+   * Every grid query padded by a flat 64px, which was true of every enemy in
+   * Conception and stops being true the moment two homework piles merge: a
+   * shot aimed at the edge of a 90px pile would be looked up in cells the
+   * pile is not in and pass through it.
+   */
+  private maxEnemyRadius = 0;
   private nextUid = 1;
   private nextSerial = 1;
   private bossHitSerial = 0;
@@ -441,6 +470,7 @@ export class World {
     this.moveEnemies(dt);
     // Rebuilt after movement so every query this step sees current positions.
     this.grid.build(this.enemies);
+    this.resolveSolids();
     this.applyAttractors(dt);
     this.fireItems(dt);
     this.moveProjectiles(dt);
@@ -510,6 +540,20 @@ export class World {
     }
   }
 
+  /**
+   * Enemies that belong to the arena rather than to the player's neighbourhood
+   * (SCHOOL-ROSTER.md §3).
+   *
+   * The distance cull exists so drifters that wandered off do not accumulate.
+   * These three are the opposite case: a dodgeball bounces "indefinitely", a
+   * hall monitor patrols end to end, and homework is the enemy that changes
+   * the shape of the room. Culling any of them at 1600px would mean the room
+   * quietly reset itself every time the player walked away from it.
+   */
+  private static belongsToArena(def: EnemyDef): boolean {
+    return def.bounce === true || def.patrol === true || def.movement === 'static';
+  }
+
   spawnEnemy(id: string): void {
     const def = enemyDef(id);
     let x: number;
@@ -544,6 +588,33 @@ export class World {
       vy = Math.sin(inbound + spread) * def.speed;
     }
 
+    // Merge on arrival (SCHOOL-ROSTER.md §3.3). A pile that lands on an
+    // existing pile does not become a second pile; the one already there gets
+    // bigger, tougher and worth more.
+    //
+    // Conserving rather than choosing: the merged radius is area-preserving
+    // (r = hypot(r1, r2)) and hp and XP are summed, so the paper that arrived
+    // is the paper that is there. The roster says the merged shape is LARGER
+    // and leaves the rest to playtest — "playtest owns the number, not the
+    // shape" — and conservation is the only growth rule available that
+    // introduces no free parameter for playtest to have to own.
+    // A linear scan, deliberately: piles arrive rarely and the alternative is
+    // the spatial grid, which holds LAST step's positions — a pile that landed
+    // earlier in this same step would not be in it, and two piles would end up
+    // on top of each other exactly when the act is at its busiest.
+    if (def.merge) {
+      for (const pile of this.enemies) {
+        if (pile.def.id !== def.id || pile.hp <= 0) continue;
+        if (Math.hypot(pile.x - x, pile.y - y) >= pile.radius + def.radius) continue;
+        const grown = Math.hypot(pile.radius, def.radius);
+        pile.displaySize *= grown / pile.radius;
+        pile.radius = grown;
+        pile.hp += def.hp;
+        pile.xp += def.xp;
+        return;
+      }
+    }
+
     this.enemies.push({
       uid: this.nextUid++,
       hitBySerial: 0,
@@ -552,22 +623,54 @@ export class World {
       hp: def.hp,
       age: 0,
       hitFlash: 0,
+      radius: def.radius,
+      displaySize: def.displaySize,
+      xp: def.xp,
     });
   }
 
   private moveEnemies(dt: number): void {
+    this.solids.length = 0;
+    this.maxEnemyRadius = 0;
+
     for (let i = this.enemies.length - 1; i >= 0; i--) {
       const e = this.enemies[i]!;
       e.age += dt;
       if (e.hitFlash > 0) e.hitFlash -= dt;
+      if (e.radius > this.maxEnemyRadius) this.maxEnemyRadius = e.radius;
+      if (e.def.merge) this.solids.push(e);
 
       if (e.def.movement === 'chase') {
         const d = Math.hypot(this.x - e.x, this.y - e.y) || 1;
         e.x += ((this.x - e.x) / d) * e.def.speed * dt;
         e.y += ((this.y - e.y) / d) * e.def.speed * dt;
-      } else {
+      } else if (e.def.movement !== 'static') {
         e.x += e.vx * dt;
         e.y += e.vy * dt;
+      }
+
+      // The arena edge, for the two enemies that have a relationship with it.
+      //
+      // The test is "past the bound AND still heading further out", not "past
+      // the bound", because both of these enter from the spawn ring, which is
+      // outside the arena more often than not. Without the second half a
+      // dodgeball would turn around before it ever arrived.
+      if (e.def.bounce === true || e.def.patrol === true) {
+        const outX = (e.x < 0 && e.vx < 0) || (e.x > ARENA_WIDTH && e.vx > 0);
+        const outY = (e.y < 0 && e.vy < 0) || (e.y > ARENA_HEIGHT && e.vy > 0);
+        if (outX || outY) {
+          if (e.def.patrol === true) {
+            // Reverse BOTH components: it comes back along the line it went
+            // out on, which is what makes a patrol a line rather than a path.
+            e.vx = -e.vx;
+            e.vy = -e.vy;
+          } else {
+            // Reflect only the component that crossed, which is what makes a
+            // bounce go somewhere new.
+            if (outX) e.vx = -e.vx;
+            if (outY) e.vy = -e.vy;
+          }
+        }
       }
 
       if (e.def.burst && e.age >= e.def.burst.fuseSeconds) {
@@ -585,11 +688,67 @@ export class World {
 
       if (
         e.def.movement !== 'chase' &&
+        !World.belongsToArena(e.def) &&
         Math.hypot(e.x - this.x, e.y - this.y) > DESPAWN_RADIUS
       ) {
         swapRemove(this.enemies, i);
       }
     }
+  }
+
+  /**
+   * Homework is solid, to the player and to everything else (§3.3).
+   *
+   * Position-based rather than force-based: an overlapping mover is placed on
+   * the pile's edge along the line it came in on. A pile does not push back
+   * over time, it is simply somewhere you are not, which is the whole content
+   * of "by minute four the room the player started in is a corridor".
+   *
+   * Costs nothing in an act with no piles: `solids` is filled during the
+   * movement pass that was already walking the array, and this returns on the
+   * first line.
+   */
+  private resolveSolids(): void {
+    if (this.solids.length === 0) return;
+
+    for (const s of this.solids) {
+      if (s.hp <= 0) continue;
+
+      const need = s.radius + PLAYER_RADIUS;
+      const dx = this.x - s.x;
+      const dy = this.y - s.y;
+      const d = Math.hypot(dx, dy);
+      if (d < need) {
+        // A pile that lands exactly on the player has no direction to push
+        // them; any consistent one will do, and this one is deterministic.
+        if (d < 0.001) this.x = s.x + need;
+        else {
+          this.x = s.x + (dx / d) * need;
+          this.y = s.y + (dy / d) * need;
+        }
+      }
+
+      this.grid.query(s.x, s.y, s.radius + this.maxEnemyRadius, this.near);
+      for (const e of this.near) {
+        // Piles do not push each other: merging is what happens when two of
+        // them meet, and it happens on arrival.
+        if (e === s || e.def.merge === true || e.hp <= 0) continue;
+        const r = s.radius + e.radius;
+        const ex = e.x - s.x;
+        const ey = e.y - s.y;
+        const ed = Math.hypot(ex, ey);
+        if (ed >= r) continue;
+        if (ed < 0.001) {
+          e.x = s.x + r;
+        } else {
+          e.x = s.x + (ex / ed) * r;
+          e.y = s.y + (ey / ed) * r;
+        }
+      }
+    }
+
+    // Pushing the player off a pile can push them off the field.
+    this.clampPlayer();
   }
 
   /**
@@ -620,6 +779,11 @@ export class World {
     if (!b || b.phase === 'absorbing') return null;
     const d = Math.hypot(b.x - this.x, b.y - this.y);
     return d - BOSS_RADIUS <= within ? { x: b.x, y: b.y } : null;
+  }
+
+  /** Grid padding: the flat 64 was every enemy in Conception, and is not every pile. */
+  private get queryPad(): number {
+    return this.maxEnemyRadius > 64 ? this.maxEnemyRadius : 64;
   }
 
   private nearestEnemy(within: number): EnemyState | null {
@@ -778,10 +942,10 @@ export class World {
         continue;
       }
       if (a.pull || a.damage <= 0) continue;
-      this.grid.query(a.x, a.y, a.radius + 64, this.near);
+      this.grid.query(a.x, a.y, a.radius + this.queryPad, this.near);
       for (const e of this.near) {
         if (e.def.invulnerable || e.hp <= 0) continue;
-        if (Math.hypot(e.x - a.x, e.y - a.y) > a.radius + e.def.radius) continue;
+        if (Math.hypot(e.x - a.x, e.y - a.y) > a.radius + e.radius) continue;
         if (a.tick) {
           e.hp -= a.damage * dt * 6;
         } else {
@@ -818,11 +982,11 @@ export class World {
     for (let pi = this.projectiles.length - 1; pi >= 0; pi--) {
       const p = this.projectiles[pi]!;
       if (p.hostile) continue;
-      this.grid.query(p.x, p.y, p.radius + 64, this.near);
+      this.grid.query(p.x, p.y, p.radius + this.queryPad, this.near);
       for (const e of this.near) {
         // You cannot shoot a document (G-018).
         if (e.def.invulnerable || e.hitBySerial === p.serial || e.hp <= 0) continue;
-        const r = e.def.radius + p.radius;
+        const r = e.radius + p.radius;
         if ((e.x - p.x) ** 2 + (e.y - p.y) ** 2 > r * r) continue;
 
         e.hitBySerial = p.serial;
@@ -848,7 +1012,7 @@ export class World {
     for (let i = this.enemies.length - 1; i >= 0; i--) {
       const e = this.enemies[i]!;
       if (e.hp > 0) continue;
-      this.gems.push({ x: e.x, y: e.y, value: e.def.xp });
+      this.gems.push({ x: e.x, y: e.y, value: e.xp });
       swapRemove(this.enemies, i);
       this.kills++;
     }
@@ -863,8 +1027,12 @@ export class World {
 
     for (let i = this.enemies.length - 1; i >= 0; i--) {
       const e = this.enemies[i]!;
-      const r = e.def.radius + PLAYER_RADIUS;
+      const r = e.radius + PLAYER_RADIUS;
       if ((e.x - this.x) ** 2 + (e.y - this.y) ** 2 > r * r) continue;
+
+      // It is not doing anything to anyone. Distinct from zero damage, which
+      // would still take the `hurt` path and hand out i-frames.
+      if (e.def.contact === 'none') continue;
 
       if (e.def.contact === 'attach') {
         this.dragStacks++;
