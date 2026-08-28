@@ -1,0 +1,94 @@
+# Continuous integration.
+#
+# Everything this repository has ever claimed about itself was verified by one
+# person running commands by hand on one machine. That is the weakest form of
+# the claim available: it is not reproducible, it is not dated, and nobody but
+# Justin can check it. This file runs the same four commands on a machine
+# nobody owns, on every push and every pull request, and puts the result where
+# a stranger can read it.
+#
+# It runs exactly what README.md documents as verification. No thresholds are
+# invented here and nothing is relaxed to make the run go green - if a check
+# fails, the check is right and this file is not the place to argue with it.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# A second push supersedes the first. The checks are deterministic, so a run
+# against an overwritten commit is spending minutes to answer a stale question.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # pnpm before Node: setup-node's pnpm cache needs the binary to exist.
+      #
+      # Pinned to 11 because the repo says 11 - pnpm-workspace.yaml carries the
+      # allowBuilds block that only pnpm 11 reads, and pnpm-lock.yaml is
+      # lockfileVersion 9.0. Verified locally on 11.24.0.
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      # The repo declares no Node version anywhere - no .nvmrc, no engines
+      # field, no packageManager. So this pins the version the documented
+      # commands were actually observed passing on (24.20.0 locally) rather
+      # than inventing a floor nobody has tested against. If a Node version is
+      # ever declared in the repo, this should follow it rather than lead it.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+
+      # --frozen-lockfile is pnpm's CI default, said out loud. A lockfile the
+      # install is allowed to edit is not a lockfile, and a dependency that
+      # drifts silently is exactly the kind of unrecorded change this project
+      # spends its audits hunting.
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      # Typecheck first. Nothing here takes long, and a type error is a
+      # cheaper thing to read than the test failure it causes.
+      - name: Typecheck
+        run: pnpm typecheck
+
+      # 175 tests: the sim, the content rules, the art pipeline laws. The
+      # suite touches the network nowhere - verified by running it inside a
+      # network namespace with no interfaces, where all 175 still pass - so a
+      # failure here is a failure in the code and never in a CDN.
+      - name: Test
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+      # The art pipeline's cheap half: print the prompts and run D-007 over
+      # them. --dry never reaches generate(), so no image is requested and no
+      # key is read.
+      #
+      # This is also the only place D-007 is checked against the CLI path
+      # rather than against an imported array, and CI is the strongest place
+      # to run it: no FAL_KEY exists in this environment, so if --dry ever
+      # regressed into calling the API the step would fail loudly instead of
+      # quietly spending money. Do not add FAL_KEY as a secret.
+      - name: Art pipeline, dry
+        run: pnpm art:batch -- --dry
+
+      # NOT RUN HERE: pnpm playtest.
+      #
+      # The bots are an instrument, not a gate. The run prints win rates and
+      # survival medians and exits 0 whatever they say - there is no pass
+      # condition to check, and inventing one would mean asserting a balance
+      # number while tuning is frozen pending a session with a human.
+      # A green tick over an unread report is worse than no tick.
