@@ -178,8 +178,12 @@ export async function runAsset(
     } catch (err) {
       // A content-rule violation is a build failure, not a bad roll of the
       // dice. Retrying it with a different seed would be absurd: the prompt is
-      // the problem and it will still be the problem next time.
-      if (err instanceof Error && err.name === 'ContentRuleViolation') throw err;
+      // the problem and it will still be the problem next time. A reservation
+      // refusal is the same shape of error one document up — the act's shape
+      // vocabulary is the problem, and no seed has ever fixed a document.
+      if (err instanceof Error && (err.name === 'ContentRuleViolation' || err.name === 'ReservationError')) {
+        throw err;
+      }
       lastError = err instanceof Error ? err.message : String(err);
       log(`  ${spec.id}: error — ${lastError}`);
       record.rejected.push({ seed, failures: [`error: ${lastError}`] });
