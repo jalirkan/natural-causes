@@ -6,13 +6,15 @@ import { pack, type PackEntry } from './pack';
 import { runBatch } from './pipeline';
 import { ACT_IDS, type ActId } from './palette';
 import { buildContactSheet } from './contact-sheet';
+import type { ReservationVerdict } from './reservations';
 import type { AssetSpec } from './types';
 
 /**
  * CLI for the art pipeline.
  *
  *   pnpm art:batch          generate the six-asset test batch
- *   pnpm art:batch -- --dry print the prompts and run the content rule, no API
+ *   pnpm art:batch -- --dry print the prompts, run D-007 and law 11, no API
+ *   pnpm art:batch -- --dry --only=school   one act's prompts and verdicts
  *   pnpm art:pack           pack conformed sprites into per-act atlases
  *   pnpm art:sheet          rebuild the review page from what is on disk
  */
@@ -21,6 +23,24 @@ const root = process.cwd();
 
 function log(msg: string): void {
   process.stdout.write(`${msg}\n`);
+}
+
+/** One line per asset, so the reserved list is readable from the run itself. */
+function describeVerdict(v: ReservationVerdict): string {
+  switch (v.status) {
+    case 'holds':
+      return `holds "${v.silhouette}" in act "${v.act}"`;
+    case 'holds-threat':
+      return `holds ${v.threat} threat colour in act "${v.act}"`;
+    case 'pickup':
+      return `pickup — holds "${v.silhouette}" game-wide (G-030)`;
+    case 'player':
+      return 'the player — outside every act vocabulary, holds paper game-wide (law 10)';
+    case 'no-list':
+      return `REFUSED at generation — act "${v.act}" has no reserved-silhouette list (G-011)`;
+    case 'unlisted':
+      return `REFUSED — not on act "${v.act}"'s reserved list (G-011)`;
+  }
 }
 
 async function cmdBatch(argv: string[]): Promise<number> {
@@ -42,10 +62,13 @@ async function cmdBatch(argv: string[]): Promise<number> {
   }
 
   if (dry) {
-    // Content rule runs inside generate(), but --dry has to exercise it too,
-    // otherwise the cheap check is the one nobody runs.
+    // Both pre-generation rules run inside generate(), but --dry has to
+    // exercise them too, otherwise the cheap checks are the ones nobody runs.
     const { assertContentRule } = await import('./content-rule');
+    const { ReservationError, refuses, reservationVerdict } = await import('./reservations');
     const { fullPrompt, styleSuffixFor } = await import('./batch');
+
+    const refused: string[] = [];
     for (const spec of specs) {
       assertContentRule(`asset "${spec.id}"`, {
         name: spec.name,
@@ -54,10 +77,33 @@ async function cmdBatch(argv: string[]): Promise<number> {
         prompt: fullPrompt(spec),
         styleSuffix: styleSuffixFor(spec),
       });
+
+      const verdict = reservationVerdict(spec.act, spec.id, spec.role);
+      // An asset missing from a list its act HAS is this repository
+      // contradicting itself, and it fails here exactly as it would fail at
+      // generation. An act with no list at all is a document nobody has
+      // written yet (ART-DIRECTION.md: "the remaining five acts still need
+      // theirs"), so it is named and counted rather than failing a run whose
+      // subject is prompts. Either way `generate()` refuses it.
+      if (verdict.status === 'unlisted') throw new ReservationError(verdict.reason);
+      if (refuses(verdict)) refused.push(`${spec.id} (${spec.act})`);
+
       log(`\n=== ${spec.id} (${spec.act}, ${spec.role}, ${spec.targetSize}px) ===`);
+      log(`law 11: ${describeVerdict(verdict)}`);
       log(fullPrompt(spec));
     }
-    log(`\n${specs.length} prompts, all clean under D-007. Nothing was generated.`);
+
+    log(`\n${specs.length} prompts, all clean under D-007.`);
+    // "Generatable", not "hold a silhouette": the player and the pickups are
+    // accepted while holding none, which is the point of them being outside
+    // the vocabulary rather than an exception to it.
+    log(
+      `law 11: ${specs.length - refused.length} of ${specs.length} generatable` +
+        (refused.length === 0
+          ? '.'
+          : `; ${refused.length} refused at generation — ${refused.join(', ')}.`),
+    );
+    log('Nothing was generated.');
     return 0;
   }
 

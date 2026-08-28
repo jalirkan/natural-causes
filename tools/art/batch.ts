@@ -417,5 +417,134 @@ export const CONCEPTION_ROSTER: AssetSpec[] = [
   },
 ];
 
+/**
+ * The School roster (SCHOOL-ROSTER.md §3). Four swarm-tier assets; the fifth,
+ * `substitute-teacher`, is in the test batch above and already passed, and the
+ * roster was written around it rather than over it.
+ *
+ * Every silhouette here is what it is because the clipboard took the bright
+ * hard rectangle (§1). Homework is a wedge and the hall monitor's sash runs
+ * off both edges of the body because both would naturally have been
+ * rectangles, and the act only has one. That is the reserved list generating
+ * drawings rather than merely forbidding them.
+ *
+ * **Gold appears on nothing here.** The substitute is the act's only ranged
+ * thing and under G-031 its gold rides the projectile, so every prompt below
+ * names yellow and gold in its exclusion list. Olive is excluded for the same
+ * reason one step over: `school-light` is the pickup colour and no enemy in
+ * any act may take its act's light tone (law 10, G-030).
+ *
+ * D-007 is live in this act in a way it was not in Conception (§4): three of
+ * these four are people or rooms full of them. Every figure below is
+ * described by what it is DOING and by nothing else — no ethnicity,
+ * nationality, religion or race, and no build, age or skin described at all.
+ */
+export const SCHOOL_ROSTER: AssetSpec[] = [
+  {
+    id: 'clique',
+    name: 'Clique',
+    act: 'school',
+    role: 'swarm',
+    tests: 'the cluster — one enemy that must not read as four',
+    targetSize: 88,
+    seed: 10010,
+    whyThisStage:
+      'School is the first place that has an inside, and the player finds out where they are by walking into the edge of it.',
+    // The failure this prompt is written against: four separate figures
+    // standing near each other. It is ONE body and the silhouette has to say
+    // so instantly, or the player tries to walk between the heads and dies
+    // learning that they cannot. Hence "fused", "single", "one continuous
+    // outline" — and the identical repeated face, which is both the joke and
+    // cheaper to author than four faces.
+    subject: [
+      'a single wide lumpy mass with four heads growing out of the top of it, fused together into one body at the shoulders',
+      'one continuous outline around the whole group, no gaps between them and no space to pass through',
+      'the heads at slightly different heights, all turned the same way and all looking off to one side',
+      'every head has exactly the same face: two small flat dots for eyes and one short straight line for a mouth, no eyebrows',
+      'no arms, no legs, no hands, no bags, no clothing detail of any kind',
+      'flat muted olive-grey green with one darker tone as the only shadow',
+      'completely blank and unbothered, not looking at the viewer, not reacting to anything',
+      'no yellow, no gold, no pale yellow-green anywhere',
+    ].join(', '),
+  },
+  {
+    id: 'dodgeball',
+    name: 'Dodgeball',
+    act: 'school',
+    role: 'swarm',
+    tests: 'the circle — the only radially symmetric thing in the act',
+    targetSize: 44,
+    seed: 11011,
+    whyThisStage:
+      'School is where the player is first hurt by something that was aimed at the room rather than at them.',
+    // A perfect circle at 44px carries nothing but its own edge, so every
+    // interior mark is a liability: a seam or a highlight would break the
+    // radial symmetry that is the whole read at speed. The face is dead
+    // centre and does nothing, because whoever threw it is not in the
+    // picture (law 9) and it has no opinion about arriving.
+    subject: [
+      'a single perfectly round rubber ball seen straight on, one flat circle',
+      'flat muted brick red, one solid colour across the whole ball',
+      'absolutely no seam, no panel lines, no stripe, no highlight, no shine, no texture',
+      'one small face dead centre: two small dark dots for eyes and one short straight horizontal line for a mouth',
+      'completely blank and expressionless, not excited, not angry, not moving its face at all',
+      'nothing else in the picture, no hands, no arms, no motion lines, no impact marks',
+      'no yellow, no gold, no olive green anywhere',
+    ].join(', '),
+  },
+  {
+    id: 'homework',
+    name: 'Homework',
+    act: 'school',
+    role: 'swarm',
+    tests: 'the wedge — paper that is deliberately not a rectangle',
+    targetSize: 72,
+    seed: 12012,
+    whyThisStage:
+      'School is the first stage that follows the player home and takes up the part of the day nobody was counting.',
+    // §1: the bright hard rectangle is the substitute's and School is full of
+    // paper, so the obvious slab is forbidden. A leaning triangular stack in
+    // shadow separates from the clipboard on shape, edge and value at once.
+    // "Dull" is the brief, not a compromise — it is the only enemy in the act
+    // that cannot hurt anyone and it should look like it.
+    subject: [
+      'a leaning stack of paper sheets seen from the side, triangular in profile, wider at the bottom and tapering toward the top',
+      'the whole stack tilts to one side, the corners soft and rounded, the edges uneven where the sheets do not line up',
+      'flat dull grey-brown, one solid colour, no white paper, no bright paper, no cream',
+      'no straight rectangle, not a neat block, not a squared-off slab, not a folder, not a book',
+      'one small face near the top of the stack: two small dark dots for eyes and no mouth at all',
+      'completely inert and uninteresting, doing nothing, not looking at anything',
+      'no text, no handwriting, no ruled lines, no yellow, no gold, no olive green',
+    ].join(', '),
+  },
+  {
+    id: 'hall-monitor',
+    name: 'Hall monitor',
+    act: 'school',
+    role: 'swarm',
+    tests: 'the sash — one hard diagonal that must not read as a badge',
+    targetSize: 88,
+    seed: 13013,
+    whyThisStage:
+      'School is where authority is first handed to someone with no more standing than the player, and it works anyway.',
+    // Law 9, and §1 twice over. The sash IS the character: at 48px the body
+    // is a lump and the stripe is the identity, which is why it must run off
+    // both edges rather than sit on the chest. A badge or a name tag would
+    // have been the natural read and would have put a second bright hard
+    // rectangle in an act that has exactly one.
+    subject: [
+      'an upright figure standing squarely and facing forward, drawn as a plain mid-century institutional pictogram',
+      'one wide hard-edged diagonal band crossing the whole body from shoulder to hip, running all the way off both sides of the body and cut off by them',
+      'the band is a flat single tone with straight parallel edges and no writing on it',
+      'a simplified geometric body, plain and generic, more diagram than portrait',
+      'the face is two small flat dots for eyes and one short straight line for a mouth, no eyebrows',
+      'looking along its own route off to one side, not at the viewer, completely indifferent and unbothered',
+      'flat muted dusty purple with the band in one lighter flat tone',
+      'no badge, no name tag, no lettering, no armband, no rectangle on the chest, no clipboard, no lanyard',
+      'no yellow, no gold, no olive green anywhere on the figure',
+    ].join(', '),
+  },
+];
+
 /** Everything the pipeline knows how to generate. */
-export const ALL_ASSETS: AssetSpec[] = [...TEST_BATCH, ...CONCEPTION_ROSTER];
+export const ALL_ASSETS: AssetSpec[] = [...TEST_BATCH, ...CONCEPTION_ROSTER, ...SCHOOL_ROSTER];
