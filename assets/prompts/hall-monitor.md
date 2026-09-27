@@ -7,7 +7,7 @@
 - **SVG sha256:** `33c6027bd3dafc9b8aef6f9b1270810759723c80867c064b55b6c1b3898812a4`
 - **Rasteriser:** sharp 0.34.5 (libvips 8.17.3, librsvg 2.61.2)
 - **Render:** 51.104 dpi, 4× supersampled and area-averaged
-- **Rendered:** 2026-09-27T23:09:03.023Z
+- **Rendered:** 2026-09-27T23:25:20.033Z
 - **Sprite size:** 88px
 - **Tests:** the sash — one hard diagonal that must not read as a badge
 
@@ -30,4 +30,4 @@ an upright figure standing squarely and facing forward, drawn as a plain mid-cen
 | readable-48px-silhouette | pass | 0.615 | >= 0.084 coverage at 48px |
 | readable-48px-structure | pass | 6 | >= 2 palette colours still visible at 48px |
 | enemy-value-ceiling | pass | 0.8295 | <= 0.856 Oklab L (bone); paper belongs to the player |
-| readable-48px-detail | pass | 0.3052 | >= 0.06 edge density at 48px |
+| readable-48px-detail | pass | 0.3066 | >= 0.06 edge density at 48px |

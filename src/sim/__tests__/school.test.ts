@@ -480,7 +480,10 @@ describe('hall monitor — the stop (§3.4)', () => {
     world.hp = 100;
     world.step(1 / 60, { moveX: 0, moveY: 0 });
     expect(world.hp).toBe(100 - def.contactDamage);
-    expect(world.invulnerable).toBeCloseTo(IFRAMES, 6);
+    // The i-frames run from the END of the stop (AUDIT part three, 18): a
+    // stop equal to IFRAMES otherwise expired with them on one frame, and the
+    // contact check ran before the player could move.
+    expect(world.invulnerable).toBeCloseTo(stun + IFRAMES, 6);
     expect(world.stunTimer).toBeCloseTo(stun, 6);
   });
 

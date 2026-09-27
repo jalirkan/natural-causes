@@ -7,7 +7,7 @@
 - **SVG sha256:** `e7bb7879f65b7a776b688ee4d4714cd94a06d32066920ad5397a4206ffb31b0d`
 - **Rasteriser:** sharp 0.34.5 (libvips 8.17.3, librsvg 2.61.2)
 - **Render:** 91.076 dpi, 4× supersampled and area-averaged
-- **Rendered:** 2026-09-27T23:11:41.868Z
+- **Rendered:** 2026-09-27T23:25:20.789Z
 - **Sprite size:** 384px
 
 **Why this life stage.** School is where the player is first organised into a crowd by someone who never touches them, and the whistle is how it is done.

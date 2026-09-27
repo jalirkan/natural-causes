@@ -1,39 +1,49 @@
-# Handoff — 2026-09-27, later still
+# Handoff — 2026-09-27, late night
 
 A living note for whichever session runs next. Overwrite it; it is not a
 record. Read `CLAUDE.md` first, then this. **Two sessions built the same
-step tonight (D-026) because this file was not updated on `main`. The
-"who holds what" table below exists so that does not happen again: take a
-step only if it is yours or unowned, and update this file on `main` when
-you take one.**
+steps three times tonight** (the SVG stage, School's placeholders, the audit
+— D-026) because this file on `main` never said who was on what. The
+holder table below is the fix: take a step only if it is yours or unowned,
+and write your name against it here, on `main`, before you start.
 
 ## Where everything is
 
 | What | Where | State |
 |---|---|---|
-| The game | <https://jalirkan.github.io/natural-causes/> | `main`. A two-act life, Conception then School, every sprite authored SVG. Deploys on every push to `main`. |
-| The sim | `src/sim/world.ts` | One life (D-024); upgrades are gains (G-038, G-039); the Egg is a race (G-040); School's three placeholders built and labelled (D-022); AUDIT part three's two fixes in, five items open with patches. |
-| Art | `tools/art/svg/<act>/<id>.svg`, `pnpm art:svg` | Main's stage (D-025). Twelve field sprites plus the Gym Teacher drawn. The review page: `pnpm art:sheet`. |
-| The Gym Teacher | `SCHOOL-ROSTER.md` §9 | Designed and drawn; **fights as the Egg** until his behaviour is built. |
-| Adolescence | `ADOLESCENCE-ROSTER.md` | Drafted by an agent, under review by the cloud session. Not data yet. |
-| Not wired yet | `src/audio/sfx.ts`, `src/meta/input-log.ts` | Four School sounds and the heading-hold log exist and are untested by ear; `ActScene` does not call them. |
-| Stale claims | `PLAYTEST-FINDINGS.md`, rosters, `ITEMS-BRIEF.md` | A sweep found G-014 and the 30-item cap still stated as live in several docs; being fixed after this merge. |
+| The game | <https://jalirkan.github.io/natural-causes/> | `main`: a two-act life, Conception → School, every sprite authored SVG. Deploys on every push. |
+| The sim | `src/sim/world.ts` | One life (D-024); upgrades are gains (G-038, G-039); the Egg is a race (G-040); School's three placeholders built and labelled (D-022, D-027); AUDIT parts three and four in. |
+| Art | `tools/art/svg/<act>/<id>.svg`, `pnpm art:svg` | Main's stage (D-025). Every field sprite plus the Gym Teacher drawn. The review page: `pnpm art:sheet`. |
+| The Gym Teacher | `SCHOOL-ROSTER.md` §9 | Designed and drawn; **fights as the Egg** until his behaviour lands (cloud session, in progress). |
+| Adolescence | `ADOLESCENCE-ROSTER.md` | Drafted; under review by the cloud session. Not data yet. |
+| Direction proposals | `DIRECTION-PANEL-2026-09-27.md` | Mined for G-038–G-040. Still usable: inheritance, arrival toasts, per-act items, Time as Decline's boss. |
+| Coherence pass | GitHub issue #5 | Open: the four unlanded setups — cowlick, misspelled name (the certificate exists to land it on), the Egg's inheritance, the doorstep death. |
+
+## Waiting on Justin — reactions, not values
+
+Play the link once through (about ten minutes). What felt wrong? In
+particular: does the art read as a register worth keeping (this is the batch
+G-038 has him pick from); does the Egg race feel like a race; is School
+anything yet; did the substitute, the paper behind you and the monitor's
+stop register at all.
 
 ## Who holds what
 
 | Step | Holder |
 |---|---|
-| Gym Teacher behaviour in the sim (§9): whistle relaunches every dodgeball, untouchable while one lives, PARTICIPATION | **cloud session** (in progress) |
-| Wire the four sounds and the input log into `ActScene`; a dev-panel readout of the log | **cloud session** |
-| Adolescence: roster review → enemies, ActDef, palette, drawings | **cloud session** |
-| AUDIT items 18, 20, 21 (Lash aims at the invulnerable; Wake standing still; Chemotaxis moves arena enemies) | **cloud session** |
-| Doc sweep for stale G-014 / budget / "not playable" claims | **cloud session** |
-| The report-card document at the crossing and the certificate as a document (the mid-century register is kept for documents) | unowned — good for the local session |
+| Whatever Justin's play says — labelled numbers move only on a person's reaction | whoever he tells |
+| The Gym Teacher's behaviour (§9), as an act field like `race` | **cloud session** (in progress) |
+| The substitute teacher redrawn as SVG (the last generated sprite) | **cloud session** (in progress) |
+| Bots that see aimed shots; a headless-Chromium smoke test | **cloud session** (in progress) |
+| Adolescence: roster review → enemies, ActDef, palette (needs a decision: the 20-colour cap), drawings | **cloud session** |
+| AUDIT part four's open items 26–29 (Capacitation at the crossing, Wake standing still, Chemotaxis moving furniture, the ending waiting on a level-up) | **cloud session** |
+| Icons for Grudge, Group Chat and Appetite as SVG through the stage (`iconPending` retires when the frame exists) | unowned — good for the local session |
+| The Egg's inheritance (G-017, unblocked): one unchosen item at the crossing, announced on the act card | unowned — good for the local session |
+| The certificate as a document in the register kept for documents; the misspelled-name payoff lands there | unowned |
 | The Egg's G-006 frames (eyes closing, corona parting) | unowned |
-| Playing it and answering the six reaction questions in `README.md` | Justin |
 
 ## The prompt for the next session
 
-> Read CLAUDE.md, then HANDOFF.md. Take an unowned step, write your name
-> against it here on `main` first, and end with something visible at the
-> link. Ask Justin only reaction questions.
+> Read CLAUDE.md, then HANDOFF.md. I played it: <reactions>. Take an
+> unowned step, write your name against it here on `main` first, and end
+> with something visible at the link. Ask me only reaction questions.

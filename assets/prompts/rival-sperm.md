@@ -7,7 +7,7 @@
 - **SVG sha256:** `68d2b223ca5683fa771564f3fa4c0a79004d0df872e419ec1f8d1fb50c62d5b3`
 - **Rasteriser:** sharp 0.34.5 (libvips 8.17.3, librsvg 2.61.2)
 - **Render:** 321.682 dpi, 4× supersampled and area-averaged
-- **Rendered:** 2026-09-27T22:58:54.765Z
+- **Rendered:** 2026-09-27T23:25:18.956Z
 - **Sprite size:** 96px
 - **Tests:** does it read at 48px in a crowd
 

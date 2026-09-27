@@ -85,6 +85,12 @@ export const RESERVATIONS: Partial<Record<ActId, ActReservations>> = {
       // first aimed thing in the player's life announces itself by firing.
       boss: 'boss-egg',
       ranged: PROJECTILE_HOLDER,
+      // CONCEPTION-ROSTER §3.1 and §3.2 give the white cell elite purple and
+      // the spermicide contact red, and this table did not, so CONFORM
+      // quantised both away (measured 2026-09-27: no shipped enemy wore a
+      // threat colour). The roster is the design; the table says what it says.
+      contact: 'spermicide',
+      elite: 'white-cell',
     },
   },
 
@@ -145,6 +151,10 @@ export const RESERVATIONS: Partial<Record<ActId, ActReservations>> = {
       // before-not-after ordering — the concept exists now (the direction
       // panel's Gym Teacher), so the refusal that stood here has done its job.
       boss: 'boss-gym-teacher',
+      // SCHOOL-ROSTER §3.2 and §3.4 give the dodgeball contact red and the
+      // hall monitor elite purple; the same finding as Conception's above.
+      contact: 'dodgeball',
+      elite: 'hall-monitor',
     },
   },
 };

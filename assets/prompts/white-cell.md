@@ -7,7 +7,7 @@
 - **SVG sha256:** `0c3aac884d1b0974fe74c6f65c0893cab271d36396fca485329027a29c4f4ea0`
 - **Rasteriser:** sharp 0.34.5 (libvips 8.17.3, librsvg 2.61.2)
 - **Render:** 54.371 dpi, 4× supersampled and area-averaged
-- **Rendered:** 2026-09-27T23:09:01.342Z
+- **Rendered:** 2026-09-27T23:25:19.814Z
 - **Sprite size:** 96px
 - **Tests:** the blot silhouette, and a stamp face that must survive 48px
 
@@ -28,6 +28,6 @@ a single large round leukocyte cell seen from directly above, filling most of th
 | palette-variety | pass | 4 | >= 2 distinct palette colours |
 | palette-dominance | pass | 0.3409 | no colour above 0.97 of the sprite |
 | readable-48px-silhouette | pass | 0.5842 | >= 0.084 coverage at 48px |
-| readable-48px-structure | pass | 6 | >= 2 palette colours still visible at 48px |
+| readable-48px-structure | pass | 7 | >= 2 palette colours still visible at 48px |
 | enemy-value-ceiling | pass | 0.8295 | <= 0.856 Oklab L (bone); paper belongs to the player |
-| readable-48px-detail | pass | 0.2852 | >= 0.06 edge density at 48px |
+| readable-48px-detail | pass | 0.2829 | >= 0.06 edge density at 48px |

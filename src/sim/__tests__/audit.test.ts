@@ -153,7 +153,7 @@ describe('a boss shot is evaluated on every frame', () => {
  * Part three, 2026-09-27 (AUDIT.md). Both were found by reading the LIFE for
  * the same class of defect, and both were reproduced before being written down.
  */
-describe('part three', () => {
+describe('part four', () => {
   /** No schedule, so nothing is on the field but what the test places there. */
   const EMPTY: ActDef = {
     id: 'audit-fixture',
@@ -164,7 +164,7 @@ describe('part three', () => {
     waves: [],
   };
 
-  it('16. a weapon fires the same number of times a minute at 30, 60 and 144Hz', () => {
+  it('23. a weapon fires the same number of times a minute at 30, 60 and 144Hz', () => {
     // The cooldown was reset to its full value on the frame it expired, so the
     // overshoot was dropped and the rate was quantised to the frame: Wake fired
     // 300 times a minute at 30Hz, 328 at 60Hz, 333 at 144Hz. The bots run at
@@ -194,7 +194,7 @@ describe('part three', () => {
     }
   });
 
-  it('17. a one-shot burst hits an enemy once, even when a shot lands on it mid-burst', () => {
+  it('24. a one-shot burst hits an enemy once, even when a shot lands on it mid-burst', () => {
     // `hitBySerial` was one field shared by shots and one-shot areas. A Lash
     // shot landing during Acrosome's 0.12s burst overwrote the burst's serial
     // and the burst hit again on its next frame: 5 damage became 12 in the

@@ -268,22 +268,53 @@ Recorded because both cost real time and the next person will suspect them too.
   present and with the field cleared (51.3 either way), because shots pass
   through the boss hitbox on their way to whatever they were aimed at.
 
+---
+
+# Audit, part three — 2026-09-27
+
+`world.ts`, `bots.ts` and `run.ts` after the day that made a run one life and
+added levels, evolutions, orbit, chain, knockback, the Egg race and School's
+behaviours. Every finding was reproduced first. Regressions: 18–22 are in
+`src/sim/__tests__/audit-three.test.ts`, 16 and 17 are in the instrument code.
+
+| # | Defect | Why it looked right | Fix |
+|---|---|---|---|
+| 16 | Item uptake read only the items held at the end; Tantrum removes Temper | Temper simply looked less popular | count evolution ingredients |
+| 17 | `--act=X --life` gated the antibody sections and the 300s mark on X, while the bots measure the life's first act | the sections appeared or vanished plausibly | use the life's first act |
+| 18 | The hall monitor's 0.6s stop equalled the i-frames: both expired on one frame and contact ran before movement, so a crossing monitor stopped the player seven times running (100 → 9 HP, 3px moved) | the monitor is meant to stop you | i-frames run from the end of the stop |
+| 19 | Grudge's re-hit interval ignored levels and Restlessness | the orbiters still turned and hit | route it through `activeCooldown` |
+| 20 | Knockback clamped enemies still out on the spawn ring into the arena, pulling them toward the player; and it could stack homework piles without merging | the burst played and things moved | clamp only what was inside; do not move merging piles |
+| 21 | Holding Grudge allocated every step (orbiter objects, string keys, `levelBonus`) | nothing breaks; GC only | pooled orbiters, numeric keys, cached bonuses |
+| 22 | Seeking shots targeted antibodies they cannot damage | the shot fired and flew | skip invulnerable targets, as chaining already did |
+
+Checked and clean: every per-act collection resets at a crossing and every
+per-life one carries; act-clock and life-clock readers are each correct for
+what they measure; every damage path respects the outcome latch; every kill
+goes through `reapDead`; evolution with several pending levels, with all items
+maxed, and with an echo owed; chain re-hits; substitute shots and the race; the
+homework trail ring. Also checked and not a defect: antibody stacks at 300s
+reading in the hundreds is survival (every pre-upgrade run died before 300s).
+
+Left, minor: the grid is a frame stale after a knockback or solid push; a
+dodgeball meeting a pile head-on can pin against it; Group Chat's "sends sooner"
+level lines name no specific bonus.
+
 
 ---
 
-# Part three — 2026-09-27, the life
+# Part four — 2026-09-27, the life (the cloud session's pass)
 
 A run is one life now (D-024), so this pass read the threshold, the two
 clocks, the certificate, the frame-rate paths and the item text against what
-the sim does, then drove each suspicion in a scratchpad script. Two findings
-from earlier today (the arrival medians, `median@death`) are the other agents'
-and are not repeated here. School's three placeholders landed mid-pass and were
+the sim does, then drove each suspicion in a scratchpad script. Part three above is
+the local session's pass of the same day over the same file; the two were
+written without sight of each other and are numbered on from it here. School's three placeholders landed mid-pass and were
 read as well. Same rule as before: everything below was reproduced before it
 was written down. Numbers are the shipped placeholders; nothing was tuned.
 
 ## Fixed
 
-### 16. Weapon fire rates depended on the display's refresh rate
+### 23. Weapon fire rates depended on the display's refresh rate
 
 A cooldown was reset to its full value on the frame it expired, so the
 overshoot was thrown away and the rate quantised to the frame. One minute
@@ -295,7 +326,7 @@ Fixed: the overshoot carries (`remaining + cooldown`); now 110/110/110,
 67/67/67, 334/334/334. The 60Hz bots gain 1.8% Wake areas from this, which is
 the quantisation they had, not a tuning.
 
-### 17. A one-shot burst hit twice when a shot landed on the enemy mid-burst
+### 24. A one-shot burst hit twice when a shot landed on the enemy mid-burst
 
 `hitBySerial` was one field per enemy shared by shots and one-shot areas. A
 Lash shot landing during Acrosome's 0.12s burst overwrote the burst's serial,
@@ -308,7 +339,7 @@ bursts **52 times**. Fixed: areas mark `hitByAreaSerial`, shots keep
 
 ## Open — a judgement, not a correction
 
-### 18. Lash aims at what it cannot hit
+### 25. ~~Lash aims at what it cannot hit~~ — FIXED by part three's 22 (main), the same line
 
 `nearestEnemy` picks the nearest enemy and the antibody is an enemy, spawned
 320px ahead inside Lash's 420. Over a Conception act with the player kept
@@ -321,7 +352,7 @@ document; nothing says the starting weapon should keep trying. One line in
 half and moves every baseline in the record; whether homework is a target is a
 roster question.
 
-### 19. Capacitation restarts below baseline at the crossing
+### 26. Capacitation restarts below baseline at the crossing
 
 `damageDealt` ramps on `actTime`, so the crossing sets it back to
 `damageMultiplier`. Reproduced: level 1 goes ×1.85 → ×0.70 on the first frame
@@ -332,7 +363,7 @@ said so in one clause; the item text says "act clock" and also "a bet that the
 run reaches the point where it pays". Either it is the late bloomer of every
 act, or the ramp reads the life. CONCEPTION-ROSTER §4 owns this.
 
-### 20. Wake's text and Wake's field disagree about standing still
+### 27. Wake's text and Wake's field disagree about standing still
 
 `tradesAway`: "a cornered player is holding a weapon that has stopped
 existing." The area is placed at the player every 0.18s and lives 2.4s, so a
@@ -343,7 +374,7 @@ edge. A cornered player holds the strongest weapon in the act. Consistent with
 part two, where walls raised midpiece+wake 15% → 28%. Options, one each: place
 the area behind the player; skip it when input is zero; rewrite the text.
 
-### 21. Chemotaxis drags the arena's furniture
+### 28. Chemotaxis drags the arena's furniture
 
 `applyAttractors` pulls whatever the grid finds, including the three enemies
 SCHOOL-ROSTER §3 says belong to the arena. Reproduced with one 3.2s pull: a
@@ -354,7 +385,7 @@ for the rest of the act; a dodgeball slides 9px/s sideways off its heading.
 Whether the room's shape should be the player's to move is a design call. If
 not: `if (World.belongsToArena(e.def)) continue;` in the pull loop.
 
-### 22. The ending waits on a level-up
+### 29. The ending waits on a level-up
 
 Gems collected during the Egg's 1.8s absorb still level the player and present
 an offer, and `step()` freezes on offers, so the absorb pauses behind three

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CONCEPTION, SCHOOL } from '../../../src/data/acts';
+import { ITEMS } from '../../../src/data/items';
 import { POLICIES, runOnce, summarise, type RunResult } from '../bots';
 
 /**
@@ -68,21 +69,34 @@ describe('summarise: median@death is the first act’s', () => {
 
 describe('runOnce over a two-act life', () => {
   it('keeps the first act’s stacks and items as they were at the threshold', () => {
-    // Seed 1001 under greedy-capacitation clears the Egg and crosses into
-    // School (checked by the first expectation, so a schedule change that
-    // stops it crossing fails loudly instead of passing vacuously).
+    // The first seed from 1001 under greedy-capacitation that clears the Egg
+    // and crosses into School. A fixed seed pinned the sim's every baseline
+    // to this test (it broke when Lash stopped aiming at antibodies); the
+    // claim is about a life that crosses, whichever seed does. If none of
+    // twelve do, the schedule has changed and this fails loudly.
     const policy = POLICIES.find((p) => p.name === 'greedy-capacitation')!;
-    const life = runOnce(policy, 1001, undefined, undefined, [CONCEPTION, SCHOOL]);
-    expect(life.actIndex).toBeGreaterThanOrEqual(1);
+    let seed = 1001;
+    let life = runOnce(policy, seed, undefined, undefined, [CONCEPTION, SCHOOL]);
+    while (life.actIndex < 1 && seed < 1012) {
+      seed++;
+      life = runOnce(policy, seed, undefined, undefined, [CONCEPTION, SCHOOL]);
+    }
+    expect(life.actIndex, `no seed in 1001–${seed} crossed`).toBeGreaterThanOrEqual(1);
 
     expect(life.stacksAtFirstActEnd).toBeGreaterThanOrEqual(life.stacksAtEnd);
     for (const [id, level] of Object.entries(life.itemsAtFirstActEnd)) {
+      // An evolution (G-039) consumes its ingredient: Tantrum removes Temper.
+      // An item gone at the end is fine if what it evolved into is there.
+      const evolved = Object.values(ITEMS).some(
+        (def) => 'evolvesFrom' in def && def.evolvesFrom?.weapon === id && (life.items[def.id] ?? 0) > 0,
+      );
+      if (evolved) continue;
       expect(life.items[id] ?? 0, id).toBeGreaterThanOrEqual(level);
     }
 
     // And they are the Conception-only run's figures, which is the claim the
     // report makes about a life.
-    const alone = runOnce(policy, 1001, undefined, undefined, [CONCEPTION]);
+    const alone = runOnce(policy, seed, undefined, undefined, [CONCEPTION]);
     expect(life.stacksAtFirstActEnd).toBe(alone.stacksAtEnd);
     expect(life.itemsAtFirstActEnd).toEqual(alone.items);
   }, 60_000);
