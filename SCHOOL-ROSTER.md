@@ -497,8 +497,9 @@ a player name (§3.5).
 **What it is.** School's boss, standing where the boss spawns and never moving.
 Drawn as the whistle, the stopwatch and the shorts (law 9: the role, not the
 person); eyes on the watch, never on you (indifference kept as this boss's
-flavour). Boss teal body like the Egg's; the whistle is the act's gold, and
-it is the only gold on the boss.
+flavour). Boss teal body like the Egg's. The whistle is bone, not gold:
+School's gold belongs to the substitute's shot alone (§1, G-031), and a
+boss wearing it would say "aimed at you", which he never is.
 
 **What it does.** It never touches you. Its telegraph is the whistle rising;
 its attack is the whistle: every dodgeball on the field is relaunched at full

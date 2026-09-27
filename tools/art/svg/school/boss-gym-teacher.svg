@@ -1,22 +1,92 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <title>The Gym Teacher</title>
-  <desc>A tall standing figure in gym shorts with a whistle on a cord. The role, not a person: the whistle and the shorts are the character.</desc>
-  <!-- Bone carries the bulk (teal is too close to School's ground to);
-       the reserved boss teal is the shorts and the cord. -->
-  <path d="M30 26 L70 26 L78 60 L22 60 Z" fill="#D2C6AC"/>
-  <path d="M22 30 L30 26 L24 56 L16 54 Z" fill="#D2C6AC"/>
-  <path d="M78 30 L70 26 L76 56 L84 54 Z" fill="#D2C6AC"/>
-  <path d="M22 60 L78 60 L76 76 L54 76 L52 70 L48 70 L46 76 L24 76 Z" fill="#2F7370"/>
-  <rect x="29" y="76" width="9" height="20" fill="#6B7F53"/>
-  <rect x="62" y="76" width="9" height="20" fill="#6B7F53"/>
-  <rect x="26" y="94" width="14" height="5" rx="2" fill="#2A2521"/>
-  <rect x="60" y="94" width="14" height="5" rx="2" fill="#2A2521"/>
-  <circle cx="50" cy="15" r="12" fill="#D2C6AC"/>
-  <ellipse cx="45" cy="14" rx="1.8" ry="2.8" fill="#2A2521"/>
-  <ellipse cx="55" cy="14" rx="1.8" ry="2.8" fill="#2A2521"/>
-  <rect x="46" y="20" width="8" height="1.8" rx="0.8" fill="#2A2521"/>
-  <!-- The whistle, on its cord. -->
-  <path d="M42 26 L50 44 L58 26" fill="none" stroke="#2F7370" stroke-width="2.4"/>
-  <circle cx="50" cy="46" r="4" fill="#2A2521"/>
-  <rect x="50" y="44" width="7" height="4" fill="#2A2521"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="1200" height="1200">
+  <!--
+    The Gym Teacher (SCHOOL-ROSTER section 9). Enormous, standing, never
+    moving, bored. Drawn as the role (law 9): the whistle on its cord, the
+    stopwatch held up to the eye, the high-waisted gym shorts, the tube
+    socks. The person only carries them: a boss-teal lump with a small head,
+    no hair, no skin, no features beyond the face (D-007).
+
+    Face: half-lidded, set to the right of the head and cast at the watch,
+    never at the player (law 8's flavour, kept for this boss). A short flat
+    mouth. Deadpan.
+
+    Silhouette (law 11, School's sixth reservation): akimbo. The fist on the
+    hip closes a loop of floor beside the body; nothing else in the act has a
+    hole through it. The stopwatch is an ellipse with a crown, not a circle
+    (the circle is the dodgeball's); the waistband is ink and curved and the
+    socks taper, so nothing here is a bright hard rectangle (the
+    substitute's); the cord is curved, never a hard diagonal (the sash).
+
+    The whistle is bone, not gold. Section 9 asks for gold, but gold is
+    ranged, School holds ranged for projectiles (G-031, section 1: "no other
+    School enemy may be gold"), and CONFORM quantises a colour the asset does
+    not hold. Drawn in bone until the reservation says otherwise.
+
+    The boss carries the full register (D-018): halftone shadow on the right,
+    a flat gleam upper left. Teal sits 0.10 L from school-deep, so bone, ink
+    and school-mid carry the contrast. CONFORM adds the outline; none here.
+    Colours: threat-boss #2F7370, bone #D2C6AC, ink #2A2521,
+    school-mid #6B7F53.
+  -->
+  <defs>
+    <clipPath id="torso"><path d="M30,26.5 C23,26.5 20.5,31 20,38 C19.2,45 19.4,51 21,57 L79,57 C80.6,51 80.8,45 80,38 C79.5,31 77,26.5 70,26.5 Z"/></clipPath>
+  </defs>
+  <g shape-rendering="crispEdges">
+  <!-- the akimbo arm, behind the body: shoulder, elbow out, fist on the hip -->
+  <rect x="22.25" y="26.75" width="33.66" height="7.5" rx="3.75" transform="rotate(153.92 26 30.5)" fill="#2F7370"/>
+  <rect x="-1.25" y="38.25" width="32.72" height="7.5" rx="3.75" transform="rotate(39.37 2.5 42)" fill="#2F7370"/>
+  <!-- tube socks, knee high, tapered; two stripes each -->
+  <path d="M28,77 H41 L40.2,93.5 H28.8 Z" fill="#D2C6AC"/>
+  <path d="M59,77 H72 L71.2,93.5 H59.8 Z" fill="#D2C6AC"/>
+  <path d="M28.1,80.2 H40.9 L40.8,82.2 H28.2 Z" fill="#6B7F53"/>
+  <path d="M28.2,83.8 H40.8 L40.7,85.8 H28.3 Z" fill="#6B7F53"/>
+  <path d="M59.1,80.2 H71.9 L71.8,82.2 H59.2 Z" fill="#6B7F53"/>
+  <path d="M59.2,83.8 H71.8 L71.7,85.8 H59.3 Z" fill="#6B7F53"/>
+  <!-- sneakers, toes turned out, bone soles -->
+  <path d="M22.5,98 Q22,94.5 26,93 L40.5,92 Q42,92.5 41.8,95 L41.6,98 Z" fill="#2A2521"/>
+  <path d="M77.5,98 Q78,94.5 74,93 L59.5,92 Q58,92.5 58.2,95 L58.4,98 Z" fill="#2A2521"/>
+  <rect x="22.2" y="97.2" width="19.6" height="2.3" rx="1.1" fill="#D2C6AC"/>
+  <rect x="58.2" y="97.2" width="19.6" height="2.3" rx="1.1" fill="#D2C6AC"/>
+  <!-- body -->
+  <path d="M30,26.5 C23,26.5 20.5,31 20,38 C19.2,45 19.4,51 21,57 L79,57 C80.6,51 80.8,45 80,38 C79.5,31 77,26.5 70,26.5 Z" fill="#2F7370"/>
+  <g fill="#2A2521" clip-path="url(#torso)"><circle cx="20" cy="27.5" r="0.8"/><circle cx="68" cy="27.5" r="0.8"/><circle cx="70.4" cy="27.5" r="0.8"/><circle cx="72.8" cy="27.5" r="0.8"/><circle cx="75.2" cy="27.5" r="0.8"/><circle cx="77.6" cy="27.5" r="0.8"/><circle cx="80" cy="27.5" r="0.8"/><circle cx="71.6" cy="29.58" r="0.8"/><circle cx="74" cy="29.58" r="0.8"/><circle cx="76.4" cy="29.58" r="0.8"/><circle cx="78.8" cy="29.58" r="0.8"/><circle cx="72.8" cy="31.66" r="0.8"/><circle cx="75.2" cy="31.66" r="0.8"/><circle cx="77.6" cy="31.66" r="0.8"/><circle cx="80" cy="31.66" r="0.8"/><circle cx="71.6" cy="33.74" r="0.8"/><circle cx="74" cy="33.74" r="0.8"/><circle cx="76.4" cy="33.74" r="0.8"/><circle cx="78.8" cy="33.74" r="0.8"/><circle cx="72.8" cy="35.82" r="0.8"/><circle cx="75.2" cy="35.82" r="0.8"/><circle cx="77.6" cy="35.82" r="0.8"/><circle cx="80" cy="35.82" r="0.8"/><circle cx="71.6" cy="37.9" r="0.8"/><circle cx="74" cy="37.9" r="0.8"/><circle cx="76.4" cy="37.9" r="0.8"/><circle cx="78.8" cy="37.9" r="0.8"/><circle cx="72.8" cy="39.98" r="0.8"/><circle cx="75.2" cy="39.98" r="0.8"/><circle cx="77.6" cy="39.98" r="0.8"/><circle cx="80" cy="39.98" r="0.8"/><circle cx="71.6" cy="42.06" r="0.8"/><circle cx="74" cy="42.06" r="0.8"/><circle cx="76.4" cy="42.06" r="0.8"/><circle cx="78.8" cy="42.06" r="0.8"/><circle cx="72.8" cy="44.14" r="0.8"/><circle cx="75.2" cy="44.14" r="0.8"/><circle cx="77.6" cy="44.14" r="0.8"/><circle cx="80" cy="44.14" r="0.8"/><circle cx="71.6" cy="46.22" r="0.8"/><circle cx="74" cy="46.22" r="0.8"/><circle cx="76.4" cy="46.22" r="0.8"/><circle cx="78.8" cy="46.22" r="0.8"/><circle cx="20" cy="48.3" r="0.8"/><circle cx="68" cy="48.3" r="0.8"/><circle cx="72.8" cy="48.3" r="0.8"/><circle cx="75.2" cy="48.3" r="0.8"/><circle cx="77.6" cy="48.3" r="0.8"/><circle cx="80" cy="48.3" r="0.8"/><circle cx="66.8" cy="50.38" r="0.8"/><circle cx="69.2" cy="50.38" r="0.8"/><circle cx="71.6" cy="50.38" r="0.8"/><circle cx="74" cy="50.38" r="0.8"/><circle cx="76.4" cy="50.38" r="0.8"/><circle cx="78.8" cy="50.38" r="0.8"/><circle cx="20" cy="52.46" r="0.8"/><circle cx="24.8" cy="52.46" r="0.8"/><circle cx="63.2" cy="52.46" r="0.8"/><circle cx="68" cy="52.46" r="0.8"/><circle cx="70.4" cy="52.46" r="0.8"/><circle cx="72.8" cy="52.46" r="0.8"/><circle cx="75.2" cy="52.46" r="0.8"/><circle cx="77.6" cy="52.46" r="0.8"/><circle cx="80" cy="52.46" r="0.8"/><circle cx="21.2" cy="54.54" r="0.8"/><circle cx="23.6" cy="54.54" r="0.8"/><circle cx="28.4" cy="54.54" r="0.8"/><circle cx="62" cy="54.54" r="0.8"/><circle cx="64.4" cy="54.54" r="0.8"/><circle cx="66.8" cy="54.54" r="0.8"/><circle cx="69.2" cy="54.54" r="0.8"/><circle cx="71.6" cy="54.54" r="0.8"/><circle cx="74" cy="54.54" r="0.8"/><circle cx="76.4" cy="54.54" r="0.8"/><circle cx="78.8" cy="54.54" r="0.8"/><circle cx="20" cy="56.62" r="0.8"/><circle cx="22.4" cy="56.62" r="0.8"/><circle cx="24.8" cy="56.62" r="0.8"/><circle cx="27.2" cy="56.62" r="0.8"/><circle cx="29.6" cy="56.62" r="0.8"/><circle cx="34.4" cy="56.62" r="0.8"/><circle cx="53.6" cy="56.62" r="0.8"/><circle cx="58.4" cy="56.62" r="0.8"/><circle cx="60.8" cy="56.62" r="0.8"/><circle cx="63.2" cy="56.62" r="0.8"/><circle cx="65.6" cy="56.62" r="0.8"/><circle cx="68" cy="56.62" r="0.8"/><circle cx="70.4" cy="56.62" r="0.8"/><circle cx="72.8" cy="56.62" r="0.8"/><circle cx="75.2" cy="56.62" r="0.8"/><circle cx="77.6" cy="56.62" r="0.8"/><circle cx="80" cy="56.62" r="0.8"/></g>
+  <!-- gleam -->
+  <path d="M23.6,46 C22.8,39.6 25.4,33.8 30.8,30.6 C28.2,34.8 26.4,40 26.2,46 Z" fill="#D2C6AC"/>
+  <!-- the shorts: high-waisted over the belly, a side stripe, an ink waistband -->
+  <path d="M19.4,50 L80.6,50 C82.8,59 82.8,69 80.8,79 L54,79 L50,74.5 L46,79 L19.2,79 C17.2,69 17.2,59 19.4,50 Z" fill="#6B7F53"/>
+  <path d="M19.4,50 L80.6,50 Q81.1,52 81.4,54 Q50,55.6 18.6,54 Q18.9,52 19.4,50 Z" fill="#2A2521"/>
+  <path d="M18.4,56 Q17.4,67 18.9,79 L21.6,79 Q20.2,67 21.1,56.3 Z" fill="#D2C6AC"/>
+  <path d="M81.6,56 Q82.6,67 81.1,79 L78.4,79 Q79.8,67 78.9,56.3 Z" fill="#D2C6AC"/>
+  <!-- drawstring -->
+  <path d="M50,55.2 Q46,54 45.4,56.6 Q46.2,58.4 50,56.4 Q53.8,58.4 54.6,56.6 Q54,54 50,55.2 Z" fill="#D2C6AC"/>
+  <path d="M49.3,56 L47.6,61.5 L48.9,61.7 L50,56.6 L51.1,61.7 L52.4,61.5 L50.7,56 Z" fill="#D2C6AC"/>
+  <!-- the watch arm: shoulder, elbow out, forearm up to the eye -->
+  <rect x="68.75" y="26.75" width="27.74" height="8.5" rx="4.25" transform="rotate(27.9 73 31)" fill="#2F7370"/>
+  <rect x="85.75" y="35.75" width="20.87" height="8.5" rx="4.25" transform="rotate(-104.04 90 40)" fill="#2F7370"/>
+  <!-- head: a rounded lump, not a circle -->
+  <rect x="37" y="4" width="26" height="24.5" rx="10.5" fill="#2F7370"/>
+  <!-- face, cast right and down at the watch. Half-lidded, flat mouth. -->
+  <path d="M48.4,14.4 Q50.8,13.9 53.2,14.4 Q52.7,16.5 50.8,16.5 Q48.9,16.5 48.4,14.4 Z" fill="#2A2521"/>
+  <path d="M57.4,14.4 Q59.8,13.9 62.2,14.4 Q61.7,16.5 59.8,16.5 Q57.9,16.5 57.4,14.4 Z" fill="#2A2521"/>
+  <rect x="53.6" y="21.4" width="5" height="1.3" fill="#2A2521"/>
+  <!-- the cord, from under the chin, and the whistle hanging on it -->
+  <path d="M43,27 Q43.4,34.5 48.6,39.2 L49.6,38.4 Q44.9,34 44.6,27 Z" fill="#D2C6AC"/>
+  <path d="M57,27 Q56.6,34.5 51.4,39.2 L50.4,38.4 Q55.1,34 55.4,27 Z" fill="#D2C6AC"/>
+  <path d="M42,40.4 H48.5 Q50,39.4 52,39.4 Q56.2,39.4 56.2,43.2 Q56.2,47 52,47 Q48.4,47 47.6,43.6 H42 Z" fill="#D2C6AC"/>
+  <rect x="47.6" y="40.4" width="2.6" height="1.3" fill="#2A2521"/>
+  <!-- the stopwatch, held up to the eye -->
+  <ellipse cx="86" cy="17.5" rx="10.2" ry="9.6" fill="#2A2521"/>
+  <ellipse cx="86" cy="17.5" rx="8.2" ry="7.6" fill="#D2C6AC"/>
+  <rect x="84.6" y="5" width="2.8" height="3.6" fill="#2A2521"/>
+  <rect x="83.2" y="2.6" width="5.6" height="3" rx="1.2" fill="#D2C6AC"/>
+  <rect x="93.2" y="7.6" width="2.4" height="3.2" transform="rotate(42 94.4 9.2)" fill="#2A2521"/>
+  <rect x="85.4" y="10.6" width="1.2" height="2" fill="#2A2521"/>
+  <rect x="85.4" y="22.4" width="1.2" height="2" fill="#2A2521"/>
+  <rect x="79.4" y="16.9" width="2" height="1.2" fill="#2A2521"/>
+  <rect x="90.6" y="16.9" width="2" height="1.2" fill="#2A2521"/>
+  <rect x="85.4" y="12.4" width="1.2" height="5.6" transform="rotate(38 86 17.5)" fill="#2A2521"/>
+  <ellipse cx="86" cy="17.5" rx="1.1" ry="1.1" fill="#2A2521"/>
+  <!-- the hand under the watch -->
+  <rect x="80.5" y="23.5" width="12" height="7.5" rx="3.6" fill="#2F7370"/>
+  </g>
 </svg>
