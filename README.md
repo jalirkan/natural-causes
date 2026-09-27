@@ -5,8 +5,8 @@
 > **Play it: <https://jalirkan.github.io/natural-causes/>** — the current
 > `main`, published by [`deploy.yml`](./.github/workflows/deploy.yml) on every
 > push once a repository admin has pointed Pages at GitHub Actions (see CI,
-> below). One act, about five minutes. Keyboard only for now; touch movement
-> is the next thing the link needs.
+> below). One act, about five minutes. Keyboard, or one thumb on a
+> phone.
 >
 > **Status: the Conception act is complete and unjudged; School runs headless.**
 > Plan in [`PLAN.md`](./PLAN.md) (read its 2026-09-27 amendment first), art
@@ -115,6 +115,8 @@ browser's audio — the sound is synthesised in-house, no files). **WASD** or th
 arrow keys to move. You fire automatically — there is no attack button.
 **1, 2 or 3** takes an upgrade when the game stops to offer three. **P** or
 **Esc** pauses. **M** mutes. **R** restarts once the run is over.
+On a phone: tap to start, drag anywhere to move, tap a card to choose, the
+corner button pauses, and a tap restarts once the run is over.
 
 One act, Conception, about five minutes to the Egg. Rival sperm from the start,
 antibodies at 0:45, spermicide at 1:30, white cells at 2:10. Kill the Egg and

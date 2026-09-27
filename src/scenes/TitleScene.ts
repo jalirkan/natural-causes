@@ -86,11 +86,11 @@ export class TitleScene extends Phaser.Scene {
 
     text(
       520,
-      'WASD or arrows to move   ·   you fire automatically\n1/2/3 choose an upgrade   ·   P pauses   ·   M mutes',
+      'WASD or arrows (or drag anywhere) to move   ·   you fire automatically\n1/2/3 or tap a card to upgrade   ·   P pauses   ·   M mutes',
       15,
       0.8,
     );
-    const prompt = text(600, 'press any key', 18);
+    const prompt = text(600, 'press any key or tap', 18);
     this.tweens.add({ targets: prompt, alpha: 0.35, duration: 900, yoyo: true, repeat: -1 });
 
     const begin = () => {
