@@ -24,6 +24,45 @@ Running record of what the automated bots measured and what it means for design.
 
 ---
 
+# 2026-09-27 · The first life — Conception into School. Presence only.
+
+`pnpm playtest -- --runs=16 --life` · seeds 1000–1015 · 80 lives, checked
+against `pnpm playtest -- --runs=16`. A win is outliving School.
+
+| policy | win rate (95% CI) | median age at end | ended in | top two causes |
+|---|---|---|---|---|
+| midpiece+wake | 31% [14–56] | 0 | conception 11, school 5 | Rival sperm 9, natural causes 5 |
+| membrane+acrosome | 38% [18–61] | 0 | conception 10, school 6 | Rival sperm 6, natural causes 6 |
+| motility | 13% [3–36] | 0 | conception 14, school 2 | Rival sperm 13, natural causes 2 |
+| greedy-capacitation | 63% [39–82] | 12 | school 10, conception 6 | natural causes 10, Rival sperm 6 |
+| random | 38% [18–61] | 0 | conception 10, school 6 | Rival sperm 9, natural causes 6 |
+
+Both acts are provisional (Conception's drag, cadence and boss HP; School's
+whole schedule and its stand-in boss), and so is the full heal at the
+threshold, so nothing here is a calibration. Every run that cleared the Egg
+went on to School and outlived it, 29 of 29 [88–100%], which makes the life's
+win rate exactly Conception's win rate alone, seed for seed. Nothing ends a life
+in School, 0 of 29 [0–12%]: no School enemy appears on any of the 80
+certificates, and neither does its boss (the Egg standing in, certified as The
+Gym Teacher), because the Conception build carries over (level 18–38 at the
+finish) and the threshold restores full health. Every policy gets through both
+acts at least once, with greedy-capacitation ahead of motility on intervals that
+do not overlap and the rest overlapping, and all 51 deaths are in Conception,
+43 of them to Rival sperm. Before playing the two-act life, expect it to be
+decided at the Egg, since no bot died after it; the reaction worth bringing
+back from School is whether it asked anything of you at all.
+
+**INSTRUMENT.** Every 300s column matches the Conception-only run on all 80
+seeds, and every Conception death has the same act, cause and second. Two
+figures printed in the Conception sections do not match. `median@death` reads
+stacks at the end of the life, and the threshold clears them, so all 29 School
+finishes read 0 (greedy-capacitation drops from 34 to 0). The chemotaxis
+correlation compares item levels at the end of the life with stacks at 300s,
+so picks made in School leak into it (18 runs changed; r goes from 0.64 to
+0.74). In a life, read both from the Conception-only run.
+
+---
+
 # 2026-09-27 · School — first run. Presence and ordering only.
 
 `pnpm playtest -- --runs=16 --act=school`. The schedule is provisional (D-022)

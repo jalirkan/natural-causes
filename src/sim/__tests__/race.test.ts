@@ -35,6 +35,7 @@ function place(w: World, id: string, x: number, y: number): void {
   w.enemies.push({
     uid: uid++,
     hitBySerial: 0,
+    hitByAreaSerial: 0,
     def,
     x,
     y,
@@ -46,6 +47,8 @@ function place(w: World, id: string, x: number, y: number): void {
     radius: def.radius,
     displaySize: def.displaySize,
     xp: def.xp,
+    consult: 0,
+    reload: 0,
   });
 }
 

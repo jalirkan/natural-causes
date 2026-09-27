@@ -8,11 +8,14 @@ import { ITEM_ICON_ATLAS, itemIconFrame } from '../data/item-visuals';
 import { sfx } from '../audio/sfx';
 import { combineMoves, stickVector, type Move } from './touch';
 import { certificateLines, hudAge, lifeClock } from './certificate';
+import { recordLife } from '../meta/ancestors';
+import { InputLog } from '../meta/input-log';
 import {
   BOSS_RADIUS,
   World,
   type EnemyState,
   type GemState,
+  type Input,
   type ProjectileState,
 } from '../sim/world';
 import {
@@ -53,6 +56,8 @@ const MAX_ATTACHED_SPRITES = 16;
 const STICK_RADIUS_CSS = 56;
 /** A tap this soon after the run ends is the thumb still steering, not a restart. */
 const RESTART_GRACE_MS = 700;
+/** The last clean run's held headings (src/meta/input-log.ts), beside `nc-ancestors`. One run, overwritten. */
+const INPUT_LOG_KEY = 'nc-input-log';
 
 export class ActScene extends Phaser.Scene {
   /** The life this scene plays (D-024): every act in order, one run. */
@@ -112,7 +117,14 @@ export class ActScene extends Phaser.Scene {
    * it must not know sound exists — so the renderer notices changes the same
    * way it notices everything else: by reading state and diffing.
    */
-  private heard = { kills: 0, hp: 0, stacks: 0, offers: false, boss: false, dead: false, won: false, xp: 0, level: 1, raced: 0 };
+  private heard = { kills: 0, hp: 0, stacks: 0, offers: false, boss: false, dead: false, won: false, xp: 0, level: 1, raced: 0, shot: 0, homework: 0, stun: 0 };
+
+  /**
+   * How long this run held each heading (§12.4's sixth question). Fed the
+   * exact input each step the world takes, so a person's number and a bot's
+   * come from the same instrument. One per run; rebuilt in `create`.
+   */
+  private inputLog = new InputLog();
 
   private hudLevel!: Phaser.GameObjects.Text;
   private hudClock!: Phaser.GameObjects.Text;
@@ -246,13 +258,15 @@ export class ActScene extends Phaser.Scene {
     delete this.offerHeader;
 
     this.dev = neutralDevState();
-    this.heard = { kills: 0, hp: this.world.hp, stacks: 0, offers: false, boss: false, dead: false, won: false, xp: 0, level: 1, raced: 0 };
+    this.heard = { kills: 0, hp: this.world.hp, stacks: 0, offers: false, boss: false, dead: false, won: false, xp: 0, level: 1, raced: 0, shot: 0, homework: 0, stun: 0 };
+    this.inputLog = new InputLog();
     if (import.meta.env.DEV) {
       this.detachDev?.();
       void import('../dev/panel').then(({ attachDevPanel }) => {
         this.detachDev = attachDevPanel({
           world: this.world,
           dev: this.dev,
+          inputLog: this.inputLog,
           restart: () => this.scene.restart({ acts: this.life }),
         });
       });
@@ -540,8 +554,8 @@ export class ActScene extends Phaser.Scene {
     // would be a 200ms step, and things that move at 640px/s tunnel straight
     // through a 15px enemy at that size.
     const scale = this.dev.timeScale;
-    if (scale >= 1) for (let i = 0; i < Math.round(scale); i++) this.world.step(dt, input);
-    else this.world.step(dt * scale, input);
+    if (scale >= 1) for (let i = 0; i < Math.round(scale); i++) this.stepWorld(dt, input);
+    else this.stepWorld(dt * scale, input);
 
     this.applyDevCheats();
     if (this.world.actIndex !== this.shownAct) this.crossThreshold();
@@ -550,6 +564,18 @@ export class ActScene extends Phaser.Scene {
     if (over && this.endedAt < 0) {
       this.endedAt = this.time.now;
       this.releaseStick();
+      // The ancestor log and the input log (src/meta): once per life, outside
+      // World. Not for a tainted run: a cheated life is not an ancestor, and
+      // under a time scale every hold is multiplied, so its log is not a
+      // person's number. The HUD said DEV · RUN TAINTED the whole way.
+      if (!this.dev.tainted) {
+        if (this.world.certificate) recordLife(this.world.certificate);
+        try {
+          localStorage.setItem(INPUT_LOG_KEY, JSON.stringify(this.inputLog.toJSON()));
+        } catch {
+          // Absent or blocked storage: the measurement is lost, the game is not.
+        }
+      }
     }
     // Pause refuses during offers and after the run, so the button hides then.
     this.pauseButton?.setVisible(!over && !this.world.offers);
@@ -565,6 +591,17 @@ export class ActScene extends Phaser.Scene {
     this.syncBoss();
     this.syncAttached();
     this.drawHud();
+  }
+
+  /**
+   * One sim step, and the same input into the log — but only if the world
+   * took the step. It ignores input while an offer is open and after the run;
+   * a key held through a card choice is not a heading held in play.
+   */
+  private stepWorld(dt: number, input: Input): void {
+    const before = this.world.time;
+    this.world.step(dt, input);
+    if (this.world.time > before) this.inputLog.record(dt, input);
   }
 
   /** Reads what changed this frame and gives it a sound. */
@@ -587,10 +624,33 @@ export class ActScene extends Phaser.Scene {
     if (w.boss && !h.boss) sfx.bossSpawn();
     // A rival got there. The Egg flinches; the bar under its name moves.
     if (w.boss && w.raceAbsorbed > h.raced) this.spawnPuff(w.boss.x, w.boss.y);
-    // The Egg's volley only. An enemy's shot (`cause` set: the substitute's)
-    // has no sound of its own yet, and its life is not the boss's 4s, so the
-    // freshness test would misfire on it anyway.
-    if (w.projectiles.some((p) => p.hostile && !p.cause && p.life > 3.9)) sfx.bossShot();
+    // Hostile shots fired since last frame: every projectile's serial comes
+    // off one monotonic counter, so a hostile serial above the highest heard
+    // is new. No owner is the boss's; an owner is the ranged enemy that fired
+    // it (the substitute). At most one of each sound per frame — a volley is
+    // five shots. This replaced `life > 3.9`, which was "an Egg shot just
+    // appeared" and so could never hear a shot that lives 3.2s.
+    let shot = h.shot;
+    let bossFired = false;
+    let enemyFired = false;
+    for (const p of w.projectiles) {
+      if (!p.hostile || p.serial <= h.shot) continue;
+      if (p.owner) enemyFired = true;
+      else bossFired = true;
+      shot = Math.max(shot, p.serial);
+    }
+    if (bossFired) sfx.bossShot();
+    if (enemyFired) sfx.substituteShot();
+    // TODO(whistle): the School boss's telegraph plays sfx.whistle() here (sfx.whistle(true) on the PARTICIPATION ending) once the sim exposes it.
+    // The hall monitor's stop, on its leading edge. A touch during a running
+    // stun refreshes it without an edge, and stays silent.
+    if (w.stunTimer > 0 && h.stun <= 0) sfx.stun();
+    // A homework pile that actually landed: uids are monotonic, and paper
+    // that lands on a pile merges into it without a uid of its own, so a
+    // growing pile is heard once, when it first arrives. One per frame.
+    let homework = h.homework;
+    for (const e of w.enemies) if (e.def.id === 'homework' && e.uid > homework) homework = e.uid;
+    if (homework > h.homework) sfx.homeworkLand();
     if (w.dead && !h.dead) sfx.death();
     if (w.won && !h.won) sfx.win();
     this.heard = {
@@ -604,6 +664,9 @@ export class ActScene extends Phaser.Scene {
       xp: w.xp,
       level: w.level,
       raced: w.raceAbsorbed,
+      shot,
+      homework,
+      stun: w.stunTimer,
     };
   }
 
@@ -630,9 +693,14 @@ export class ActScene extends Phaser.Scene {
     this.player.setPosition(this.world.x, this.world.y);
     if (this.world.facingX !== 0) this.player.setFlipX(this.world.facingX < 0);
     this.player.setAlpha(this.world.invulnerable > 0 ? 0.55 : 1);
+    // Stopped dead by the hall monitor (§3.4): flattened, wiggle held, for as
+    // long as the stun runs. Shape, not tint (G-032). Absolute size every
+    // frame, so it springs back the frame the stun ends.
+    const stun = this.world.stunTimer > 0 ? 0.14 : 0;
+    this.player.setDisplaySize(PLAYER_DISPLAY * (1 + stun), PLAYER_DISPLAY * (1 - stun));
     // The swim: quick small wiggle. It is the player character in an act
     // where the whole field is alive; a rigid sprite reads as a cursor.
-    this.player.setRotation(Math.sin(this.world.time * 9) * 0.09);
+    this.player.setRotation(stun ? 0 : Math.sin(this.world.time * 9) * 0.09);
 
     // Passive cues (G-036): the invisible items get a presence. Membrane is a
     // ring — you can see the thicker skin. Midpiece is motion streaks behind

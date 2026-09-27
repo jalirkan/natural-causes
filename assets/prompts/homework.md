@@ -7,7 +7,7 @@
 - **SVG sha256:** `5df7f3d2759c6ea828838c127e2bd8dd012380a0b0db63b0142d07142e3c0f48`
 - **Rasteriser:** sharp 0.34.5 (libvips 8.17.3, librsvg 2.61.2)
 - **Render:** 229.881 dpi, 4× supersampled and area-averaged
-- **Rendered:** 2026-09-27T22:58:55.578Z
+- **Rendered:** 2026-09-27T23:25:19.984Z
 - **Sprite size:** 72px
 - **Tests:** the wedge — paper that is deliberately not a rectangle
 

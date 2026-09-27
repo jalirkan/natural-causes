@@ -8,8 +8,8 @@
 > below). One run is one life (D-024); today that life is Conception then
 > School, about ten minutes. Keyboard, or one thumb on a phone.
 >
-> **Status: a two-act life — Conception, then School — playable at the link,
-> drawn in a first authored-SVG batch (G-038). Every number is a labelled placeholder.**
+> **Status: a two-act life — Conception, then School — playable at the link.
+> Every sprite in the field but the substitute's is authored SVG (D-025). Every number is a labelled placeholder.**
 > Plan in [`PLAN.md`](./PLAN.md) (read its 2026-09-27 amendment first), art
 > spec in [`ART-DIRECTION.md`](./ART-DIRECTION.md) (binding), decisions in
 > [`DECISIONS.md`](./DECISIONS.md). Name is provisional.
@@ -49,17 +49,18 @@ that changed — and a human decides what is funny. The process is instrumented
 and the findings are published, including what did not work.
 
 Six mechanisms were planned to stop an unattended agent producing generic
-content. Four are built and enforced by tests: mandatory rejected alternatives
-on every decision, a "why this life stage" justification required of every
-enemy, a hard content budget, and automated playtest bots. Two — checkable
+content. Four are built: mandatory rejected alternatives on every decision, a
+"why this life stage" justification a test requires of every enemy, a test
+that every item says what it enables and trades away (the item cap that came
+with it is retired, G-038), and automated playtest bots. Two — checkable
 planted payoffs and a read-only coherence pass — are not built, and
 [`PLAN.md`](./PLAN.md)'s 2026-09-27 amendment says what happens to them.
 
 ## Stack
 
 Phaser 3 · TypeScript · Vite · browser target, playable from a link. Sprites
-are being moved to authored SVG, rasterised and checked by an in-repo pipeline
-(G-038) — consistency is enforced in code, not asked of a generator.
+are authored SVG in the repo, rasterised and checked by an in-repo pipeline
+(D-025, G-038) — consistency is enforced in code, not asked of a generator.
 
 ## Running it
 
@@ -80,8 +81,12 @@ Other tasks:
 pnpm test                 # the whole suite: the sim, the content rules, the art pipeline
 pnpm playtest -- --runs=40 # the bots, with intervals
 pnpm playtest -- --runs=16 --act=school   # any act with a schedule
-pnpm art:batch            # regenerate sprites (needs FAL_KEY in .env)
-pnpm art:batch -- --dry   # print the prompts and run the content rule, no API calls
+pnpm playtest -- --runs=16 --life         # the whole life, act after act
+pnpm art:svg              # every authored SVG in tools/art/svg through the pipeline
+pnpm art:pack             # rebuild the atlases from the checked sprites
+pnpm art:svg -- --id=<id> # one drawing (also --act=<act>; --sheet rebuilds the review page)
+pnpm art:sheet            # the review page: every sprite at game size on its act
+pnpm art:batch -- --dry   # the retired generator's prompts through the content rule, no API calls
 ```
 
 ### CI
@@ -119,22 +124,31 @@ arrow keys to move. You fire automatically — there is no attack button.
 On a phone: tap to start, drag anywhere to move, tap a card to choose, the
 corner button pauses, and a tap restarts once the run is over.
 
-A life: Conception, about five minutes to the Egg, then School, ages five to
-twelve. When the Egg appears every rival swims for it; beat them to it and you
-cross into School with everything you took. Outlive School and you die of
-natural causes, aged twelve. Dying earlier, the certificate names what did it.
+A life: Conception, about five minutes to the Egg: rival sperm from the
+start, antibodies at 0:45, spermicide at 1:30, white cells at 2:10. When the
+Egg appears every rival swims for it; beat them to it and you cross into
+School with everything you took, aged five. Then School: cliques from the
+start, dodgeballs early, homework piling up behind you from the second
+minute, hall monitors that stop you dead, and near the end a substitute
+teacher who stands still, checks the clipboard, and fires; its boss is the
+Gym Teacher's picture on the Egg's behaviour until his design (SCHOOL-ROSTER
+§9) is in the sim. Outlive School and you die of natural causes, aged twelve.
+Dying earlier, the certificate names what did it.
 
-#### After you play — five things to say
+#### After you play — six things to say
 
 These replace the six calibration questions in `CONCEPTION-ROSTER.md` §12.4.
 Nothing here asks for a number; every one is about the run you just had.
 
 1. **Did you want to go again?** If not, at what point did you stop caring?
-2. **Were you slower by the end?** When did you first notice, and did it keep
-   getting worse or stop mattering at some point?
+2. **Were you slower by the end of Conception?** When did you first notice,
+   and did it keep getting worse or stop mattering at some point?
 3. **Was the Egg a fight or a shooting gallery?**
 4. **Did you work out what the magnet does?** Did it seem to help or hurt?
-5. **Did anything make you laugh?** Once is enough. Say what.
+5. **Did School ask anything of you?** The bots walk through it untouched
+   with the build they brought from Conception (`PLAYTEST-FINDINGS.md`, the
+   first life). Did it feel like a new place, or the same field in green?
+6. **Did anything make you laugh?** Once is enough. Say what.
 
 §12.4's sixth question — how long you hold a heading — is not asked, because
 it is answered by an input log the game does not write yet. It is what sets
@@ -152,7 +166,7 @@ and it never touches `World`. Every cheat is applied from `ActScene` after the
 step, so nothing in the panel can reach the playtest bots or a test.
 
 **Any cheat taints the run.** The HUD says `DEV · RUN TAINTED` for the rest of
-it and only a restart clears the flag. The five questions under "Playing" need
+it and only a restart clears the flag. The six questions under "Playing" need
 someone playing honestly, and a badge is cheaper than remembering whether god
 mode was still on twenty minutes ago.
 
@@ -163,13 +177,19 @@ mode was still on twenty minutes ago.
 | **0** | Scaffold, Phaser + Vite, blank scene | done |
 | **1** | Art pipeline + test batch, art direction judged | done — `ART-DIRECTION.md` is binding |
 | **2** | Core loop, Conception act | **complete and unjudged** — title to Egg to certificate, sound, no known bugs, playable at the link; the drag curve and cadence are labelled placeholders until a person has played it |
-| **3** | The School act | five enemies and three behaviours built; a **provisional** schedule the bots run (`--act=school`, D-022); not startable — four sprites ungenerated, no boss, no player frame |
+| **3** | The School act | **playable as the second act of the life** — five enemies, three behaviours, a **provisional** schedule (D-022), sprites authored as SVG (D-025) but the substitute's, still the generated one; the substitute's shot, homework's arrival point and the monitor's stop are built as labelled placeholders nobody has played; the Gym Teacher is designed (SCHOOL-ROSTER §9) and drawn, and fights as the Egg until his behaviour is built |
 
-The art pipeline is six stages (`tools/art/`): generate via Flux on fal, cut the
-background, conform to a locked 20-colour palette with a uniform outline,
-texture, check, pack. The check stage is what makes it unattended — a failed
-asset is regenerated with a mutated seed rather than escalated to a human.
+The art pipeline (`tools/art/`) starts from a drawing: an SVG in
+`tools/art/svg/<act>/` is rasterised, conformed to the act's locked palette with
+a uniform outline, textured, checked and packed into the act's atlas. The check
+stage is what makes it unattended — coverage, contrast against the act's
+background, palette conformance, silhouette variety, readability at 48px — and
+the pipeline rejects, it never corrects (G-032). The SVG is the provenance, and
+`assets/prompts/<id>.md` records its hash, so a drawing cannot drift from its
+sprite unnoticed. The
+generator path (`art:batch`) is retired and kept only so the content rule keeps
+running over its prompts in CI.
 
 `tools/art/content-rule.ts` enforces D-007 as a build failure: no enemy may be
-defined by religion, ethnicity, nationality or race, and a prompt that does is
-never sent to the API.
+defined by religion, ethnicity, nationality or race, in art, name, description
+or prompt.

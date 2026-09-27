@@ -7,7 +7,7 @@
 - **SVG sha256:** `b1a6769706e8645754e8db3e7870cd3146cea8d63f659260bfe806ad7ea1b89e`
 - **Rasteriser:** sharp 0.34.5 (libvips 8.17.3, librsvg 2.61.2)
 - **Render:** 222.158 dpi, 4× supersampled and area-averaged
-- **Rendered:** 2026-09-27T22:58:55.536Z
+- **Rendered:** 2026-09-27T23:25:19.930Z
 - **Sprite size:** 88px
 - **Tests:** the cluster — one enemy that must not read as four
 

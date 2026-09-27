@@ -130,7 +130,7 @@ export const SCHOOL: ActDef = {
   bossName: 'The Gym Teacher',
   age: { from: 5, to: 12 },
   provisional:
-    "Every rate and time here is a placeholder built to make the act runnable, as are the substitute's attack, homework's arrival point and the monitor's stop (`shoots`, TRAIL_DELAY and TRAIL_JITTER, `stopsPlayer`); SCHOOL-ROSTER.md §5 leaves the schedule undesigned, and a person playing it is what moves these (D-022).",
+    "Every rate and time here is a placeholder built to make the act runnable, as are the substitute's attack, homework's arrival point and the monitor's stop (`ranged`, TRAIL_SECONDS, `contactStun`); SCHOOL-ROSTER.md §5 leaves the schedule undesigned, and a person playing it is what moves these (D-022).",
   // SCHOOL-ROSTER.md §3.6 gives an introduction ORDER and no table: clique
   // from the start, dodgeball early, homework from the first third, hall
   // monitor mid, substitute last — and pure contact until the substitute
@@ -186,8 +186,8 @@ export const ALL_ACTS: ActDef[] = [CONCEPTION, SCHOOL];
  * The life the browser plays, in order: the prefix of `ALL_ACTS` with an
  * atlas, a player frame and a boss frame registered in `act-visuals.ts`.
  * School joined when its authored SVG sprites landed (G-038); its boss is the
- * Gym Teacher's picture on the Egg's behaviour until the Gym Teacher is
- * designed. A test asserts this list and
+ * Gym Teacher's picture on the Egg's behaviour until the Gym Teacher's
+ * design (SCHOOL-ROSTER §9) is in the sim. A test asserts this list and
  * `ACT_VISUALS` agree, so moving an act in is a one-line change that fails
  * loudly if the art is not there.
  */

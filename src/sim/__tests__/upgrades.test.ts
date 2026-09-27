@@ -22,6 +22,7 @@ function place(w: World, dx: number, dy: number): EnemyState {
   const e: EnemyState = {
     uid: uid++,
     hitBySerial: 0,
+    hitByAreaSerial: 0,
     def: DUMMY,
     x: w.x + dx,
     y: w.y + dy,
@@ -33,6 +34,8 @@ function place(w: World, dx: number, dy: number): EnemyState {
     radius: DUMMY.radius,
     displaySize: DUMMY.displaySize,
     xp: DUMMY.xp,
+    consult: 0,
+    reload: 0,
   };
   w.enemies.push(e);
   return e;

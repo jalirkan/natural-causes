@@ -5,7 +5,10 @@ import { ENEMIES } from '../../data/enemies';
 import {
   ARENA_WIDTH,
   DESPAWN_RADIUS,
+  IFRAMES,
+  PLAYER_BASE_SPEED,
   PLAYER_RADIUS,
+  TRAIL_SECONDS,
   World,
   type EnemyState,
 } from '../world';
@@ -36,9 +39,9 @@ const EMPTY_ACT: ActDef = {
  * `spawnOverride` is the sim's existing A/B hook (it isolated G-019 from
  * G-020). Used here because merging happens ON ARRIVAL and the default entry
  * point is a random angle on a 780px ring, so two piles never land on each
- * other by chance. Homework's own arrival point, `trail`, jitters by design,
- * so it would not land two piles on each other either; it is tested in
- * school-behaviours.test.ts.
+ * other by chance. Homework's own entry point, `trail`, is tested separately
+ * below; the override is kept here because it lands every pile on one point
+ * without depending on where the player has been.
  */
 function arrivingAtLead(seed = 7): World {
   return new World({ act: EMPTY_ACT, seed, spawnOverride: 'lead' });
@@ -301,6 +304,246 @@ describe('none of this reaches Conception', () => {
       expect(e.radius, id).toBe(ENEMIES[id]!.radius);
       expect(e.xp, id).toBe(ENEMIES[id]!.xp);
       expect(e.displaySize, id).toBe(ENEMIES[id]!.displaySize);
+    }
+  });
+});
+
+/**
+ * The three placeholders D-022 says School is owed (SCHOOL-ROSTER §8). What is
+ * under test is the behaviour's shape; every number is read off the def or
+ * the world's exported constant, so none of them is asserted as a decision.
+ */
+describe('substitute teacher — consult, then fire (§3.5)', () => {
+  const def = ENEMIES['substitute-teacher']!;
+  const ranged = def.ranged!;
+  const hostile = (w: World) => w.projectiles.filter((p) => p.hostile);
+
+  /** Unarmed, so Lash does not kill it; well inside range, walking in. */
+  function inRange(): { world: World; enemy: EnemyState } {
+    const world = new World({ act: EMPTY_ACT, seed: 7 });
+    const px = world.x;
+    const py = world.y;
+    const out = place('substitute-teacher', { x: px + 300, y: py, vx: -def.speed, vy: 0 });
+    out.world.items.clear();
+    return out;
+  }
+
+  it('has an attack at all — ranged pressure is the point of School', () => {
+    expect(ranged).toBeDefined();
+    expect(ranged.range).toBeGreaterThan(0);
+  });
+
+  it('stops to consult, then fires one hostile shot at the player, then resumes', () => {
+    const { world, enemy } = inRange();
+    step(world, 1 / 60);
+    expect(enemy.consult, 'did not start consulting with the player in range').toBeGreaterThan(0);
+    const heldAt = enemy.x;
+
+    step(world, ranged.consultSeconds - 3 / 60);
+    expect(enemy.x, 'walked through its own telegraph').toBe(heldAt);
+    expect(hostile(world), 'fired before the consult ended').toHaveLength(0);
+
+    step(world, 4 / 60);
+    const shots = hostile(world);
+    expect(shots).toHaveLength(1);
+    const shot = shots[0]!;
+    expect(shot.owner).toBe(def);
+    expect(shot.source).toBe('substitute-teacher');
+    // Aimed at the player: velocity points from the substitute to them.
+    const toX = world.x - heldAt;
+    const toY = world.y - enemy.y;
+    const cos = (shot.vx * toX + shot.vy * toY) / (Math.hypot(shot.vx, shot.vy) * Math.hypot(toX, toY));
+    expect(cos).toBeGreaterThan(0.999);
+    expect(Math.hypot(shot.vx, shot.vy)).toBeCloseTo(ranged.projectileSpeed, 6);
+
+    step(world, 0.5);
+    expect(enemy.x, 'never resumed after firing').toBeLessThan(heldAt);
+  });
+
+  it('does not consult with the player out of range', () => {
+    const world = new World({ act: EMPTY_ACT, seed: 7 });
+    const { world: w, enemy } = place('substitute-teacher', {
+      x: world.x + ranged.range + 200,
+      y: world.y,
+      vx: 0,
+      vy: 0,
+    });
+    w.items.clear();
+    step(w, 1);
+    expect(enemy.consult).toBe(0);
+    expect(hostile(w)).toHaveLength(0);
+  });
+
+  it('cannot fire again until its cooldown has passed', () => {
+    const { world, enemy } = inRange();
+    const seen = new Set<number>();
+    const firedAt: number[] = [];
+    let consultedDuringCooldown = false;
+    const seconds = ranged.consultSeconds * 2 + ranged.cooldownSeconds + 1;
+    for (let i = 0; i < Math.round(seconds * 60); i++) {
+      step(world, 1 / 60);
+      for (const p of hostile(world)) {
+        if (seen.has(p.serial)) continue;
+        seen.add(p.serial);
+        firedAt.push(world.time);
+      }
+      if (
+        firedAt.length === 1 &&
+        world.time - firedAt[0]! < ranged.cooldownSeconds - 1 / 60 &&
+        enemy.consult > 0
+      ) {
+        consultedDuringCooldown = true;
+      }
+    }
+    expect(firedAt, 'expected exactly two shots in one cooldown and two consults').toHaveLength(2);
+    expect(consultedDuringCooldown, 'began a consult inside its cooldown').toBe(false);
+    const gap = firedAt[1]! - firedAt[0]!;
+    expect(gap).toBeGreaterThanOrEqual(ranged.cooldownSeconds);
+    // The cooldown runs from the shot, and the next consult follows it.
+    expect(gap).toBeCloseTo(ranged.cooldownSeconds + ranged.consultSeconds, 1);
+  });
+
+  it('a death to its shot puts the substitute on the certificate, not the boss', () => {
+    const { world } = inRange();
+    for (let i = 0; i < 600 && hostile(world).length === 0; i++) step(world, 1 / 60);
+    expect(hostile(world)).toHaveLength(1);
+
+    world.hp = 1;
+    world.invulnerable = 0;
+    for (let i = 0; i < 600 && !world.dead; i++) world.step(1 / 60, { moveX: 0, moveY: 0 });
+    expect(world.dead).toBe(true);
+    expect(world.certificate).toMatchObject({ causeId: 'substitute-teacher', cause: def.name });
+  });
+});
+
+describe('homework — arrives where the player was (§3.3)', () => {
+  it('declares the trail as its entry point', () => {
+    expect(ENEMIES['homework']!.spawnAt).toBe('trail');
+  });
+
+  it('lands where the player was TRAIL_SECONDS ago, not where they are', () => {
+    const world = new World({ act: EMPTY_ACT, seed: 7, startingItems: [] });
+    const path: { t: number; x: number; y: number }[] = [];
+    for (let i = 0; i < 300; i++) {
+      world.step(1 / 60, { moveX: 1, moveY: 0 });
+      path.push({ t: world.time, x: world.x, y: world.y });
+    }
+    world.spawnEnemy('homework');
+    const pile = world.enemies[0]!;
+
+    const target = world.time - TRAIL_SECONDS;
+    const then = path.reduce((a, b) => (Math.abs(b.t - target) < Math.abs(a.t - target) ? b : a));
+    // Within a tenth of a second's walking of where they were.
+    expect(Math.hypot(pile.x - then.x, pile.y - then.y)).toBeLessThan(PLAYER_BASE_SPEED * 0.1);
+    expect(Math.hypot(pile.x - world.x, pile.y - world.y), 'landed on the player').toBeGreaterThan(
+      PLAYER_BASE_SPEED * TRAIL_SECONDS * 0.8,
+    );
+  });
+
+  it('still merges on arrival: two piles landing on the same trail point are one', () => {
+    const world = new World({ act: EMPTY_ACT, seed: 7, startingItems: [] });
+    step(world, 4, 1, 0);
+    world.spawnEnemy('homework');
+    world.spawnEnemy('homework');
+    expect(world.enemies.length).toBe(1);
+  });
+
+  it('paper dropped where the player stood merges into the pile already there', () => {
+    // The first pile lands on a player standing still and pushes them to its
+    // edge; the next lands where they were before the push, which is the pile.
+    const world = new World({ act: EMPTY_ACT, seed: 7, startingItems: [] });
+    step(world, 3);
+    world.spawnEnemy('homework');
+    const pile = world.enemies[0]!;
+    const radius = pile.radius;
+    step(world, 1);
+    world.spawnEnemy('homework');
+    expect(world.enemies.length).toBe(1);
+    expect(pile.radius).toBeGreaterThan(radius);
+  });
+});
+
+describe('hall monitor — the stop (§3.4)', () => {
+  const def = ENEMIES['hall-monitor']!;
+  const stun = def.contactStun!;
+
+  /** Unarmed player touching a monitor that is standing still. */
+  function touching(): { world: World; enemy: EnemyState } {
+    const world = new World({ act: EMPTY_ACT, seed: 7 });
+    const out = place('hall-monitor', { x: world.x + def.radius, y: world.y, vx: 0, vy: 0 });
+    out.world.items.clear();
+    return out;
+  }
+
+  it('its touch deals its damage, sets the i-frames, and starts the stop — all three', () => {
+    const { world } = touching();
+    world.hp = 100;
+    world.step(1 / 60, { moveX: 0, moveY: 0 });
+    expect(world.hp).toBe(100 - def.contactDamage);
+    // The i-frames run from the END of the stop (AUDIT part three, 18): a
+    // stop equal to IFRAMES otherwise expired with them on one frame, and the
+    // contact check ran before the player could move.
+    expect(world.invulnerable).toBeCloseTo(stun + IFRAMES, 6);
+    expect(world.stunTimer).toBeCloseTo(stun, 6);
+  });
+
+  it('stops movement for the window and no longer', () => {
+    const { world, enemy } = touching();
+    step(world, 1 / 60);
+    expect(world.stunTimer).toBeGreaterThan(0);
+    // Out of the way, so only the one touch counts.
+    enemy.x = 200;
+    enemy.y = 200;
+
+    const at = { x: world.x, y: world.y };
+    step(world, stun - 2 / 60, 1, 0);
+    expect(world.x, 'moved while stopped').toBe(at.x);
+    expect(world.y).toBe(at.y);
+
+    step(world, 4 / 60, 1, 0);
+    expect(world.x, 'still stopped after the window').toBeGreaterThan(at.x);
+    expect(world.stunTimer).toBe(0);
+  });
+
+  it('a second touch refreshes the window, never extends it', () => {
+    const { world } = touching();
+    step(world, 1 / 60);
+    step(world, stun / 2);
+    // Still touching; strip the i-frames so the second touch lands.
+    world.invulnerable = 0;
+    step(world, 1 / 60);
+    expect(world.stunTimer).toBeLessThanOrEqual(stun + 1e-9);
+    expect(world.stunTimer).toBeGreaterThan(stun / 2);
+  });
+
+  it('an enemy without contactStun does not stop the player', () => {
+    const { world } = place('dodgeball', { x: 0, y: 0, vx: 0, vy: 0 });
+    const ball = world.enemies[0]!;
+    ball.x = world.x + ball.radius;
+    ball.y = world.y;
+    world.items.clear();
+    world.step(1 / 60, { moveX: 0, moveY: 0 });
+    expect(world.invulnerable).toBeGreaterThan(0);
+    expect(world.stunTimer).toBe(0);
+  });
+});
+
+describe('none of the three placeholders reaches Conception', () => {
+  it('no Conception enemy is ranged, stuns, or arrives on the trail', () => {
+    for (const def of Object.values(ENEMIES)) {
+      if (def.act !== 'conception') continue;
+      expect(def.ranged, `${def.id}`).toBeUndefined();
+      expect(def.contactStun, `${def.id}`).toBeUndefined();
+      expect(def.spawnAt, `${def.id}`).not.toBe('trail');
+    }
+  });
+
+  it('a Conception run never stuns the player and fires no owned shot', () => {
+    const world = new World({ act: CONCEPTION, seed: 99 });
+    for (let i = 0; i < 60 * 45; i++) {
+      step(world, 1 / 60, 1, 0);
+      expect(world.stunTimer).toBe(0);
+      expect(world.projectiles.some((p) => p.owner !== undefined)).toBe(false);
     }
   });
 });

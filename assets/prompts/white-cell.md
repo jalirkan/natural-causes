@@ -4,10 +4,10 @@
 - **Act:** conception
 - **Role:** swarm
 - **Source:** authored SVG, `tools/art/svg/conception/white-cell.svg`
-- **SVG sha256:** `f5e0cea86af2a0c8025988edae507163d8e654304bc9b3aad6bd773bba2ad732`
+- **SVG sha256:** `0c3aac884d1b0974fe74c6f65c0893cab271d36396fca485329027a29c4f4ea0`
 - **Rasteriser:** sharp 0.34.5 (libvips 8.17.3, librsvg 2.61.2)
-- **Render:** 287.869 dpi, 4× supersampled and area-averaged
-- **Rendered:** 2026-09-27T22:58:55.461Z
+- **Render:** 54.371 dpi, 4× supersampled and area-averaged
+- **Rendered:** 2026-09-27T23:25:19.814Z
 - **Sprite size:** 96px
 - **Tests:** the blot silhouette, and a stamp face that must survive 48px
 
@@ -21,13 +21,13 @@ a single large round leukocyte cell seen from directly above, filling most of th
 
 | Check | Result | Measured | Expected |
 |---|---|---|---|
-| silhouette-area | pass | 0.7176 | 0.12–0.82 of canvas |
-| background-contrast | pass | 0.4171 | >= 0.12 median Oklab L from conception-deep |
-| background-contrast-coverage | pass | 0 | <= 0.4 of sprite may vanish into conception-deep |
+| silhouette-area | pass | 0.5755 | 0.12–0.82 of canvas |
+| background-contrast | pass | 0.177 | >= 0.12 median Oklab L from conception-deep |
+| background-contrast-coverage | pass | 0.3382 | <= 0.4 of sprite may vanish into conception-deep |
 | palette-conformance | pass | 0 | <= 0.0353 Oklab from a palette entry |
-| palette-variety | pass | 3 | >= 2 distinct palette colours |
-| palette-dominance | pass | 0.8243 | no colour above 0.97 of the sprite |
-| readable-48px-silhouette | pass | 0.7244 | >= 0.084 coverage at 48px |
-| readable-48px-structure | pass | 5 | >= 2 palette colours still visible at 48px |
+| palette-variety | pass | 4 | >= 2 distinct palette colours |
+| palette-dominance | pass | 0.3409 | no colour above 0.97 of the sprite |
+| readable-48px-silhouette | pass | 0.5842 | >= 0.084 coverage at 48px |
+| readable-48px-structure | pass | 7 | >= 2 palette colours still visible at 48px |
 | enemy-value-ceiling | pass | 0.8295 | <= 0.856 Oklab L (bone); paper belongs to the player |
-| readable-48px-detail | pass | 0.2218 | >= 0.06 edge density at 48px |
+| readable-48px-detail | pass | 0.2829 | >= 0.06 edge density at 48px |

@@ -35,12 +35,16 @@ if (!act) {
   process.stderr.write(`No act "${actArg}". Known: ${ALL_ACTS.map((a) => a.id).join(', ')}\n`);
   process.exit(1);
 }
-// `--life` runs every act as one life (D-024). The instrument's marks stay on
-// the first act, so a life's Conception figures are the same figures.
+// `--life` runs every act as one life (D-024). Every figure in the report's
+// first-act sections is taken on the first act — the 300s marks while
+// `actIndex` is 0, `median@death` and the chemotaxis levels at the step the
+// life crosses — so a life's Conception figures are the same figures as a
+// Conception-only run's. The life-wide figures are the win rate, the ending
+// table and item uptake, and the uptake header says so.
 const acts = argv.includes('--life') ? ALL_ACTS : [act];
 // The bots take their marks on the life's FIRST act, so the report must too:
 // `--act=school --life` otherwise gated the antibody sections on School while
-// measuring Conception (AUDIT part three, 17).
+// measuring Conception. INSTRUMENT (local session, 2026-09-27).
 const first = acts[0]!;
 const onlyPolicy = argv.find((a) => a.startsWith('--policy='))?.slice(9);
 const pullArg = argv.find((a) => a.startsWith('--pull='))?.slice(7);
@@ -212,9 +216,12 @@ spread, raw stack counts: careless ${careless.toFixed(1)} vs careful ` +
     // Chemotaxis pulls enemies toward a point, and antibodies are enemies. If a
     // player-placed attractor is dragging them onto the player, that is a
     // self-inflicted stack generator and it is neither speed nor volatility.
-    const chemo = results.map((r) => r.items['chemotaxis'] ?? 0);
-    const withChemo = results.filter((r) => (r.items['chemotaxis'] ?? 0) > 0);
-    const without = results.filter((r) => (r.items['chemotaxis'] ?? 0) === 0);
+    // Levels as the first act ended: in a life, `items` also holds School's
+    // picks, which cannot have produced a stack counted at 300s in Conception.
+    const chemoLevel = (r: RunResult) => r.itemsAtFirstActEnd['chemotaxis'] ?? 0;
+    const chemo = results.map(chemoLevel);
+    const withChemo = results.filter((r) => chemoLevel(r) > 0);
+    const without = results.filter((r) => chemoLevel(r) === 0);
     const avg = (rs: RunResult[]) =>
       rs.length === 0 ? 0 : +(rs.reduce((a, b) => a + b.stacksAt300, 0) / rs.length).toFixed(1);
     const c = pearson(stacks, chemo);
@@ -265,7 +272,9 @@ for (const s of summarise(results)) {
 }
 
 out.push('');
-out.push('item uptake — share of runs that took it at least once, rarest first');
+out.push(
+  `item uptake — share of runs that took it at least once${acts.length > 1 ? ' over the life' : ''}, rarest first`,
+);
 out.push('-'.repeat(84));
 for (const item of itemUptake(results)) {
   // Ids are stable and the names changed (G-039); print both.

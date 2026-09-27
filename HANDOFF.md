@@ -1,53 +1,49 @@
-# Handoff — 2026-09-27, night
+# Handoff — 2026-09-27, late night
 
-A living note for the next session, whichever machine it runs on. Overwrite
-it; it is not a record. Read `CLAUDE.md` first, then this.
+A living note for whichever session runs next. Overwrite it; it is not a
+record. Read `CLAUDE.md` first, then this. **Two sessions built the same
+steps three times tonight** (the SVG stage, School's placeholders, the audit
+— D-026) because this file on `main` never said who was on what. The
+holder table below is the fix: take a step only if it is yours or unowned,
+and write your name against it here, on `main`, before you start.
 
 ## Where everything is
 
 | What | Where | State |
 |---|---|---|
-| The game | <https://jalirkan.github.io/natural-causes/> | `main`: a two-act life, Conception → School, drawn in authored SVG. Deploys on every push. |
-| Branch | `c/determined-tesla-satvj6` | Same as `main`. |
-| Direction proposals | `DIRECTION-PANEL-2026-09-27.md` | Mined for G-038–G-040. Still usable: inheritance, arrival toasts, per-act items, the Gym Teacher designs, Time as Decline's boss. |
-| Coherence pass | GitHub issue #5 | Part 1 and the tonal breaks are answered (D-024, G-038, G-039). Open: the four unlanded setups — cowlick, misspelled name (the certificate now exists to land it on), the Egg's inheritance, the doorstep death. |
-
-## Done tonight (the commits hold the reasoning)
-
-1. The scene draws the life: act crossing, age HUD, the certificate (D-024).
-2. D-024 and G-038 written; stale claims retired across the docs.
-3. Upgrades are gains: life names, weapon levels that add things, Tantrum,
-   Grudge / Group Chat / Appetite (G-039).
-4. The Egg is a race the rivals also run (G-040).
-5. The SVG art stage (D-025); all twelve Conception and School field sprites
-   authored; School is in `ACTS`.
-6. School's three placeholders (the substitute shoots, homework follows you,
-   the monitor stops you) and AUDIT part three (seven defects, fixed).
+| The game | <https://jalirkan.github.io/natural-causes/> | `main`: a two-act life, Conception → School, every sprite authored SVG. Deploys on every push. |
+| The sim | `src/sim/world.ts` | One life (D-024); upgrades are gains (G-038, G-039); the Egg is a race (G-040); School's three placeholders built and labelled (D-022, D-027); AUDIT parts three and four in. |
+| Art | `tools/art/svg/<act>/<id>.svg`, `pnpm art:svg` | Main's stage (D-025). Every field sprite plus the Gym Teacher drawn. The review page: `pnpm art:sheet`. |
+| The Gym Teacher | `SCHOOL-ROSTER.md` §9 | Designed and drawn; **fights as the Egg** until his behaviour lands (cloud session, in progress). |
+| Adolescence | `ADOLESCENCE-ROSTER.md` | Drafted; under review by the cloud session. Not data yet. |
+| Direction proposals | `DIRECTION-PANEL-2026-09-27.md` | Mined for G-038–G-040. Still usable: inheritance, arrival toasts, per-act items, Time as Decline's boss. |
+| Coherence pass | GitHub issue #5 | Open: the four unlanded setups — cowlick, misspelled name (the certificate exists to land it on), the Egg's inheritance, the doorstep death. |
 
 ## Waiting on Justin — reactions, not values
 
 Play the link once through (about ten minutes). What felt wrong? In
-particular: does the new art read as a register worth keeping (G-038 has him
-pick it from a batch — this is the batch); does the Egg race feel like a
-race; is School anything yet.
+particular: does the art read as a register worth keeping (this is the batch
+G-038 has him pick from); does the Egg race feel like a race; is School
+anything yet; did the substitute, the paper behind you and the monitor's
+stop register at all.
 
-## Next, in order — each ends visible at the link
+## Who holds what
 
-1. **Whatever Justin's play says.** Labelled numbers move only on a person's
-   reaction.
-2. **The Gym Teacher's behaviour.** Its picture is on the Egg's fight; the
-   panel has two designs. A G-entry, built as an act field like `race`, not an
-   id branch.
-3. **Icons for Grudge, Group Chat and Appetite** as SVG through the stage
-   (`iconPending` retires when the frame exists), and the substitute teacher
-   redrawn — it is still the generated sprite.
-4. **The Egg's inheritance** (G-017, now unblocked): one unchosen item at the
-   crossing, announced on the act card.
-5. **The certificate as a document** in the register G-038 keeps for
-   documents; the misspelled-name payoff can land there.
+| Step | Holder |
+|---|---|
+| Whatever Justin's play says — labelled numbers move only on a person's reaction | whoever he tells |
+| The Gym Teacher's behaviour (§9), as an act field like `race` | **cloud session** (in progress) |
+| The substitute teacher redrawn as SVG (the last generated sprite) | **cloud session** (in progress) |
+| Bots that see aimed shots; a headless-Chromium smoke test | **cloud session** (in progress) |
+| Adolescence: roster review → enemies, ActDef, palette (needs a decision: the 20-colour cap), drawings | **cloud session** |
+| AUDIT part four's open items 26–29 (Capacitation at the crossing, Wake standing still, Chemotaxis moving furniture, the ending waiting on a level-up) | **cloud session** |
+| Icons for Grudge, Group Chat and Appetite as SVG through the stage (`iconPending` retires when the frame exists) | unowned — good for the local session |
+| The Egg's inheritance (G-017, unblocked): one unchosen item at the crossing, announced on the act card | unowned — good for the local session |
+| The certificate as a document in the register kept for documents; the misspelled-name payoff lands there | unowned |
+| The Egg's G-006 frames (eyes closing, corona parting) | unowned |
 
 ## The prompt for the next session
 
-> Read CLAUDE.md, then HANDOFF.md. I played it: <reactions>. Do "Next, in
-> order" starting at 1. Merge to `main` when green. Ask me only reaction
-> questions.
+> Read CLAUDE.md, then HANDOFF.md. I played it: <reactions>. Take an
+> unowned step, write your name against it here on `main` first, and end
+> with something visible at the link. Ask me only reaction questions.

@@ -316,6 +316,23 @@ describe('the locked palette', () => {
       expect(ALL_ACTS.some((a) => a.id === id), `visuals for unknown act "${id}"`).toBe(true);
     }
   });
+
+  it('every frame a startable act draws is in its atlas', () => {
+    // The failure this catches would not throw until a person pressed a key:
+    // an act in ACTS whose atlas lacks its player, its boss or one of its
+    // enemies renders a missing-texture square in the browser and nowhere
+    // else. The atlas JSON is imported, so the check is a lookup.
+    for (const act of ACTS) {
+      const v = ACT_VISUALS[act.id]!;
+      const frames = Object.keys(v.atlas.json.frames);
+      expect(frames, `act "${act.id}" atlas lacks its player frame`).toContain(v.playerFrame);
+      expect(frames, `act "${act.id}" atlas lacks its boss frame`).toContain(v.bossFrame);
+      for (const def of Object.values(ENEMIES)) {
+        if (def.act !== act.id) continue;
+        expect(frames, `act "${act.id}" atlas lacks "${def.frame}" for enemy "${def.id}"`).toContain(def.frame);
+      }
+    }
+  });
 });
 
 describe('acts', () => {

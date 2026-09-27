@@ -270,8 +270,9 @@ appearing means something.
 
 ## 5 · Not designed yet
 
-- **The Gym Teacher.** School's boss. Named in `PLAN.md`, no concept, no
-  reservation entry, not generatable. Next thing I write for this act.
+- ~~**The Gym Teacher.** School's boss. Named in `PLAN.md`, no concept, no
+  reservation entry, not generatable. Next thing I write for this act.~~
+  Designed in §9 and drawn (§8).
 - **Wave tuning and the act clock.** After the Conception session unblocks, since
   School's pacing should be set against an act whose feel a human has confirmed
   rather than against Conception's current placeholders.
@@ -452,6 +453,10 @@ and Office print as refused too — both have shipped assets and no reserved
 list, which is `G-011`'s ordering violated by history rather than by anything
 here.
 
+**Amendment 2026-09-27.** Superseded: §8 answers the "Not built" list and the
+Gym Teacher's refusal; the items bullet's game-wide budget of roughly thirty is
+retired (G-038), and items persist across the life (`src/data/items.ts`).
+
 ## 8 · Implementation note — 2026-09-27, Claude Code
 
 §7's "no `ActDef`" is reversed by D-022. `SCHOOL` in `src/data/acts.ts` has a
@@ -477,11 +482,46 @@ life. Clique, dodgeball, homework and hall monitor are authored SVG under
 no costume) and `boss-gym-teacher`, whose reservation now exists: tallest
 thing in the act, shorts and whistle, holding boss teal. The statements
 above that it is absent or ungeneratable are superseded. The Gym Teacher is
-still a picture on the Egg's behaviour; its design is the open question.
+still a picture on the Egg's behaviour; its design is §9.
 
-**Amendment 2026-09-27, later still (D-022).** The substitute's attack,
-homework's arrival point and the monitor's stop are built as labelled
-placeholders (`shoots`, `spawnAt: 'trail'`, `stopsPlayer` on `EnemyDef`),
-named in School's `provisional`. The substitute's shot is a stand-in for the
-misspelled name. The monitor's stop is the player's, per §3.4: touching it
-stops the player dead for 0.6s (placeholder); the monitor itself never pauses.
+**Amendment 2026-09-27 — the three owed placeholders are built.** The
+substitute stops, consults the clipboard (the pause is the telegraph), fires
+one hostile shot at where the player is, and cools down (`ranged` on its
+def); a death to that shot names the substitute on the certificate. Homework
+lands where the player was `TRAIL_SECONDS` ago and merges there
+(`spawnAt: 'trail'`). The hall monitor's touch ignores input for
+`contactStun` seconds alongside the i-frames. Every number in the three is a
+labelled placeholder under `SCHOOL.provisional` — nobody has played them —
+and the intended projectile, the player's name spelled wrong, still waits on
+a player name (§3.5).
+
+## 9 · The Gym Teacher — 2026-09-27
+
+§5's first bullet is answered. The design, then its one open question.
+
+**What it is.** School's boss, standing where the boss spawns and never moving.
+Drawn as the whistle, the stopwatch and the shorts (law 9: the role, not the
+person); eyes on the watch, never on you (indifference kept as this boss's
+flavour). Boss teal body like the Egg's. The whistle is bone, not gold:
+School's gold belongs to the substitute's shot alone (§1, G-031), and a
+boss wearing it would say "aimed at you", which he never is.
+
+**What it does.** It never touches you. Its telegraph is the whistle rising;
+its attack is the whistle: every dodgeball on the field is relaunched at full
+speed at the player and three more are thrown from its hands. It cannot be
+damaged while any dodgeball is alive — nobody leaves until the equipment is
+put away — so the fight is clear the balls, hit him in the gap, repeat, and
+the gap shortens as his health falls. At zero he does not die: he clicks the
+stopwatch and the act ends on one word, PARTICIPATION. A death in the fight
+names the dodgeball on the certificate, and that is correct: he did not hit
+you, he made everyone else hit you and called it character.
+
+**Numbers.** All placeholders under `SCHOOL.provisional`: whistle every 6s
+shortening to 3s at low health, telegraph the Egg's 0.85s, health `BOSS_HP`,
+thrown balls the dodgeball's own def. The sim cost is the existing
+idle → telegraph → attack machine with the attack pointed at the act's own
+enemies, and one invulnerability check over the enemy list.
+
+**Open question.** Whether "cannot be damaged while a ball is alive" makes a
+fight or a chore. The bots can say whether it ends; only a person can say
+which.

@@ -4,8 +4,9 @@
  *
  * Register matters more than fidelity here (ART-DIRECTION's "mid-century
  * institutional" applies to the ears too): short, quiet, dry sounds — a
- * date-stamp thunk rather than an arcade squeal. Sine and triangle waves only,
- * low master volume, no reverb, nothing sustained.
+ * date-stamp thunk rather than an arcade squeal. Sine and triangle waves only
+ * (plus one low-passed noise burst, for impacts), low master volume, no
+ * reverb, nothing sustained.
  *
  * Browser-only by construction and driven entirely by the renderer. The
  * simulation never knows sound exists, for the same reason it never knows
@@ -59,25 +60,76 @@ class Sfx {
     return this.muted;
   }
 
-  /** One enveloped oscillator. Everything below is built from these. */
+  /**
+   * One enveloped oscillator. Everything below is built from these. `hold`
+   * keeps the peak before the decay starts; `wobble` is a pitch LFO (rate Hz,
+   * depth Hz). Both default off, and off they change nothing.
+   */
   private tone(
     freq: number,
-    opts: { wave?: Wave; gain?: number; attack?: number; decay?: number; glideTo?: number; delay?: number } = {},
+    opts: {
+      wave?: Wave;
+      gain?: number;
+      attack?: number;
+      decay?: number;
+      glideTo?: number;
+      delay?: number;
+      hold?: number;
+      wobble?: { rate: number; depth: number };
+    } = {},
   ): void {
     if (!this.ctx || !this.master || this.muted) return;
-    const { wave = 'sine', gain = 0.08, attack = 0.004, decay = 0.12, glideTo, delay = 0 } = opts;
+    const { wave = 'sine', gain = 0.08, attack = 0.004, decay = 0.12, glideTo, delay = 0, hold = 0, wobble } = opts;
     const t0 = this.ctx.currentTime + delay;
+    const end = t0 + attack + hold + decay + 0.05;
     const osc = this.ctx.createOscillator();
     const env = this.ctx.createGain();
     osc.type = wave;
     osc.frequency.setValueAtTime(freq, t0);
     if (glideTo !== undefined) osc.frequency.exponentialRampToValueAtTime(Math.max(1, glideTo), t0 + decay);
+    if (wobble) {
+      const lfo = this.ctx.createOscillator();
+      const depth = this.ctx.createGain();
+      lfo.frequency.value = wobble.rate;
+      depth.gain.value = wobble.depth;
+      lfo.connect(depth).connect(osc.frequency);
+      lfo.start(t0);
+      lfo.stop(end);
+    }
+    env.gain.setValueAtTime(0, t0);
+    env.gain.linearRampToValueAtTime(gain, t0 + attack);
+    if (hold > 0) env.gain.setValueAtTime(gain, t0 + attack + hold);
+    env.gain.exponentialRampToValueAtTime(0.0005, t0 + attack + hold + decay);
+    osc.connect(env).connect(this.master);
+    osc.start(t0);
+    osc.stop(end);
+  }
+
+  /**
+   * One enveloped burst of low-passed white noise — the only unpitched thing
+   * in the set, kept for impacts (paper, a wall). Same gates as `tone`.
+   */
+  private noise(opts: { gain?: number; decay?: number; cutoff?: number; delay?: number } = {}): void {
+    if (!this.ctx || !this.master || this.muted) return;
+    const { gain = 0.03, decay = 0.05, cutoff = 2000, delay = 0 } = opts;
+    const t0 = this.ctx.currentTime + delay;
+    const attack = 0.002;
+    const rate = this.ctx.sampleRate;
+    const buf = this.ctx.createBuffer(1, Math.ceil(rate * (attack + decay + 0.01)), rate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+    const src = this.ctx.createBufferSource();
+    const filter = this.ctx.createBiquadFilter();
+    const env = this.ctx.createGain();
+    src.buffer = buf;
+    filter.type = 'lowpass';
+    filter.frequency.value = cutoff;
     env.gain.setValueAtTime(0, t0);
     env.gain.linearRampToValueAtTime(gain, t0 + attack);
     env.gain.exponentialRampToValueAtTime(0.0005, t0 + attack + decay);
-    osc.connect(env).connect(this.master);
-    osc.start(t0);
-    osc.stop(t0 + attack + decay + 0.05);
+    src.connect(filter).connect(env).connect(this.master);
+    src.start(t0);
+    src.stop(t0 + attack + decay + 0.01);
   }
 
   /** True if this sound's floor has elapsed. Records the play when it has. */
@@ -148,6 +200,56 @@ class Sfx {
   /** The death: one line, downward, unhurried. */
   death(): void {
     this.tone(392, { gain: 0.12, decay: 0.7, glideTo: 98 });
+  }
+
+  // --- School ------------------------------------------------------------
+
+  /**
+   * The substitute's shot, after the clipboard pause (SCHOOL-ROSTER §3.5, §8):
+   * your name called, spelled wrong. A clipped nasal "ah-HEM" — two notes
+   * rising a fourth, a thin third harmonic on each for the nose. Mid register
+   * and upward, so it never reads as `bossShot`'s single low fall; quieter too.
+   */
+  substituteShot(): void {
+    if (!this.due('substituteShot', 300)) return;
+    this.tone(311, { wave: 'triangle', gain: 0.035, decay: 0.05, glideTo: 294 });
+    this.tone(933, { gain: 0.01, decay: 0.04 });
+    this.tone(415, { wave: 'triangle', gain: 0.04, decay: 0.08, glideTo: 392, delay: 0.085 });
+    this.tone(1245, { gain: 0.012, decay: 0.06, delay: 0.085 });
+  }
+
+  /**
+   * The hall monitor's touch stops you dead (§3.4): a dull thud into a wall,
+   * then a small descending boop as the cartoon slides down it.
+   */
+  stun(): void {
+    if (!this.due('stun', 300)) return;
+    this.noise({ gain: 0.05, decay: 0.03, cutoff: 350 });
+    this.tone(95, { wave: 'triangle', gain: 0.1, decay: 0.06, glideTo: 55 });
+    this.tone(520, { gain: 0.035, decay: 0.08, glideTo: 330, delay: 0.07 });
+  }
+
+  /**
+   * Homework lands where you were a moment ago (§3.3): a soft paper slap with
+   * a little low body. Fires often, so it is the quietest thing in the set and
+   * wanders slightly so a run of them does not repeat.
+   */
+  homeworkLand(): void {
+    if (!this.due('homeworkLand', 120)) return;
+    this.noise({ gain: 0.022, decay: 0.045, cutoff: 1500 + Math.random() * 700 });
+    this.tone(140 + Math.random() * 30, { wave: 'triangle', gain: 0.025, decay: 0.05, glideTo: 110 });
+  }
+
+  /**
+   * The Gym Teacher's whistle (§9): a shrill pea-whistle trill, the fast pitch
+   * wobble being the pea. Short (~350ms) for each volley; `long` holds it
+   * ~1.2s with a slow fade for the fight ending on PARTICIPATION.
+   */
+  whistle(long = false): void {
+    if (!long && !this.due('whistle', 300)) return;
+    const wobble = { rate: 50, depth: 110 };
+    if (long) this.tone(2750, { gain: 0.022, attack: 0.02, hold: 0.5, decay: 0.68, wobble });
+    else this.tone(2750, { gain: 0.022, attack: 0.01, hold: 0.2, decay: 0.14, wobble });
   }
 }
 

@@ -341,6 +341,11 @@ both. Motility is the honest pick that neither build wants, and if the bots find
 it never chosen, it gets cut rather than buffed — the budget is capped and a
 sixth item that survives on pity is worse than five that do not.
 
+**Amendment 2026-09-27.** Superseded: §4's opening — the act's full share of a
+thirty-item budget, and every item subtracting something (`G-014`). G-038
+retires both: upgrades gain, and items persist across the life. The items now
+carry life names (G-039); `src/data/items.ts` holds the current set.
+
 ---
 
 ## 5 · Handoff to Claude Code
@@ -1384,3 +1389,7 @@ everything else.
 and "win rate" above means the Egg killed in a life of one act; the Egg is the
 threshold into School, not the session's climax. §7.4's inheritance is no
 longer gated on a second act existing — School does.
+
+**Amendment 2026-09-27.** Superseded: the reserved list named above as the
+next work has been in `tools/art/reservations.ts` since 2026-08-01, and
+School is drawn (SCHOOL-ROSTER §7, §8).

@@ -3,6 +3,10 @@ import conceptionAtlasJson from '../../assets/atlas/conception.json';
 import schoolAtlasPng from '../../assets/atlas/school.png';
 import schoolAtlasJson from '../../assets/atlas/school.json';
 
+export interface AtlasJson {
+  frames: Record<string, unknown>;
+}
+
 /**
  * Act PRESENTATION. Imported only by the renderer.
  *
@@ -15,7 +19,11 @@ import schoolAtlasJson from '../../assets/atlas/school.json';
 export interface ActVisuals {
   /** Act background, from the locked palette (ART-DIRECTION law 3). */
   background: number;
-  atlas: { key: string; png: string; json: object };
+  /**
+   * The atlas JSON is typed by its frame names so a test can ask whether a
+   * frame an act draws is actually in it, without a browser.
+   */
+  atlas: { key: string; png: string; json: AtlasJson };
   playerFrame: string;
   bossFrame: string;
   /**

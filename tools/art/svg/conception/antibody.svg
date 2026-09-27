@@ -1,9 +1,34 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <title>Antibody</title>
-  <desc>A Y drawn with a ruler, the only straight lines among the act's enemies, with a tag at the junction.</desc>
-  <polygon points="12,8 26,8 50,40 74,8 88,8 58,50 58,96 42,96 42,50" fill="#D2C6AC"/>
-  <rect x="34" y="40" width="32" height="26" fill="#A86A63"/>
-  <rect x="41" y="47" width="4" height="7" fill="#2A2521"/>
-  <rect x="55" y="47" width="4" height="7" fill="#2A2521"/>
-  <rect x="44" y="59" width="12" height="3" fill="#2A2521"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <!--
+    Antibody (CONCEPTION-ROSTER §3.3). A record opened about you before you
+    arrived (G-018, G-020): not a creature, a piece of paperwork clipped to a
+    Y. It holds the act's reserved Y (§2), so it takes the ruled clause
+    (G-013): the only straight lines among the act's enemies. Three limbs of
+    even weight (arms 13 across, 10 square to the slope; stem 10), flat ink.
+    At the junction a small bone sheet with one corner folded down in shadow,
+    two ink dots near the top where a form's header would be, and no mouth.
+    CONFORM adds the outline; there is none here.
+
+    Drawn on the finished sprite's own pixel grid. The group maps one unit to
+    one pixel of the 44px sprite: the subject spans 42 units (44 less the
+    1px outline each side), rendered at 12px a unit into 504 of the 512, so
+    CONFORM's nearest-neighbour scale is an exact 12:1 and every edge lands
+    where it is written. The folded corner is stated as steps on that grid
+    rather than as a diagonal, because a diagonal through pixel centres is
+    left to the rasteriser to round. crispEdges keeps the ink/bone edge from
+    quantising to stray tones.
+    Colours are palette hex values: ink #2A2521, shadow #6E6353,
+    bone #D2C6AC.
+  -->
+  <g shape-rendering="crispEdges" transform="translate(0.78125 0.78125) scale(2.34375)">
+  <!-- the Y: arms cut level at the top, stem cut level at the foot -->
+  <path d="M0,0 H13 L21,10 L29,0 H42 L26,20 V42 H16 V20 Z" fill="#2A2521"/>
+  <!-- the sheet, 8 by 10, its top-right corner cut away to the ink -->
+  <path d="M17,12 H23 V13 H24 V14 H25 V22 H17 Z" fill="#D2C6AC"/>
+  <!-- the folded-down flap -->
+  <path d="M23,12 H24 V13 H25 V14 H23 Z" fill="#6E6353"/>
+  <!-- two dots, no mouth -->
+  <rect x="19" y="15" width="1" height="2" fill="#2A2521"/>
+  <rect x="22" y="15" width="1" height="2" fill="#2A2521"/>
+  </g>
 </svg>

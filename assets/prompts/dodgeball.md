@@ -7,7 +7,7 @@
 - **SVG sha256:** `62d3353f924faa5309e00a530e27b0652a901bd2615ea3ac07cc7d89e11bfe80`
 - **Rasteriser:** sharp 0.34.5 (libvips 8.17.3, librsvg 2.61.2)
 - **Render:** 126.720 dpi, 4× supersampled and area-averaged
-- **Rendered:** 2026-09-27T22:58:55.551Z
+- **Rendered:** 2026-09-27T23:25:19.949Z
 - **Sprite size:** 44px
 - **Tests:** the circle — the only radially symmetric thing in the act
 

@@ -134,6 +134,11 @@ either the thesis or a gimmick, and it has not been argued either way.
 
 ## 4. Constraints any answer has to respect
 
+**Note 2026-09-27.** G-038 retired the first two constraints below, and §1's
+paragraphs on them: G-014 (upgrades gain; a cost is a flavour an item may
+have) and the 30-item cap (items persist across the life). The eight items in
+§1's table now carry life names (G-039); `src/data/items.ts` has them.
+
 - **G-014 stands** unless it is explicitly argued down. Every item subtracts.
 - **The 30-item budget** (mechanism 5) is the reason this question is urgent.
 - **Mechanism 1:** every content decision names two rejected alternatives in

@@ -7,7 +7,7 @@
 - **SVG sha256:** `7113718960922d93b2cb1732f2a594186b4b04c5cb8941b3da3047b7850dddab`
 - **Rasteriser:** sharp 0.34.5 (libvips 8.17.3, librsvg 2.61.2)
 - **Render:** 322.560 dpi, 4× supersampled and area-averaged
-- **Rendered:** 2026-09-27T22:58:54.730Z
+- **Rendered:** 2026-09-27T23:25:18.910Z
 - **Sprite size:** 112px
 - **Tests:** can the style do a protagonist at all
 

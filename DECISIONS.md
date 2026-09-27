@@ -359,3 +359,36 @@ Rejected: SVGs straight into the atlas — skips the palette lock and the checks
 the only things that made generated art consistent.
 Rejected: rendering at target size and letting conform's nearest-neighbour
 resize fit it — jagged edges, and stray blended colours near the pickup tone.
+
+## D-026 · 2026-09-27 · Two sessions built D-025 independently; main's stage is kept, the branch's drawings compete sprite by sprite
+The cloud session and the local session each built the SVG stage on the same
+evening from the same handoff, because the handoff on `main` was never
+updated to say the cloud branch had started it. Main's stage (`art:svg`,
+`rasterise.ts`, sha256 provenance) is kept: it is deployed, it is the one the
+local session builds on, and its provenance is mechanical. The branch's
+`draw.ts`, its `assets/svg/` and its Egg stand-in are deleted. Its drawings
+were judged against main's at game size on the act ground, sprite by sprite:
+the antibody, spermicide, white cell and hall monitor come across (they wear
+the threat colours the rosters assign, which main's set lost because the
+reservation tables assigned none — that fix comes across too); the rest stay
+main's, the dodgeball included: its contact-red drawing fails CHECK's
+contrast against School's ground under main's stage (0.09 < 0.12), and the
+pipeline rejects, it does not correct. A duplicated step is the cost of two sessions reading
+one handoff; the handoff now says who holds which step.
+Rejected: keeping both stages — one registry per kind of content (CONCEPTION-ROSTER §5.3).
+Rejected: keeping the branch's stage because its drawings were reviewed harder — the drawings port; the stage does not need to.
+
+## D-027 · 2026-09-27 · School's three owed placeholders are built and labelled, and nobody has played them
+Supersedes D-022's closing sentence: the three items that would "stay unbuilt
+and are now owed labelled placeholders" were built in `079b557`. The
+substitute (`ranged` on its def) stands still to consult, fires one shot at
+where the player is and cools down; a death to that shot names the substitute.
+Homework lands where the player was `TRAIL_SECONDS` ago (`spawnAt: 'trail'`).
+The hall monitor's touch ignores input for `contactStun` seconds beside the
+i-frames. Each is one field on `EnemyDef`, as D-021's flags were, and every
+number is a placeholder under `SCHOOL.provisional`: a person at the link moves
+them; the bots only show that each one happens (G-026).
+Rejected: hold the substitute until the run carries a player name for it to
+misspell (§3.5) — School would keep no ranged pressure, which §2 says it is for.
+Rejected: remember homework's trail as the last N steps — the browser steps by
+frame delta, so "recently" would shrink on a faster display; it samples by time.
