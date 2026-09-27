@@ -392,3 +392,16 @@ Rejected: hold the substitute until the run carries a player name for it to
 misspell (§3.5) — School would keep no ranged pressure, which §2 says it is for.
 Rejected: remember homework's trail as the last N steps — the browser steps by
 frame delta, so "recently" would shrink on a faster display; it samples by time.
+
+## D-028 · 2026-09-27 · Law 3 bounds one act's screen at eleven colours; the catalogue across acts may hold 32
+Adolescence's three tones (ADOLESCENCE-ROSTER §1) take `FULL_PALETTE` to 23,
+past the 16–20 `pipeline.test.ts` asserted. Law 3's real constraint is what
+one act puts on screen — `actPalette`: ink, shadow, paper, bone, the act's
+three tones and the four threat colours, eleven — and that is unchanged; the
+test now asserts it for every act in `ACT_IDS`. The catalogue grows by three
+tones per act and is bounded at 32; seven acts' tones and the eight shared
+colours come to 29. This is the reading `ART-DIRECTION.md`'s open item
+proposed ("twenty is the on-screen budget, not the catalogue"); the law's own
+wording there is still Justin's to change, and the test cites this record.
+Rejected: sharing tones between acts — the ground is how a player knows which act they are in.
+Rejected: keeping 20 and giving later acts no tones of their own — Service and Office already hold tones for their test assets.

@@ -114,7 +114,7 @@ describe('Grudge orbits', () => {
   });
 });
 
-describe('Group Chat chains', () => {
+describe('Gossip chains (item id group-chat, G-041)', () => {
   it('a hit sends a shot on to a second enemy nearby', () => {
     const w = new World({ act: CONCEPTION, seed: 1, startingItems: ['group-chat'] });
     const first = place(w, 100, 0);

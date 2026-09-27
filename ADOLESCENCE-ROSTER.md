@@ -333,6 +333,8 @@ selector the Gym Teacher's build adds, since today every act fights the Egg.
 - **The attached sprite.** `ActScene` draws every attach stack as
   `antibody.png`. In this act it has to draw acne.
 
+**Lifted 2026-09-27**: data in `enemies.ts`/`acts.ts`, tones and reservations in `tools/art`, D-028 and G-041 written; drawings and Prom's behaviour still owed.
+
 ## 6 · Not designed yet
 
 - **The player at thirteen.** G-003's face and cowlick, one frame; taller is

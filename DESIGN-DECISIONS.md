@@ -1147,3 +1147,15 @@ Rejected: the Egg moving or enraging (G-019's objection holds) — a boss that
 chases makes the fight about the Egg; the joke is that it is about everyone else.
 Rejected: a plain timer on the fight — a deadline with no crowd is a number,
 and the rivals turning away from you is the first thing in the act that ignores you.
+
+## G-041 · 2026-09-27 · The weapon is Gossip, because Group Chat is an enemy
+G-039 named the chain weapon Group Chat. PLAN.md has listed group chats in
+Adolescence's horde since 2026-08-01, and "Cause of death: Group chat." is the
+joke, so the enemy keeps the name (ADOLESCENCE-ROSTER §3.5) and the weapon
+takes the direction panel's: **Gossip** — "Travels on its own. Loses nothing
+in the telling." Only the display name moves. The item id stays `group-chat`,
+so bot policies, logs and tests that key on it are untouched; the enemy of
+the same id lives in the other registry, and its shot is hostile, which is
+what the renderer checks first. The blurb never named itself and stays.
+Rejected: naming the enemy something else (Notifications, The Chat) — weaker on a certificate.
+Rejected: letting a weapon and an enemy share a name — the offer card and the death certificate would say the same two words about opposite things.
