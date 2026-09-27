@@ -8,6 +8,7 @@ import { ITEM_ICON_ATLAS, itemIconFrame } from '../data/item-visuals';
 import { sfx } from '../audio/sfx';
 import { combineMoves, stickVector, type Move } from './touch';
 import { certificateLines, hudAge, lifeClock } from './certificate';
+import { recordLife } from '../meta/ancestors';
 import {
   BOSS_RADIUS,
   World,
@@ -540,6 +541,8 @@ export class ActScene extends Phaser.Scene {
     if (over && this.endedAt < 0) {
       this.endedAt = this.time.now;
       this.releaseStick();
+      // The ancestor log (src/meta): once per life, outside World.
+      if (this.world.certificate) recordLife(this.world.certificate);
     }
     // Pause refuses during offers and after the run, so the button hides then.
     this.pauseButton?.setVisible(!over && !this.world.offers);

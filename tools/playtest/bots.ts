@@ -84,8 +84,18 @@ export interface RunResult {
    * Stack statistics are computed over this subset only.
    */
   reached300: boolean;
-  /** Stacks when the run actually ended, for every run. */
+  /**
+   * Stacks when the run actually ended, for every run. In a life that is the
+   * LAST act's value, and the threshold clears the drag, so a run that
+   * crossed reads whatever it picked up after the crossing.
+   */
   stacksAtEnd: number;
+  /**
+   * Stacks on the last step of the first act — the Conception figure the
+   * report's `median@death` column means. For a run that never crossed, the
+   * first act's end is the run's end and this equals `stacksAtEnd`.
+   */
+  stacksAtFirstActEnd: number;
   /** State on arrival at the boss. If a swing is not in the stacks, it is here. */
   hpAt300: number;
   hpFractionAt300: number;
@@ -96,8 +106,14 @@ export interface RunResult {
   /** How much of the boss was left when the run ended. Null if it never spawned. */
   bossHpLeft: number | null;
   bossHpFraction: number | null;
-  /** Antibody contacts. Zero across a whole sample means the enemy never lands. */
+  /** Item levels when the run ended — over the whole life, every act's picks. */
   items: Record<string, number>;
+  /**
+   * Item levels when the first act ended, before any pick made across or
+   * after the threshold. What a first-act statistic (the chemotaxis
+   * correlation) must read; equal to `items` for a run that never crossed.
+   */
+  itemsAtFirstActEnd: Record<string, number>;
 }
 
 /**
@@ -391,6 +407,15 @@ export function runOnce(
   let crowdSteps = 0;
   let prevFx = world.facingX;
   let prevFy = world.facingY;
+  // The first act's end state (D-024). The threshold clears the drag, and
+  // picks made after it are School's, so both are taken on the step the life
+  // crosses — before the loop can answer a queued offer in the new act. The
+  // stacks are the last value act 0 showed from outside, because by the time
+  // `actIndex` reads 1 they are already zero. Null until the crossing; a run
+  // that never crosses takes the run's end, which IS its first act's end.
+  let stacksLastSeenInFirstAct = world.dragStacks;
+  let stacksAtFirstActEnd: number | null = null;
+  let itemsAtFirstActEnd: Record<string, number> | null = null;
 
   const lifeSeconds = acts.reduce((n, a) => n + a.durationSeconds + BOSS_PHASE_MAX_SECONDS, 0);
   const maxSteps = lifeSeconds / DT;
@@ -411,6 +436,15 @@ export function runOnce(
     const inCrowdPhase = world.actIndex === 0 && world.time < act.durationSeconds;
     world.step(DT, decideWithCadence(world, rng, state, DT));
     steps++;
+
+    if (stacksAtFirstActEnd === null) {
+      if (world.actIndex === 0) {
+        stacksLastSeenInFirstAct = world.dragStacks;
+      } else {
+        stacksAtFirstActEnd = stacksLastSeenInFirstAct;
+        itemsAtFirstActEnd = Object.fromEntries(world.items);
+      }
+    }
 
     if (inCrowdPhase) {
       // Angle between successive headings. atan2 of the cross and dot products
@@ -442,6 +476,7 @@ export function runOnce(
     stacksAt300,
     reached300,
     stacksAtEnd: world.dragStacks,
+    stacksAtFirstActEnd: stacksAtFirstActEnd ?? world.dragStacks,
     headingChangeRate: crowdSteps > 0 ? +(headingDelta / (crowdSteps * DT)).toFixed(3) : 0,
     itemSpeedAt300: +itemSpeedAt300.toFixed(1),
     hpAt300: +hpAt300.toFixed(1),
@@ -450,6 +485,7 @@ export function runOnce(
     enemiesAt300,
     meanSpeed: crowdSteps > 0 ? +(speedSum / crowdSteps).toFixed(1) : 0,
     items: Object.fromEntries(world.items),
+    itemsAtFirstActEnd: itemsAtFirstActEnd ?? Object.fromEntries(world.items),
   };
 }
 
@@ -598,7 +634,9 @@ export function summarise(results: RunResult[]): PolicySummary[] {
       medianStacksAt300: median(runs.filter((r) => r.reached300).map((r) => r.stacksAt300)),
       p90StacksAt300: percentile(runs.filter((r) => r.reached300).map((r) => r.stacksAt300), 90),
       meanStacksAt300: +mean(runs.filter((r) => r.reached300).map((r) => r.stacksAt300)).toFixed(1),
-      medianStacksAtEnd: median(runs.map((r) => r.stacksAtEnd)),
+      // The FIRST act's end, not the life's: the threshold clears the drag,
+      // and reading `stacksAtEnd` printed 0 for every run that crossed.
+      medianStacksAtEnd: median(runs.map((r) => r.stacksAtFirstActEnd)),
       meanHeadingChangeRate: +mean(runs.map((r) => r.headingChangeRate)).toFixed(3),
       meanItemSpeed: +mean(runs.map((r) => r.itemSpeedAt300)).toFixed(1),
       meanRealisedSpeed: +mean(runs.map((r) => r.meanSpeed)).toFixed(1),
