@@ -255,6 +255,7 @@ export const TEST_BATCH: AssetSpec[] = [
     name: 'Substitute teacher',
     act: 'school',
     role: 'swarm',
+    source: 'svg',
     tests: 'faces, humour, human characters — THE REAL TEST',
     targetSize: 96,
     seed: 4004,
@@ -269,14 +270,23 @@ export const TEST_BATCH: AssetSpec[] = [
     // are the enemy; the person is what carries them. Nobody feels sorry for a
     // clipboard, and an adult who has already forgotten you and is untroubled
     // by it is funnier and colder than one who is sorry about it.
+    //
+    // Drawn 2026-09-27 (G-038), the last generated sprite to go. The subject
+    // is now the drawing's description: the idle pose from §3.5 — stopped,
+    // consulting the clipboard — with the clipboard in bone (§6.2) and no gold
+    // on the body (§6.1, G-031).
     subject: [
-      'a substitute schoolteacher drawn as a mid-century institutional pictogram',
-      'an ordinary adult figure of average unremarkable build, standing squarely and symmetrically facing forward',
-      'a simplified geometric body, plain and generic, more diagram than portrait',
-      'holding a large plain muted-tan clipboard flat against the chest with both hands, the clipboard is the lightest and hardest-edged shape in the picture but is a soft tan and never white',
-      'a plain lanyard loop around the neck',
-      'the face is almost blank, two small flat dots for eyes and one short straight line for a mouth, no eyebrows',
-      'no expression whatsoever, completely indifferent, unbothered, not looking at the viewer but slightly past and to one side',
+      'a substitute schoolteacher drawn as a plain mid-century institutional pictogram, standing and facing forward',
+      'an ordinary adult figure of average unremarkable build, a simplified geometric body, plain and generic, more diagram than portrait',
+      'a flat muted sage green cardigan (#6B7F53, the act mid tone) with two small dark buttons, the head a rounded lump in the same green, no hair',
+      'warm grey-brown trousers (#6E6353) and warm near-black shoes (#2A2521)',
+      'a plain dark lanyard loop around the neck with a small dark round-cornered badge hanging from it',
+      'holding a large clipboard up in front of the chest in one hand and off to one side, so its square corners make that edge of the outline',
+      'the clipboard is the brightest and hardest-edged shape in the picture, a flat muted tan (#D2C6AC) and never white',
+      'a dark clip on its top edge and three short ruled lines on the sheet, no text',
+      'the other arm hanging at the side',
+      'the head tipped toward the clipboard, reading it: two half-lidded eyes and one short straight line for a mouth, set low and to one side, no eyebrows',
+      'no expression whatsoever, completely indifferent, unbothered, looking down at the clipboard and not at the viewer',
       'institutional and anonymous, not sad, not nervous, not sympathetic',
       'no yellow, no gold, no olive green anywhere on the figure',
     ].join(', '),

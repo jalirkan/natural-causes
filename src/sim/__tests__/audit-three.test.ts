@@ -15,6 +15,7 @@ const EMPTY_ACT: ActDef = {
   name: 'Fixture',
   durationSeconds: 300,
   bossName: 'Fixture',
+  boss: { kind: 'egg' },
   age: { from: 0, to: 0 },
   waves: [],
 };

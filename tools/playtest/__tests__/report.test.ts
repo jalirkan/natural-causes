@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CONCEPTION, SCHOOL } from '../../../src/data/acts';
-import { ITEMS } from '../../../src/data/items';
-import { POLICIES, runOnce, summarise, type RunResult } from '../bots';
+import { ITEMS, POLICIES, isActive, runOnce, summarise, type RunResult } from '../bots';
 
 /**
  * The report's first-act figures in a life (D-024).
@@ -42,6 +41,9 @@ function fixture(over: Partial<RunResult>): RunResult {
     bossHpFraction: null,
     items: {},
     itemsAtFirstActEnd: {},
+    shotsSeen: 0,
+    shotsHit: 0,
+    shotsBy: {},
     ...over,
   };
 }
@@ -84,13 +86,17 @@ describe('runOnce over a two-act life', () => {
     expect(life.actIndex, `no seed in 1001–${seed} crossed`).toBeGreaterThanOrEqual(1);
 
     expect(life.stacksAtFirstActEnd).toBeGreaterThanOrEqual(life.stacksAtEnd);
+    // An evolution replaces its weapon (G-038): a weapon held at the threshold
+    // and evolved after it is still held, as the evolution. Seed 1001 does
+    // this once the bots sidestep aimed shots.
+    const evolvedAway = new Set(
+      Object.keys(life.items).flatMap((id) => {
+        const def = ITEMS[id];
+        return def && isActive(def) && def.evolvesFrom ? [def.evolvesFrom.weapon] : [];
+      }),
+    );
     for (const [id, level] of Object.entries(life.itemsAtFirstActEnd)) {
-      // An evolution (G-039) consumes its ingredient: Tantrum removes Temper.
-      // An item gone at the end is fine if what it evolved into is there.
-      const evolved = Object.values(ITEMS).some(
-        (def) => 'evolvesFrom' in def && def.evolvesFrom?.weapon === id && (life.items[def.id] ?? 0) > 0,
-      );
-      if (evolved) continue;
+      if (evolvedAway.has(id)) continue;
       expect(life.items[id] ?? 0, id).toBeGreaterThanOrEqual(level);
     }
 

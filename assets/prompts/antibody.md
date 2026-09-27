@@ -7,7 +7,7 @@
 - **SVG sha256:** `46454f2f5ac6388087ec3fe06be9087dc20573a25440cc9eaa24b315f08176e5`
 - **Rasteriser:** sharp 0.34.5 (libvips 8.17.3, librsvg 2.61.2)
 - **Render:** 23.683 dpi, 4× supersampled and area-averaged
-- **Rendered:** 2026-09-27T23:25:19.874Z
+- **Rendered:** 2026-09-27T23:32:53.907Z
 - **Sprite size:** 44px
 - **Tests:** the Y — the only straight lines in the act, at the smallest size in it
 
