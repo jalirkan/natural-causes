@@ -14,8 +14,8 @@ and write your name against it here, on `main`, before you start.
 | The game | <https://jalirkan.github.io/natural-causes/> | `main`: a two-act life, Conception → School, every sprite authored SVG. Deploys on every push. |
 | The sim | `src/sim/world.ts` | One life (D-024); upgrades are gains (G-038, G-039); the Egg is a race (G-040); School's three placeholders built and labelled (D-022, D-027); AUDIT parts three and four in. |
 | Art | `tools/art/svg/<act>/<id>.svg`, `pnpm art:svg` | Main's stage (D-025). Every field sprite plus the Gym Teacher drawn. The review page: `pnpm art:sheet`. |
-| The Gym Teacher | `SCHOOL-ROSTER.md` §9 | Designed and drawn; **fights as the Egg** until his behaviour lands (cloud session, in progress). |
-| Adolescence | `ADOLESCENCE-ROSTER.md` | Drafted; under review by the cloud session. Not data yet. |
+| The Gym Teacher | `SCHOOL-ROSTER.md` §9 | Designed, drawn and fighting: the whistle, the shield, PARTICIPATION. Every number a placeholder; nobody has played him. |
+| Adolescence | `ADOLESCENCE-ROSTER.md` | Designed and reviewed; being lifted into data (cloud session). Not drawn, not startable. |
 | Direction proposals | `DIRECTION-PANEL-2026-09-27.md` | Mined for G-038–G-040. Still usable: inheritance, arrival toasts, per-act items, Time as Decline's boss. |
 | Coherence pass | GitHub issue #5 | Open: the four unlanded setups — cowlick, misspelled name (the certificate exists to land it on), the Egg's inheritance, the doorstep death. |
 
@@ -32,9 +32,8 @@ stop register at all.
 | Step | Holder |
 |---|---|
 | Whatever Justin's play says — labelled numbers move only on a person's reaction | whoever he tells |
-| The Gym Teacher's behaviour (§9), as an act field like `race` | **cloud session** (in progress) |
-| The substitute teacher redrawn as SVG (the last generated sprite) | **cloud session** (in progress) |
-| Bots that see aimed shots; a headless-Chromium smoke test | **cloud session** (in progress) |
+| A headless-Chromium smoke test (`pnpm smoke`) | **cloud session** (in progress) |
+| Prom's behaviour (ADOLESCENCE-ROSTER §4) once Adolescence is data | **cloud session** |
 | Adolescence: roster review → enemies, ActDef, palette (needs a decision: the 20-colour cap), drawings | **cloud session** |
 | AUDIT part four's open items 26–29 (Capacitation at the crossing, Wake standing still, Chemotaxis moving furniture, the ending waiting on a level-up) | **cloud session** |
 | Icons for Grudge, Group Chat and Appetite as SVG through the stage (`iconPending` retires when the frame exists) | unowned — good for the local session |

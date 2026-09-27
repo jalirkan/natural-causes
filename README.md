@@ -130,12 +130,14 @@ Egg appears every rival swims for it; beat them to it and you cross into
 School with everything you took, aged five. Then School: cliques from the
 start, dodgeballs early, homework piling up behind you from the second
 minute, hall monitors that stop you dead, and near the end a substitute
-teacher who stands still, checks the clipboard, and fires; its boss is the
-Gym Teacher's picture on the Egg's behaviour until his design (SCHOOL-ROSTER
-§9) is in the sim. Outlive School and you die of natural causes, aged twelve.
+teacher who stands still, checks the clipboard, and fires. Its boss is the
+Gym Teacher (SCHOOL-ROSTER §9): he never touches you; his whistle sends every
+dodgeball on the floor at you and throws three more, and he cannot be hurt
+while one is still rolling. Clear the balls, hit him in the gap, and the act
+ends on one word. Outlive School and you die of natural causes, aged twelve.
 Dying earlier, the certificate names what did it.
 
-#### After you play — six things to say
+#### After you play — seven things to say
 
 These replace the six calibration questions in `CONCEPTION-ROSTER.md` §12.4.
 Nothing here asks for a number; every one is about the run you just had.
@@ -149,6 +151,8 @@ Nothing here asks for a number; every one is about the run you just had.
    with the build they brought from Conception (`PLAYTEST-FINDINGS.md`, the
    first life). Did it feel like a new place, or the same field in green?
 6. **Did anything make you laugh?** Once is enough. Say what.
+7. **The Gym Teacher: a fight or a chore?** The bots clear the balls and win
+   in about twenty seconds, or never learn to and sit there. Which were you?
 
 §12.4's sixth question — how long you hold a heading — is not asked, because
 it is answered by an input log the game does not write yet. It is what sets
@@ -177,7 +181,7 @@ mode was still on twenty minutes ago.
 | **0** | Scaffold, Phaser + Vite, blank scene | done |
 | **1** | Art pipeline + test batch, art direction judged | done — `ART-DIRECTION.md` is binding |
 | **2** | Core loop, Conception act | **complete and unjudged** — title to Egg to certificate, sound, no known bugs, playable at the link; the drag curve and cadence are labelled placeholders until a person has played it |
-| **3** | The School act | **playable as the second act of the life** — five enemies, three behaviours, a **provisional** schedule (D-022), sprites authored as SVG (D-025) but the substitute's, still the generated one; the substitute's shot, homework's arrival point and the monitor's stop are built as labelled placeholders nobody has played; the Gym Teacher is designed (SCHOOL-ROSTER §9) and drawn, and fights as the Egg until his behaviour is built |
+| **3** | The School act | **playable as the second act of the life** — five enemies, three behaviours, a **provisional** schedule (D-022), every sprite authored as SVG (D-025); the substitute's shot, homework's arrival point and the monitor's stop are built as labelled placeholders nobody has played; the Gym Teacher is designed (SCHOOL-ROSTER §9), drawn, and fights — every number in his fight is a placeholder too |
 
 The art pipeline (`tools/art/`) starts from a drawing: an SVG in
 `tools/art/svg/<act>/` is rasterised, conformed to the act's locked palette with
