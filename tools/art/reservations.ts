@@ -132,6 +132,13 @@ export const RESERVATIONS: Partial<Record<ActId, ActReservations>> = {
       // name it fires — and never its body, which has to stay the act's only
       // bright hard rectangle.
       ranged: PROJECTILE_HOLDER,
+      // SCHOOL-ROSTER §3.2 and §3.4 give the dodgeball contact red and the
+      // hall monitor elite purple, and this table did not, so CONFORM would
+      // have quantised both away exactly as it quantised the spermicide's red
+      // in Conception (measured 2026-09-27: no shipped enemy wears a threat
+      // colour). The roster is the design; the table now says what it says.
+      contact: 'dodgeball',
+      elite: 'hall-monitor',
     },
   },
 

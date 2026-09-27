@@ -87,8 +87,10 @@ pnpm typecheck
 pnpm build
 pnpm playtest -- --runs=40              # the bots, Conception, with intervals
 pnpm playtest -- --runs=16 --act=school # any act with a schedule
+pnpm art:draw                           # every SVG in assets/svg through the pipeline, then pack
+pnpm art:draw -- --only=<id>            # one drawing, no pack (iterate on it)
 pnpm art:batch -- --dry                 # prompts + content rule, no API spend
-pnpm art:batch -- --set=<name>          # generate (needs FAL_KEY)
+pnpm art:batch -- --set=<name>          # generate (needs FAL_KEY; drawing needs nothing)
 pnpm art:pack                           # rebuild atlases from conformed sprites
 ```
 
@@ -122,8 +124,9 @@ per machine. Never add it to CI.
   production builds — including the Pages build.
 - **The art pipeline rejects, it never corrects** (G-032). Consistency is
   imposed by CONFORM/CHECK, not asked of the generator. Every asset commits
-  its provenance (`assets/prompts/`); law 11 (`tools/art/reservations.ts`)
-  gates generation itself.
+  its provenance (`assets/prompts/` for generated, `assets/svg/` for drawn,
+  D-025); law 11 (`tools/art/reservations.ts`) gates both doors. Prefer
+  drawing: it needs no key and states the shape exactly.
 - **One registry per kind of content** (CONCEPTION-ROSTER §5.3). A sibling
   collection is a rule that silently stops applying.
 

@@ -141,8 +141,12 @@ Consistency is a code problem, not a prompting problem (D-005).
 ```
 1. GENERATE   Flux via fal. One entity per image, chroma background,
               style suffix varying only by act and by detail budget.
+   — or —
+1. DRAW       An SVG in assets/svg/<act>/<id>.svg, rasterised (D-025).
+              Flat palette fills, no outline, faces on everything. The
+              SVG is the provenance. `pnpm art:draw`.
 2. CUT        Background removal, shadow removal, frame handling,
-              scenery removal, alpha trim, centre on canvas.
+              scenery removal, alpha trim, centre on canvas. (GENERATE only.)
 3. CONFORM    Quantise to the locked palette. Outline to standard weight.
               Normalise to the act's scale grid.
 4. TEXTURE    Grain — bosses only.

@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512" shape-rendering="crispEdges">
+  <!--
+    Homework (SCHOOL-ROSTER §3.3). A leaning stack of paper seen from the
+    side: triangular in profile, wide at the bottom, tapering to the top and
+    leaning right past its own base. Deliberately not a rectangle — the
+    bright hard rectangle is the substitute's (§1). Wads of sheets in bone,
+    never paper; the stack's body shows through in shadow where the sheets
+    do not line up. Two dots near the top, no mouth. CONFORM adds the
+    outline; there is none here.
+    Colours are palette hex values: bone #D2C6AC, shadow #6E6353, ink #2A2521.
+  -->
+  <!-- the stack's body, seen through the gaps -->
+  <path d="M6 90 L84 90 L90 76 L93 56 L95 40 L92 26 L54 24 L44 40 L30 58 L16 74 Z" fill="#6E6353"/>
+  <!-- wads of sheets, bottom to top -->
+  <rect x="4" y="82" width="80" height="8" rx="1.5" fill="#D2C6AC" transform="rotate(-1 44 86)"/>
+  <rect x="11" y="73" width="77" height="7.5" rx="1.5" fill="#D2C6AC" transform="rotate(2.5 49 77)"/>
+  <rect x="18" y="64.5" width="69" height="7.5" rx="1.5" fill="#D2C6AC" transform="rotate(-2 52 68)"/>
+  <rect x="26" y="56" width="66" height="7" rx="1.5" fill="#D2C6AC" transform="rotate(3 59 60)"/>
+  <rect x="34" y="47.5" width="57" height="7" rx="1.5" fill="#D2C6AC" transform="rotate(-3 62 51)"/>
+  <rect x="42" y="39" width="53" height="7" rx="1.5" fill="#D2C6AC" transform="rotate(2 68 43)"/>
+  <!-- top wad, carries the face -->
+  <rect x="51" y="24" width="42" height="13.5" rx="2" fill="#D2C6AC" transform="rotate(-3 72 31)"/>
+  <!-- face: two dots, no mouth -->
+  <circle cx="65" cy="31.5" r="4.2" fill="#2A2521"/>
+  <circle cx="80" cy="30.5" r="4.2" fill="#2A2521"/>
+</svg>

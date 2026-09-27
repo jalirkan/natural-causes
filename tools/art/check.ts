@@ -68,6 +68,12 @@ export interface CheckThresholds {
    */
   surface?: 'field' | 'card';
   /**
+   * Whether the enemy value ceiling applies. It exists so the PLAYER is the
+   * lightest thing on the field, so it cannot sensibly be applied to the
+   * player. Defaults to on for everything drawn on the field.
+   */
+  valueCeiling?: boolean;
+  /**
    * Distinct palette colours still present at 48px (D-018).
    *
    * This is the check that enforces the detail budget. An asset authored with
@@ -126,6 +132,15 @@ export const SWARM_THRESHOLDS: CheckThresholds = {
  * (a manicule, an umbrella), so the coverage floor drops; two palette
  * colours plus ink is a legitimate mid-century pictogram.
  */
+/**
+ * The player: swarm-scale readability, and no ceiling, because the ceiling is
+ * measured against the player.
+ */
+export const PLAYER_THRESHOLDS: CheckThresholds = {
+  ...SWARM_THRESHOLDS,
+  valueCeiling: false,
+};
+
 export const ICON_THRESHOLDS: CheckThresholds = {
   ...DEFAULT_THRESHOLDS,
   minCoverage: 0.1,
@@ -305,7 +320,7 @@ export async function check(
   //    a GPU multiply is invisible to every other check in this function.
   //    Field art only — the ceiling exists so the player is the lightest
   //    thing on the FIELD, and card art never reaches the field.
-  if (thresholds.surface !== 'card') {
+  if (thresholds.surface !== 'card' && thresholds.valueCeiling !== false) {
   let brightest = 0;
   for (let i = 0; i < bmp.data.length; i += CHANNELS) {
     if (bmp.data[i + 3] === 0) continue;

@@ -329,3 +329,23 @@ Rejected: deploy only after CI passes — a flaky or slow check would then hold
 the one artefact this project most needs to exist.
 Rejected: deploy from the feature branch too — a link that changes under
 Justin mid-session is worse than one that changes when work lands.
+
+## D-025 · 2026-09-27 · Sprites are drawn as SVG in the repository; the generator is no longer the only door
+`tools/art/draw.ts` is a second front door to the pipeline: an SVG at
+`assets/svg/<act>/<id>.svg` is rasterised and enters at CONFORM, so it is
+quantised, outlined, scaled and CHECKed by the same code as a generated
+asset, and `draw.test.ts` runs every drawing through those gates in CI. The
+SVG is the provenance (D-010). Drawing costs nothing per asset, needs no
+key, is deterministic, and can state a flat cartoon shape with a face
+exactly, which is the register the owner asked for. School's four missing
+sprites and its player frame were drawn this way; the Egg stands in for its
+boss through the same quantise step, labelled in `STAND_INS`. Found on the
+way: no shipped enemy wears a threat colour, because CONFORM only permits
+colours the act's reservation table assigns, and the tables assigned none;
+School's now gives contact to the dodgeball and elite to the hall monitor as
+the roster says. Conception's remain as shipped until redrawn.
+Rejected: generating School's sprites with the fal key — a person's money
+for a medium a drawing states better, and a key this environment must not
+hold.
+Rejected: a placeholder boss drawn for School — that is designing the Gym
+Teacher by accident; the Egg is already the sim's stand-in and says so.

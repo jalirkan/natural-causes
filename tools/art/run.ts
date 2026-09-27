@@ -2,6 +2,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fromPng, toPng } from './bitmap';
 import { ALL_ASSETS, CONCEPTION_ROSTER, ITEM_ICONS, TEST_BATCH } from './batch';
+import { drawAll, packableIds } from './draw';
 import { pack, type PackEntry } from './pack';
 import { runBatch } from './pipeline';
 import { ACT_IDS, type ActId } from './palette';
@@ -168,12 +169,13 @@ async function cmdPack(): Promise<number> {
   }
   for (const act of ACT_IDS) {
     const entries: PackEntry[] = [];
-    for (const spec of ALL_ASSETS.filter((s) => s.act === act && s.role !== 'icon')) {
-      const file = resolve(root, `assets/sprites/${act}/${spec.id}.png`);
+    // Generated, drawn, or standing in — the atlas does not care which.
+    for (const id of packableIds(act)) {
+      const file = resolve(root, `assets/sprites/${act}/${id}.png`);
       try {
-        entries.push({ id: spec.id, bitmap: await fromPng(readFileSync(file)) });
+        entries.push({ id, bitmap: await fromPng(readFileSync(file)) });
       } catch {
-        // Not generated yet. Packing what exists is the useful behaviour.
+        // Not made yet. Packing what exists is the useful behaviour.
       }
     }
     if (entries.length === 0) continue;
@@ -196,6 +198,37 @@ async function cmdPack(): Promise<number> {
   return 0;
 }
 
+/**
+ * `pnpm art:draw [-- --only=<id|act>]`. Every SVG under assets/svg through
+ * CONFORM and CHECK, plus the stand-ins; packs when everything passed.
+ */
+async function cmdDraw(argv: string[]): Promise<number> {
+  const only = argv.find((a) => a.startsWith('--only='))?.slice('--only='.length);
+  const outcomes = await drawAll(root, only);
+  if (outcomes.length === 0) {
+    log(`No drawings found${only ? ` for --only=${only}` : ''}. Put an SVG at assets/svg/<act>/<id>.svg.`);
+    return 1;
+  }
+  for (const o of outcomes) {
+    const tag = o.source === 'stand-in' ? ' (stand-in)' : '';
+    if (o.ok) {
+      log(`PASS  ${o.id.padEnd(22)}${tag}`);
+      continue;
+    }
+    const why = o.error ?? [...(o.report?.failures ?? []), ...o.violations].join(', ');
+    log(`FAIL  ${o.id.padEnd(22)}${tag}  ${why}`);
+    for (const r of o.report?.results ?? []) {
+      if (!r.pass) log(`        ${r.name}: measured ${r.measured}, expected ${r.expected}`);
+    }
+  }
+  const passed = outcomes.filter((o) => o.ok).length;
+  log(`\n${passed}/${outcomes.length} passed`);
+  if (passed !== outcomes.length) return 1;
+  // A single-asset run is an author iterating; the atlas is rebuilt by the
+  // full run, so several authors can check their own drawings at once.
+  return only ? 0 : cmdPack();
+}
+
 async function cmdSheet(): Promise<number> {
   const out = resolve(root, 'assets/review/test-batch.html');
   const html = await buildContactSheet(root, ALL_ASSETS);
@@ -212,10 +245,12 @@ async function main(): Promise<number> {
       return cmdBatch(argv);
     case 'pack':
       return cmdPack();
+    case 'draw':
+      return cmdDraw(argv);
     case 'sheet':
       return cmdSheet();
     default:
-      log(`Unknown command "${cmd}". Try: batch | pack | sheet`);
+      log(`Unknown command "${cmd}". Try: batch | draw | pack | sheet`);
       return 1;
   }
 }

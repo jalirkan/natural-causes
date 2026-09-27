@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <!--
+    The player, at school (G-003). The same face and the same one cowlick as
+    the Conception sprite, on a stubby front-facing kid. No gear, no props.
+    CONFORM adds the outline; there is none here.
+    Colours are palette hex values: paper #EFE7D6, bone #D2C6AC,
+    school-mid #6B7F53, ink #2A2521.
+  -->
+  <!-- cowlick: one tuft, above the left eye -->
+  <path d="M37.5,19 C38,11 40,6 42,1 C44.5,6 46.5,11 47,19 Z" fill="#2A2521"/>
+  <!-- arms -->
+  <ellipse cx="26" cy="78" rx="5.5" ry="10" transform="rotate(18 26 78)" fill="#EFE7D6"/>
+  <ellipse cx="74" cy="78" rx="5.5" ry="10" transform="rotate(-18 74 78)" fill="#EFE7D6"/>
+  <!-- shoes, legs, shorts -->
+  <rect x="32" y="93" width="14" height="6" rx="3" fill="#2A2521"/>
+  <rect x="54" y="93" width="14" height="6" rx="3" fill="#2A2521"/>
+  <rect x="35" y="88" width="9" height="7" fill="#EFE7D6"/>
+  <rect x="56" y="88" width="9" height="7" fill="#EFE7D6"/>
+  <path d="M29,82 H71 L70.5,92 H53 L50,88 L47,92 H29.5 Z" fill="#6B7F53"/>
+  <!-- shirt -->
+  <path d="M34,64 H66 Q70,64 71,68 L73,85 H27 L29,68 Q30,64 34,64 Z" fill="#D2C6AC"/>
+  <!-- head -->
+  <circle cx="50" cy="42" r="29" fill="#EFE7D6"/>
+  <!-- face: two tall dots and a small flat mouth, off-centre -->
+  <ellipse cx="43.5" cy="44" rx="3.2" ry="9.5" fill="#2A2521"/>
+  <ellipse cx="56.5" cy="44" rx="3.2" ry="9.5" fill="#2A2521"/>
+  <rect x="41" y="60" width="9.5" height="2.6" fill="#2A2521"/>
+  <rect x="39.5" y="57.5" width="2.2" height="5.1" fill="#2A2521"/>
+</svg>

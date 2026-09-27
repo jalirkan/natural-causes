@@ -174,10 +174,10 @@ export const ALL_ACTS: ActDef[] = [CONCEPTION, SCHOOL];
 
 /**
  * The acts the title screen can start: those with an atlas, a player frame
- * and a boss frame registered in `act-visuals.ts`. School has a schedule and
- * the bots can run it; it is not here because four of its five sprites have
- * never been generated and it has no boss. A test asserts this list and
- * `ACT_VISUALS` agree, so moving an act in is a one-line change that fails
- * loudly if the art is not there.
+ * and a boss frame registered in `act-visuals.ts`. A test asserts this list
+ * and `ACT_VISUALS` agree, and that every frame an act needs is in its atlas,
+ * so moving an act in is a one-line change that fails loudly if the art is
+ * not there. School joined on 2026-09-27 with drawn sprites (D-025) and the
+ * Egg standing in for its boss.
  */
-export const ACTS: ActDef[] = [CONCEPTION];
+export const ACTS: ActDef[] = [CONCEPTION, SCHOOL];

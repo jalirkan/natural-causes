@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <defs>
+    <clipPath id="torso">
+      <path d="M 10 60 Q 10 41 29 41 L 71 41 Q 90 41 90 60 L 87 84 L 13 84 Z"/>
+    </clipPath>
+  </defs>
+  <!-- legs -->
+  <rect x="20" y="80" width="25" height="18" rx="4" fill="#7C5C8A"/>
+  <rect x="55" y="80" width="25" height="18" rx="4" fill="#7C5C8A"/>
+  <!-- torso -->
+  <path d="M 10 60 Q 10 41 29 41 L 71 41 Q 90 41 90 60 L 87 84 L 13 84 Z" fill="#7C5C8A"/>
+  <!-- the sash -->
+  <polygon points="-10,30 18,14 110,94 82,110" fill="#D2C6AC" clip-path="url(#torso)"/>
+  <!-- head -->
+  <rect x="28" y="2" width="44" height="36" rx="15" fill="#7C5C8A"/>
+  <!-- face, looking along its route -->
+  <circle cx="54" cy="18" r="3.8" fill="#2A2521"/>
+  <circle cx="66" cy="18" r="3.8" fill="#2A2521"/>
+  <rect x="53" y="27" width="14" height="3.4" fill="#2A2521"/>
+</svg>

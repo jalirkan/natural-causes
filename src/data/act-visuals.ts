@@ -1,5 +1,7 @@
 import conceptionAtlasPng from '../../assets/atlas/conception.png';
 import conceptionAtlasJson from '../../assets/atlas/conception.json';
+import schoolAtlasPng from '../../assets/atlas/school.png';
+import schoolAtlasJson from '../../assets/atlas/school.json';
 
 /**
  * Act PRESENTATION. Imported only by the renderer.
@@ -10,10 +12,15 @@ import conceptionAtlasJson from '../../assets/atlas/conception.json';
  * works in dev and 404s in production, which is discovered at the worst time.
  */
 
+/** The slice of Phaser's JSON Hash atlas the tests need: which frames exist. */
+export interface AtlasJson {
+  frames: Record<string, unknown>;
+}
+
 export interface ActVisuals {
   /** Act background, from the locked palette (ART-DIRECTION law 3). */
   background: number;
-  atlas: { key: string; png: string; json: object };
+  atlas: { key: string; png: string; json: AtlasJson };
   playerFrame: string;
   bossFrame: string;
   /**
@@ -38,6 +45,19 @@ export const ACT_VISUALS: Record<string, ActVisuals> = {
     bossFrame: 'boss-egg.png',
     // conception-light.
     pickup: 0xc99b8c,
+  },
+  school: {
+    // school-deep.
+    background: 0x3d5148,
+    atlas: { key: 'school', png: schoolAtlasPng, json: schoolAtlasJson },
+    // Drawn, not generated (D-025): assets/svg/school/player-school.svg.
+    playerFrame: 'player-school.png',
+    // The Egg, on loan from Conception, until the Gym Teacher is designed
+    // (SCHOOL-ROSTER §5). The sim fights the Egg in School too; the
+    // certificate names the Gym Teacher. See STAND_INS in tools/art/draw.ts.
+    bossFrame: 'boss-egg.png',
+    // school-light.
+    pickup: 0x9fa86b,
   },
 };
 

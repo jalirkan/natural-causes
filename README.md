@@ -161,7 +161,7 @@ mode was still on twenty minutes ago.
 | **0** | Scaffold, Phaser + Vite, blank scene | done |
 | **1** | Art pipeline + test batch, art direction judged | done — `ART-DIRECTION.md` is binding |
 | **2** | Core loop, Conception act | **complete and unjudged** — title to Egg to win/loss, sound, no known bugs, playable at the link; the drag curve and cadence are labelled placeholders until a person has played it |
-| **3** | The School act | five enemies and three behaviours built; a **provisional** schedule the bots run (`--act=school`, D-022); not startable — four sprites ungenerated, no boss, no player frame |
+| **3** | The School act | **playable as the second act of the life** — five enemies, three behaviours, a **provisional** schedule (D-022), sprites drawn as SVG (D-025); the Egg stands in for the undesigned Gym Teacher, and the substitute's attack, homework's arrival point and the monitor's stop are still owed |
 
 The art pipeline is six stages (`tools/art/`): generate via Flux on fal, cut the
 background, conform to a locked 20-colour palette with a uniform outline,

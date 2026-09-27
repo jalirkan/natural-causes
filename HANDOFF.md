@@ -58,9 +58,10 @@ mechanism 1's two rejected alternatives) before building on them.
    few new items. Every proposal's item list is usable.
 4. **A boss that does something.** The Egg as a race the rivals also run
    (genre-purist proposal) or the Gym Teacher (two versions in the panel).
-5. **SVG art.** `tools/art/svg/` with one file per asset, a rasteriser, the
-   existing checks; regenerate Conception and draw School's four missing
-   sprites, a player frame and a boss for School so `ACTS` grows to two.
+5. ~~**SVG art.**~~ **Done for School** (D-025, `pnpm art:draw`,
+   `assets/svg/school/`): School is startable and the life is two acts. Still
+   to draw: Conception's set, so the register is consistent, and the Gym
+   Teacher once it is designed (the Egg stands in).
 6. School's three owed placeholders (substitute's attack, homework's arrival
    point, monitor's stop), then the audit.
 

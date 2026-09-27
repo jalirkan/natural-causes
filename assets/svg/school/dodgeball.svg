@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="352" height="352">
+  <!--
+    Dodgeball (SCHOOL-ROSTER §3.2). The only perfect circle in the act.
+    Flat contact red, no seam, no highlight. A face dead centre that is not
+    excited about anything. CONFORM adds the outline; there is none here.
+    Colours are palette hex values: threat-contact #C4472E, ink #2A2521.
+  -->
+  <circle cx="50" cy="50" r="47" fill="#C4472E"/>
+  <circle cx="37" cy="44" r="5" fill="#2A2521"/>
+  <circle cx="63" cy="44" r="5" fill="#2A2521"/>
+  <rect x="38" y="60" width="24" height="5" fill="#2A2521"/>
+</svg>
