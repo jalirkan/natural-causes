@@ -639,7 +639,15 @@ export function itemUptake(results: RunResult[]): Array<{ id: string; runs: numb
   const counts = new Map<string, number>();
   for (const id of Object.keys(ITEMS)) counts.set(id, 0);
   for (const r of results) {
+    // Held at the end, plus what an evolution consumed: Tantrum removes
+    // Temper, so reading only the final items undercounted Temper in exactly
+    // the runs that took it to max. INSTRUMENT (AUDIT part three, 16).
+    const took = new Set(Object.keys(r.items));
     for (const id of Object.keys(r.items)) {
+      const def = ITEMS[id];
+      if (def && isActive(def) && def.evolvesFrom) took.add(def.evolvesFrom.weapon);
+    }
+    for (const id of took) {
       // `lash` is granted at the start, so taking it is only a real choice
       // above level 1.
       if (id === 'lash' && r.items[id] === 1) continue;

@@ -36,9 +36,9 @@ const EMPTY_ACT: ActDef = {
  * `spawnOverride` is the sim's existing A/B hook (it isolated G-019 from
  * G-020). Used here because merging happens ON ARRIVAL and the default entry
  * point is a random angle on a 780px ring, so two piles never land on each
- * other by chance. It also stands in for the thing that is NOT built: homework
- * is supposed to arrive where the player has recently been, and "recently" is
- * a number nobody has set.
+ * other by chance. Homework's own arrival point, `trail`, jitters by design,
+ * so it would not land two piles on each other either; it is tested in
+ * school-behaviours.test.ts.
  */
 function arrivingAtLead(seed = 7): World {
   return new World({ act: EMPTY_ACT, seed, spawnOverride: 'lead' });

@@ -587,7 +587,10 @@ export class ActScene extends Phaser.Scene {
     if (w.boss && !h.boss) sfx.bossSpawn();
     // A rival got there. The Egg flinches; the bar under its name moves.
     if (w.boss && w.raceAbsorbed > h.raced) this.spawnPuff(w.boss.x, w.boss.y);
-    if (w.projectiles.some((p) => p.hostile && p.life > 3.9)) sfx.bossShot();
+    // The Egg's volley only. An enemy's shot (`cause` set: the substitute's)
+    // has no sound of its own yet, and its life is not the boss's 4s, so the
+    // freshness test would misfire on it anyway.
+    if (w.projectiles.some((p) => p.hostile && !p.cause && p.life > 3.9)) sfx.bossShot();
     if (w.dead && !h.dead) sfx.death();
     if (w.won && !h.won) sfx.win();
     this.heard = {
@@ -741,7 +744,8 @@ export class ActScene extends Phaser.Scene {
     // pointing hand flying at whatever is nearest — and Motility fires the
     // paper dart. The card icon and the field effect are the same drawing, so
     // a weapon chosen on a card is recognised the first time it fires. G-031
-    // unchanged: hostile gold stays on the Egg's shots and nothing else.
+    // unchanged: hostile gold stays on aimed shots — the Egg's and the
+    // substitute's — and nothing else.
     this.fit(this.projectileSprites, list.length, () => this.add.image(0, 0, 'nc-shot').setDepth(8));
     for (let i = 0; i < list.length; i++) {
       const p = list[i]!;

@@ -3,6 +3,7 @@ import { dirname, resolve } from 'node:path';
 import { ANTIBODY_FLOOR, antibodyDragFor } from '../../src/sim/world';
 import { ALL_ACTS, CONCEPTION, spawnStreams } from '../../src/data/acts';
 import {
+  ITEMS,
   POLICIES,
   itemUptake,
   partial,
@@ -37,6 +38,10 @@ if (!act) {
 // `--life` runs every act as one life (D-024). The instrument's marks stay on
 // the first act, so a life's Conception figures are the same figures.
 const acts = argv.includes('--life') ? ALL_ACTS : [act];
+// The bots take their marks on the life's FIRST act, so the report must too:
+// `--act=school --life` otherwise gated the antibody sections on School while
+// measuring Conception (AUDIT part three, 17).
+const first = acts[0]!;
 const onlyPolicy = argv.find((a) => a.startsWith('--policy='))?.slice(9);
 const pullArg = argv.find((a) => a.startsWith('--pull='))?.slice(7);
 const bossPull = pullArg === undefined ? undefined : Number(pullArg);
@@ -68,7 +73,7 @@ for (const policy of policies) {
 const elapsed = (Date.now() - started) / 1000;
 
 /** The act's clock, used wherever the report names the boss's arrival. */
-const mark = act.durationSeconds;
+const mark = first.durationSeconds;
 const pct = (n: number) => `${(n * 100).toFixed(0)}%`;
 const out: string[] = [];
 for (const a of acts) {
@@ -110,10 +115,10 @@ for (const s of summarise(results)) {
 // FAILS, and the report has announced a Conception failure over an act that
 // never spawned the enemy. So the sections are skipped, and the report says
 // so, rather than printed as zeros to be read past.
-const hasAntibody = spawnStreams(act.waves).has('antibody');
+const hasAntibody = spawnStreams(first.waves).has('antibody');
 if (!hasAntibody) {
   out.push('');
-  out.push(`(no antibody stream in "${act.id}" — the stack, dispersion and dodge sections do not apply)`);
+  out.push(`(no antibody stream in "${first.id}" — the stack, dispersion and dodge sections do not apply)`);
 } else {
   // §8.4: report the distribution, not the median. A falsifier over a
   // distribution needs a level condition AND a dispersion condition, and the
@@ -263,7 +268,9 @@ out.push('');
 out.push('item uptake — share of runs that took it at least once, rarest first');
 out.push('-'.repeat(84));
 for (const item of itemUptake(results)) {
-  out.push(`${item.id.padEnd(22)} ${String(item.runs).padStart(4)}   ${pct(item.share).padStart(4)}`);
+  // Ids are stable and the names changed (G-039); print both.
+  const label = `${item.id} (${ITEMS[item.id]?.name ?? '?'})`;
+  out.push(`${label.padEnd(30)} ${String(item.runs).padStart(4)}   ${pct(item.share).padStart(4)}`);
 }
 out.push('');
 out.push(

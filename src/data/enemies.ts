@@ -102,9 +102,11 @@ export interface EnemyDef {
   invulnerable?: boolean;
   /**
    * Where it enters (G-020). `edge` is the arena rim; `lead` is a fixed
-   * distance ahead of the player's current heading. Defaults to `edge`.
+   * distance ahead of the player's current heading; `trail` is where the
+   * player was a few seconds ago (homework, SCHOOL-ROSTER §3.3 — see
+   * TRAIL_DELAY in world.ts). Defaults to `edge`.
    */
-  spawnAt?: 'edge' | 'lead';
+  spawnAt?: 'edge' | 'lead' | 'trail';
   /** Zone hazards. Bursts on a timer, never on proximity. */
   burst?: { fuseSeconds: number; ringRadius: number; ringSeconds: number; ringDamage: number };
   /**
@@ -129,6 +131,18 @@ export interface EnemyDef {
    */
   patrol?: boolean;
   /**
+   * Seconds a damaging contact stops the player dead (SCHOOL-ROSTER §3.4:
+   * "touching it stops the player dead for a moment"). Absent is no stop.
+   */
+  stopsPlayer?: number;
+  /**
+   * A ranged attack: every `cooldown` seconds, if the player is within
+   * `range`, one hostile shot aimed at where the player is now (G-010). The
+   * shot is gold, not the body (G-031), and a death to it is this enemy's on
+   * the certificate. It never hits the crowd; only the boss's shots thin a
+   * race. Speed in px/s, radius in world pixels.
+   */
+  shoots?: { cooldown: number; range: number; speed: number; damage: number; radius: number };  /**
    * Static, combines with its own kind on arrival, and solid to every mover
    * (homework).
    *
@@ -295,12 +309,11 @@ export const ENEMIES: Record<string, EnemyDef> = {
     // Zero damage AND `none`: the two are not the same thing. See `Contact`.
     contact: 'none',
     merge: true,
-    // NOT BUILT YET, and owed a labelled placeholder rather than withheld
-    // (D-022): where it lands. §3.3 says homework "spawns where the player
-    // has recently been", and "recently" is the same class of dial as
-    // ANTIBODY_LEAD, which G-020 shows is the knob that decides whether an
-    // arrival mechanic exists at all. It lands at the default entry point
-    // until the placeholder is built and labelled.
+    // §3.3: "spawns where the player has recently been". "Recently" is the
+    // same class of dial as ANTIBODY_LEAD (G-020), and it is a PLACEHOLDER
+    // (TRAIL_DELAY and TRAIL_JITTER in world.ts; School's `provisional`
+    // names it).
+    spawnAt: 'trail',
     whyThisStage:
       'School is the first stage that follows the player home and takes up the part of the day nobody was counting.',
   },
@@ -317,13 +330,13 @@ export const ENEMIES: Record<string, EnemyDef> = {
     displaySize: 88,
     xp: 11,
     movement: 'cross',
-    // NOT BUILT YET, and owed a labelled placeholder rather than withheld
-    // (D-022): "touching it stops the player dead for a moment" (§3.4). The
-    // moment is a duration the roster does not give. Contact is elite-tier
-    // damage and nothing else until the placeholder exists; the roadblock
-    // reads off the patrol line, which needs no number.
+    // Elite-tier contact damage, and "touching it stops the player dead for a
+    // moment" (§3.4): the lane is a thing you time, and misjudging it costs
+    // the next second as well as the hit.
     contact: 'damage',
     patrol: true,
+    // PLACEHOLDER (D-022; School's `provisional` names it). Nobody has played it.
+    stopsPlayer: 0.6,
     whyThisStage:
       'School is where authority is first handed to someone with no more standing than the player, and it works anyway.',
   },
@@ -341,15 +354,14 @@ export const ENEMIES: Record<string, EnemyDef> = {
     xp: 5,
     movement: 'cross',
     contact: 'damage',
-    // NOT BUILT YET: the attack, which is the entire reason this enemy is in
-    // the roster. §3.5 gates the intended projectile — the player's name,
-    // spelled wrong — on the run carrying a player name, which G-002's
-    // certificate needs and which does not exist; that is a design
-    // dependency, not a number. The roster asks for a placeholder attack
-    // meanwhile, and under D-022 one is owed, labelled, rather than withheld
-    // for want of its five numbers. Until then this is a slow enemy that does
-    // not pursue, and the act's ranged pressure — the whole point of School
-    // under G-010 — is not in the game.
+    // The attack is a PLACEHOLDER shot (D-022; School's `provisional` names
+    // it). §3.5's intended projectile — the player's name, spelled wrong —
+    // waits on the run carrying a player name, which does not exist; the
+    // roster says the stand-in is not to be designed around. Every number
+    // here is invented: a shot every 3.5s, from 520px, at 220px/s, for about
+    // one contact's damage. The clipboard consult (the telegraph) is not
+    // built; it fires on the cooldown without pausing.
+    shoots: { cooldown: 3.5, range: 520, speed: 220, damage: 6, radius: 8 },
     whyThisStage:
       'School is the first place the player is judged by someone who does not know who they are, and the substitute is that experience with a lanyard on.',
   },

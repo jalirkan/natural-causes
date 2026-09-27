@@ -114,6 +114,23 @@ export const BOSS_PULL = 0;
  * stays fixed until this one is settled.
  */
 export const ANTIBODY_LEAD = 320;
+
+/**
+ * Homework's arrival point (SCHOOL-ROSTER §3.3): "where the player has
+ * recently been". The player's position is sampled every TRAIL_SAMPLE
+ * seconds into a fixed ring; a `spawnAt: 'trail'` enemy lands at the sample
+ * from TRAIL_DELAY seconds ago, up to TRAIL_JITTER pixels off it, clamped to
+ * the arena. With no sample that old yet it enters from the edge.
+ *
+ * PLACEHOLDER (School's `provisional` names it). "Recently" is the same class
+ * of dial as ANTIBODY_LEAD, which G-020 showed decides whether an arrival
+ * mechanic exists at all; 8s and 60px were invented, not played.
+ */
+export const TRAIL_SAMPLE = 1;
+export const TRAIL_DELAY = 8;
+export const TRAIL_JITTER = 60;
+/** Ring slots: enough to hold the sample from TRAIL_DELAY ago and the newest. */
+const TRAIL_SLOTS = Math.round(TRAIL_DELAY / TRAIL_SAMPLE) + 1;
 /**
  * Calibrated against measured bot damage, not guessed.
  *
@@ -171,6 +188,12 @@ export interface EnemyState {
   radius: number;
   displaySize: number;
   xp: number;
+  /**
+   * `shoots` only: seconds until it may fire again. Set at spawn to a full
+   * cooldown, so a new arrival does not fire on its first step. Optional so
+   * hand-built enemies in tests need not care; absent reads as ready.
+   */
+  reload?: number;
 }
 
 export interface ProjectileState {
@@ -182,8 +205,14 @@ export interface ProjectileState {
   damage: number;
   pierce: number;
   radius: number;
-  /** Boss shots. The only things in the act that aim at the player. */
+  /** Aimed at the player: the boss's shots and an enemy's `shoots`. */
   hostile: boolean;
+  /**
+   * The enemy that fired a hostile shot, for the certificate. Absent means
+   * the boss — and only boss shots thin a race (`hitRacer`). Same shape as
+   * `RingState.cause`, and optional for the same reason.
+   */
+  cause?: EnemyDef;
   /**
    * The item id that fired this, or 'boss'. Presentation metadata: the
    * renderer draws a Lash shot and a Motility shot as different objects, and
@@ -404,6 +433,15 @@ export class World {
   private bossHitSerial = 0;
   /** A second query buffer, for a lookup made while `near` is being walked. */
   private readonly near2: EnemyState[] = [];
+  /**
+   * The player's recent positions, for `spawnAt: 'trail'`. A fixed ring of
+   * TRAIL_SLOTS (x, y) pairs written in place: no allocation per step or per
+   * sample. `trailCount` is how many slots hold a real sample.
+   */
+  private readonly trail = new Float64Array(TRAIL_SLOTS * 2);
+  private trailHead = 0;
+  private trailCount = 0;
+  private trailClock = 0;
   /** Bursts owed an echo: which item, and at what life-clock time. */
   private echoes: { id: string; at: number }[] = [];
   /**
@@ -453,6 +491,8 @@ export class World {
   invulnerable = 0;
   engulfTimer = 0;
   engulfSlow = 1;
+  /** Seconds the player is stopped dead (`EnemyDef.stopsPlayer`). */
+  stopTimer = 0;
   engulfDps = 0;
   dragStacks = 0;
 
@@ -578,6 +618,7 @@ export class World {
   }
 
   get speed(): number {
+    if (this.stopTimer > 0) return 0;
     return this.baseSpeed * (this.engulfTimer > 0 ? this.engulfSlow : 1);
   }
 
@@ -634,6 +675,7 @@ export class World {
     // off `movePlayer` meant a frame with no input did not clamp at all, so any
     // other way of setting a position escaped the field.
     this.clampPlayer();
+    this.sampleTrail(dt);
     if (!this.boss) this.spawn(dt);
     this.moveEnemies(dt);
     this.resolveRace();
@@ -683,6 +725,22 @@ export class World {
     this.y = clamp(this.y, 0, ARENA_HEIGHT);
   }
 
+  /** One sample of the player's position every TRAIL_SAMPLE seconds, into the ring. */
+  private sampleTrail(dt: number): void {
+    this.trailClock += dt;
+    if (this.trailClock < TRAIL_SAMPLE) return;
+    this.trailClock -= TRAIL_SAMPLE;
+    this.trail[this.trailHead * 2] = this.x;
+    this.trail[this.trailHead * 2 + 1] = this.y;
+    this.trailHead = (this.trailHead + 1) % TRAIL_SLOTS;
+    if (this.trailCount < TRAIL_SLOTS) this.trailCount++;
+  }
+
+  /** Slots in the trail ring. Read by tests to show it does not grow. */
+  get trailCapacity(): number {
+    return this.trail.length / 2;
+  }
+
   /**
    * G-015. Constant magnitude, no falloff, no dependence on the boss's health
    * or on anything the player does. The fight is an orbit.
@@ -729,8 +787,17 @@ export class World {
     const def = enemyDef(id);
     let x: number;
     let y: number;
+    const at = this.spawnOverride ?? def.spawnAt;
 
-    if ((this.spawnOverride ?? def.spawnAt) === 'lead') {
+    if (at === 'trail' && this.trailCount === TRAIL_SLOTS) {
+      // Where the player was TRAIL_DELAY ago: the oldest slot, which is the
+      // one the head is about to overwrite. It follows them rather than
+      // meeting them — the room fills up behind the route they took.
+      const angle = this.rng() * Math.PI * 2;
+      const off = Math.sqrt(this.rng()) * TRAIL_JITTER;
+      x = clamp(this.trail[this.trailHead * 2]! + Math.cos(angle) * off, 0, ARENA_WIDTH);
+      y = clamp(this.trail[this.trailHead * 2 + 1]! + Math.sin(angle) * off, 0, ARENA_HEIGHT);
+    } else if (at === 'lead') {
       // G-020: already where the player is going. It does not pursue, steer or
       // react — the player's own forward motion does all the closing, which is
       // the most law-8-compliant behaviour available. It is also whyThisStage
@@ -797,6 +864,7 @@ export class World {
       radius: def.radius,
       displaySize: def.displaySize,
       xp: def.xp,
+      ...(def.shoots ? { reload: def.shoots.cooldown } : {}),
     });
   }
 
@@ -848,6 +916,8 @@ export class World {
         }
       }
 
+      if (e.def.shoots && e.hp > 0) this.enemyFire(e, dt);
+
       if (e.def.burst && e.age >= e.def.burst.fuseSeconds) {
         this.rings.push({
           cause: e.def,
@@ -870,6 +940,39 @@ export class World {
         swapRemove(this.enemies, i);
       }
     }
+  }
+
+  /**
+   * `EnemyDef.shoots`: one hostile shot at where the player is now, when the
+   * reload is spent and the player is in range. The reload holds at zero out
+   * of range, so walking into range draws a shot at once. The shot travels
+   * one and a half ranges before it lapses.
+   */
+  private enemyFire(e: EnemyState, dt: number): void {
+    const s = e.def.shoots!;
+    e.reload = Math.max(0, (e.reload ?? 0) - dt);
+    if (e.reload > 0 || this.outcomeDecided) return;
+    const dx = this.x - e.x;
+    const dy = this.y - e.y;
+    const d = Math.hypot(dx, dy);
+    if (d > s.range) return;
+    e.reload = s.cooldown;
+    const nx = d < 0.001 ? 1 : dx / d;
+    const ny = d < 0.001 ? 0 : dy / d;
+    this.projectiles.push({
+      x: e.x,
+      y: e.y,
+      vx: nx * s.speed,
+      vy: ny * s.speed,
+      life: (s.range * 1.5) / s.speed,
+      damage: s.damage,
+      pierce: 1,
+      radius: s.radius,
+      hostile: true,
+      source: e.def.id,
+      cause: e.def,
+      serial: this.nextSerial++,
+    });
   }
 
   /**
@@ -1362,9 +1465,13 @@ export class World {
    * full damage, and is consumed exactly as it is on the player. It hits
    * nothing else in the crowd. Killed racers go through `reapDead` like any
    * other kill, so they drop their gem.
+   *
+   * ONLY the boss's shots. An enemy's shot (`cause` set — the substitute's)
+   * passes through racers as it passes through everything but the player;
+   * the race is between the rivals and the Egg.
    */
   private hitRacer(p: ProjectileState, pi: number): void {
-    if (!this.boss || !this.act.race) return;
+    if (p.cause || !this.boss || !this.act.race) return;
     this.grid.query(p.x, p.y, p.radius + this.queryPad, this.near);
     for (const e of this.near) {
       if (e.hp <= 0 || e.def.invulnerable || !this.isRacing(e)) continue;
@@ -1444,6 +1551,7 @@ export class World {
     // See outcomeDecided: the engulf tick and attach damage do not go through
     // hurt(), so the guard has to sit above them too.
     if (this.outcomeDecided) return;
+    if (this.stopTimer > 0) this.stopTimer = Math.max(0, this.stopTimer - dt);
     if (this.engulfTimer > 0) {
       this.engulfTimer -= dt;
       this.hp -= this.engulfDps * dt * this.damageTaken;
@@ -1477,6 +1585,7 @@ export class World {
       }
       if (this.invulnerable > 0) continue;
       this.hurt(e.def.contactDamage, e.def);
+      if (e.def.stopsPlayer !== undefined) this.stopTimer = e.def.stopsPlayer;
       // `break`, not `return`. Returning here skipped the boss-shot loop
       // below for the whole frame, so on any frame the player was touching a
       // rival a boss projectile passed through them and stayed alive to be
@@ -1485,14 +1594,14 @@ export class World {
       break;
     }
 
-    // Boss shots. The only things in the act that were aimed.
+    // Aimed shots: the boss's, and an enemy's `shoots`, named by `cause`.
     for (let i = this.projectiles.length - 1; i >= 0; i--) {
       const p = this.projectiles[i]!;
       if (!p.hostile) continue;
       const r = p.radius + PLAYER_RADIUS;
       if ((p.x - this.x) ** 2 + (p.y - this.y) ** 2 > r * r) continue;
       swapRemove(this.projectiles, i);
-      if (this.invulnerable <= 0) this.hurt(p.damage, 'boss');
+      if (this.invulnerable <= 0) this.hurt(p.damage, p.cause ?? 'boss');
     }
   }
 
@@ -1574,6 +1683,11 @@ export class World {
     this.accumulators.clear();
     this.cooldowns.clear();
     this.echoes.length = 0;
+    // Where the player was in the last act is not where homework lands in
+    // this one; the new act's trail starts empty.
+    this.trailHead = 0;
+    this.trailCount = 0;
+    this.trailClock = 0;
     this.orbitHits.clear();
     this.orbitBossHits.clear();
     this.orbiters.length = 0;
@@ -1589,6 +1703,7 @@ export class World {
     this.dragStacks = 0;
     this.engulfTimer = 0;
     this.engulfSlow = 1;
+    this.stopTimer = 0;
     this.engulfDps = 0;
     this.engulfBy = null;
     this.invulnerable = 0;

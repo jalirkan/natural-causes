@@ -478,3 +478,10 @@ no costume) and `boss-gym-teacher`, whose reservation now exists: tallest
 thing in the act, shorts and whistle, holding boss teal. The statements
 above that it is absent or ungeneratable are superseded. The Gym Teacher is
 still a picture on the Egg's behaviour; its design is the open question.
+
+**Amendment 2026-09-27, later still (D-022).** The substitute's attack,
+homework's arrival point and the monitor's stop are built as labelled
+placeholders (`shoots`, `spawnAt: 'trail'`, `stopsPlayer` on `EnemyDef`),
+named in School's `provisional`. The substitute's shot is a stand-in for the
+misspelled name. The monitor's stop is the player's, per §3.4: touching it
+stops the player dead for 0.6s (placeholder); the monitor itself never pauses.
