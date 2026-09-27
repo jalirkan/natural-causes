@@ -377,3 +377,18 @@ pipeline rejects, it does not correct. A duplicated step is the cost of two sess
 one handoff; the handoff now says who holds which step.
 Rejected: keeping both stages — one registry per kind of content (CONCEPTION-ROSTER §5.3).
 Rejected: keeping the branch's stage because its drawings were reviewed harder — the drawings port; the stage does not need to.
+
+## D-027 · 2026-09-27 · School's three owed placeholders are built and labelled, and nobody has played them
+Supersedes D-022's closing sentence: the three items that would "stay unbuilt
+and are now owed labelled placeholders" were built in `079b557`. The
+substitute (`ranged` on its def) stands still to consult, fires one shot at
+where the player is and cools down; a death to that shot names the substitute.
+Homework lands where the player was `TRAIL_SECONDS` ago (`spawnAt: 'trail'`).
+The hall monitor's touch ignores input for `contactStun` seconds beside the
+i-frames. Each is one field on `EnemyDef`, as D-021's flags were, and every
+number is a placeholder under `SCHOOL.provisional`: a person at the link moves
+them; the bots only show that each one happens (G-026).
+Rejected: hold the substitute until the run carries a player name for it to
+misspell (§3.5) — School would keep no ranged pressure, which §2 says it is for.
+Rejected: remember homework's trail as the last N steps — the browser steps by
+frame delta, so "recently" would shrink on a faster display; it samples by time.

@@ -9,7 +9,7 @@
 > School, about ten minutes. Keyboard, or one thumb on a phone.
 >
 > **Status: a two-act life — Conception, then School — playable at the link.
-> Every sprite in it is authored SVG (D-025). Every number is a labelled placeholder.**
+> Every sprite in the field but the substitute's is authored SVG (D-025). Every number is a labelled placeholder.**
 > Plan in [`PLAN.md`](./PLAN.md) (read its 2026-09-27 amendment first), art
 > spec in [`ART-DIRECTION.md`](./ART-DIRECTION.md) (binding), decisions in
 > [`DECISIONS.md`](./DECISIONS.md). Name is provisional.
@@ -49,9 +49,10 @@ that changed — and a human decides what is funny. The process is instrumented
 and the findings are published, including what did not work.
 
 Six mechanisms were planned to stop an unattended agent producing generic
-content. Four are built and enforced by tests: mandatory rejected alternatives
-on every decision, a "why this life stage" justification required of every
-enemy, a hard content budget, and automated playtest bots. Two — checkable
+content. Four are built: mandatory rejected alternatives on every decision, a
+"why this life stage" justification a test requires of every enemy, a test
+that every item says what it enables and trades away (the item cap that came
+with it is retired, G-038), and automated playtest bots. Two — checkable
 planted payoffs and a read-only coherence pass — are not built, and
 [`PLAN.md`](./PLAN.md)'s 2026-09-27 amendment says what happens to them.
 
@@ -81,7 +82,8 @@ pnpm test                 # the whole suite: the sim, the content rules, the art
 pnpm playtest -- --runs=40 # the bots, with intervals
 pnpm playtest -- --runs=16 --act=school   # any act with a schedule
 pnpm playtest -- --runs=16 --life         # the whole life, act after act
-pnpm art:svg              # every authored SVG in tools/art/svg through the pipeline, then pack
+pnpm art:svg              # every authored SVG in tools/art/svg through the pipeline
+pnpm art:pack             # rebuild the atlases from the checked sprites
 pnpm art:svg -- --id=<id> # one drawing (also --act=<act>; --sheet rebuilds the review page)
 pnpm art:sheet            # the review page: every sprite at game size on its act
 pnpm art:batch -- --dry   # the retired generator's prompts through the content rule, no API calls
@@ -164,7 +166,7 @@ and it never touches `World`. Every cheat is applied from `ActScene` after the
 step, so nothing in the panel can reach the playtest bots or a test.
 
 **Any cheat taints the run.** The HUD says `DEV · RUN TAINTED` for the rest of
-it and only a restart clears the flag. The five questions under "Playing" need
+it and only a restart clears the flag. The six questions under "Playing" need
 someone playing honestly, and a badge is cheaper than remembering whether god
 mode was still on twenty minutes ago.
 
@@ -175,7 +177,7 @@ mode was still on twenty minutes ago.
 | **0** | Scaffold, Phaser + Vite, blank scene | done |
 | **1** | Art pipeline + test batch, art direction judged | done — `ART-DIRECTION.md` is binding |
 | **2** | Core loop, Conception act | **complete and unjudged** — title to Egg to certificate, sound, no known bugs, playable at the link; the drag curve and cadence are labelled placeholders until a person has played it |
-| **3** | The School act | **playable as the second act of the life** — five enemies, three behaviours, a **provisional** schedule (D-022), sprites authored as SVG (D-025); the substitute's shot, homework's arrival point and the monitor's stop are built as labelled placeholders nobody has played; the Gym Teacher is designed (SCHOOL-ROSTER §9) and drawn, and fights as the Egg until his behaviour is built |
+| **3** | The School act | **playable as the second act of the life** — five enemies, three behaviours, a **provisional** schedule (D-022), sprites authored as SVG (D-025) but the substitute's, still the generated one; the substitute's shot, homework's arrival point and the monitor's stop are built as labelled placeholders nobody has played; the Gym Teacher is designed (SCHOOL-ROSTER §9) and drawn, and fights as the Egg until his behaviour is built |
 
 The art pipeline (`tools/art/`) starts from a drawing: an SVG in
 `tools/art/svg/<act>/` is rasterised, conformed to the act's locked palette with

@@ -270,8 +270,9 @@ appearing means something.
 
 ## 5 · Not designed yet
 
-- **The Gym Teacher.** School's boss. Named in `PLAN.md`, no concept, no
-  reservation entry, not generatable. Next thing I write for this act.
+- ~~**The Gym Teacher.** School's boss. Named in `PLAN.md`, no concept, no
+  reservation entry, not generatable. Next thing I write for this act.~~
+  Designed in §9 and drawn (§8).
 - **Wave tuning and the act clock.** After the Conception session unblocks, since
   School's pacing should be set against an act whose feel a human has confirmed
   rather than against Conception's current placeholders.
@@ -451,6 +452,10 @@ dry run as a refusal rather than only in a test, which is §1 working. Service
 and Office print as refused too — both have shipped assets and no reserved
 list, which is `G-011`'s ordering violated by history rather than by anything
 here.
+
+**Amendment 2026-09-27.** Superseded: §8 answers the "Not built" list and the
+Gym Teacher's refusal; the items bullet's game-wide budget of roughly thirty is
+retired (G-038), and items persist across the life (`src/data/items.ts`).
 
 ## 8 · Implementation note — 2026-09-27, Claude Code
 
