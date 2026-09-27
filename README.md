@@ -128,17 +128,20 @@ substitute teacher near the end; its boss is the Egg standing in for a Gym
 Teacher nobody has designed. Outlive that and you die of natural causes, aged
 twelve. Dying earlier, the certificate names what did it.
 
-#### After you play — five things to say
+#### After you play — six things to say
 
 These replace the six calibration questions in `CONCEPTION-ROSTER.md` §12.4.
 Nothing here asks for a number; every one is about the run you just had.
 
 1. **Did you want to go again?** If not, at what point did you stop caring?
-2. **Were you slower by the end?** When did you first notice, and did it keep
-   getting worse or stop mattering at some point?
+2. **Were you slower by the end of Conception?** When did you first notice,
+   and did it keep getting worse or stop mattering at some point?
 3. **Was the Egg a fight or a shooting gallery?**
 4. **Did you work out what the magnet does?** Did it seem to help or hurt?
-5. **Did anything make you laugh?** Once is enough. Say what.
+5. **Did School ask anything of you?** The bots walk through it untouched
+   with the build they brought from Conception (`PLAYTEST-FINDINGS.md`, the
+   first life). Did it feel like a new place, or the same field in green?
+6. **Did anything make you laugh?** Once is enough. Say what.
 
 §12.4's sixth question — how long you hold a heading — is not asked, because
 it is answered by an input log the game does not write yet. It is what sets
