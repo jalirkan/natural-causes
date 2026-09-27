@@ -64,6 +64,9 @@ item why it belongs to a life rather than to a build.
 
 ### 3.1 Do items persist across acts?
 
+**Answered 2026-09-27: yes, and they evolve** (D-024, G-038). The rest of
+this section is kept as the reasoning that led there.
+
 Unanswered, and it is the arithmetic problem too: seven acts × seven items is
 49 against a budget of 30. Something has to give, and the options are not
 equivalent:

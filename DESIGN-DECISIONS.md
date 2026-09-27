@@ -1102,3 +1102,19 @@ Rejected: **a hand-drawn vector icon set outside the pipeline.** Sleekness
 by fiat, and it forfeits provenance, the content rule, the palette lock and
 the mechanical checks — the icons would be the only unchecked art in the
 game, on its most-read panel.
+
+## G-038 · 2026-09-27 · The batch retirement: one life, authored art, upgrades that gain
+All four proposals in `DIRECTION-PANEL-2026-09-27.md` reached these alone.
+Retired: **G-014** — upgrades gain; a cost is a flavour an item may have. **The
+~30-item cap** (mechanism 5) — sized for items that reset per act; they persist
+and evolve (D-024). **G-019's "the Egg does nothing"** — G-006's absorption
+stays. **Law 8 as a law** — indifference is a flavour some enemies have. **One
+act per run** — D-011's framing, G-006's "the act ends", G-033's latch as the
+run's outcome (it stands as the act's). **Generated sprites and their
+mid-century register** — sprites are flat cartoon SVG in the repo, rasterised
+by `sharp`, packed after CHECK; generate/cut/conform retire, palette
+quantisation and every check stay. The register keeps documents (cards,
+certificate, title); the sprite register is picked by Justin from a rendered
+batch, and laws 3 and 4 wait on it. Kept: D-007, the split, the checks, CI, G-003.
+Rejected: one record per retirement — nine entries arguing one decision.
+Rejected: keep fal and tighten prompts — per-subject patching against a wrong register is D-005's named failure, paid per attempt.

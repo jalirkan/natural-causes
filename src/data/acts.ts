@@ -140,7 +140,7 @@ export const SCHOOL: ActDef = {
   // The act clock matches Conception's so the bots' 300s instrumentation
   // reads unchanged. The boss is NOT this act's: nothing here spawns a Gym
   // Teacher, because none is designed (§5), so at 300s the sim spawns the Egg
-  // as a stand-in. A School run reaching its boss is therefore a claim about
+  // as a stand-in. A bot reaching School's boss is therefore a claim about
   // the crowd phase and nothing else.
   waves: [
     { fromSeconds: 0, enemyId: 'clique', rate: 0.8 },
@@ -173,11 +173,11 @@ export const SCHOOL: ActDef = {
 export const ALL_ACTS: ActDef[] = [CONCEPTION, SCHOOL];
 
 /**
- * The acts the title screen can start: those with an atlas, a player frame
- * and a boss frame registered in `act-visuals.ts`. A test asserts this list
- * and `ACT_VISUALS` agree, and that every frame an act needs is in its atlas,
- * so moving an act in is a one-line change that fails loudly if the art is
- * not there. School joined on 2026-09-27 with drawn sprites (D-025) and the
- * Egg standing in for its boss.
+ * The life the browser plays, in order: the prefix of `ALL_ACTS` with an
+ * atlas, a player frame and a boss frame registered in `act-visuals.ts`. A
+ * test asserts this list and `ACT_VISUALS` agree, and that every frame an act
+ * needs is in its atlas, so moving an act in is a one-line change that fails
+ * loudly if the art is not there. School joined on 2026-09-27 with drawn
+ * sprites (D-025) and the Egg standing in for its boss.
  */
 export const ACTS: ActDef[] = [CONCEPTION, SCHOOL];

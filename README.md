@@ -5,10 +5,11 @@
 > **Play it: <https://jalirkan.github.io/natural-causes/>** — the current
 > `main`, published by [`deploy.yml`](./.github/workflows/deploy.yml) on every
 > push once a repository admin has pointed Pages at GitHub Actions (see CI,
-> below). One act, about five minutes. Keyboard, or one thumb on a
-> phone.
+> below). One run is one life (D-024); today that life is two acts, Conception
+> and School, about ten minutes. Keyboard, or one thumb on a phone.
 >
-> **Status: the Conception act is complete and unjudged; School runs headless.**
+> **Status: the life plays end to end in the sim and in the browser through
+> its first two acts. Every sprite in them is drawn, not generated (D-025).**
 > Plan in [`PLAN.md`](./PLAN.md) (read its 2026-09-27 amendment first), art
 > spec in [`ART-DIRECTION.md`](./ART-DIRECTION.md) (binding), decisions in
 > [`DECISIONS.md`](./DECISIONS.md). Name is provisional.
@@ -56,9 +57,9 @@ planted payoffs and a read-only coherence pass — are not built, and
 
 ## Stack
 
-Phaser 3 · TypeScript · Vite · browser target, playable from a link. Art
-generated via API and conformed to a locked palette by an in-repo pipeline —
-consistency is enforced in code, not in prompts.
+Phaser 3 · TypeScript · Vite · browser target, playable from a link. Sprites
+are being moved to authored SVG, rasterised and checked by an in-repo pipeline
+(G-038) — consistency is enforced in code, not asked of a generator.
 
 ## Running it
 
@@ -118,9 +119,14 @@ arrow keys to move. You fire automatically — there is no attack button.
 On a phone: tap to start, drag anywhere to move, tap a card to choose, the
 corner button pauses, and a tap restarts once the run is over.
 
-One act, Conception, about five minutes to the Egg. Rival sperm from the start,
-antibodies at 0:45, spermicide at 1:30, white cells at 2:10. Kill the Egg and
-you win by being absorbed.
+A life. Today it is two acts. Conception, about five minutes to the Egg: rival
+sperm from the start, antibodies at 0:45, spermicide at 1:30, white cells at
+2:10. The Egg falling is the threshold; you cross it with your build and your
+health restored, aged five. Then School: cliques from the start, dodgeballs
+early, homework piling up from the second minute, hall monitors, and a
+substitute teacher near the end; its boss is the Egg standing in for a Gym
+Teacher nobody has designed. Outlive that and you die of natural causes, aged
+twelve. Dying earlier, the certificate names what did it.
 
 #### After you play — five things to say
 
@@ -160,7 +166,7 @@ mode was still on twenty minutes ago.
 |---|---|---|
 | **0** | Scaffold, Phaser + Vite, blank scene | done |
 | **1** | Art pipeline + test batch, art direction judged | done — `ART-DIRECTION.md` is binding |
-| **2** | Core loop, Conception act | **complete and unjudged** — title to Egg to win/loss, sound, no known bugs, playable at the link; the drag curve and cadence are labelled placeholders until a person has played it |
+| **2** | Core loop, Conception act | **complete and unjudged** — title to Egg to certificate, sound, no known bugs, playable at the link; the drag curve and cadence are labelled placeholders until a person has played it |
 | **3** | The School act | **playable as the second act of the life** — five enemies, three behaviours, a **provisional** schedule (D-022), sprites drawn as SVG (D-025); the Egg stands in for the undesigned Gym Teacher, and the substitute's attack, homework's arrival point and the monitor's stop are still owed |
 
 The art pipeline is six stages (`tools/art/`): generate via Flux on fal, cut the
