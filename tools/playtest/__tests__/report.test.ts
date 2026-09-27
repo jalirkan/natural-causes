@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CONCEPTION, SCHOOL } from '../../../src/data/acts';
-import { POLICIES, runOnce, summarise, type RunResult } from '../bots';
+import { ITEMS, POLICIES, isActive, runOnce, summarise, type RunResult } from '../bots';
 
 /**
  * The report's first-act figures in a life (D-024).
@@ -41,6 +41,9 @@ function fixture(over: Partial<RunResult>): RunResult {
     bossHpFraction: null,
     items: {},
     itemsAtFirstActEnd: {},
+    shotsSeen: 0,
+    shotsHit: 0,
+    shotsBy: {},
     ...over,
   };
 }
@@ -76,7 +79,17 @@ describe('runOnce over a two-act life', () => {
     expect(life.actIndex).toBeGreaterThanOrEqual(1);
 
     expect(life.stacksAtFirstActEnd).toBeGreaterThanOrEqual(life.stacksAtEnd);
+    // An evolution replaces its weapon (G-038): a weapon held at the threshold
+    // and evolved after it is still held, as the evolution. Seed 1001 does
+    // this once the bots sidestep aimed shots.
+    const evolvedAway = new Set(
+      Object.keys(life.items).flatMap((id) => {
+        const def = ITEMS[id];
+        return def && isActive(def) && def.evolvesFrom ? [def.evolvesFrom.weapon] : [];
+      }),
+    );
     for (const [id, level] of Object.entries(life.itemsAtFirstActEnd)) {
+      if (evolvedAway.has(id)) continue;
       expect(life.items[id] ?? 0, id).toBeGreaterThanOrEqual(level);
     }
 
