@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <title>Standardised test</title>
+  <desc>A tall upright answer sheet with one column of answer bubbles down its left edge, one of them filled in, two dots for eyes and a flat line for a mouth, looking straight out.</desc>
+  <!--
+    Standardised test (ADOLESCENCE-ROSTER §3.4), the act's elite and the white
+    cell's successor. Reserved silhouette: the tall sheet, the only rectangle
+    in the act. Straight sides (a slanted edge rasterises as a one-pixel jog,
+    which reads as damage, not as hand-cut); the hand is in the corners, no
+    two rounded alike. Nothing sticks out of it.
+    The column of bubbles is the whole read: ink rings with bone centres, and
+    exactly one solid ink, the answer already given. The bone centres also
+    carry contrast against adolescence-deep.
+    Face: two ink dots and a flat line, straight out at the viewer. It is
+    completely calm. It has all morning.
+    CONFORM adds the outline; there is none here.
+    Colours are palette hex values: threat-elite #7C5C8A, bone #D2C6AC,
+    ink #2A2521.
+  -->
+  <!-- the sheet -->
+  <path d="M 21 2 L 79.5 2 Q 82 2 82 4.5 L 82 95 Q 82 98 79 98 L 20 98 Q 18 98 18 96 L 18 5 Q 18 2 21 2 Z" fill="#7C5C8A"/>
+  <!-- the column of answer bubbles -->
+  <g fill="#2A2521">
+    <circle cx="33" cy="17" r="6.5"/>
+    <circle cx="33" cy="33" r="6.5"/>
+    <circle cx="33" cy="49" r="6.5"/>
+    <circle cx="33" cy="65" r="6.5"/>
+    <circle cx="33" cy="81" r="6.5"/>
+  </g>
+  <g fill="#D2C6AC">
+    <circle cx="33" cy="17" r="4"/>
+    <circle cx="33" cy="33" r="4"/>
+    <circle cx="33" cy="65" r="4"/>
+    <circle cx="33" cy="81" r="4"/>
+  </g>
+  <!-- the face, straight out -->
+  <g fill="#2A2521">
+    <circle cx="56" cy="33" r="3.8"/>
+    <circle cx="69" cy="33" r="3.8"/>
+    <rect x="55" y="45" width="15" height="3.4"/>
+  </g>
+</svg>
