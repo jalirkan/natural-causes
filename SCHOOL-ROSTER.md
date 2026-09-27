@@ -466,3 +466,7 @@ lists as not built is still not built — the substitute's attack, homework's
 arrival point, the monitor's stop, the boss, the visuals, the items — and the
 act is now something a bot can be run through and a person could be handed the
 moment the art exists.
+
+**Amendment 2026-09-27 (D-024).** School is the second phase of one life, not
+a separately started act, and it is tuned in that life rather than after
+Conception is closed. The Egg still stands in as its boss.

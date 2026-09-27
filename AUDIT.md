@@ -1,5 +1,7 @@
 # Audit — 2026-08-01
 
+*"Run" below means one act. Since D-024 a run is one life of several acts.*
+
 A read of the whole runtime looking for the class of defect that produced the
 offer-screen overflow: things that do not throw, do not fail a test, and look
 like the game working. Everything below was reproduced before it was written

@@ -53,7 +53,7 @@ export class TitleScene extends Phaser.Scene {
 
     text(180, 'N A T U R A L   C A U S E S', 44);
     this.add.rectangle(cx, 216, 336, 2, 0xefe7d6, 0.28);
-    text(240, `act one — ${FIRST_ACT.name.toLowerCase()}`, 18, 0.85);
+    text(240, `a life, from ${FIRST_ACT.name.toLowerCase()}`, 18, 0.85);
 
     // The face the whole game hangs on (G-003), given a slow idle bob and a
     // grounding shadow so it floats in a place rather than on a slide.

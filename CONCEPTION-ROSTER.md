@@ -1379,3 +1379,8 @@ arm per change (§9.2). That is a §13.
 320 HP untouched, and it is now the least interesting open item in the file.
 `BOSS_PULL` at zero with its expiry, still waiting on the same session as
 everything else.
+
+**Amendment 2026-09-27 (D-024, G-038).** A run is one life now. Every "win"
+and "win rate" above means the Egg killed in a life of one act; the Egg is the
+threshold into School, not the session's climax. §7.4's inheritance is no
+longer gated on a second act existing — School does.

@@ -329,3 +329,18 @@ Rejected: deploy only after CI passes — a flaky or slow check would then hold
 the one artefact this project most needs to exist.
 Rejected: deploy from the feature branch too — a link that changes under
 Justin mid-session is worse than one that changes when work lands.
+
+## D-024 · 2026-09-27 · A run is one life: `World` plays the acts in sequence and writes a certificate
+`World` takes `acts: ActDef[]`. A boss falling is the threshold: items, level
+and uncollected XP cross it; the crowd, fields, drag and boss do not; health is
+restored (a labelled placeholder). `time` is the life, `actTime` the act.
+`won`/`outcome` now mean the life: outliving the last act is natural causes.
+`certificate` records outcome, act, age (read off each act's `age`) and cause,
+naming the enemy or the act's `bossName`. `ActScene` plays `ACTS` as one life,
+preloads every atlas and re-dresses at the crossing; the HUD counts years. So
+every "win" in the records before this date means "killed the Egg in a life of
+one act". The bots run `ALL_ACTS`; the browser's life grows as acts get art.
+Rejected: a scene per act handing state across — the bots would play a
+different game from the person, which the sim/presentation split exists to stop.
+Rejected: independent acts plus a "campaign" mode — two meanings of "a run",
+and every metric would have to say which.

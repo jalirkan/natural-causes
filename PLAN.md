@@ -251,3 +251,10 @@ audit habit, CI. They are why the code can be trusted.
   the git log, at the end. No session writes for it.
 - **Mechanisms 3 and 4** are built or struck from this file and the README by
   the end of October. The one thing the record must not do is claim them.
+
+### 2026-09-27, later · One life
+
+A run is one life (D-024), and G-038 retires a batch of claims above. Read
+against those: the phases table's "one act" and "act by act" describe build
+order, not what a run is; mechanism 5's ~30-item cap is retired; and the act
+list's Boss column names each act's threshold, not the end of the game.

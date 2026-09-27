@@ -15,6 +15,10 @@
 
 ## The register
 
+*G-038 (2026-09-27): this register now governs documents — cards, the
+certificate, the title. Sprites become authored flat-cartoon SVG, and their
+register is chosen from a rendered batch; until then this section stands.*
+
 **Mid-century institutional.** The visual language of insurance pamphlets,
 safety posters, annual reports and the diagrams that explain your benefits to
 you. Muted spot inks on off-white stock, fine even line, strictly flat, visible
@@ -75,7 +79,8 @@ Enforced in code. The check that enforces each one is named.
 7. **Readable at 48px.** Authored to be recognisable at gameplay size against
    its act background. `readable-48px-silhouette`, `readable-48px-detail`,
    `readable-48px-structure`.
-8. **The comic register is indifference, not anxiety.** Enemies do not react to
+8. *(Retired as a law by G-038; kept as a flavour some enemies have.)*
+   **The comic register is indifference, not anxiety.** Enemies do not react to
    the player. They are bored, already decided, looking somewhere else. This is
    the throughline of everything that worked in the first batch, and the one
    asset that emoted at the player is the one that failed.

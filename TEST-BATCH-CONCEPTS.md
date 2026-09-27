@@ -100,7 +100,8 @@ is waiting for the player to catch up.
 — one frame, and it should be legible from across the arena), attack, death.
 
 **DEATH** — it does not die. The eyes close, the corona parts, the screen goes
-white. You won by getting absorbed. The act's punchline is that the boss let you
+white. You won by getting absorbed. *(Superseded 2026-09-27: absorption is the
+threshold into the next act, not the end — D-024.)* The act's punchline is that the boss let you
 in.
 
 **THE JOKE** — the first boss is serene, stationary, roughly the size of a

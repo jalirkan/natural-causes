@@ -5,6 +5,9 @@ Running record of what the automated bots measured and what it means for design.
 
 ## How to read this file
 
+- **"Win" before 2026-09-27 means "killed the Egg in a life of one act".**
+  A run is one life now (D-024); a win is outliving the last act.
+
 - **Every rate carries a Wilson 95% interval.** The interval is the result; the
   point estimate is not. A rate from a handful of runs is not a rate.
 - **Participation is a different claim from win rate.** "Boss HP remaining at

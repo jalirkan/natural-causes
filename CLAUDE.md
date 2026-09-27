@@ -62,6 +62,9 @@ One session holds the judgement and delegates the bounded work.
   pieces do not share files.
 - **Sonnet or Haiku subagents:** read-only searches and summaries.
 
+No cloud fan-out: spawned cloud sessions prompt Justin for every permission.
+Parallelism is in-session subagents and workflows only.
+
 A subagent gets the files it needs by path, the rule it must not break, and
 the test that says it is done. It does not get "improve the game".
 
