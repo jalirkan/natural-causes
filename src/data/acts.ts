@@ -162,7 +162,7 @@ export const CONCEPTION: ActDef = {
   // PLACEHOLDER: 60 is invented; named in `provisional` below.
   race: { enemyId: 'rival-sperm', absorb: 60 },
   provisional:
-    'The rates, the antibody drag floor and curvature (ANTIBODY_FLOOR and ANTIBODY_DRAG_K in world.ts), the bot cadence, the boss HP and the absorb count of the race (`race.absorb`) were all set from bot runs, the XP curve and the weapon level tables (xpToNextLevel in world.ts, `levels` in items.ts) were written as placeholders, and nobody has played the act; a person playing it at the link is what moves them (§11.5, G-028, G-038).',
+    'The rates, the antibody drag floor and curvature (ANTIBODY_FLOOR and ANTIBODY_DRAG_K in world.ts), the bot cadence, the boss HP, the absorb count of the race (`race.absorb`), the second the Egg parts the crowd by on arrival (RACE_PARTING_SECONDS) and the spacing of Wake drops (WAKE_MIN_SPACING) were all set from bot runs, the XP curve and the weapon level tables (xpToNextLevel in world.ts, `levels` in items.ts) were written as placeholders, and nobody has played the act; a person playing it at the link is what moves them (§11.5, G-028, G-038).',
   // CONCEPTION-ROSTER.md §3.5. One track per enemy, read as concurrent
   // streams. A new pressure roughly every forty-five seconds for the first
   // half, then only escalation: nothing new arrives after 130s, so the last
@@ -325,4 +325,4 @@ export const ALL_ACTS: ActDef[] = [CONCEPTION, SCHOOL, ADOLESCENCE];
  * `ACT_VISUALS` agree, so moving an act in is a one-line change that fails
  * loudly if the art is not there.
  */
-export const ACTS: ActDef[] = [CONCEPTION, SCHOOL];
+export const ACTS: ActDef[] = [CONCEPTION, SCHOOL, ADOLESCENCE];
