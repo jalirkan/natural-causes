@@ -10,30 +10,31 @@
     ink #2A2521.
 
     The group scale makes one unit here five rendered pixels, and the mass is
-    exactly 84 units wide (the 88px grid less the 2px outline each side), so
-    one unit lands on one sprite pixel. Heads sit on whole units, so the
-    nearest-neighbour downscale gives every head the pixel-identical face.
+    exactly 84 by 62 units (the 88px grid less the 2px outline each side), so
+    one unit lands on one sprite pixel. Head centres sit on even units
+    because the nearest-neighbour downscale samples on a two-pixel cycle, so
+    every head gets the pixel-identical face.
   -->
   <g transform="scale(0.9765625)">
     <!-- body: shadow underside, school-mid over it -->
     <path fill="#6E6353" d="M 9 70 L 9 68 C 9 59, 12 52, 18 50 L 84 49 C 90 50, 93 56, 93 64 L 93 68 C 93 79, 89 84, 80 84 C 72 84, 70 82, 64 82 C 58 82, 56 84, 49 84 C 42 84, 40 82, 34 82 C 28 82, 26 84, 20 84 C 12 84, 9 79, 9 70 Z"/>
     <path fill="#6B7F53" d="M 9 69 L 9 68 C 9 59, 12 52, 18 50 L 84 49 C 90 50, 93 56, 93 64 L 93 67 C 93 74, 89 78, 80 78 C 72 78, 70 76, 64 76 C 58 76, 56 78, 49 78 C 42 78, 40 76, 34 76 C 28 76, 26 78, 20 78 C 12 78, 9 75, 9 69 Z"/>
     <!-- chin shadows, where each head meets the mass -->
-    <circle cx="25" cy="50" r="13" fill="#6E6353"/>
-    <circle cx="43" cy="40" r="13" fill="#6E6353"/>
-    <circle cx="61" cy="45" r="13" fill="#6E6353"/>
-    <circle cx="78" cy="41" r="13" fill="#6E6353"/>
+    <circle cx="24" cy="50" r="13" fill="#6E6353"/>
+    <circle cx="42" cy="40" r="13" fill="#6E6353"/>
+    <circle cx="60" cy="46" r="13" fill="#6E6353"/>
+    <circle cx="78" cy="42" r="13" fill="#6E6353"/>
     <!-- heads, right to left so each sits in front of the next -->
-    <circle cx="78" cy="37" r="14" fill="#6B7F53"/>
-    <circle cx="61" cy="41" r="14" fill="#6B7F53"/>
-    <circle cx="43" cy="36" r="14" fill="#6B7F53"/>
-    <circle cx="25" cy="46" r="14" fill="#6B7F53"/>
+    <circle cx="78" cy="38" r="14" fill="#6B7F53"/>
+    <circle cx="60" cy="42" r="14" fill="#6B7F53"/>
+    <circle cx="42" cy="36" r="14" fill="#6B7F53"/>
+    <circle cx="24" cy="46" r="14" fill="#6B7F53"/>
     <!-- the one face, four times, all looking right -->
-    <g fill="#2A2521">
-      <circle cx="27.5" cy="43.5" r="2.5"/><circle cx="34.5" cy="43.5" r="2.5"/><rect x="28" y="50" width="8" height="3"/>
-      <circle cx="45.5" cy="33.5" r="2.5"/><circle cx="52.5" cy="33.5" r="2.5"/><rect x="46" y="40" width="8" height="3"/>
-      <circle cx="63.5" cy="38.5" r="2.5"/><circle cx="70.5" cy="38.5" r="2.5"/><rect x="64" y="45" width="8" height="3"/>
-      <circle cx="80.5" cy="34.5" r="2.5"/><circle cx="87.5" cy="34.5" r="2.5"/><rect x="81" y="41" width="8" height="3"/>
+    <g fill="#2A2521" shape-rendering="crispEdges">
+      <circle cx="25.5" cy="43.5" r="2.6"/><circle cx="33.5" cy="43.5" r="2.6"/><rect x="26" y="50" width="8" height="3"/>
+      <circle cx="43.5" cy="33.5" r="2.6"/><circle cx="51.5" cy="33.5" r="2.6"/><rect x="44" y="40" width="8" height="3"/>
+      <circle cx="61.5" cy="39.5" r="2.6"/><circle cx="69.5" cy="39.5" r="2.6"/><rect x="62" y="46" width="8" height="3"/>
+      <circle cx="79.5" cy="35.5" r="2.6"/><circle cx="87.5" cy="35.5" r="2.6"/><rect x="80" y="42" width="8" height="3"/>
     </g>
   </g>
 </svg>

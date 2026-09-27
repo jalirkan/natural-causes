@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <defs>
+    <clipPath id="blob">
+      <ellipse cx="50" cy="56" rx="34" ry="27"/>
+      <circle cx="29" cy="34" r="17"/>
+      <circle cx="53" cy="26" r="13"/>
+      <circle cx="73" cy="33" r="15"/>
+      <circle cx="86" cy="55" r="12"/>
+      <circle cx="75" cy="78" r="15"/>
+      <circle cx="48" cy="83" r="12"/>
+      <circle cx="23" cy="76" r="15"/>
+      <circle cx="12" cy="54" r="11"/>
+    </clipPath>
+  </defs>
+  <g shape-rendering="crispEdges">
+    <!-- lit side: the whole mass in conception-mid -->
+    <g fill="#A86A63">
+      <ellipse cx="50" cy="56" rx="34" ry="27"/>
+      <circle cx="29" cy="34" r="17"/>
+      <circle cx="53" cy="26" r="13"/>
+      <circle cx="73" cy="33" r="15"/>
+      <circle cx="86" cy="55" r="12"/>
+      <circle cx="75" cy="78" r="15"/>
+      <circle cx="48" cy="83" r="12"/>
+      <circle cx="23" cy="76" r="15"/>
+      <circle cx="12" cy="54" r="11"/>
+    </g>
+    <!-- body: the same mass shifted down-right, clipped to itself -->
+    <g clip-path="url(#blob)">
+      <g fill="#7C5C8A" transform="translate(4 5)">
+        <ellipse cx="50" cy="56" rx="34" ry="27"/>
+        <circle cx="29" cy="34" r="17"/>
+        <circle cx="53" cy="26" r="13"/>
+        <circle cx="73" cy="33" r="15"/>
+        <circle cx="86" cy="55" r="12"/>
+        <circle cx="75" cy="78" r="15"/>
+        <circle cx="48" cy="83" r="12"/>
+        <circle cx="23" cy="76" r="15"/>
+        <circle cx="12" cy="54" r="11"/>
+      </g>
+    </g>
+    <!-- the stamp: a flat bone disc, off-centre -->
+    <circle cx="57" cy="52" r="17" fill="#D2C6AC"/>
+    <g fill="#2A2521">
+      <circle cx="58" cy="47" r="3"/>
+      <circle cx="67" cy="47" r="3"/>
+      <rect x="57" y="56" width="9" height="3"/>
+    </g>
+  </g>
+</svg>
