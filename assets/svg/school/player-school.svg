@@ -6,11 +6,15 @@
     Colours are palette hex values: paper #EFE7D6, bone #D2C6AC,
     school-mid #6B7F53, ink #2A2521.
   -->
+  <g shape-rendering="crispEdges">
   <!-- cowlick: one tuft, above the left eye -->
-  <path d="M37.5,19 C38,11 40,6 42,1 C44.5,6 46.5,11 47,19 Z" fill="#2A2521"/>
+  <path d="M38,20 C40.2,16 41,12 41,8 L40.8,3.5 Q41.2,0.8 42.4,0.5 Q43.8,1 44,3.5 L43.6,8 C43.6,12 44.6,16 47,20 Z" fill="#EFE7D6"/>
   <!-- arms -->
   <ellipse cx="26" cy="78" rx="5.5" ry="10" transform="rotate(18 26 78)" fill="#EFE7D6"/>
   <ellipse cx="74" cy="78" rx="5.5" ry="10" transform="rotate(-18 74 78)" fill="#EFE7D6"/>
+  <!-- short sleeves -->
+  <path d="M31,65 Q23,67 21,76 L30,79 Z" fill="#D2C6AC"/>
+  <path d="M69,65 Q77,67 79,76 L70,79 Z" fill="#D2C6AC"/>
   <!-- shoes, legs, shorts -->
   <rect x="32" y="93" width="14" height="6" rx="3" fill="#2A2521"/>
   <rect x="54" y="93" width="14" height="6" rx="3" fill="#2A2521"/>
@@ -24,6 +28,7 @@
   <!-- face: two tall dots and a small flat mouth, off-centre -->
   <ellipse cx="43.5" cy="44" rx="3.2" ry="9.5" fill="#2A2521"/>
   <ellipse cx="56.5" cy="44" rx="3.2" ry="9.5" fill="#2A2521"/>
-  <rect x="41" y="60" width="9.5" height="2.6" fill="#2A2521"/>
-  <rect x="39.5" y="57.5" width="2.2" height="5.1" fill="#2A2521"/>
+  <rect x="42" y="60.5" width="8.5" height="2.2" fill="#2A2521"/>
+  <rect x="38.6" y="57.8" width="1.8" height="4.9" fill="#2A2521"/>
+  </g>
 </svg>
