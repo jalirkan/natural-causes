@@ -33,5 +33,8 @@ tools/playtest/runs/
 # game moves on. The pipeline output under assets/ is what gets committed.
 tools/dev/snapshots/
 
+# Smoke-test screenshots (tools/smoke/run.ts) — regenerated every run.
+tools/smoke/out/
+
 # Playtest output — regenerable, and the raw runs are large.
 tools/playtest/runs/
