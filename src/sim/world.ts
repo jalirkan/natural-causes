@@ -449,7 +449,9 @@ export class World {
    * Pruned when it grows; an entry older than the item's cooldown means nothing.
    */
   private readonly orbitHits = new Map<string, Map<number, number>>();
-  private readonly orbitBossHits = new Map<string, number>();
+  private readonly orbitBossHits = new Map<string, Map<number, number>>();
+  /** Orbiter objects, reused across steps; `orbiters` holds this step's. */
+  private readonly orbiterPool: OrbiterState[] = [];
 
   /**
    * The life clock, in seconds. Assigning it moves the ACT clock by the same
@@ -1101,7 +1103,9 @@ export class World {
       let best: EnemyState | null = null;
       let bestD = limit;
       for (const e of this.near) {
-        if (out.includes(e)) continue;
+        // Not at what it cannot hurt: a shot spent on an antibody passes
+        // through it and is gone (AUDIT part three, 22).
+        if (e.def.invulnerable || out.includes(e)) continue;
         const d2 = (e.x - this.x) ** 2 + (e.y - this.y) ** 2;
         if (d2 < bestD) {
           bestD = d2;
@@ -1300,7 +1304,9 @@ export class World {
       const distance = def.range * bonus.area;
       const omega = def.projectileSpeed / distance;
       const damage = this.activeDamage(def, level);
-      const cooldown = def.cooldown;
+      // Through activeCooldown like every other weapon, so levels and
+      // Restlessness shorten the re-hit (AUDIT part three, 19).
+      const cooldown = this.activeCooldown(def, level);
       let hits = this.orbitHits.get(id);
       if (!hits) this.orbitHits.set(id, (hits = new Map()));
       if (hits.size > 4096) {
@@ -1309,12 +1315,14 @@ export class World {
 
       for (let i = 0; i < count; i++) {
         const angle = this._time * omega + (i * Math.PI * 2) / count;
-        const o: OrbiterState = {
-          x: this.x + Math.cos(angle) * distance,
-          y: this.y + Math.sin(angle) * distance,
-          source: id,
-          radius: def.radius,
-        };
+        // Pooled: one object per orbiter slot for the life of the World, so
+        // holding Grudge does not allocate every step (AUDIT part three, 21).
+        let o = this.orbiterPool[this.orbiters.length];
+        if (!o) this.orbiterPool.push((o = { x: 0, y: 0, source: id, radius: 0 }));
+        o.x = this.x + Math.cos(angle) * distance;
+        o.y = this.y + Math.sin(angle) * distance;
+        o.source = id;
+        o.radius = def.radius;
         this.orbiters.push(o);
 
         this.grid.query(o.x, o.y, o.radius + this.queryPad, this.near);
@@ -1333,10 +1341,12 @@ export class World {
         const b = this.boss;
         if (b && b.phase !== 'absorbing') {
           const r = BOSS_RADIUS + o.radius;
-          const bossKey = `${id}:${i}`;
-          const last = this.orbitBossHits.get(bossKey);
+          let bossHits = this.orbitBossHits.get(id);
+          if (!bossHits) this.orbitBossHits.set(id, (bossHits = new Map()));
+          const bossKey = i;
+          const last = bossHits.get(bossKey);
           if ((b.x - o.x) ** 2 + (b.y - o.y) ** 2 <= r * r && (last === undefined || this._time - last >= cooldown)) {
-            this.orbitBossHits.set(bossKey, this._time);
+            bossHits.set(bossKey, this._time);
             this.damageBoss(damage);
           }
         }
@@ -1412,8 +1422,18 @@ export class World {
     // Standing exactly on the player: any consistent direction will do.
     const nx = d < 0.001 ? 1 : dx / d;
     const ny = d < 0.001 ? 0 : dy / d;
-    e.x = clamp(e.x + nx * distance, 0, ARENA_WIDTH);
-    e.y = clamp(e.y + ny * distance, 0, ARENA_HEIGHT);
+    // Held inside the arena only if it was inside: clamping an enemy that is
+    // still out on the spawn ring pulled it TOWARD the player (AUDIT part
+    // three, 20). Merging piles are not moved: a knocked pile would stack on
+    // another without merging, since piles merge only on arrival.
+    if (e.def.merge) return;
+    const inside = e.x >= 0 && e.x <= ARENA_WIDTH && e.y >= 0 && e.y <= ARENA_HEIGHT;
+    e.x += nx * distance;
+    e.y += ny * distance;
+    if (inside) {
+      e.x = clamp(e.x, 0, ARENA_WIDTH);
+      e.y = clamp(e.y, 0, ARENA_HEIGHT);
+    }
   }
 
   private updateGems(dt: number): void {
@@ -1585,7 +1605,14 @@ export class World {
       }
       if (this.invulnerable > 0) continue;
       this.hurt(e.def.contactDamage, e.def);
-      if (e.def.stopsPlayer !== undefined) this.stopTimer = e.def.stopsPlayer;
+      if (e.def.stopsPlayer !== undefined) {
+        this.stopTimer = e.def.stopsPlayer;
+        // The i-frames run from the END of the stop, not from the hit. With
+        // both 0.6s they expired on the same frame and the contact check ran
+        // before the player could move: a monitor crossing the player stopped
+        // them seven times in a row (AUDIT part three, 18).
+        this.invulnerable = Math.max(this.invulnerable, e.def.stopsPlayer + IFRAMES);
+      }
       // `break`, not `return`. Returning here skipped the boss-shot loop
       // below for the whole frame, so on any frame the player was touching a
       // rival a boss projectile passed through them and stayed alive to be

@@ -267,3 +267,34 @@ Recorded because both cost real time and the next person will suspect them too.
   but measured damage standing 200px from the Egg is identical with the crowd
   present and with the field cleared (51.3 either way), because shots pass
   through the boss hitbox on their way to whatever they were aimed at.
+
+---
+
+# Audit, part three — 2026-09-27
+
+`world.ts`, `bots.ts` and `run.ts` after the day that made a run one life and
+added levels, evolutions, orbit, chain, knockback, the Egg race and School's
+behaviours. Every finding was reproduced first. Regressions: 18–22 are in
+`src/sim/__tests__/audit-three.test.ts`, 16 and 17 are in the instrument code.
+
+| # | Defect | Why it looked right | Fix |
+|---|---|---|---|
+| 16 | Item uptake read only the items held at the end; Tantrum removes Temper | Temper simply looked less popular | count evolution ingredients |
+| 17 | `--act=X --life` gated the antibody sections and the 300s mark on X, while the bots measure the life's first act | the sections appeared or vanished plausibly | use the life's first act |
+| 18 | The hall monitor's 0.6s stop equalled the i-frames: both expired on one frame and contact ran before movement, so a crossing monitor stopped the player seven times running (100 → 9 HP, 3px moved) | the monitor is meant to stop you | i-frames run from the end of the stop |
+| 19 | Grudge's re-hit interval ignored levels and Restlessness | the orbiters still turned and hit | route it through `activeCooldown` |
+| 20 | Knockback clamped enemies still out on the spawn ring into the arena, pulling them toward the player; and it could stack homework piles without merging | the burst played and things moved | clamp only what was inside; do not move merging piles |
+| 21 | Holding Grudge allocated every step (orbiter objects, string keys, `levelBonus`) | nothing breaks; GC only | pooled orbiters, numeric keys, cached bonuses |
+| 22 | Seeking shots targeted antibodies they cannot damage | the shot fired and flew | skip invulnerable targets, as chaining already did |
+
+Checked and clean: every per-act collection resets at a crossing and every
+per-life one carries; act-clock and life-clock readers are each correct for
+what they measure; every damage path respects the outcome latch; every kill
+goes through `reapDead`; evolution with several pending levels, with all items
+maxed, and with an echo owed; chain re-hits; substitute shots and the race; the
+homework trail ring. Also checked and not a defect: antibody stacks at 300s
+reading in the hundreds is survival (every pre-upgrade run died before 300s).
+
+Left, minor: the grid is a frame stale after a knockback or solid push; a
+dodgeball meeting a pile head-on can pin against it; Group Chat's "sends sooner"
+level lines name no specific bonus.

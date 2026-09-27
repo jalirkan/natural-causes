@@ -572,8 +572,20 @@ export function isActive(def: ItemDef): def is ActiveItem {
  * Everything the levels an active item has reached add up to. Counts sum,
  * multipliers multiply, echo latches. The sim's only reading of `levels`.
  */
+/**
+ * Computed once per (item, level) and shared: the sim reads this every step
+ * for orbit items, and the hot path must not allocate (AUDIT part three, 21).
+ * Callers read it and never mutate it.
+ */
+const bonusCache = new WeakMap<ActiveItem, Array<Required<LevelBonus>>>();
+
 export function levelBonus(def: ActiveItem, level: number): Required<LevelBonus> {
+  let perLevel = bonusCache.get(def);
+  if (!perLevel) bonusCache.set(def, (perLevel = []));
+  const hit = perLevel[level];
+  if (hit) return hit;
   const out: Required<LevelBonus> = { projectiles: 0, pierce: 0, area: 1, duration: 1, echo: false, chain: 0 };
+  perLevel[level] = out;
   for (const l of def.levels.slice(0, Math.max(0, level))) {
     out.projectiles += l.projectiles ?? 0;
     out.pierce += l.pierce ?? 0;
