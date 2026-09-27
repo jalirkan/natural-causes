@@ -15,11 +15,11 @@ import {
  * `bounce`, `patrol`, `merge`.
  *
  * All three are tested by placing an enemy and stepping, rather than by
- * running an act. School HAS no act: §5 leaves the wave schedule and the act
- * clock undesigned, and both are tuning, which is frozen. So there is no
- * School `ActDef` to run and these tests do not invent one — the fixture below
- * has no waves at all, spawns nothing by itself, and carries no number that
- * could be mistaken for a balance decision.
+ * running an act, so each behaviour is isolated from any schedule. School's
+ * schedule exists (`SCHOOL` in acts.ts, provisional under D-022) and
+ * `school-act.test.ts` runs it; the fixture below has no waves at all, spawns
+ * nothing by itself, and carries no number that could be mistaken for a
+ * balance decision.
  */
 const EMPTY_ACT: ActDef = {
   id: 'school-behaviour-fixture',

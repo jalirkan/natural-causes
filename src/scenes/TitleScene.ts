@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { CONCEPTION } from '../data/acts';
+import { ACTS } from '../data/acts';
 import { actVisuals } from '../data/act-visuals';
 import { sfx } from '../audio/sfx';
 import { INK, VIEW_HEIGHT, VIEW_WIDTH } from '../config';
@@ -11,18 +11,26 @@ import { addVignette, ensureFieldTile } from './dressing';
  * no user gesture anywhere for the browser to unlock audio on. "Press any key"
  * does both jobs at once.
  */
+/**
+ * The act the title starts: the first startable one. `ACTS` is the list an
+ * act joins when its atlas, player frame and boss frame exist, and a test
+ * holds it to `ACT_VISUALS`, so reading from it here is what makes "startable"
+ * mean something rather than being a label on a list nothing consults.
+ */
+const FIRST_ACT = ACTS[0]!;
+
 export class TitleScene extends Phaser.Scene {
   constructor() {
     super('title');
   }
 
   preload(): void {
-    const v = actVisuals(CONCEPTION.id);
+    const v = actVisuals(FIRST_ACT.id);
     this.load.atlas(v.atlas.key, v.atlas.png, v.atlas.json);
   }
 
   create(): void {
-    const v = actVisuals(CONCEPTION.id);
+    const v = actVisuals(FIRST_ACT.id);
     this.cameras.main.setBackgroundColor(v.background);
     const cx = VIEW_WIDTH / 2;
 
@@ -45,7 +53,7 @@ export class TitleScene extends Phaser.Scene {
 
     text(180, 'N A T U R A L   C A U S E S', 44);
     this.add.rectangle(cx, 216, 336, 2, 0xefe7d6, 0.28);
-    text(240, 'act one — conception', 18, 0.85);
+    text(240, `act one — ${FIRST_ACT.name.toLowerCase()}`, 18, 0.85);
 
     // The face the whole game hangs on (G-003), given a slow idle bob and a
     // grounding shadow so it floats in a place rather than on a slide.
@@ -89,7 +97,7 @@ export class TitleScene extends Phaser.Scene {
       // The gesture the audio unlock has been waiting for.
       sfx.unlock();
       sfx.choose();
-      this.scene.start('act', { act: CONCEPTION });
+      this.scene.start('act', { act: FIRST_ACT });
     };
     this.input.keyboard?.once('keydown', begin);
     this.input.once('pointerdown', begin);

@@ -7,7 +7,9 @@
 >
 > Rewritten by Claude Code from what the pipeline actually does, after three
 > batches. The creative expansion of this document — new acts, new enemy
-> families, the reserved-silhouette lists — is still Cowork's to own.
+> families, the reserved-silhouette lists — is design judgement, held by
+> whichever session holds it (`PLAN.md`, 2026-09-27); Cowork is no longer a
+> required stage.
 
 ---
 

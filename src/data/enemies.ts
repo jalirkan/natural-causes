@@ -228,9 +228,9 @@ export const ENEMIES: Record<string, EnemyDef> = {
    * Numbers are §3.6's starting values, transcribed. They are the roster's
    * commitment rather than this file's: "relationships are the design; the
    * values are a starting point and the bots own them." Nothing here was
-   * chosen, and nothing here has been played — School has no wave schedule and
-   * no act clock, both of which §5 leaves undesigned, so none of these spawn in
-   * a run yet. What exists is the data and the behaviour it names.
+   * chosen, and nothing here has been played. `SCHOOL` in acts.ts spawns them
+   * on a schedule that is labelled provisional (D-022); the title cannot start
+   * the act until its art exists.
    *
    * The act's costume of the life script: you are sorted by people who are also
    * being sorted, judged by adults who have not been told who you are, and the
@@ -295,12 +295,12 @@ export const ENEMIES: Record<string, EnemyDef> = {
     // Zero damage AND `none`: the two are not the same thing. See `Contact`.
     contact: 'none',
     merge: true,
-    // NOT BUILT: where it lands. §3.3 says homework "spawns where the player
-    // has recently been", and "recently" is a number nobody has set — the
-    // same class of dial as ANTIBODY_LEAD, which G-020 shows is the knob that
-    // decides whether an arrival mechanic exists at all. Left at the default
-    // entry point rather than invented, so this is a placeholder standing in
-    // for a decision, not the decision.
+    // NOT BUILT YET, and owed a labelled placeholder rather than withheld
+    // (D-022): where it lands. §3.3 says homework "spawns where the player
+    // has recently been", and "recently" is the same class of dial as
+    // ANTIBODY_LEAD, which G-020 shows is the knob that decides whether an
+    // arrival mechanic exists at all. It lands at the default entry point
+    // until the placeholder is built and labelled.
     whyThisStage:
       'School is the first stage that follows the player home and takes up the part of the day nobody was counting.',
   },
@@ -317,10 +317,11 @@ export const ENEMIES: Record<string, EnemyDef> = {
     displaySize: 88,
     xp: 11,
     movement: 'cross',
-    // NOT BUILT: "touching it stops the player dead for a moment" (§3.4). The
-    // moment is a duration and the roster does not give one. Contact is
-    // elite-tier damage and nothing else until somebody sets it; the
-    // roadblock reads off the patrol line, which needs no number.
+    // NOT BUILT YET, and owed a labelled placeholder rather than withheld
+    // (D-022): "touching it stops the player dead for a moment" (§3.4). The
+    // moment is a duration the roster does not give. Contact is elite-tier
+    // damage and nothing else until the placeholder exists; the roadblock
+    // reads off the patrol line, which needs no number.
     contact: 'damage',
     patrol: true,
     whyThisStage:
@@ -340,15 +341,15 @@ export const ENEMIES: Record<string, EnemyDef> = {
     xp: 5,
     movement: 'cross',
     contact: 'damage',
-    // NOT BUILT: the attack, which is the entire reason this enemy is in the
-    // roster. §3.5 gates the intended projectile — the player's name, spelled
-    // wrong — on the run carrying a player name, which G-002's certificate
-    // needs and which does not exist. The roster says a placeholder is needed
-    // and that it "should not be designed around"; every number a placeholder
-    // would take (consult time, cadence, projectile speed, damage, range) is
-    // one nobody has set. So this is currently a slow enemy that does not
-    // pursue, and the act's ranged pressure — the whole point of School under
-    // G-010 — is not in the game.
+    // NOT BUILT YET: the attack, which is the entire reason this enemy is in
+    // the roster. §3.5 gates the intended projectile — the player's name,
+    // spelled wrong — on the run carrying a player name, which G-002's
+    // certificate needs and which does not exist; that is a design
+    // dependency, not a number. The roster asks for a placeholder attack
+    // meanwhile, and under D-022 one is owed, labelled, rather than withheld
+    // for want of its five numbers. Until then this is a slow enemy that does
+    // not pursue, and the act's ranged pressure — the whole point of School
+    // under G-010 — is not in the game.
     whyThisStage:
       'School is the first place the player is judged by someone who does not know who they are, and the substitute is that experience with a lanyard on.',
   },

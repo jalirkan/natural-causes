@@ -1,7 +1,7 @@
 # Playtest findings
 
 Running record of what the automated bots measured and what it means for design.
-**Newest first.** Written by Claude Code, for Cowork.
+**Newest first.** Written by the agent that ran the bots, for whoever decides.
 
 ## How to read this file
 
@@ -18,6 +18,40 @@ Running record of what the automated bots measured and what it means for design.
   a re-implementation. Runs are seeded and deterministic.
 - Reproduce with `pnpm playtest -- --runs=16`. Isolate a mechanic with
   `--pull=0`. Raw runs land in `tools/playtest/runs/`.
+
+---
+
+# 2026-09-27 · School — first run. Presence and ordering only.
+
+`pnpm playtest -- --runs=16 --act=school`. The schedule is provisional (D-022)
+and the boss is the Egg standing in, so the only claims here are that the act
+runs, everything in it arrives, and roughly how it lands on a bot — a bot
+playing Conception's five item policies, since School defines no items.
+
+| policy | win rate (95% CI) | median s | reached 300s | HP at 300s, survivors | enemies alive at 300s |
+|---|---|---|---|---|---|
+| midpiece+wake | 88% [64–97] | 305 | 15/16 | 91% | 370 |
+| membrane+acrosome | 75% [51–90] | 321 | 12/16 | 74% | 351 |
+| motility | 56% [33–77] | 311 | 12/16 | 90% | 290 |
+| greedy-capacitation | 94% [72–99] | 309 | 16/16 | 96% | 341 |
+| random | 75% [51–90] | 306 | 13/16 | 80% | 286 |
+
+All five School enemies spawn, in §3.6's order, and the run is deterministic
+(tests in `school-act.test.ts`). Twelve of eighty runs die in the crowd phase;
+the rest reach the boss with most of their health, against an act that has no
+ranged pressure because the substitute's attack is not built. That is the
+reading a person should have in mind before playing it; it is not a number to
+tune against. The report skips the antibody sections for an act without the
+stream, and says so.
+
+**INSTRUMENT.** The first draft of this entry read 82–99% HP on arrival and
+"barely hurts a bot". `summarise` took the arrival medians over every run, and
+a run that died before 300s kept its starting values — HP 1.0, no enemies — so
+a death counted as a healthy arrival. It is the defect `reached300` fixed for
+the stacks in Run 6, one column over, and it was found by review rather than by
+a test. Arrival figures are now over survivors only, with the count alongside;
+every earlier "HP on arrival" figure for a policy that lost runs before 300s
+was biased toward healthy.
 
 ---
 

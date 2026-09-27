@@ -1,4 +1,4 @@
-import { CONCEPTION } from '../../src/data/acts';
+import { CONCEPTION, type ActDef } from '../../src/data/acts';
 import { ITEMS, isActive } from '../../src/data/items';
 import type { EnemyDef } from '../../src/data/enemies';
 import { World, type Input, type WorldOptions } from '../../src/sim/world';
@@ -18,8 +18,12 @@ import { World, type Input, type WorldOptions } from '../../src/sim/world';
 
 /** Fixed timestep. Real frames vary; a measurement must not. */
 const DT = 1 / 60;
-/** Hard stop, in simulated seconds. Guards against a run that cannot end. */
-const MAX_SECONDS = 420;
+/**
+ * Hard stop, in simulated seconds past the boss's arrival. Guards against a
+ * run that cannot end. Relative to the act's clock rather than a fixed 420,
+ * which was 300 + 120 with the 300 assumed.
+ */
+const BOSS_PHASE_MAX_SECONDS = 120;
 /** Never stand inside the Egg, whatever the build's reach is. */
 const BOSS_STANDOFF_MIN = 175;
 
@@ -345,8 +349,9 @@ export function runOnce(
   seed: number,
   bossPull?: number,
   spawnOverride?: 'edge' | 'lead',
+  act: ActDef = CONCEPTION,
 ): RunResult {
-  const options: WorldOptions = { act: CONCEPTION, seed };
+  const options: WorldOptions = { act, seed };
   if (bossPull !== undefined) options.bossPull = bossPull;
   if (spawnOverride !== undefined) options.spawnOverride = spawnOverride;
   const world = new World(options);
@@ -377,9 +382,9 @@ export function runOnce(
   let prevFx = world.facingX;
   let prevFy = world.facingY;
 
-  const maxSteps = MAX_SECONDS / DT;
+  const maxSteps = (act.durationSeconds + BOSS_PHASE_MAX_SECONDS) / DT;
   while (!world.dead && !world.won && steps < maxSteps) {
-    if (!reached300 && world.time >= CONCEPTION.durationSeconds) {
+    if (!reached300 && world.time >= act.durationSeconds) {
       reached300 = true;
       stacksAt300 = world.dragStacks;
       itemSpeedAt300 = world.itemSpeed;
@@ -392,7 +397,7 @@ export function runOnce(
       world.choose(chooseOffer(policy, world.offers, world.items, rng));
       continue;
     }
-    const inCrowdPhase = world.time < CONCEPTION.durationSeconds;
+    const inCrowdPhase = world.time < act.durationSeconds;
     world.step(DT, decideWithCadence(world, rng, state, DT));
     steps++;
 
@@ -577,9 +582,14 @@ export function summarise(results: RunResult[]): PolicySummary[] {
       meanHeadingChangeRate: +mean(runs.map((r) => r.headingChangeRate)).toFixed(3),
       meanItemSpeed: +mean(runs.map((r) => r.itemSpeedAt300)).toFixed(1),
       meanRealisedSpeed: +mean(runs.map((r) => r.meanSpeed)).toFixed(1),
-      medianHpFractionAt300: median(runs.map((r) => r.hpFractionAt300)),
-      medianKillsAt300: median(runs.map((r) => r.killsAt300)),
-      medianEnemiesAt300: median(runs.map((r) => r.enemiesAt300)),
+      // Same rule as the stacks, and the same defect: these three kept their
+      // starting values (HP 1.0, 0 kills, 0 enemies) for runs that died before
+      // the mark, and the median over all runs then read a dead run as a
+      // healthy arrival. Found by review on 2026-09-27; the first School
+      // reading was written off the wrong figures. INSTRUMENT.
+      medianHpFractionAt300: median(runs.filter((r) => r.reached300).map((r) => r.hpFractionAt300)),
+      medianKillsAt300: median(runs.filter((r) => r.reached300).map((r) => r.killsAt300)),
+      medianEnemiesAt300: median(runs.filter((r) => r.reached300).map((r) => r.enemiesAt300)),
       reachedBoss: runs.filter((r) => r.bossHpFraction !== null).length,
       medianBossLeft: (() => {
         const reached = runs.filter((r) => r.bossHpFraction !== null);

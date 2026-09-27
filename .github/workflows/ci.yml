@@ -41,11 +41,9 @@ jobs:
         with:
           version: 11
 
-      # The repo declares no Node version anywhere - no .nvmrc, no engines
-      # field, no packageManager. So this pins the version the documented
-      # commands were actually observed passing on (24.20.0 locally) rather
-      # than inventing a floor nobody has tested against. If a Node version is
-      # ever declared in the repo, this should follow it rather than lead it.
+      # Node 24 follows package.json's engines field (>=24, added in 873e6c4).
+      # This file used to lead that declaration and asked to follow it once
+      # one existed; it does now.
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
@@ -63,9 +61,9 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
-      # 239 tests: the sim, the content rules, the art pipeline laws. The
-      # suite touches the network nowhere - verified by running it inside a
-      # network namespace with no interfaces, where all 239 still pass - so a
+      # The suite: the sim, the content rules, the art pipeline laws. It
+      # touches the network nowhere - verified by running it inside a network
+      # namespace with no interfaces, where every test still passed - so a
       # failure here is a failure in the code and never in a CDN.
       - name: Test
         run: pnpm test
@@ -90,5 +88,6 @@ jobs:
       # The bots are an instrument, not a gate. The run prints win rates and
       # survival medians and exits 0 whatever they say - there is no pass
       # condition to check, and inventing one would mean asserting a balance
-      # number while tuning is frozen pending a session with a human.
-      # A green tick over an unread report is worse than no tick.
+      # number while every act's values are labelled provisional until a
+      # person has played it (D-022). A green tick over an unread report is
+      # worse than no tick.

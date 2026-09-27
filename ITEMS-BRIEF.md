@@ -172,3 +172,12 @@ something else entirely in context.
 Filed here rather than in `ART-DIRECTION.md` because it bears on 3.3 — if the
 antibody is promoted from "one enemy in act one" to the game's spine, what it
 looks like stops being a local art question.
+
+---
+
+## Note — 2026-09-27
+
+§4's "frozen pending one session with Justin at a keyboard" is superseded by
+D-022: numbers nobody has played are built, labelled provisional in the data,
+and moved in response to play. The five questions above are unchanged and
+still open.

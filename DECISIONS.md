@@ -296,3 +296,36 @@ Rejected: a `SCHOOL_ENEMIES` registry beside `ENEMIES`. It is the sibling-
 collection trap CONCEPTION-ROSTER §5.3 names for items — the content tests
 enforce their rules by iterating one collection, so a second one is a rule that
 silently stops applying to an act. School is a section inside the registry.
+
+## D-022 · 2026-09-27 · Placeholder numbers are built and labelled, not withheld — School gets its schedule
+Supersedes D-021's *reason* for not building, and reverses its schedule item.
+D-021 declined School's schedule because every rate was a number nobody had
+set; four weeks later nobody had, because there was nothing to play. Its
+principle — never *claim* a number is tuned from bot data — was right; its
+corollary — do not *build* until a person has tuned — stalled the project
+(PLAN.md, 2026-09-27). So: `SCHOOL` exists with placeholder rates escalating
+in the shape Conception's did, carries a `provisional` sentence naming what
+retires it, and a test requires that sentence of every act not listed as
+tuned. The bots run it (`--act=school`); the title starts only `ACTS`, which a
+test ties to `ACT_VISUALS`. The boss at 300s is the Egg standing in. D-021's
+other three items — the substitute's attack, homework's arrival point, the
+monitor's stop — stay unbuilt and are now owed labelled placeholders.
+Rejected: a per-act `tuned: boolean` — a flag says nothing about *what*
+resolves it, which is the whole content of the label.
+Rejected: a `HEADLESS_ACTS` list the content rules skip — the sibling-
+collection trap D-021 avoided.
+
+## D-023 · 2026-09-27 · `main` deploys to GitHub Pages, and the deploy is not gated on CI
+D-003 said "playable from a link" and for two months there was no link, so
+every human judgement needed a machine with `pnpm dev` running and none was
+made. `deploy.yml` publishes every push to `main`. It runs the production
+build (typecheck included) and nothing else: CI answers "is the code right",
+the link answers "can Justin play what is on main", and a red badge next to a
+live link is a legible state while a green badge and no link is the one the
+project was stuck in. Dev mode does not ship; it is behind `import.meta.env.DEV`.
+The repository was private when this was written and was made public the same
+day so Pages could serve it; D-007's "the repository is public" holds again.
+Rejected: deploy only after CI passes — a flaky or slow check would then hold
+the one artefact this project most needs to exist.
+Rejected: deploy from the feature branch too — a link that changes under
+Justin mid-session is worse than one that changes when work lands.

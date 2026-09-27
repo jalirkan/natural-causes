@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ENEMIES } from '../enemies';
 import { ITEMS } from '../items';
 import { ACT_VISUALS } from '../act-visuals';
-import { ACTS, rateAt, spawnStreams } from '../acts';
+import { ACTS, ALL_ACTS, rateAt, spawnStreams } from '../acts';
 import { BONE, INK, PAPER, SHADOW, THREAT_BOSS, THREAT_CONTACT, THREAT_ELITE, THREAT_RANGED } from '../../config';
 import { ALL_ASSETS } from '../../../tools/art/batch';
 import { reservationVerdict } from '../../../tools/art/reservations';
@@ -203,6 +203,9 @@ describe('the locked palette', () => {
   });
 
   it('each act background is the act background from the locked palette', () => {
+    // ACTS, not ALL_ACTS: this is a rule about acts the title can start. An
+    // act with a schedule and no art is legal and is kept out of ACTS by the
+    // test below rather than by memory.
     for (const act of ACTS) {
       const visuals = ACT_VISUALS[act.id];
       expect(visuals, `act "${act.id}" has no visuals`).toBeDefined();
@@ -210,14 +213,60 @@ describe('the locked palette', () => {
       expect(hex(visuals!.background), `act "${act.id}"`).toBe(expected);
     }
   });
+
+  it('an act is startable exactly when it has visuals', () => {
+    // The two lists in acts.ts and the record in act-visuals.ts have to agree
+    // in both directions: an act in ACTS without visuals would throw in
+    // ActScene.init; visuals for an act not in ACTS is art nobody can reach.
+    // And ACTS is a subset of ALL_ACTS by definition, said out loud so an act
+    // added to the startable list alone is caught here and not by the palette
+    // test three assertions later.
+    for (const act of ACTS) {
+      expect(ALL_ACTS, `"${act.id}" is startable but not in ALL_ACTS`).toContain(act);
+    }
+    for (const act of ALL_ACTS) {
+      const startable = ACTS.includes(act);
+      const hasVisuals = ACT_VISUALS[act.id] !== undefined;
+      expect(startable, `act "${act.id}": in ACTS=${startable}, visuals=${hasVisuals}`).toBe(
+        hasVisuals,
+      );
+    }
+    for (const id of Object.keys(ACT_VISUALS)) {
+      expect(ALL_ACTS.some((a) => a.id === id), `visuals for unknown act "${id}"`).toBe(true);
+    }
+  });
 });
 
 describe('acts', () => {
+  // ALL_ACTS throughout: the rules apply to every schedule that exists,
+  // whether or not the title can start it yet.
   it('every wave references an enemy that exists', () => {
-    for (const act of ACTS) {
+    for (const act of ALL_ACTS) {
       for (const wave of act.waves) {
         expect(ENEMIES[wave.enemyId], `act "${act.id}" spawns unknown "${wave.enemyId}"`).toBeDefined();
       }
+    }
+  });
+
+  it('every wave spawns an enemy of its own act', () => {
+    for (const act of ALL_ACTS) {
+      for (const wave of act.waves) {
+        expect(ENEMIES[wave.enemyId]?.act, `act "${act.id}" spawns "${wave.enemyId}"`).toBe(act.id);
+      }
+    }
+  });
+
+  it('every enemy the registry gives an act is scheduled by that act', () => {
+    // The per-act form of the sibling-collection trap: an enemy defined for an
+    // act and left out of its schedule is content nothing can reach, and it
+    // would stay green forever.
+    for (const act of ALL_ACTS) {
+      const defined = Object.values(ENEMIES)
+        .filter((d) => d.act === act.id)
+        .map((d) => d.id)
+        .sort();
+      const scheduled = [...spawnStreams(act.waves).keys()].sort();
+      expect(scheduled, `act "${act.id}"`).toEqual(defined);
     }
   });
 
@@ -251,7 +300,7 @@ describe('acts', () => {
   };
 
   it('each enemy escalates along its own schedule', () => {
-    for (const act of ACTS) {
+    for (const act of ALL_ACTS) {
       expect(escalationProblems(act.waves), `act "${act.id}"`).toEqual([]);
     }
   });
@@ -294,7 +343,7 @@ describe('acts', () => {
     // The spawner read the flat list as one active wave, so exactly one enemy
     // type could ever be live. Rates must be non-zero for every stream once
     // its schedule has started.
-    for (const act of ACTS) {
+    for (const act of ALL_ACTS) {
       for (const [enemyId, stream] of spawnStreams(act.waves)) {
         const at = rateAt(stream, act.durationSeconds);
         expect(at, `"${enemyId}" is dead by the end of act "${act.id}"`).toBeGreaterThan(0);
@@ -307,7 +356,7 @@ describe('acts', () => {
     // for (CONCEPTION-ROSTER §5.1). Per-enemy escalation alone would permit an
     // act that gets quieter overall by retiring a stream; this is what says
     // the act only ever gets worse.
-    for (const act of ACTS) {
+    for (const act of ALL_ACTS) {
       const streams = [...spawnStreams(act.waves).values()];
       const moments = [...new Set(act.waves.map((w) => w.fromSeconds))].sort((a, b) => a - b);
       let previous = 0;
@@ -321,9 +370,49 @@ describe('acts', () => {
   });
 
   it('the last wave starts before the act ends', () => {
-    for (const act of ACTS) {
+    for (const act of ALL_ACTS) {
       const last = act.waves[act.waves.length - 1]!;
       expect(last.fromSeconds).toBeLessThan(act.durationSeconds);
+    }
+  });
+
+  /**
+   * Acts a person has played and whose numbers were moved in response.
+   *
+   * Empty today, deliberately. Removing an act's `provisional` label means
+   * adding its id here, so "this act is tuned" is a reviewable line in a diff
+   * and can never happen by omission — which is the hole a label with no
+   * forcing function would have left open.
+   */
+  const TUNED: string[] = [];
+
+  it('every act not listed as tuned carries a provisional label that names a person and a decision', () => {
+    // The marker is the rule from PLAN.md's 2026-09-27 amendment: placeholder
+    // numbers are allowed and must be labelled, in data, with the thing that
+    // retires them. An empty or glib label is a placeholder pretending to be
+    // a decision.
+    //
+    // What a regex can check: a PERSON is named as the resolver, on a word
+    // boundary (the first draft matched /play|session/, which "playtest"
+    // satisfies — a label retired by a bot is exactly what D-022 forbids); the
+    // decision that made it provisional is cited; and no word claims finality.
+    for (const act of ALL_ACTS) {
+      if (TUNED.includes(act.id)) {
+        expect(act.provisional, `act "${act.id}" is listed as tuned and still labelled`).toBeUndefined();
+        continue;
+      }
+      const label = act.provisional;
+      expect(label, `act "${act.id}" has no provisional label and is not listed as tuned`).toBeDefined();
+      expect(label!.length, `act "${act.id}" provisional label is too short`).toBeGreaterThan(60);
+      expect(label, `act "${act.id}" must name a person as what resolves it`).toMatch(
+        /\b(person|human|Justin)\b/i,
+      );
+      expect(label, `act "${act.id}" must cite the decision that made it provisional`).toMatch(
+        /\b[DG]-\d{3}\b/,
+      );
+      expect(label, `act "${act.id}" label claims finality`).not.toMatch(
+        /\b(final|tuned|settled|calibrated)\b/i,
+      );
     }
   });
 });
