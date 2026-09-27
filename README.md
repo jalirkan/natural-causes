@@ -58,8 +58,8 @@ planted payoffs and a read-only coherence pass — are not built, and
 ## Stack
 
 Phaser 3 · TypeScript · Vite · browser target, playable from a link. Sprites
-are being moved to authored SVG, rasterised and checked by an in-repo pipeline
-(G-038) — consistency is enforced in code, not asked of a generator.
+are authored SVG in the repo, rasterised and checked by an in-repo pipeline
+(D-025, G-038) — consistency is enforced in code, not asked of a generator.
 
 ## Running it
 
@@ -80,8 +80,11 @@ Other tasks:
 pnpm test                 # the whole suite: the sim, the content rules, the art pipeline
 pnpm playtest -- --runs=40 # the bots, with intervals
 pnpm playtest -- --runs=16 --act=school   # any act with a schedule
-pnpm art:batch            # regenerate sprites (needs FAL_KEY in .env)
-pnpm art:batch -- --dry   # print the prompts and run the content rule, no API calls
+pnpm playtest -- --runs=16 --life         # the whole life, act after act
+pnpm art:draw             # every SVG in assets/svg through the pipeline, then pack
+pnpm art:draw -- --only=<id>              # one drawing, no pack
+pnpm art:sheet            # the review page: every sprite at game size on its act
+pnpm art:batch -- --dry   # the retired generator's prompts through the content rule, no API calls
 ```
 
 ### CI
@@ -123,8 +126,9 @@ A life. Today it is two acts. Conception, about five minutes to the Egg: rival
 sperm from the start, antibodies at 0:45, spermicide at 1:30, white cells at
 2:10. The Egg falling is the threshold; you cross it with your build and your
 health restored, aged five. Then School: cliques from the start, dodgeballs
-early, homework piling up from the second minute, hall monitors, and a
-substitute teacher near the end; its boss is the Egg standing in for a Gym
+early, homework piling up behind you from the second minute, hall monitors
+that stop you dead, and near the end a substitute teacher who stands still,
+checks the clipboard, and fires; its boss is the Egg standing in for a Gym
 Teacher nobody has designed. Outlive that and you die of natural causes, aged
 twelve. Dying earlier, the certificate names what did it.
 
@@ -170,13 +174,17 @@ mode was still on twenty minutes ago.
 | **0** | Scaffold, Phaser + Vite, blank scene | done |
 | **1** | Art pipeline + test batch, art direction judged | done — `ART-DIRECTION.md` is binding |
 | **2** | Core loop, Conception act | **complete and unjudged** — title to Egg to certificate, sound, no known bugs, playable at the link; the drag curve and cadence are labelled placeholders until a person has played it |
-| **3** | The School act | **playable as the second act of the life** — five enemies, three behaviours, a **provisional** schedule (D-022), sprites drawn as SVG (D-025); the Egg stands in for the undesigned Gym Teacher, and the substitute's attack, homework's arrival point and the monitor's stop are still owed |
+| **3** | The School act | **playable as the second act of the life** — five enemies, three behaviours, a **provisional** schedule (D-022), sprites drawn as SVG (D-025); the substitute's shot, homework's arrival point and the monitor's stop are built as labelled placeholders nobody has played; the Egg stands in for the undesigned Gym Teacher |
 
-The art pipeline is six stages (`tools/art/`): generate via Flux on fal, cut the
-background, conform to a locked 20-colour palette with a uniform outline,
-texture, check, pack. The check stage is what makes it unattended — a failed
-asset is regenerated with a mutated seed rather than escalated to a human.
+The art pipeline (`tools/art/`) starts from a drawing: an SVG in
+`assets/svg/<act>/` is rasterised, conformed to the act's locked palette with a
+uniform outline, textured, checked and packed into the act's atlas. The check
+stage is what makes it unattended — coverage, contrast against the act's
+background, palette conformance, silhouette variety, readability at 48px — and
+the pipeline rejects, it never corrects (G-032). The SVG is the provenance. The
+generator path (`art:batch`) is retired and kept only so the content rule keeps
+running over its prompts in CI.
 
 `tools/art/content-rule.ts` enforces D-007 as a build failure: no enemy may be
-defined by religion, ethnicity, nationality or race, and a prompt that does is
-never sent to the API.
+defined by religion, ethnicity, nationality or race, in art, name, description
+or prompt.
