@@ -1,4 +1,4 @@
-import { CONCEPTION } from '../../src/data/acts';
+import { CONCEPTION, type ActDef } from '../../src/data/acts';
 import { ITEMS, isActive } from '../../src/data/items';
 import type { EnemyDef } from '../../src/data/enemies';
 import { World, type Input, type WorldOptions } from '../../src/sim/world';
@@ -345,8 +345,9 @@ export function runOnce(
   seed: number,
   bossPull?: number,
   spawnOverride?: 'edge' | 'lead',
+  act: ActDef = CONCEPTION,
 ): RunResult {
-  const options: WorldOptions = { act: CONCEPTION, seed };
+  const options: WorldOptions = { act, seed };
   if (bossPull !== undefined) options.bossPull = bossPull;
   if (spawnOverride !== undefined) options.spawnOverride = spawnOverride;
   const world = new World(options);
@@ -379,7 +380,7 @@ export function runOnce(
 
   const maxSteps = MAX_SECONDS / DT;
   while (!world.dead && !world.won && steps < maxSteps) {
-    if (!reached300 && world.time >= CONCEPTION.durationSeconds) {
+    if (!reached300 && world.time >= act.durationSeconds) {
       reached300 = true;
       stacksAt300 = world.dragStacks;
       itemSpeedAt300 = world.itemSpeed;
@@ -392,7 +393,7 @@ export function runOnce(
       world.choose(chooseOffer(policy, world.offers, world.items, rng));
       continue;
     }
-    const inCrowdPhase = world.time < CONCEPTION.durationSeconds;
+    const inCrowdPhase = world.time < act.durationSeconds;
     world.step(DT, decideWithCadence(world, rng, state, DT));
     steps++;
 

@@ -296,3 +296,33 @@ Rejected: a `SCHOOL_ENEMIES` registry beside `ENEMIES`. It is the sibling-
 collection trap CONCEPTION-ROSTER §5.3 names for items — the content tests
 enforce their rules by iterating one collection, so a second one is a rule that
 silently stops applying to an act. School is a section inside the registry.
+
+## D-022 · 2026-09-27 · Placeholder numbers are built and labelled, not withheld — School gets its schedule
+Supersedes the "NOT BUILT" half of D-021. D-021 declined School's wave schedule
+because every rate was a number nobody had set, and four weeks later nobody
+had set one, because there was nothing to play. The principle it protected —
+never *claim* a number is tuned from bot data — was right; the corollary it
+drew — do not *build* until a person has tuned — is what stalled the project
+(PLAN.md, 2026-09-27). So: `SCHOOL` exists with the smallest rates that make
+§3.6's introduction order runnable, carries a `provisional` sentence in its
+data naming what retires it, and a test requires that sentence of any act
+that has one. The bots run it (`--act=school`); the title cannot start it
+until its art exists, and a test ties `ACTS` to `ACT_VISUALS` so that stays
+true by check rather than by memory. The boss at 300s is the Egg standing in.
+Rejected: a per-act `tuned: boolean` — a flag says nothing about *what*
+resolves it, which is the whole content of the label.
+Rejected: keep School bot-only via a separate `HEADLESS_ACTS` list the content
+rules skip — that is exactly the sibling-collection trap D-021 avoided.
+
+## D-023 · 2026-09-27 · `main` deploys to GitHub Pages, and the deploy is not gated on CI
+D-003 said "playable from a link" and for two months there was no link, so
+every human judgement needed a machine with `pnpm dev` running and none was
+made. `deploy.yml` publishes every push to `main`. It runs the production
+build (typecheck included) and nothing else: CI answers "is the code right",
+the link answers "can Justin play what is on main", and a red badge next to a
+live link is a legible state while a green badge and no link is the one the
+project was stuck in. Dev mode does not ship; it is behind `import.meta.env.DEV`.
+Rejected: deploy only after CI passes — a flaky or slow check would then hold
+the one artefact this project most needs to exist.
+Rejected: deploy from the feature branch too — a link that changes under
+Justin mid-session is worse than one that changes when work lands.

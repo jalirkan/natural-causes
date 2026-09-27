@@ -1,0 +1,85 @@
+# Deploy the game to GitHub Pages on every push to main.
+#
+# D-003 is "playable from a link", and for the first two months of the project
+# there was no link: the game ran on whichever machine had last run `pnpm dev`.
+# Every question the project wanted a human to answer ("is the drag the right
+# size?", "is any of it funny?") therefore required that person to sit down at
+# that machine, and none of the questions got answered. This file makes the
+# current main branch playable from a URL within a few minutes of landing, so
+# reacting to the game is something that happens on a phone in a queue rather
+# than in a scheduled session.
+#
+# The deploy is deliberately not gated on ci.yml. CI answers "is the code
+# right"; this answers "can Justin play what is on main". A red CI and a live
+# deploy of the same commit is a legible state (the badge says so); a green CI
+# and no link is the state the project was stuck in.
+#
+# Dev mode does not ship: `pnpm build` is a production build and the panel is
+# behind `import.meta.env.DEV` (README, "Dev mode").
+#
+# First-time setup, once, by a repository admin: Settings -> Pages -> Source
+# -> "GitHub Actions". `configure-pages` below asks for that automatically
+# (`enablement: true`) and succeeds when the token is allowed to; if the first
+# run fails at that step, flip the setting by hand and re-run the workflow.
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deploy at a time, and never cancel one in flight — a half-uploaded site
+# is worse than a briefly stale one.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Same toolchain pins as ci.yml, for the same reasons given there.
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      # `tsc -b && vite build`. vite.config.ts sets `base: './'`, so the bundle
+      # runs from the repository subpath Pages serves it at without a rebuild.
+      - name: Build
+        run: pnpm build
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Upload
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

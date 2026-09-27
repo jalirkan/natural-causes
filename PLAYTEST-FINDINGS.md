@@ -21,6 +21,31 @@ Running record of what the automated bots measured and what it means for design.
 
 ---
 
+# 2026-09-27 · School — first run. Presence and ordering only.
+
+`pnpm playtest -- --runs=16 --act=school`. The schedule is provisional (D-022)
+and the boss is the Egg standing in, so the only claims here are that the act
+runs, everything in it arrives, and roughly how it lands on a bot.
+
+| policy | win rate (95% CI) | median s | HP at 300s | enemies alive at 300s |
+|---|---|---|---|---|
+| midpiece+wake | 88% [64–97] | 305 | 92% | 364 |
+| membrane+acrosome | 75% [51–90] | 321 | 82% | 327 |
+| motility | 56% [33–77] | 311 | 99% | 279 |
+| greedy-capacitation | 94% [72–99] | 309 | 96% | 341 |
+| random | 75% [51–90] | 306 | 92% | — |
+
+All five School enemies spawn, in §3.6's order, and the run is deterministic
+(tests in `school-act.test.ts`). Every policy reaches the boss with most of its
+health, so the crowd phase as written barely hurts a bot — and a bot has no
+ranged pressure to face, because the substitute's attack is not built. That is
+the reading a person should have in mind before playing it; it is not a number
+to tune against. Nothing in the Conception-specific sections of the report
+(antibody stacks, dispersion) applies to this act, and the report says so by
+printing zeros.
+
+---
+
 # 2026-08-01 · Run 7 — BLOCKED on §11.5. Shapes implemented, no run.
 
 Per §11.6: two shapes in, both values placeholders, no bots run. One genuine

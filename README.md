@@ -2,17 +2,14 @@
 
 [![CI](https://github.com/jalirkan/natural-causes/actions/workflows/ci.yml/badge.svg)](https://github.com/jalirkan/natural-causes/actions/workflows/ci.yml)
 
-> **Status: phases 0 and 1 built, awaiting art review.** Plan in
-> [`PLAN.md`](./PLAN.md), art spec in [`ART-DIRECTION.md`](./ART-DIRECTION.md)
-> (**still a draft** — it does not become binding until Justin has judged the
-> test batch), decisions in [`DECISIONS.md`](./DECISIONS.md). Name is
-> provisional.
+> **Play it: <https://jalirkan.github.io/natural-causes/>** — the current
+> `main`, published by [`deploy.yml`](./.github/workflows/deploy.yml) on every
+> push. One act, about five minutes, keyboard only for now.
 >
-> A blank scene renders in the browser and the art pipeline generates, cuts,
-> conforms, textures, checks and packs assets unattended. The six-asset test
-> batch is generated and waiting at
-> [`assets/review/test-batch.html`](./assets/review/test-batch.html). Nothing
-> has been built against the style yet, on purpose.
+> **Status: the Conception act is complete and unjudged; School runs headless.**
+> Plan in [`PLAN.md`](./PLAN.md) (read its 2026-09-27 amendment first), art
+> spec in [`ART-DIRECTION.md`](./ART-DIRECTION.md) (binding), decisions in
+> [`DECISIONS.md`](./DECISIONS.md). Name is provisional.
 
 **A horde-survival roguelike where the progression is a human life.** You begin
 as one sperm cell among millions. If you survive long enough, you die of natural
@@ -75,8 +72,9 @@ it is set to `AllSigned` here and blocks pnpm's shim; `pnpm.cmd dev` also works.
 Other tasks:
 
 ```bash
-pnpm test                 # 239 tests: the sim, the content rules, the art pipeline
+pnpm test                 # 251 tests: the sim, the content rules, the art pipeline
 pnpm playtest -- --runs=40 # the bots, with intervals
+pnpm playtest -- --runs=16 --act=school   # any act with a schedule
 pnpm art:batch            # regenerate sprites (needs FAL_KEY in .env)
 pnpm art:batch -- --dry   # print the prompts and run the content rule, no API calls
 ```
@@ -90,9 +88,14 @@ nobody here owns — the point being that "the tests pass" stops being something
 you have to take on trust from one person's terminal.
 
 The suite needs no network: it was run inside a namespace with no interfaces
-and all 239 tests still passed. The dry art run has no `FAL_KEY` in CI and
+and the whole suite still passed. The dry art run has no `FAL_KEY` in CI and
 never will, so a regression that made `--dry` reach the API would fail the step
 rather than quietly spend money.
+
+[`deploy.yml`](./.github/workflows/deploy.yml) publishes `main` to GitHub
+Pages on every push, independently of CI (D-023). First-time setup is one
+repository setting: Pages → Source → "GitHub Actions"; the workflow asks for
+it itself and falls back to that instruction if it cannot.
 
 The playtest bots are **not** in CI. They print measurements and exit 0
 whatever the measurements say, and tuning is frozen pending a session with a
@@ -110,6 +113,18 @@ arrow keys to move. You fire automatically — there is no attack button.
 One act, Conception, about five minutes to the Egg. Rival sperm from the start,
 antibodies at 0:45, spermicide at 1:30, white cells at 2:10. Kill the Egg and
 you win by being absorbed.
+
+#### After you play — five things to say
+
+These replace the six calibration questions in `CONCEPTION-ROSTER.md` §12.4.
+Nothing here asks for a number; every one is about the run you just had.
+
+1. **Did you want to go again?** If not, at what point did you stop caring?
+2. **Were you slower by the end?** When did you first notice, and did it keep
+   getting worse or stop mattering at some point?
+3. **Was the Egg a fight or a shooting gallery?**
+4. **Did you work out what the magnet does?** Did it seem to help or hurt?
+5. **Did anything make you laugh?** Once is enough. Say what.
 
 ### Dev mode
 
@@ -132,8 +147,8 @@ mode was still on twenty minutes ago.
 |---|---|---|
 | **0** | Scaffold, Phaser + Vite, blank scene | done |
 | **1** | Art pipeline + test batch, art direction judged | done — `ART-DIRECTION.md` is binding |
-| **2** | Core loop, Conception act | **complete** — title to Egg to win/loss, sound, no known bugs; numeric tuning awaits a human session (§11.5) |
-| **3** | The School act | roster and reserved list written, no enemies built |
+| **2** | Core loop, Conception act | **complete and unjudged** — title to Egg to win/loss, sound, no known bugs, playable at the link; the drag curve and cadence are labelled placeholders until a person has played it |
+| **3** | The School act | five enemies and three behaviours built; a **provisional** schedule the bots run (`--act=school`, D-022); not startable — four sprites ungenerated, no boss, no player frame |
 
 The art pipeline is six stages (`tools/art/`): generate via Flux on fal, cut the
 background, conform to a locked 20-colour palette with a uniform outline,

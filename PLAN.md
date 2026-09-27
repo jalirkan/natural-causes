@@ -177,3 +177,75 @@ that, and pretending otherwise is how it ends up unfunny.
   content rule above are the guards.
 - **Scope.** Seven acts is ambitious. Better: three excellent acts and a stated
   roadmap than seven thin ones.
+
+---
+
+## 2026-09-27 · Reorientation
+
+Appended, per the header. Everything above is left as written so the reasoning
+that turned out wrong stays legible. This section says which parts did.
+
+### What the record shows
+
+Twenty commits on 2026-08-01. Thirteen in the eight weeks since, none of which
+changed what a player experiences. `CONCEPTION-ROSTER.md` §12.4 diagnosed it
+on the first day — the design calibration had been "blocked on a person for
+four passes, and the loop kept producing passes because it could" — and §12.5
+then said *do not run one*. The project waited two months for a session that
+never came. That is the process's failure, not Justin's, and four ideas in the
+plan above produced it:
+
+1. **The human was handed the hardest job.** The open questions were "what
+   should `k` be" and "is the drag the right shape", to be answered from prose
+   and tables. D-002 rejected Godot precisely so Justin would not be the
+   bottleneck, and the process made him one by another route. A person reacts
+   to a playable thing in five minutes on a phone. A person does not sit down
+   to choose six numbers from a 1,400-line roster, and this one didn't.
+2. **There was no link.** D-003 says "playable from a link". For two months
+   the game ran on whichever machine had last run `pnpm dev`. Every human
+   judgement therefore needed a scheduled sitting at that machine, which is
+   why none happened.
+3. **Rigour went where it was cheap, not where the risk was.** Seven bot runs,
+   control arms, Wilson intervals and an algebraic proof, all about one
+   enemy's drag curve in an act nobody had confirmed was fun. "The Conception
+   act is not fun" is the first failure mode listed above, and that question
+   was never put to the one person who could answer it while 700 lines were
+   written about the antibody.
+4. **The documents outgrew the game.** 5,400 lines of Markdown against 8,600
+   of non-test TypeScript. Mechanism 1 is right and forty-line entries are not
+   what it needs. The study (D-008) made every documented hour feel like
+   output. Mechanisms 3 and 4 were never built, and the record did not notice.
+
+What is not wrong, and stays: the rules/presentation split, the bots as an
+instrument, the content rule as a build failure, the art laws in code, the
+audit habit, CI. They are why the code can be trusted.
+
+### What changes
+
+- **Every session ends with something Justin can play from a link.**
+  `deploy.yml` publishes `main` to GitHub Pages (D-023). Work that cannot be
+  seen at the link is not finished.
+- **Placeholder numbers are built and labelled, never withheld and never
+  claimed.** A system with values nobody has played carries a `provisional`
+  sentence in its data naming what retires it; a test requires the sentence.
+  "Tuning is frozen" becomes "tuning is not claimed" (D-022).
+- **Justin is asked for reactions, not values.** "Play this; what felt wrong?"
+  — never "what should this be?". The §12.4 questions are re-put in that form
+  in the README. A question he cannot answer in five minutes on a phone is
+  badly posed.
+- **A documentation budget.** A decision entry is at most fifteen lines, with
+  one-line rejected alternatives. A playtest entry is a table and five
+  sentences. Long-form reasoning goes in the commit message, attached to the
+  change and not re-read by every future session.
+- **One agent session, with routed models.** The Cowork/Claude Code split was
+  designed around Cowork's 2026-08 tool limits and produces handoff documents
+  and "decisions wanted" lists. Design judgement and implementation now run in
+  one Claude Code session that delegates: Fable holds the judgement (what to
+  build, decision records, audits, anything touching D-007); Opus takes
+  bounded implementation against a spec and tests, in parallel where the
+  work allows. Cowork remains available for a design conversation Justin
+  wants out loud. It is no longer a required stage.
+- **The study is a by-product.** The findings document is written once, from
+  the git log, at the end. No session writes for it.
+- **Mechanisms 3 and 4** are built or struck from this file and the README by
+  the end of October. The one thing the record must not do is claim them.

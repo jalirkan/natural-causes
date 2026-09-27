@@ -1,6 +1,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { ANTIBODY_FLOOR, antibodyDragFor } from '../../src/sim/world';
+import { ALL_ACTS, CONCEPTION } from '../../src/data/acts';
 import {
   POLICIES,
   itemUptake,
@@ -23,6 +24,16 @@ import {
 
 const argv = process.argv.slice(2);
 const runsPerPolicy = Number(argv.find((a) => a.startsWith('--runs='))?.slice(7) ?? 60);
+// `--act=school` runs any act with a schedule, startable in the browser or
+// not. The bots' job on an act nobody has played is presence and ordering —
+// does everything spawn, does the act get worse, does a bot survive it at
+// all — never calibration (G-026, G-027).
+const actArg = argv.find((a) => a.startsWith('--act='))?.slice(6);
+const act = actArg === undefined ? CONCEPTION : ALL_ACTS.find((a) => a.id === actArg);
+if (!act) {
+  process.stderr.write(`No act "${actArg}". Known: ${ALL_ACTS.map((a) => a.id).join(', ')}\n`);
+  process.exit(1);
+}
 const onlyPolicy = argv.find((a) => a.startsWith('--policy='))?.slice(9);
 const pullArg = argv.find((a) => a.startsWith('--pull='))?.slice(7);
 const bossPull = pullArg === undefined ? undefined : Number(pullArg);
@@ -47,14 +58,21 @@ if (policies.length === 0) {
 const started = Date.now();
 const results: RunResult[] = [];
 for (const policy of policies) {
-  for (let i = 0; i < runsPerPolicy; i++) results.push(runOnce(policy, 1000 + i, bossPull, spawnOverride));
+  for (let i = 0; i < runsPerPolicy; i++) {
+    results.push(runOnce(policy, 1000 + i, bossPull, spawnOverride, act));
+  }
 }
 const elapsed = (Date.now() - started) / 1000;
 
 const pct = (n: number) => `${(n * 100).toFixed(0)}%`;
 const out: string[] = [];
+if (act.provisional) {
+  out.push(`ACT "${act.id}" IS PROVISIONAL — ${act.provisional}`);
+  out.push('Read presence and ordering below. Nothing here is a calibration.');
+  out.push('');
+}
 out.push(
-  `${results.length} runs across ${policies.length} policies in ${elapsed.toFixed(1)}s ` +
+  `${act.name}: ${results.length} runs across ${policies.length} policies in ${elapsed.toFixed(1)}s ` +
     `(${runsPerPolicy} per policy, seeds 1000..${1000 + runsPerPolicy - 1}` +
     `${bossPull === undefined ? '' : `, boss pull ${bossPull}`}` +
     `${spawnOverride === undefined ? '' : `, all spawns forced to ${spawnOverride}`}` +
@@ -82,7 +100,9 @@ for (const s of summarise(results)) {
 // distribution needs a level condition AND a dispersion condition, and the
 // median alone supplies neither at these counts.
 out.push('');
-out.push('antibody stacks at 300s — median below 3 means absent (§10.4); no upper bound');
+out.push(
+  `antibody stacks at ${act.durationSeconds}s — median below 3 means absent (§10.4); no upper bound`,
+);
 out.push('-'.repeat(84));
 out.push('policy                 median    p90    mean   n@300   median@death');
 for (const s of summarise(results)) {

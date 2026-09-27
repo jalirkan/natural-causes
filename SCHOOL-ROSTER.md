@@ -451,3 +451,16 @@ dry run as a refusal rather than only in a test, which is §1 working. Service
 and Office print as refused too — both have shipped assets and no reserved
 list, which is `G-011`'s ordering violated by history rather than by anything
 here.
+
+## 8 · Implementation note — 2026-09-27, Claude Code
+
+§7's "no `ActDef`" is reversed by D-022. `SCHOOL` in `src/data/acts.ts` has a
+schedule following §3.6's introduction order — clique from 0s, dodgeball at
+25s, homework at 100s, hall monitor at 150s, substitute at 220s, pure contact
+until then — with the smallest rates that make it runnable, labelled
+`provisional` in the data. The bots run it (`--act=school`); the first reading
+is at the top of `PLAYTEST-FINDINGS.md`. The title cannot start it: four of
+the five sprites have never been generated, there is no boss, and a test keeps
+it out of `ACTS` until `ACT_VISUALS` has a `school` entry. Everything §7 lists
+as not built is still not built, and the act is now something a bot can be
+run through and a person could be handed the moment the art exists.
