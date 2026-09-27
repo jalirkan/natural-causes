@@ -1,5 +1,6 @@
 import { ENEMIES } from '../data/enemies';
 import { ITEMS } from '../data/items';
+import type { InputLog } from '../meta/input-log';
 import type { World } from '../sim/world';
 import type { DevState } from './state';
 
@@ -24,6 +25,8 @@ import type { DevState } from './state';
 export interface DevPanelHost {
   world: World;
   dev: DevState;
+  /** This run's held headings. Read only; the scene feeds and stores it. */
+  inputLog: InputLog;
   restart: () => void;
 }
 
@@ -137,6 +140,27 @@ export function attachDevPanel(host: DevPanelHost): () => void {
         // The boss spawns at the end of the step that crosses the duration.
         button('skip to boss', act(() => (w.time += Math.max(0, w.act.durationSeconds - w.actTime)))),
       ),
+    );
+
+    // Read only: this run's held headings (src/meta/input-log.ts) beside the
+    // bots' cadence, a PLACEHOLDER in tools/playtest/bots.ts. Not like for
+    // like — a bot re-deciding into the same sector is one hold, not two.
+    const held = host.inputLog.summary();
+    const text = (s: string): HTMLSpanElement => {
+      const span = document.createElement('span');
+      span.textContent = s;
+      return span;
+    };
+    const heldNote = document.createElement('div');
+    heldNote.className = 'note';
+    heldNote.textContent = d.tainted
+      ? 'Tainted: this log will not be saved at the run’s end.'
+      : 'Saved when the run ends. A bot re-decision is not a hold.';
+    section(
+      'held headings',
+      line(text(`n ${held.count}  median ${held.median.toFixed(2)}s  p90 ${held.p90.toFixed(2)}s`)),
+      line(text('bots re-decide every 0.2s')),
+      heldNote,
     );
 
     const itemRows = Object.values(ITEMS).map((def) => {
