@@ -267,3 +267,137 @@ Recorded because both cost real time and the next person will suspect them too.
   but measured damage standing 200px from the Egg is identical with the crowd
   present and with the field cleared (51.3 either way), because shots pass
   through the boss hitbox on their way to whatever they were aimed at.
+
+
+---
+
+# Part three — 2026-09-27, the life
+
+A run is one life now (D-024), so this pass read the threshold, the two
+clocks, the certificate, the frame-rate paths and the item text against what
+the sim does, then drove each suspicion in a scratchpad script. Two findings
+from earlier today (the arrival medians, `median@death`) are the other agents'
+and are not repeated here. School's three placeholders landed mid-pass and were
+read as well. Same rule as before: everything below was reproduced before it
+was written down. Numbers are the shipped placeholders; nothing was tuned.
+
+## Fixed
+
+### 16. Weapon fire rates depended on the display's refresh rate
+
+A cooldown was reset to its full value on the frame it expired, so the
+overshoot was thrown away and the rate quantised to the frame. One minute
+against a target held in range, at 30/60/144Hz: Lash 106/106/108 shots,
+Motility 65/67/67, **Wake 300/328/333**. The bots run at 60 and a browser runs
+at whatever the monitor does, so a phone at 30 and a desktop at 144 were
+playing an 11% different Wake — the divergence `world.ts` exists to prevent.
+Fixed: the overshoot carries (`remaining + cooldown`); now 110/110/110,
+67/67/67, 334/334/334. The 60Hz bots gain 1.8% Wake areas from this, which is
+the quantisation they had, not a tuning.
+
+### 17. A one-shot burst hit twice when a shot landed on the enemy mid-burst
+
+`hitBySerial` was one field per enemy shared by shots and one-shot areas. A
+Lash shot landing during Acrosome's 0.12s burst overwrote the burst's serial,
+and the burst — still alive for six more frames — hit that enemy again.
+Controlled: burst 5 damage, shot 2, total **12** instead of 7; the piercing
+case (Motility parked on an enemy, burst interleaved) 22 instead of 9.
+Natural: Lash + Acrosome for a minute against one adjacent enemy applied 43
+bursts **52 times**. Fixed: areas mark `hitByAreaSerial`, shots keep
+`hitBySerial`; the natural run now lands exactly its arithmetic.
+
+## Open — a judgement, not a correction
+
+### 18. Lash aims at what it cannot hit
+
+`nearestEnemy` picks the nearest enemy and the antibody is an enemy, spawned
+320px ahead inside Lash's 420. Over a Conception act with the player kept
+alive, **37–49% of all Lash shots were aimed at an antibody** (standing still,
+circling, holding one heading), 50–66% in minutes four and five, and in the
+boss phase 9–22 shots went to a drifting antibody instead of the Egg. In
+School, 40% go to homework and 6% to dodgeballs. G-018 says you cannot shoot a
+document; nothing says the starting weapon should keep trying. One line in
+`nearestEnemy` — `if (e.def.invulnerable) continue;` — fixes the antibody
+half and moves every baseline in the record; whether homework is a target is a
+roster question.
+
+### 19. Capacitation restarts below baseline at the crossing
+
+`damageDealt` ramps on `actTime`, so the crossing sets it back to
+`damageMultiplier`. Reproduced: level 1 goes ×1.85 → ×0.70 on the first frame
+of School, level 3 ×6.33 → ×0.34, **level 5 ×21.7 → ×0.17 (÷129)**, and each
+takes 79s of School to reach ×1 — a build that has no Capacitation is ×1
+throughout. D-024's commit made the ramp per act by substituting the clock and
+said so in one clause; the item text says "act clock" and also "a bet that the
+run reaches the point where it pays". Either it is the late bloomer of every
+act, or the ramp reads the life. CONCEPTION-ROSTER §4 owns this.
+
+### 20. Wake's text and Wake's field disagree about standing still
+
+`tradesAway`: "a cornered player is holding a weapon that has stopped
+existing." The area is placed at the player every 0.18s and lives 2.4s, so a
+stationary player stacks twelve of them under their feet. Against a rival in
+contact: **142 dps standing still, 14.6 dps moving** (9.8×); a rival dies in
+0.02s; the Egg falls in 3.3s to level-1 Wake alone from a standstill at its
+edge. A cornered player holds the strongest weapon in the act. Consistent with
+part two, where walls raised midpiece+wake 15% → 28%. Options, one each: place
+the area behind the player; skip it when input is zero; rewrite the text.
+
+### 21. Chemotaxis drags the arena's furniture
+
+`applyAttractors` pulls whatever the grid finds, including the three enemies
+SCHOOL-ROSTER §3 says belong to the arena. Reproduced with one 3.2s pull: a
+homework pile 200px away arrives at the player and shoves them 45px; two piles
+pulled to the same point end **1px apart, overlapping and unmerged** (merging
+is on arrival only); a hall monitor's patrol line moves 26px and stays moved
+for the rest of the act; a dodgeball slides 9px/s sideways off its heading.
+Whether the room's shape should be the player's to move is a design call. If
+not: `if (World.belongsToArena(e.def)) continue;` in the pull loop.
+
+### 22. The ending waits on a level-up
+
+Gems collected during the Egg's 1.8s absorb still level the player and present
+an offer, and `step()` freezes on offers, so the absorb pauses behind three
+cards. Reproduced on a one-act life: `boss.timer` held at 1.783 for 300 steps
+until a choice was made, then "natural causes". Harmless in a two-act life
+(the pick is School's); on the last act it is a decision in a run already
+over. Not gated in `presentOffers` because `beginAct` relies on that path.
+
+## Two things that looked like bugs and were not
+
+- **Skip-to-boss moves the act clock backwards in School.** The brief described
+  it as `time = durationSeconds`, which in act two would do exactly that. The
+  panel already advances by `durationSeconds - actTime` (commit 20726ac):
+  School at 40s → `actTime` 300, the Egg spawns, the certificate would name
+  the Gym Teacher. The `time` setter's absolute form is reachable only from
+  code, and nothing shipped calls it that way.
+- **An unarmed, stationary School run ends with one homework pile out of 75.**
+  It looked like piles being culled or killed. It is the trail placeholder:
+  a player who never moves has their trail under their feet, so 74 piles land
+  on the first and merge into one of radius 260 and 1050 hp, shoving the
+  player 276px as it grows — which `TRAIL_SECONDS`'s label anticipates ("too
+  short and the pile lands on the player"). Circling, 63 of 75 stand. At a
+  wall the pile lands inside the player and stays there until one frame of
+  input, since the tie-break pushes toward +x.
+
+## Checked and clean
+
+The certificate is written once: a death and the Egg's zero in the same frame
+record a death (the Egg had not reached zero when the player did); a white
+cell parked on the player through the whole absorb writes nothing (0 writes,
+`actIndex` 1); age holds at `to` through the boss phase and the win's
+`age.to` equals the getter. The crossing: 60 XP on the ground tips three
+levels and presents three choices with the world frozen at `actTime` 0 and no
+boss; i-frames, cooldowns, stun, drag and engulf reset; facing, kills, items
+and level cross; serials never repeat, so the stale `bossHitSerial` is inert.
+Frame rate elsewhere: 14 boss volleys in 40s at every rate, engulf 419.5/419.8/
+419.9, School spawns 841/843/843, contact hits 48/50/50 (the i-frame's own
+quantisation, 4% at 30Hz, left). The cull exemption against the cap: an
+unarmed 420s School peaks at 385 enemies of 1500. `maxEnemyRadius` is rebuilt
+every step and the grid's padding covers a 260px pile. The three placeholders
+do what their labels say: the substitute fires 0.82s after coming into range
+and names itself on the certificate; the monitor's touch is 13 damage, i-frames
+and a 0.4s stop, re-landed every 0.6s if you stand in it; the trail lands
+484–488px behind at 30/60/144Hz against 475 expected. Read-only note for the
+instrument: `decideMove` never reads `w.projectiles`, so the bots dodge rings
+and walk through every aimed shot, the Egg's and the substitute's.

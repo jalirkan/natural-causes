@@ -182,6 +182,8 @@ export interface EnemyState {
   /** Monotonic. Lets a piercing shot avoid re-hitting without a Set per shot. */
   uid: number;
   hitBySerial: number;
+  /** The same for one-shot areas. Shared with shots, a shot landing mid-burst re-armed the burst (AUDIT 17). */
+  hitByAreaSerial: number;
   def: EnemyDef;
   x: number;
   y: number;
@@ -857,6 +859,7 @@ export class World {
     this.enemies.push({
       uid: this.nextUid++,
       hitBySerial: 0,
+      hitByAreaSerial: 0,
       def,
       x, y, vx, vy,
       hp: def.hp,
@@ -1112,7 +1115,8 @@ export class World {
 
       const damage = this.activeDamage(def, level);
       const fired = this.fireOne(def, level, damage);
-      this.cooldowns.set(id, fired ? this.activeCooldown(def, level) : 0.1);
+      // `remaining` is the overshoot (<= 0) and carries, or the rate depends on the frame rate (AUDIT 16).
+      this.cooldowns.set(id, remaining + (fired ? this.activeCooldown(def, level) : 0.1));
     }
   }
 
@@ -1357,8 +1361,8 @@ export class World {
         if (a.tick) {
           e.hp -= a.damage * dt * 6;
         } else {
-          if (e.hitBySerial === a.serial) continue;
-          e.hitBySerial = a.serial;
+          if (e.hitByAreaSerial === a.serial) continue;
+          e.hitByAreaSerial = a.serial;
           e.hp -= a.damage;
           if (a.knockback) this.knockBack(e, a.knockback);
         }

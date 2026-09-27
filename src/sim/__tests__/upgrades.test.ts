@@ -22,6 +22,7 @@ function place(w: World, dx: number, dy: number): EnemyState {
   const e: EnemyState = {
     uid: uid++,
     hitBySerial: 0,
+    hitByAreaSerial: 0,
     def: DUMMY,
     x: w.x + dx,
     y: w.y + dy,
