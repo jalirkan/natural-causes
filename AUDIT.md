@@ -432,3 +432,16 @@ and a 0.4s stop, re-landed every 0.6s if you stand in it; the trail lands
 484–488px behind at 30/60/144Hz against 475 expected. Read-only note for the
 instrument: `decideMove` never reads `w.projectiles`, so the bots dodge rings
 and walk through every aimed shot, the Egg's and the substitute's.
+
+## Part four's open items, decided — 2026-09-27
+
+*Numbers here follow origin/main's part four (23–29), where this file's 16–22 are 23–29; 30 is new.* 26 (Capacitation at the crossing) stays open. Regressions: `describe('part four, fixed')` in `src/sim/__tests__/audit.test.ts`; each was run against the unfixed line and failed.
+
+| # | Decision | Fix | Measured |
+|---|---|---|---|
+| 27 | The card is right; the sim follows it. Nearest of the three options: "skip it when input is zero", keyed on distance moved rather than input, so pressing into a wall counts as still | a trail area does not drop within `WAKE_MIN_SPACING` (PLACEHOLDER, half a player radius) of the last drop; a skip retries in 0.1s | level 1 still 157 → 0.5 dps, circling 15.6 unchanged; areas a minute moving 334 (L1) and 758 (L8) unchanged at 30/60/144Hz. Part three's 16 now circles to count Wake |
+| 28 | The pull moves the crowd, not the room | `applyAttractors` skips `merge`, `patrol` and `static` defs. Narrower than `belongsToArena`: the dodgeball still bends, having a heading | pile and patrol line unmoved under a 1s pull; a clique still arrives |
+| 29 | No offer while the outcome is latched; the level counts | `presentOffers` returns while `outcomeDecided`; `beginAct` settles XP after the boss is cleared, so an owed level is offered at the crossing; an offer opened earlier in the step the latch lands goes back in the queue | one-act life: won in 1.8s, level +1, no card. The crossing already offered queued levels; only the latch was missing |
+| 30 | From PLAYTEST-FINDINGS' newest entry: 12 of 31 "someone else" deaths came 0.02s after the Egg appeared, a crowd of 60+ already inside its corona | `spawnBoss` sets every racer inside the corona outside it on its own bearing (0 on the boss point), 1–2 `RACE_PARTING_SECONDS` (PLACEHOLDER, 1) of its swim out in the same radial order | same 84 lives (`--runs=12 --life`), 30 alone toggled: 9 of 21 at 0.02s before, 0 of 20 after; min 0.40s, median 1.58s |
+
+"Just outside" by a pixel would have moved the death to 0.03s; the band is what makes the Egg visible before the certificate. Both placeholders are labelled in `world.ts` under Conception's `provisional` classes; `acts.ts` was not edited in this pass, so its sentence does not yet name them.

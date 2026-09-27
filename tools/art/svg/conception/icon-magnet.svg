@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <title>Appetite icon</title>
+  <desc>A plate seen from above between a fork and a knife, as on a station sign for the dining car.</desc>
+  <!--
+    Appetite (items.ts, icon "magnet": the tag names the mechanic, pickup
+    reach; the drawing names the item). A passive, so it is only ever on a
+    card and may wear paper there (CHECK's card surface).
+    CONFORM adds the outer outline; interior lines are drawn here.
+    Colours: conception-mid #A86A63, bone #D2C6AC, paper #EFE7D6, ink #2A2521.
+  -->
+  <g shape-rendering="crispEdges">
+    <!-- the plate: bone rim, paper well, an ink line between -->
+    <circle cx="50" cy="51" r="29" fill="#D2C6AC" stroke="#2A2521" stroke-width="3"/>
+    <circle cx="50" cy="51" r="19" fill="#EFE7D6" stroke="#2A2521" stroke-width="2.5"/>
+
+    <!-- the fork, left: three tines, a head, a handle -->
+    <g fill="#A86A63">
+      <rect x="3" y="12" width="4" height="22" rx="2"/>
+      <rect x="9.5" y="12" width="4" height="22" rx="2"/>
+      <rect x="16" y="12" width="4" height="22" rx="2"/>
+      <rect x="3" y="28" width="17" height="10" rx="5"/>
+      <rect x="8" y="34" width="7" height="56" rx="3.5"/>
+    </g>
+
+    <!-- the knife, right: a rounded blade on a straight spine, then the handle -->
+    <g fill="#A86A63">
+      <path d="M 85 12 C 94 16 97 34 94 54 L 85 54 Z"/>
+      <rect x="85" y="50" width="7" height="40" rx="3.5"/>
+    </g>
+  </g>
+</svg>

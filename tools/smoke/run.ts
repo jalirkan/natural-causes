@@ -353,9 +353,20 @@ async function main(): Promise<void> {
 
   await press('school-boss', '1x');
   await press('school-boss', 'kill');
+  p = await waitFor('adolescence', (q) => q.act?.index === 2 && q.act.shown === 2 && q.act.zoom === 1 && hudAge(q));
+  await press('adolescence', '4x');
+  p = await waitFor('adolescence', (q) => q.act?.index === 2 && q.act.timeScale === 4 && populated(q));
+  await milestone('adolescence', p, actLine(p));
+
+  await press('adolescence-boss', 'skip to boss');
+  p = await waitFor('adolescence-boss', (q) => !!q.act?.boss && q.act.bossSprite?.frame === q.act.bossFrame);
+  await milestone('adolescence-boss', p, actLine(p));
+
+  await press('adolescence-boss', '1x');
+  await press('adolescence-boss', 'kill');
   p = await waitFor(
     'certificate',
-    (q) => !!q.act?.won && !!q.act.overlay?.includes('Natural causes.') && q.act.overlay.includes('Age 12.'),
+    (q) => !!q.act?.won && !!q.act.overlay?.includes('Natural causes.') && q.act.overlay.includes('Age 18.'),
   );
   await milestone('certificate', p, p.act!.overlay!.split('\n').slice(0, 2).join(' '));
 }

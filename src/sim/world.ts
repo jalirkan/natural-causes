@@ -163,6 +163,41 @@ const TRAIL_CAPACITY = Math.ceil(TRAIL_SECONDS / TRAIL_SAMPLE_SECONDS) + 2;
 export const RANGED_SHOT_RADIUS = 10;
 export const RANGED_SHOT_REACH = 2;
 
+/**
+ * How far back the Egg's arrival sets a racer it appeared on top of (AUDIT
+ * 30), in seconds of that racer's own swim: one on the boss point arrives
+ * this long after the Egg, one at the corona's edge twice this long.
+ *
+ * PLACEHOLDER, the class Conception's `provisional` names for the race's
+ * absorb count (set from bot runs, not played). Before it, a crowd already
+ * inside the corona was absorbed on the first step and 12 of 31 "someone
+ * else" deaths came 0.02s after the Egg appeared, untouched. One second is
+ * long enough to see the Egg and the crowd turn for it, and no longer: the
+ * race is still lost. A person asked "did you see it before the certificate?"
+ * at the link is what moves it.
+ */
+export const RACE_PARTING_SECONDS = 1;
+
+/**
+ * How far the player must have moved from the last trail drop before the next
+ * one lands (`mode: 'trail'`, Wake). AUDIT 27: the area was placed under the
+ * player every cooldown whatever they did, so standing still stacked twelve
+ * of them on one spot and dealt ~10x the damage of moving, while the card
+ * says a cornered player "is holding a weapon that has stopped existing".
+ * Measured from the last drop, not from a live area, so standing still for
+ * longer than an area lives leaves nothing underfoot — which is the card.
+ *
+ * PLACEHOLDER, the class Conception's `provisional` names for the weapon
+ * level tables (written, not played). Half a player radius because it is
+ * under the 9.8px a level-8 Wake moves between drops at the antibody floor,
+ * so no moving player lays fewer areas than before (measured: 334 and 758 a
+ * minute at levels 1 and 8, unchanged at 30/60/144Hz), while standing still
+ * or pressing into a wall lays none. Where it binds is a shuffle or an
+ * engulf. A person playing Wake at the link — does creeping still feel like
+ * a trail? — is what moves it.
+ */
+export const WAKE_MIN_SPACING = PLAYER_RADIUS / 2;
+
 /** Seconds between a burst and its echo (a level bonus). */
 export const ECHO_DELAY = 0.25;
 /** How far a chaining shot looks for its next target. */
@@ -481,6 +516,8 @@ export class World {
   private readonly orbitBossHits = new Map<string, Map<number, number>>();
   /** Orbiter objects, reused across steps; `orbiters` holds this step's. */
   private readonly orbiterPool: OrbiterState[] = [];
+  /** Where each trail item last dropped an area, for WAKE_MIN_SPACING. Per act. */
+  private readonly trailDrops = new Map<string, { x: number; y: number }>();
 
   /**
    * The life clock, in seconds. Assigning it moves the ACT clock by the same
@@ -748,6 +785,12 @@ export class World {
     this.resolveHits();
     this.resolveContact(dt);
     this.updateBoss(dt);
+    // A gem collected earlier in the step the outcome latched opened an offer
+    // `presentOffers` could not yet refuse; it goes back in the queue (AUDIT 29).
+    if (this.offers && this.outcomeDecided) {
+      this.offers = null;
+      this.pendingLevels++;
+    }
 
     if (!this.boss && this.actTime >= this.act.durationSeconds) this.spawnBoss();
   }
@@ -1084,12 +1127,20 @@ export class World {
    * Driven from the areas rather than from the enemies: there are a handful of
    * areas and up to 1500 enemies, so asking "who is near this attractor" is
    * cheap and asking every enemy "is any attractor near me" is not.
+   *
+   * It pulls the crowd, not the room (AUDIT 28). A pile, a patrol line and
+   * anything `static` are the arena's shape (SCHOOL-ROSTER §3); pulled, two
+   * piles ended 1px apart unmerged (merging is on arrival only) and a patrol
+   * line stayed moved for the rest of the act. Chasers, drifters and crossers
+   * still come, the dodgeball among them: it has a heading, and bending one
+   * is what the pull is for.
    */
   private applyAttractors(dt: number): void {
     for (const a of this.areas) {
       if (!a.pull) continue;
       this.grid.query(a.x, a.y, a.radius, this.near);
       for (const e of this.near) {
+        if (e.def.merge === true || e.def.patrol === true || e.def.movement === 'static') continue;
         const d = Math.hypot(a.x - e.x, a.y - e.y);
         if (d > a.radius || d < 1) continue;
         const strength = (1 - d / a.radius) * 130 * dt;
@@ -1249,6 +1300,16 @@ export class World {
         return true;
       }
       case 'trail': {
+        // Not while the player is still standing on the last one (AUDIT 27).
+        // Returning false retries sooner, as a seeking weapon with no target does.
+        const last = this.trailDrops.get(def.id);
+        if (last && (this.x - last.x) ** 2 + (this.y - last.y) ** 2 < WAKE_MIN_SPACING * WAKE_MIN_SPACING) {
+          return false;
+        }
+        if (last) {
+          last.x = this.x;
+          last.y = this.y;
+        } else this.trailDrops.set(def.id, { x: this.x, y: this.y });
         this.areas.push({
           x: this.x,
           y: this.y,
@@ -1823,9 +1884,6 @@ export class World {
   private beginAct(index: number): void {
     for (const g of this.gems) this.xp += g.value;
     this.gems.length = 0;
-    // Levels earned from that XP are offered as soon as the new act's first
-    // step runs, exactly as a mid-act pickup would be.
-    this.settleXp();
 
     this.actIndex = index;
     this.actTime = 0;
@@ -1835,6 +1893,7 @@ export class World {
     this.echoes.length = 0;
     this.orbitHits.clear();
     this.orbitBossHits.clear();
+    this.trailDrops.clear();
     this.orbiters.length = 0;
     this.enemies.length = 0;
     this.projectiles.length = 0;
@@ -1853,6 +1912,11 @@ export class World {
     this.invulnerable = 0;
     this.stunTimer = 0;
     this.hp = this.maxHp;
+    // Levels earned from that XP, and any owed from the absorb (AUDIT 29),
+    // are offered before the new act's first step, exactly as a mid-act
+    // pickup would be. After the boss is cleared, or `presentOffers` would
+    // still read the old act's outcome as latched.
+    this.settleXp();
   }
 
   // --- levelling --------------------------------------------------------
@@ -1885,8 +1949,15 @@ export class World {
    * so assigning one froze the world permanently behind a panel listing
    * nothing, with no key that would dismiss it. A level with nothing to offer
    * is still a level; it is just not a decision.
+   *
+   * Nor while the outcome is latched (AUDIT 29). `step()` freezes on offers,
+   * so gems collected during the Egg's absorb held the ending behind three
+   * cards — on the last act, a decision in a life already over. The level
+   * still counts and stays queued; `beginAct` offers it at the crossing, and
+   * after the last act nobody is asked.
    */
   private presentOffers(): void {
+    if (this.outcomeDecided) return;
     while (!this.offers && this.pendingLevels > 0) {
       this.pendingLevels--;
       // An evolution is not a choice: when one is ready, the level IS it.
@@ -1986,6 +2057,34 @@ export class World {
       timer: 2.2,
       shielded: this.shieldUp(),
     };
+    this.partRace(this.boss);
+  }
+
+  /**
+   * The Egg appears where it appears, and the crowd may already be there
+   * (AUDIT 30). Every racer inside the corona's absorb radius is set outside
+   * it on its own bearing from the boss (bearing 0 on the boss point exactly,
+   * so no randomness), at one to two RACE_PARTING_SECONDS of its swim: the
+   * disc maps onto an annulus in the same radial order, so they still race
+   * and arrive over the following second or two, nearest first. None of them
+   * is absorbed on the step after the spawn; racers already outside are not
+   * touched, and arrive when they arrive.
+   */
+  private partRace(b: BossState): void {
+    if (!this.race) return;
+    for (const e of this.enemies) {
+      if (!this.isRacing(e) || e.hp <= 0) continue;
+      const r = BOSS_RADIUS + e.radius;
+      const dx = e.x - b.x;
+      const dy = e.y - b.y;
+      const d = Math.hypot(dx, dy);
+      if (d > r) continue;
+      const nx = d < 0.001 ? 1 : dx / d;
+      const ny = d < 0.001 ? 0 : dy / d;
+      const out = r + e.def.speed * RACE_PARTING_SECONDS * (1 + d / r);
+      e.x = b.x + nx * out;
+      e.y = b.y + ny * out;
+    }
   }
 
   /**

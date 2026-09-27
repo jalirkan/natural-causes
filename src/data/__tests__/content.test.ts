@@ -341,6 +341,7 @@ describe('the locked palette', () => {
       const frames = Object.keys(v.atlas.json.frames);
       expect(frames, `act "${act.id}" atlas lacks its player frame`).toContain(v.playerFrame);
       expect(frames, `act "${act.id}" atlas lacks its boss frame`).toContain(v.bossFrame);
+      if (v.attachFrame) expect(frames, `act "${act.id}" atlas lacks its attach frame`).toContain(v.attachFrame);
       for (const def of Object.values(ENEMIES)) {
         if (def.act !== act.id) continue;
         expect(frames, `act "${act.id}" atlas lacks "${def.frame}" for enemy "${def.id}"`).toContain(def.frame);

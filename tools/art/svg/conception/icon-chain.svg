@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <title>Gossip icon</title>
+  <desc>Three dots joined by one bent line: the first one it reached, and two it passed it on to.</desc>
+  <!--
+    Gossip (items.ts id group-chat, icon "chain"). A card icon, and also the
+    shot the weapon fires on the field (ActScene syncProjectiles), so it keeps
+    off the field's reserved colours: no threat colour, no paper, no
+    conception-light. Plain discs, no tails: a tail would make a speech bubble,
+    which Adolescence reserves for its enemy, or a comet, which Conception
+    reserves for the rivals.
+    CONFORM adds the outline; rose against bone needs no line between them.
+    Colours: conception-mid #A86A63, bone #D2C6AC, ink #2A2521.
+  -->
+  <g shape-rendering="crispEdges">
+    <!-- the line it travels along -->
+    <polyline points="21,66 51,28 81,62" fill="none" stroke="#D2C6AC" stroke-width="10" stroke-linejoin="round" stroke-linecap="round"/>
+    <!-- the first one it reached, larger, with the mark where it landed -->
+    <circle cx="21" cy="66" r="17" fill="#A86A63"/>
+    <circle cx="21" cy="66" r="6.5" fill="#D2C6AC"/>
+    <!-- everyone it knows -->
+    <circle cx="51" cy="28" r="13" fill="#A86A63"/>
+    <circle cx="81" cy="62" r="13" fill="#A86A63"/>
+  </g>
+</svg>

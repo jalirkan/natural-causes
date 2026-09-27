@@ -159,6 +159,66 @@
         "w": 96,
         "h": 96
       }
+    },
+    "icon-orbit.png": {
+      "frame": {
+        "x": 296,
+        "y": 100,
+        "w": 96,
+        "h": 96
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 96,
+        "h": 96
+      },
+      "sourceSize": {
+        "w": 96,
+        "h": 96
+      }
+    },
+    "icon-chain.png": {
+      "frame": {
+        "x": 394,
+        "y": 100,
+        "w": 96,
+        "h": 96
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 96,
+        "h": 96
+      },
+      "sourceSize": {
+        "w": 96,
+        "h": 96
+      }
+    },
+    "icon-magnet.png": {
+      "frame": {
+        "x": 2,
+        "y": 198,
+        "w": 96,
+        "h": 96
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 96,
+        "h": 96
+      },
+      "sourceSize": {
+        "w": 96,
+        "h": 96
+      }
     }
   },
   "meta": {
@@ -168,7 +228,7 @@
     "format": "RGBA8888",
     "size": {
       "w": 512,
-      "h": 256
+      "h": 512
     },
     "scale": "1"
   }
