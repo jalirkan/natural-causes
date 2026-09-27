@@ -62,7 +62,9 @@ export function ensureFieldTile(scene: Phaser.Scene): string {
 
 /** The pickup, as law 11 wrote it: a lozenge, outlined like everything else. */
 export function ensureGemTexture(scene: Phaser.Scene, colour: number): string {
-  const key = 'nc-gem';
+  // Keyed by colour: pickups wear each act's light tone, and one key would
+  // carry the first act's colour through the whole life.
+  const key = `nc-gem-${colour.toString(16)}`;
   if (!scene.textures.exists(key)) {
     const g = scene.make.graphics({ x: 0, y: 0 }, false);
     g.fillStyle(colour, 1);

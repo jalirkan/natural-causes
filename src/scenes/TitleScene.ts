@@ -97,7 +97,7 @@ export class TitleScene extends Phaser.Scene {
       // The gesture the audio unlock has been waiting for.
       sfx.unlock();
       sfx.choose();
-      this.scene.start('act', { act: FIRST_ACT });
+      this.scene.start('act', { acts: ACTS });
     };
     this.input.keyboard?.once('keydown', begin);
     this.input.once('pointerdown', begin);

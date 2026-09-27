@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import type { ActDef } from '../data/acts';
+import { ACTS, type ActDef } from '../data/acts';
 import { actVisuals, type ActVisuals } from '../data/act-visuals';
 import { itemDef } from '../data/items';
 import { neutralDevState, type DevState } from '../dev/state';
@@ -7,6 +7,7 @@ import { addVignette, ensureFieldTile, ensureGemTexture, ensureShotTextures } fr
 import { ITEM_ICON_ATLAS, itemIconFrame } from '../data/item-visuals';
 import { sfx } from '../audio/sfx';
 import { combineMoves, stickVector, type Move } from './touch';
+import { certificateLines, hudAge, lifeClock } from './certificate';
 import {
   BOSS_RADIUS,
   World,
@@ -54,9 +55,13 @@ const STICK_RADIUS_CSS = 56;
 const RESTART_GRACE_MS = 700;
 
 export class ActScene extends Phaser.Scene {
-  private act!: ActDef;
+  /** The life this scene plays (D-024): every act in order, one run. */
+  private life!: ActDef[];
   private visuals!: ActVisuals;
   private world!: World;
+  /** The act the screen is dressed for. Trails `world.actIndex` by a frame at a crossing. */
+  private shownAct = -1;
+  private gemKey = '';
 
   private player!: Phaser.GameObjects.Image;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
@@ -137,21 +142,29 @@ export class ActScene extends Phaser.Scene {
     super('act');
   }
 
-  init(data?: { act?: ActDef }): void {
-    const act = data?.act ?? this.act;
-    if (!act) throw new Error('ActScene was started without an act');
-    this.act = act;
-    this.visuals = actVisuals(act.id);
+  init(data?: { acts?: ActDef[] }): void {
+    const life = data?.acts ?? this.life ?? ACTS;
+    if (life.length === 0) throw new Error('ActScene was started without an act');
+    this.life = life;
+    // Throws here, before a frame is drawn, if an act in the life has no art.
+    for (const act of life) actVisuals(act.id);
   }
 
   preload(): void {
-    this.load.atlas(this.visuals.atlas.key, this.visuals.atlas.png, this.visuals.atlas.json);
+    // Every act's atlas up front: the crossing happens mid-run and must not
+    // wait on a load, and an atlas is small next to a stall at the threshold.
+    for (const act of this.life) {
+      const v = actVisuals(act.id);
+      if (!this.textures.exists(v.atlas.key)) this.load.atlas(v.atlas.key, v.atlas.png, v.atlas.json);
+    }
     this.load.atlas(ITEM_ICON_ATLAS.key, ITEM_ICON_ATLAS.png, ITEM_ICON_ATLAS.json);
   }
 
   create(): void {
     // The world places the player itself — the arena is its own now.
-    this.world = new World({ act: this.act, seed: Date.now() & 0xffff });
+    this.world = new World({ acts: this.life, seed: Date.now() & 0xffff });
+    this.shownAct = this.world.actIndex;
+    this.visuals = actVisuals(this.world.act.id);
 
     this.enemySprites = [];
     this.projectileSprites = [];
@@ -169,7 +182,7 @@ export class ActScene extends Phaser.Scene {
 
     this.cameras.main.setBackgroundColor(this.visuals.background);
     ensureShotTextures(this, THREAT_RANGED);
-    ensureGemTexture(this, this.visuals.pickup);
+    this.gemKey = ensureGemTexture(this, this.visuals.pickup);
     this.createField();
     // Corners that fall away instead of ending. Above the field and the
     // actors, below the HUD.
@@ -206,7 +219,7 @@ export class ActScene extends Phaser.Scene {
       // Mid-run restarts are a dev affordance. In a clean run R still only
       // works once the run is over, so it cannot be a panic button.
       const anytime = import.meta.env.DEV && this.dev.tainted;
-      if (this.world.dead || this.world.won || anytime) this.scene.restart({ act: this.act });
+      if (this.world.dead || this.world.won || anytime) this.scene.restart({ acts: this.life });
     });
     for (const [i, key] of ['ONE', 'TWO', 'THREE'].entries()) {
       keyboard.on(`keydown-${key}`, () => {
@@ -236,8 +249,7 @@ export class ActScene extends Phaser.Scene {
         this.detachDev = attachDevPanel({
           world: this.world,
           dev: this.dev,
-          durationSeconds: this.act.durationSeconds,
-          restart: () => this.scene.restart({ act: this.act }),
+          restart: () => this.scene.restart({ acts: this.life }),
         });
       });
       this.events.once('shutdown', () => this.detachDev?.());
@@ -261,6 +273,60 @@ export class ActScene extends Phaser.Scene {
       .setDepth(150)
       .setAlpha(0.85);
     this.tweens.add({ targets: hint, alpha: 0, delay: 6500, duration: 1200 });
+    this.announceAct();
+  }
+
+  /**
+   * The boss fell and the life went on (D-024). The sim has already cleared
+   * the act and carried the player over; this re-dresses the screen for the
+   * next one. Pools holding the last act's textures are dropped rather than
+   * retextured — they refill on the next frame from the new atlas.
+   */
+  private crossThreshold(): void {
+    this.shownAct = this.world.actIndex;
+    this.visuals = actVisuals(this.world.act.id);
+    this.cameras.main.setBackgroundColor(this.visuals.background);
+    this.gemKey = ensureGemTexture(this, this.visuals.pickup);
+    for (const g of this.gemSprites) g.destroy();
+    this.gemSprites = [];
+    this.prevGemCount = 0;
+    for (const a of this.attachedSprites) a.destroy();
+    this.attachedSprites = [];
+    this.bossSprite?.destroy();
+    delete this.bossSprite;
+    this.absorbZoomed = false;
+    this.cameras.main.zoomTo(1, 600, 'Sine.easeInOut');
+    this.player
+      .setTexture(this.visuals.atlas.key, this.visuals.playerFrame)
+      .setDisplaySize(PLAYER_DISPLAY, PLAYER_DISPLAY);
+    this.announceAct();
+  }
+
+  /** The act's name and the age it starts at, across the middle, then gone. */
+  private announceAct(): void {
+    const cam = this.cameras.main;
+    const act = this.world.act;
+    const card = this.add
+      .text(cam.width / 2, cam.height / 2 - 120, [act.name, hudAge(act.age.from)], {
+        fontFamily: 'monospace',
+        fontSize: '30px',
+        color: '#EFE7D6',
+        align: 'center',
+        letterSpacing: 6,
+        lineSpacing: 10,
+      })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(150)
+      .setAlpha(0);
+    this.tweens.chain({
+      targets: card,
+      tweens: [
+        { alpha: 0.9, duration: 350 },
+        { alpha: 0, delay: 1600, duration: 700 },
+      ],
+      onComplete: () => card.destroy(),
+    });
   }
 
   /**
@@ -321,7 +387,7 @@ export class ActScene extends Phaser.Scene {
         }
         if (this.world.dead || this.world.won) {
           if (this.endedAt >= 0 && this.time.now - this.endedAt >= RESTART_GRACE_MS) {
-            this.scene.restart({ act: this.act });
+            this.scene.restart({ acts: this.life });
           }
           return;
         }
@@ -405,7 +471,7 @@ export class ActScene extends Phaser.Scene {
       .setScrollFactor(0)
       .setDepth(100);
     this.hudBossLabel = this.add
-      .text(cam.width / 2, 50, 'the egg', style(12, '#D2C6AC'))
+      .text(cam.width / 2, 50, '', style(12, '#D2C6AC'))
       .setOrigin(0.5, 0)
       .setScrollFactor(0)
       .setDepth(100)
@@ -468,6 +534,7 @@ export class ActScene extends Phaser.Scene {
     else this.world.step(dt * scale, input);
 
     this.applyDevCheats();
+    if (this.world.actIndex !== this.shownAct) this.crossThreshold();
 
     const over = this.world.dead || this.world.won;
     if (over && this.endedAt < 0) {
@@ -691,7 +758,7 @@ export class ActScene extends Phaser.Scene {
     // pass the renderer drew circles — the art bible said one thing and the
     // screen said another. Law 10 / G-030 give it the act's light tone.
     this.fit(this.gemSprites, list.length, () =>
-      this.add.image(0, 0, 'nc-gem').setDisplaySize(GEM_SIZE * 1.7, GEM_SIZE * 2.1).setDepth(3),
+      this.add.image(0, 0, this.gemKey).setDisplaySize(GEM_SIZE * 1.7, GEM_SIZE * 2.1).setDepth(3),
     );
     // Kill feedback: a gem appearing IS a death, so the ripple keys off the
     // gems the world just added rather than needing the sim to emit events.
@@ -1014,12 +1081,6 @@ export class ActScene extends Phaser.Scene {
     delete this.offerHeader;
   }
 
-  private formatTime(): string {
-    const m = Math.floor(this.world.time / 60);
-    const s = Math.floor(this.world.time % 60);
-    return `${m}:${s.toString().padStart(2, '0')}`;
-  }
-
   private drawHud(): void {
     const w = this.world;
     // The antibodies' OWN cost, not the deviation from base speed. The latter
@@ -1028,8 +1089,9 @@ export class ActScene extends Phaser.Scene {
     // drag entirely by pushing the total back above base. §3.3 asks whether a
     // player can tell when it went wrong; this is the only instrument they get.
     const drag = Math.round((1 - w.antibodyDrag) * 100);
-    this.hudLevel.setText(`lv ${w.level}`);
-    this.hudClock.setText(this.formatTime());
+    this.hudLevel.setText(`${w.act.name.toLowerCase()}   lv ${w.level}`);
+    // The life is counted in years (D-024). Minutes live on the certificate.
+    this.hudClock.setText(hudAge(w.age));
     this.hudRight.setText(
       `${w.kills} killed${import.meta.env.DEV ? `   ${Math.round(this.game.loop.actualFps)} fps` : ''}`,
     );
@@ -1053,7 +1115,7 @@ export class ActScene extends Phaser.Scene {
     this.bars.fillStyle(INK, 0.55).fillRect(22, 43, 216, 4);
     this.bars.fillStyle(UI_FILL, 1).fillRect(22, 43, (216 * w.xp) / w.xpToNext, 4);
     // The boss carries its own bar across the top, under its name.
-    this.hudBossLabel.setVisible(!!w.boss);
+    this.hudBossLabel.setText(w.act.bossName.toLowerCase()).setVisible(!!w.boss);
     if (w.boss) {
       const width = this.cameras.main.width - 480;
       this.bars.fillStyle(INK, 0.6).fillRoundedRect(240, 68, width, 8, 4);
@@ -1098,16 +1160,20 @@ export class ActScene extends Phaser.Scene {
       const build = [...w.items.entries()].map(([id, lv]) => `${itemDef(id).name} ${lv}`);
       const buildLines: string[] = [];
       for (let i = 0; i < build.length; i += 4) buildLines.push(build.slice(i, i + 4).join('  ·  '));
+      // The certificate (D-024): what ended it and how old you were. The sim
+      // writes the record; certificate.ts decides how it reads.
+      const said = w.certificate ? certificateLines(w.certificate) : ['', ''];
       this.endScrim.setVisible(true);
       this.overlay
         .setText(
           [
-            w.dead ? 'you did not make it' : 'you were let in',
+            said[0],
+            said[1],
             '',
-            `${this.formatTime()}   ${w.kills} killed   level ${w.level}`,
+            `${w.act.name}   ${lifeClock(w.time)} lived   ${w.kills} killed   level ${w.level}`,
             ...buildLines,
             '',
-            this.touch ? 'tap to try again' : 'R to try again',
+            this.touch ? 'tap to live again' : 'R to live again',
           ].join('\n'),
         )
         .setVisible(true);
