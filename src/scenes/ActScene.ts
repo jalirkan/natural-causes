@@ -861,7 +861,7 @@ export class ActScene extends Phaser.Scene {
         s.setTexture('nc-shot-hostile').setDisplaySize(p.radius * 2, p.radius * 2).setRotation(0);
       } else if (p.source && ITEMS[p.source]) {
         // Any item's shot is its card's icon: the manicule, the dart, the
-        // group chat's placeholder until its art lands.
+        // three joined dots of Gossip.
         const def = ITEMS[p.source]!;
         const [key, frame] = this.iconTexture(def.icon, def.name);
         const size = isActive(def) && def.mode === 'line' ? 42 * (p.radius / def.radius) : 30;
@@ -1050,9 +1050,9 @@ export class ActScene extends Phaser.Scene {
   /**
    * The texture for an item icon: the atlas frame when the atlas has it,
    * otherwise a PLACEHOLDER — a plain ring with the item's initial, made once
-   * per icon key from the locked palette. It stands in until the authored SVG
-   * icon set lands (G-038; the item's `iconPending` says so and a content
-   * test holds it to that). Not art; a label.
+   * per icon key from the locked palette. Every shipped item has its frame
+   * now; this stays for the next item drawn after its card is written (the
+   * item's `iconPending` says so and a content test holds it to that).
    */
   private iconTexture(icon: ItemIcon, name: string): [string, string | undefined] {
     const frame = itemIconFrame(icon);
@@ -1124,7 +1124,7 @@ export class ActScene extends Phaser.Scene {
     while (this.attachedSprites.length < want) {
       const angle = Math.random() * Math.PI * 2;
       const s = this.add
-        .image(0, 0, this.visuals.atlas.key, 'antibody.png')
+        .image(0, 0, this.visuals.atlas.key, this.visuals.attachFrame ?? 'antibody.png')
         .setDisplaySize(22, 22)
         .setDepth(11)
         .setRotation(Math.random() * Math.PI * 2);

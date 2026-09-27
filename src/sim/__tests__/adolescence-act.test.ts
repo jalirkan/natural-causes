@@ -29,11 +29,13 @@ describe('Adolescence has a schedule, and it is provisional', () => {
     expect(ADOLESCENCE.provisional).toMatch(/Egg stands in/);
   });
 
-  it('is the third act of the life, and not startable until its art exists', () => {
-    // No atlas, no player frame, no Prom frame: the content test ties ACTS to
-    // ACT_VISUALS, and this says which side Adolescence is on today.
+  it('is the third act of the life, and the third the browser plays', () => {
+    // Its seven sprites are authored SVG and its atlas is packed, so it is in
+    // ACTS. The content test ties ACTS to ACT_VISUALS and checks every frame;
+    // this says which side Adolescence is on, so a change to either is
+    // deliberate.
     expect(ALL_ACTS.indexOf(ADOLESCENCE)).toBe(ALL_ACTS.indexOf(SCHOOL) + 1);
-    expect(ACTS).not.toContain(ADOLESCENCE);
+    expect(ACTS.indexOf(ADOLESCENCE)).toBe(2);
   });
 
   it("fights the Egg under Prom's name until Prom's kind exists (§4)", () => {
