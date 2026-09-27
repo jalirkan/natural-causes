@@ -1,7 +1,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { ANTIBODY_FLOOR, antibodyDragFor } from '../../src/sim/world';
-import { ALL_ACTS, CONCEPTION } from '../../src/data/acts';
+import { ALL_ACTS, CONCEPTION, spawnStreams } from '../../src/data/acts';
 import {
   POLICIES,
   itemUptake,
@@ -64,6 +64,8 @@ for (const policy of policies) {
 }
 const elapsed = (Date.now() - started) / 1000;
 
+/** The act's clock, used wherever the report names the boss's arrival. */
+const mark = act.durationSeconds;
 const pct = (n: number) => `${(n * 100).toFixed(0)}%`;
 const out: string[] = [];
 if (act.provisional) {
@@ -96,124 +98,139 @@ for (const s of summarise(results)) {
   );
 }
 
-// §8.4: report the distribution, not the median. A falsifier over a
-// distribution needs a level condition AND a dispersion condition, and the
-// median alone supplies neither at these counts.
-out.push('');
-out.push(
-  `antibody stacks at ${act.durationSeconds}s — median below 3 means absent (§10.4); no upper bound`,
-);
-out.push('-'.repeat(84));
-out.push('policy                 median    p90    mean   n@300   median@death');
-for (const s of summarise(results)) {
-  out.push(
-    `${s.policy.padEnd(22)} ${String(s.medianStacksAt300).padStart(6)} ` +
-      `${String(s.p90StacksAt300).padStart(6)} ${String(s.meanStacksAt300).padStart(7)}` +
-      `${String(s.reached300).padStart(8)}${String(s.medianStacksAtEnd).padStart(15)}`,
-  );
-}
-{
-  const rows = summarise(results);
-  const careful = Math.min(...rows.map((r) => r.meanStacksAt300));
-  const careless = Math.max(...rows.map((r) => r.meanStacksAt300));
-  const ratio = careful > 0 ? careless / careful : Infinity;
-  out.push(
-    `
+// Everything from here to "state on arrival" is about the antibody, and only
+// an act that fields one can say anything about it. On an act without the
+// stream every stack figure is zero, the ordinal claim reads 0 > 0 and prints
+// FAILS, and the report has announced a Conception failure over an act that
+// never spawned the enemy. So the sections are skipped, and the report says
+// so, rather than printed as zeros to be read past.
+const hasAntibody = spawnStreams(act.waves).has('antibody');
+if (!hasAntibody) {
+  out.push('');
+  out.push(`(no antibody stream in "${act.id}" — the stack, dispersion and dodge sections do not apply)`);
+} else {
+  // §8.4: report the distribution, not the median. A falsifier over a
+  // distribution needs a level condition AND a dispersion condition, and the
+  // median alone supplies neither at these counts.
+  out.push('');
+  out.push(`antibody stacks at ${mark}s — median below 3 means absent (§10.4); no upper bound`);
+  out.push('-'.repeat(84));
+  out.push(`policy                 median    p90    mean   n@${mark}   median@death`);
+  for (const s of summarise(results)) {
+    out.push(
+      `${s.policy.padEnd(22)} ${String(s.medianStacksAt300).padStart(6)} ` +
+        `${String(s.p90StacksAt300).padStart(6)} ${String(s.meanStacksAt300).padStart(7)}` +
+        `${String(s.reached300).padStart(8)}${String(s.medianStacksAtEnd).padStart(15)}`,
+    );
+  }
+  {
+    const rows = summarise(results);
+    const careful = Math.min(...rows.map((r) => r.meanStacksAt300));
+    const careless = Math.max(...rows.map((r) => r.meanStacksAt300));
+    const ratio = careful > 0 ? careless / careful : Infinity;
+    out.push(
+      `
 spread, raw stack counts: careless ${careless.toFixed(1)} vs careful ` +
-      `${careful.toFixed(1)} = ` +
-      `${Number.isFinite(ratio) ? `${ratio.toFixed(1)}x` : 'undefined (careful is zero)'}`,
-  );
+        `${careful.toFixed(1)} = ` +
+        `${Number.isFinite(ratio) ? `${ratio.toFixed(1)}x` : 'undefined (careful is zero)'}`,
+    );
 
-  // §11.2 / G-026: a ratio is only meaningful if both terms sit where the
-  // quantity still maps to player experience. Raw counts stopped doing that
-  // once both terms cleared the old clamp, and the condition went on passing
-  // at 2.5x while experienced dispersion was 1.0x. This is the reading that
-  // matters.
-  const drag = (stacks: number) => 1 - antibodyDragFor(stacks);
-  const dCareful = drag(careful);
-  const dCareless = drag(careless);
-  const dRatio = dCareful > 0 ? dCareless / dCareful : Infinity;
-  out.push(
-    `spread, experienced drag:  careless ${(dCareless * 100).toFixed(1)}% vs careful ` +
-      `${(dCareful * 100).toFixed(1)}% speed lost = ` +
-      `${Number.isFinite(dRatio) ? `${dRatio.toFixed(2)}x` : 'undefined'}`,
-  );
-  // G-027: the 2.0x threshold is RETIRED. It was not stale — it was
-  // unsatisfiable jointly with §3.3's severity intent, because the k that
-  // reaches 2.0x caps the worst achievable drag at 30.2%, below the 35%
-  // already judged too generous. What survives is the ordinal claim, which is
-  // instrument-independent and is what a bot can actually establish.
-  out.push(
-    `  ordinal claim (G-027): careless > careful — ${dCareless > dCareful ? 'HOLDS' : 'FAILS'}. ` +
-      `Magnitude is a human question, not a threshold.`,
-  );
-  out.push(
-    `  (floor ${ANTIBODY_FLOOR} and k are placeholders awaiting §11.5 — §11.2, G-028)`,
-  );
+    // §11.2 / G-026: a ratio is only meaningful if both terms sit where the
+    // quantity still maps to player experience. Raw counts stopped doing that
+    // once both terms cleared the old clamp, and the condition went on passing
+    // at 2.5x while experienced dispersion was 1.0x. This is the reading that
+    // matters.
+    const drag = (stacks: number) => 1 - antibodyDragFor(stacks);
+    const dCareful = drag(careful);
+    const dCareless = drag(careless);
+    const dRatio = dCareful > 0 ? dCareless / dCareful : Infinity;
+    out.push(
+      `spread, experienced drag:  careless ${(dCareless * 100).toFixed(1)}% vs careful ` +
+        `${(dCareful * 100).toFixed(1)}% speed lost = ` +
+        `${Number.isFinite(dRatio) ? `${dRatio.toFixed(2)}x` : 'undefined'}`,
+    );
+    // G-027: the 2.0x threshold is RETIRED. It was not stale — it was
+    // unsatisfiable jointly with §3.3's severity intent, because the k that
+    // reaches 2.0x caps the worst achievable drag at 30.2%, below the 35%
+    // already judged too generous. What survives is the ordinal claim, which is
+    // instrument-independent and is what a bot can actually establish.
+    out.push(
+      `  ordinal claim (G-027): careless > careful — ${dCareless > dCareful ? 'HOLDS' : 'FAILS'}. ` +
+        `Magnitude is a human question, not a threshold.`,
+    );
+    out.push(
+      `  (floor ${ANTIBODY_FLOOR} and k are placeholders awaiting §11.5 — §11.2, G-028)`,
+    );
+  }
+
+  // §9.5 diagnostic: is the dodge bought with heading volatility or with speed?
+  // §9.3 argues a fixed pixel lead is close to speed-neutral, because lateral
+  // escape available is v x (L/v) and the speed cancels.
+  out.push('');
+  out.push('what buys the dodge — stacks against volatility and against speed');
+  out.push('-'.repeat(84));
+  out.push('policy                 stacks   turn rad/s   item speed   realised speed');
+  for (const s of summarise(results)) {
+    out.push(
+      `${s.policy.padEnd(22)} ${String(s.meanStacksAt300).padStart(6)} ` +
+        `${String(s.meanHeadingChangeRate).padStart(12)} ` +
+        `${String(s.meanItemSpeed).padStart(12)} ` +
+        `${String(s.meanRealisedSpeed).padStart(16)}`,
+    );
+  }
+  {
+    const stacks = results.map((r) => r.stacksAt300);
+    const turn = pearson(stacks, results.map((r) => r.headingChangeRate));
+    const itemSpeed = pearson(stacks, results.map((r) => r.itemSpeedAt300));
+    const realised = pearson(stacks, results.map((r) => r.meanSpeed));
+    const f = (c: { r: number; lo: number; hi: number }) => `r=${c.r} [${c.lo}, ${c.hi}]`;
+    out.push('');
+    out.push(`  stacks vs heading-change rate   ${f(turn)}   n=${turn.n}`);
+    out.push(`  stacks vs item speed (exogenous) ${f(itemSpeed)}   n=${itemSpeed.n}`);
+    out.push(`  stacks vs realised speed         ${f(realised)}   n=${realised.n}`);
+    out.push(
+      '  Realised speed is endogenous — stacks are one of the things that lower it —',
+    );
+    out.push('  so only the first two lines bear on the hypothesis.');
+    const turnRates = results.map((r) => r.headingChangeRate);
+    const speeds = results.map((r) => r.itemSpeedAt300);
+    out.push('');
+    out.push(`  partial: stacks vs turn, holding speed fixed   ${partial(stacks, turnRates, speeds)}`);
+    out.push(`  partial: stacks vs speed, holding turn fixed   ${partial(stacks, speeds, turnRates)}`);
+
+    // Chemotaxis pulls enemies toward a point, and antibodies are enemies. If a
+    // player-placed attractor is dragging them onto the player, that is a
+    // self-inflicted stack generator and it is neither speed nor volatility.
+    const chemo = results.map((r) => r.items['chemotaxis'] ?? 0);
+    const withChemo = results.filter((r) => (r.items['chemotaxis'] ?? 0) > 0);
+    const without = results.filter((r) => (r.items['chemotaxis'] ?? 0) === 0);
+    const avg = (rs: RunResult[]) =>
+      rs.length === 0 ? 0 : +(rs.reduce((a, b) => a + b.stacksAt300, 0) / rs.length).toFixed(1);
+    const c = pearson(stacks, chemo);
+    out.push('');
+    out.push(`  stacks vs chemotaxis level      r=${c.r} [${c.lo}, ${c.hi}]   n=${c.n}`);
+    out.push(
+      `  mean stacks with chemotaxis ${avg(withChemo)} (n=${withChemo.length})` +
+        `  vs without ${avg(without)} (n=${without.length})`,
+    );
+    out.push(`  partial: stacks vs chemotaxis, holding speed fixed  ${partial(stacks, chemo, speeds)}`);
+  }
 }
 
-// §9.5 diagnostic: is the dodge bought with heading volatility or with speed?
-// §9.3 argues a fixed pixel lead is close to speed-neutral, because lateral
-// escape available is v x (L/v) and the speed cancels.
+// Over the runs that got there. A policy none of whose runs reached the mark
+// has no arrival state, and prints as such rather than as a healthy zero.
 out.push('');
-out.push('what buys the dodge — stacks against volatility and against speed');
+out.push(`state on arrival at the boss (${mark}s) — where a swing lives if not in the stacks`);
 out.push('-'.repeat(84));
-out.push('policy                 stacks   turn rad/s   item speed   realised speed');
+out.push(`policy                  hp%   kills   alive   stacks   n@${mark}`);
 for (const s of summarise(results)) {
+  const none = s.reached300 === 0;
   out.push(
-    `${s.policy.padEnd(22)} ${String(s.meanStacksAt300).padStart(6)} ` +
-      `${String(s.meanHeadingChangeRate).padStart(12)} ` +
-      `${String(s.meanItemSpeed).padStart(12)} ` +
-      `${String(s.meanRealisedSpeed).padStart(16)}`,
-  );
-}
-{
-  const stacks = results.map((r) => r.stacksAt300);
-  const turn = pearson(stacks, results.map((r) => r.headingChangeRate));
-  const itemSpeed = pearson(stacks, results.map((r) => r.itemSpeedAt300));
-  const realised = pearson(stacks, results.map((r) => r.meanSpeed));
-  const f = (c: { r: number; lo: number; hi: number }) => `r=${c.r} [${c.lo}, ${c.hi}]`;
-  out.push('');
-  out.push(`  stacks vs heading-change rate   ${f(turn)}   n=${turn.n}`);
-  out.push(`  stacks vs item speed (exogenous) ${f(itemSpeed)}   n=${itemSpeed.n}`);
-  out.push(`  stacks vs realised speed         ${f(realised)}   n=${realised.n}`);
-  out.push(
-    '  Realised speed is endogenous — stacks are one of the things that lower it —',
-  );
-  out.push('  so only the first two lines bear on the hypothesis.');
-  const turnRates = results.map((r) => r.headingChangeRate);
-  const speeds = results.map((r) => r.itemSpeedAt300);
-  out.push('');
-  out.push(`  partial: stacks vs turn, holding speed fixed   ${partial(stacks, turnRates, speeds)}`);
-  out.push(`  partial: stacks vs speed, holding turn fixed   ${partial(stacks, speeds, turnRates)}`);
-
-  // Chemotaxis pulls enemies toward a point, and antibodies are enemies. If a
-  // player-placed attractor is dragging them onto the player, that is a
-  // self-inflicted stack generator and it is neither speed nor volatility.
-  const chemo = results.map((r) => r.items['chemotaxis'] ?? 0);
-  const withChemo = results.filter((r) => (r.items['chemotaxis'] ?? 0) > 0);
-  const without = results.filter((r) => (r.items['chemotaxis'] ?? 0) === 0);
-  const avg = (rs: RunResult[]) =>
-    rs.length === 0 ? 0 : +(rs.reduce((a, b) => a + b.stacksAt300, 0) / rs.length).toFixed(1);
-  const c = pearson(stacks, chemo);
-  out.push('');
-  out.push(`  stacks vs chemotaxis level      r=${c.r} [${c.lo}, ${c.hi}]   n=${c.n}`);
-  out.push(
-    `  mean stacks with chemotaxis ${avg(withChemo)} (n=${withChemo.length})` +
-      `  vs without ${avg(without)} (n=${without.length})`,
-  );
-  out.push(`  partial: stacks vs chemotaxis, holding speed fixed  ${partial(stacks, chemo, speeds)}`);
-}
-
-out.push('');
-out.push('state on arrival at the boss (300s) — where a swing lives if not in the stacks');
-out.push('-'.repeat(84));
-out.push('policy                  hp%   kills   alive   stacks');
-for (const s of summarise(results)) {
-  out.push(
-    `${s.policy.padEnd(22)} ${pct(s.medianHpFractionAt300).padStart(5)} ` +
-      `${String(s.medianKillsAt300).padStart(7)} ${String(s.medianEnemiesAt300).padStart(7)} ` +
-      `${String(s.medianStacksAt300).padStart(8)}`,
+    `${s.policy.padEnd(22)} ${(none ? '-' : pct(s.medianHpFractionAt300)).padStart(5)} ` +
+      `${String(none ? '-' : s.medianKillsAt300).padStart(7)} ` +
+      `${String(none ? '-' : s.medianEnemiesAt300).padStart(7)} ` +
+      `${String(none ? '-' : s.medianStacksAt300).padStart(8)}` +
+      `${String(s.reached300).padStart(8)}`,
   );
 }
 
@@ -234,5 +251,5 @@ process.stdout.write(`${report}\n`);
 
 const file = resolve(process.cwd(), 'tools/playtest/runs/latest.json');
 mkdirSync(dirname(file), { recursive: true });
-writeFileSync(file, `${JSON.stringify({ runsPerPolicy, elapsed, results }, null, 2)}\n`);
+writeFileSync(file, `${JSON.stringify({ act: act.id, runsPerPolicy, elapsed, results }, null, 2)}\n`);
 writeFileSync(resolve(process.cwd(), 'tools/playtest/runs/latest.txt'), `${report}\n`);

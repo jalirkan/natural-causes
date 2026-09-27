@@ -218,6 +218,12 @@ describe('the locked palette', () => {
     // The two lists in acts.ts and the record in act-visuals.ts have to agree
     // in both directions: an act in ACTS without visuals would throw in
     // ActScene.init; visuals for an act not in ACTS is art nobody can reach.
+    // And ACTS is a subset of ALL_ACTS by definition, said out loud so an act
+    // added to the startable list alone is caught here and not by the palette
+    // test three assertions later.
+    for (const act of ACTS) {
+      expect(ALL_ACTS, `"${act.id}" is startable but not in ALL_ACTS`).toContain(act);
+    }
     for (const act of ALL_ACTS) {
       const startable = ACTS.includes(act);
       const hasVisuals = ACT_VISUALS[act.id] !== undefined;
@@ -353,11 +359,16 @@ describe('acts', () => {
     // numbers are allowed and must be labelled, in data, with the thing that
     // retires them. An empty or glib label is a placeholder pretending to be
     // a decision.
+    //
+    // The one thing a regex can check is that a PERSON is named as the
+    // resolver, on a word boundary. The first draft matched /play|session/,
+    // which "playtest" satisfies — and a label retired by a playtest bot is
+    // exactly what D-022 forbids.
     for (const act of ALL_ACTS) {
       if (act.provisional === undefined) continue;
       expect(act.provisional.length, `act "${act.id}" provisional label is too short`).toBeGreaterThan(60);
-      expect(act.provisional, `act "${act.id}" must say what resolves it`).toMatch(
-        /play|session|person|human/i,
+      expect(act.provisional, `act "${act.id}" must name a person as what resolves it`).toMatch(
+        /\b(person|human|Justin)\b/i,
       );
     }
   });

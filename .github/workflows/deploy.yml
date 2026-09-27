@@ -18,9 +18,12 @@
 # behind `import.meta.env.DEV` (README, "Dev mode").
 #
 # First-time setup, once, by a repository admin: Settings -> Pages -> Source
-# -> "GitHub Actions". `configure-pages` below asks for that automatically
-# (`enablement: true`) and succeeds when the token is allowed to; if the first
-# run fails at that step, flip the setting by hand and re-run the workflow.
+# -> "GitHub Actions". `configure-pages` below asks for that itself
+# (`enablement: true`), but the default GITHUB_TOKEN is not allowed to change
+# repository settings, so expect the FIRST run to fail at that step until it
+# has been done by hand; re-run the workflow afterwards. Pages serves a public
+# site: from a public repository on any plan, from a private one only on a
+# paid plan, and the site is public either way.
 
 name: Deploy
 
@@ -62,6 +65,14 @@ jobs:
       # runs from the repository subpath Pages serves it at without a rebuild.
       - name: Build
         run: pnpm build
+
+      # Source maps are for a developer's console. `sourcemap: true` in
+      # vite.config.ts is right for `pnpm dev` and for reproducing a bug from
+      # a local build; on the published site they would put every source file,
+      # comments included, next to the game, and they are 10MB against a 1.3MB
+      # bundle. The site gets the game and nothing else.
+      - name: Drop source maps
+        run: find dist -name '*.map' -delete
 
       - name: Configure Pages
         uses: actions/configure-pages@v5

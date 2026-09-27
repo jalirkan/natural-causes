@@ -63,9 +63,9 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
-      # 239 tests: the sim, the content rules, the art pipeline laws. The
-      # suite touches the network nowhere - verified by running it inside a
-      # network namespace with no interfaces, where all 239 still pass - so a
+      # The suite: the sim, the content rules, the art pipeline laws. It
+      # touches the network nowhere - verified by running it inside a network
+      # namespace with no interfaces, where every test still passed - so a
       # failure here is a failure in the code and never in a CDN.
       - name: Test
         run: pnpm test
@@ -90,5 +90,6 @@ jobs:
       # The bots are an instrument, not a gate. The run prints win rates and
       # survival medians and exits 0 whatever they say - there is no pass
       # condition to check, and inventing one would mean asserting a balance
-      # number while tuning is frozen pending a session with a human.
-      # A green tick over an unread report is worse than no tick.
+      # number while every act's values are labelled provisional until a
+      # person has played it (D-022). A green tick over an unread report is
+      # worse than no tick.

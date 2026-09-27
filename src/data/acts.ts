@@ -69,6 +69,8 @@ export const CONCEPTION: ActDef = {
   id: 'conception',
   name: 'Conception',
   durationSeconds: 300,
+  provisional:
+    'The rates, the antibody drag floor and curvature (ANTIBODY_FLOOR and ANTIBODY_DRAG_K in world.ts), the bot cadence and the boss HP were all set from bot runs and nobody has played the act; a person playing it at the link is what moves them (§11.5, G-028).',
   // CONCEPTION-ROSTER.md §3.5. One track per enemy, read as concurrent
   // streams. A new pressure roughly every forty-five seconds for the first
   // half, then only escalation: nothing new arrives after 130s, so the last
@@ -108,8 +110,9 @@ export const SCHOOL: ActDef = {
   //
   //   - Dodgeballs, monitors and homework never despawn (they belong to the
   //     arena), so their rates are cumulative counts, not densities. At these
-  //     rates a full act ends with roughly twenty balls, five monitors and
-  //     seventy piles' worth of paper on the field.
+  //     rates a full act SPAWNS roughly twenty balls, five monitors and
+  //     seventy piles' worth of paper; how many are still standing at the end
+  //     depends entirely on what the build killed.
   //   - Cliques drift and are culled like Conception's drifters, so their
   //     stream is the act's density and escalates the way rivals did.
   //

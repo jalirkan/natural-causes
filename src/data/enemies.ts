@@ -228,9 +228,9 @@ export const ENEMIES: Record<string, EnemyDef> = {
    * Numbers are §3.6's starting values, transcribed. They are the roster's
    * commitment rather than this file's: "relationships are the design; the
    * values are a starting point and the bots own them." Nothing here was
-   * chosen, and nothing here has been played — School has no wave schedule and
-   * no act clock, both of which §5 leaves undesigned, so none of these spawn in
-   * a run yet. What exists is the data and the behaviour it names.
+   * chosen, and nothing here has been played. `SCHOOL` in acts.ts spawns them
+   * on a schedule that is labelled provisional (D-022); the title cannot start
+   * the act until its art exists.
    *
    * The act's costume of the life script: you are sorted by people who are also
    * being sorted, judged by adults who have not been told who you are, and the

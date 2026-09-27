@@ -187,8 +187,10 @@ that turned out wrong stays legible. This section says which parts did.
 
 ### What the record shows
 
-Twenty commits on 2026-08-01. Thirteen in the eight weeks since, none of which
-changed what a player experiences. `CONCEPTION-ROSTER.md` §12.4 diagnosed it
+Twenty commits on 2026-08-01. Thirteen in the eight weeks since — several of
+them finishing the Conception act's presentation: walls in the sim, the title,
+sound, the ending, the offer cards — and none of which put that act in front
+of a person. `CONCEPTION-ROSTER.md` §12.4 diagnosed it
 on the first day — the design calibration had been "blocked on a person for
 four passes, and the loop kept producing passes because it could" — and §12.5
 then said *do not run one*. The project waited two months for a session that
@@ -199,7 +201,7 @@ plan above produced it:
    should `k` be" and "is the drag the right shape", to be answered from prose
    and tables. D-002 rejected Godot precisely so Justin would not be the
    bottleneck, and the process made him one by another route. A person reacts
-   to a playable thing in five minutes on a phone. A person does not sit down
+   to a playable thing in five minutes at a link. A person does not sit down
    to choose six numbers from a 1,400-line roster, and this one didn't.
 2. **There was no link.** D-003 says "playable from a link". For two months
    the game ran on whichever machine had last run `pnpm dev`. Every human
@@ -231,7 +233,7 @@ audit habit, CI. They are why the code can be trusted.
   "Tuning is frozen" becomes "tuning is not claimed" (D-022).
 - **Justin is asked for reactions, not values.** "Play this; what felt wrong?"
   — never "what should this be?". The §12.4 questions are re-put in that form
-  in the README. A question he cannot answer in five minutes on a phone is
+  in the README. A question he cannot answer in five minutes at the link is
   badly posed.
 - **A documentation budget.** A decision entry is at most fifteen lines, with
   one-line rejected alternatives. A playtest entry is a table and five

@@ -461,6 +461,8 @@ until then — with the smallest rates that make it runnable, labelled
 `provisional` in the data. The bots run it (`--act=school`); the first reading
 is at the top of `PLAYTEST-FINDINGS.md`. The title cannot start it: four of
 the five sprites have never been generated, there is no boss, and a test keeps
-it out of `ACTS` until `ACT_VISUALS` has a `school` entry. Everything §7 lists
-as not built is still not built, and the act is now something a bot can be
-run through and a person could be handed the moment the art exists.
+it out of `ACTS` until `ACT_VISUALS` has a `school` entry. Everything else §7
+lists as not built is still not built — the substitute's attack, homework's
+arrival point, the monitor's stop, the boss, the visuals, the items — and the
+act is now something a bot can be run through and a person could be handed the
+moment the art exists.

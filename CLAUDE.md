@@ -36,12 +36,15 @@ recreate it. Specifically:
 
 - **Build with placeholder numbers; label them; never claim them.** A system
   whose values nobody has played carries a `provisional` sentence in its
-  data naming what retires it (see `SCHOOL` in `src/data/acts.ts`; a test
-  requires the sentence). Do not withhold a feature because a number is
-  unset, and do not move a labelled number on bot data alone.
+  data naming what retires it (both acts in `src/data/acts.ts` carry one; a
+  test requires it). Conception's placeholders are the antibody drag floor
+  and curvature (`ANTIBODY_FLOOR`, `ANTIBODY_DRAG_K`), the bot cadence and
+  the boss HP; School's is its whole schedule. Do not withhold a feature
+  because a number is unset, and do not move a labelled number on bot data
+  alone.
 - **Ask Justin for reactions, not values.** "Play this — what felt wrong?"
   is a question. "What should `k` be?" is not. If it cannot be answered in
-  five minutes on a phone, rewrite it.
+  five minutes at the link, rewrite it.
 - **Bots establish presence and ordering, never calibration** (G-026,
   G-027). Read `PLAYTEST-FINDINGS.md`'s header before reporting a number.
 
@@ -64,8 +67,9 @@ the test that says it is done. It does not get "improve the game".
 
 ## Documentation budget
 
-- A decision entry is at most fifteen lines. Rejected alternatives are one
-  line each and still mandatory (mechanism 1).
+- A decision entry is at most fifteen lines. At least two rejected
+  alternatives, one line each, remain mandatory (mechanism 1); an entry
+  without them gets sent back.
 - A playtest entry is a table and five sentences. Newest first.
 - A roster section states the design and its one open question. Amendments
   append; they do not argue across sections.

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ACTS, SCHOOL, spawnStreams } from '../../data/acts';
 import { ENEMIES } from '../../data/enemies';
-import { World } from '../world';
+import { DESPAWN_RADIUS, World } from '../world';
 
 /**
  * School as an ACT, not as three behaviours (those are `school.test.ts`).
@@ -70,16 +70,19 @@ describe('the introduction order is §3.6, and it is the design', () => {
     expect(clique).toBe(0);
     expect(dodgeball).toBeGreaterThan(clique);
     expect(dodgeball).toBeLessThan(homework);
-    // "from the first third".
-    expect(homework).toBeGreaterThanOrEqual(SCHOOL.durationSeconds / 3);
+    // "from the first third": it starts within the first third of the act,
+    // not after it. The first draft had this the other way round and passed
+    // only because the placeholder sits exactly on the boundary.
+    expect(homework).toBeLessThanOrEqual(SCHOOL.durationSeconds / 3);
     expect(homework).toBeLessThan(monitor);
     expect(monitor).toBeLessThan(substitute);
   });
 
-  it('is pure contact until the substitute arrives', () => {
-    // §3.6: "the act should be pure contact until the substitute arrives, so
-    // that gold appearing means something." The substitute is the act's only
-    // ranged enemy and therefore the last stream to open.
+  it('opens the substitute last (§3.6: pure contact until it arrives)', () => {
+    // "The act should be pure contact until the substitute arrives, so that
+    // gold appearing means something." The substitute is the act's only
+    // ranged enemy — and its attack is not built (SCHOOL-ROSTER §7), so today
+    // "last stream to open" is the whole of what this test can say.
     const substitute = firstAppearance('substitute-teacher');
     for (const [id, stream] of spawnStreams(SCHOOL.waves)) {
       if (id === 'substitute-teacher') continue;
@@ -124,27 +127,53 @@ describe('a School run', () => {
     expect([...seen].sort()).toEqual(expected);
   });
 
-  it('accumulates the enemies that belong to the arena, and does not accumulate the ones that do not', () => {
-    // The property the schedule's rates were chosen around: dodgeballs,
-    // monitors and homework are cumulative counts, cliques are a density. A
-    // standing player is the worst case for accumulation and the easiest for
-    // culling, so both halves are readable from one run.
-    const world = new World({ act: SCHOOL, seed: 11 });
-    alive(world, SCHOOL.durationSeconds);
-    const count = (id: string) => world.enemies.filter((e) => e.def.id === id).length;
-    expect(count('dodgeball')).toBeGreaterThan(0);
-    expect(count('hall-monitor')).toBeGreaterThan(0);
-    // Homework merges on arrival, so its count can stay small while its mass
-    // grows; what must be true is that some of it is still there.
-    expect(count('homework')).toBeGreaterThan(0);
-    // Cliques drift through and are culled; a player standing still for five
-    // minutes should not be buried under every clique that ever spawned.
-    const cliquesSpawned = SCHOOL.waves
-      .filter((w) => w.enemyId === 'clique')
-      .reduce((n, w, i, all) => {
-        const until = all[i + 1]?.fromSeconds ?? SCHOOL.durationSeconds;
-        return n + w.rate * (until - w.fromSeconds);
-      }, 0);
-    expect(count('clique')).toBeLessThan(cliquesSpawned / 2);
+  it('keeps the enemies that belong to the arena and culls the ones that do not', () => {
+    // The property the schedule's rates were chosen around, tested without
+    // reference to any rate. With no weapons nothing is killed, so a dodgeball
+    // or monitor ever seen is one still on the field, while cliques drift
+    // through and are culled at DESPAWN_RADIUS. Counting uids ever seen
+    // against uids alive separates "never despawns" from "was not killed" —
+    // the first draft compared alive cliques to a spawn total and was really
+    // asserting the schedule's late rates plus the build's kill rate.
+    const world = new World({ act: SCHOOL, seed: 11, startingItems: [] });
+    const seen = new Map<string, Set<number>>();
+    const steps = Math.round(SCHOOL.durationSeconds * 60);
+    for (let i = 0; i < steps; i++) {
+      if (world.offers) {
+        world.choose(world.offers[0]!);
+        continue;
+      }
+      world.hp = world.maxHp;
+      world.dead = false;
+      world.step(1 / 60, { moveX: 0, moveY: 0 });
+      for (const e of world.enemies) {
+        let s = seen.get(e.def.id);
+        if (!s) seen.set(e.def.id, (s = new Set()));
+        s.add(e.uid);
+      }
+    }
+    const standing = (id: string) => world.enemies.filter((e) => e.def.id === id).length;
+    const ever = (id: string) => seen.get(id)?.size ?? 0;
+
+    // Arena enemies: nothing killed, nothing culled, so everything ever seen is
+    // still there.
+    expect(ever('dodgeball')).toBeGreaterThan(0);
+    expect(standing('dodgeball')).toBe(ever('dodgeball'));
+    expect(ever('hall-monitor')).toBeGreaterThan(0);
+    expect(standing('hall-monitor')).toBe(ever('hall-monitor'));
+    // Homework merges on arrival, so fewer piles can stand than ever landed;
+    // what must be true is that the paper is still there.
+    expect(ever('homework')).toBeGreaterThan(0);
+    expect(standing('homework')).toBeGreaterThan(0);
+    expect(standing('homework')).toBeLessThanOrEqual(ever('homework'));
+
+    // Cliques: some have been culled, and none stands beyond the cull radius
+    // (with one second of drift as margin for where in the step the cull runs).
+    expect(ever('clique')).toBeGreaterThan(standing('clique'));
+    const margin = ENEMIES['clique']!.speed;
+    for (const e of world.enemies) {
+      if (e.def.id !== 'clique') continue;
+      expect(Math.hypot(e.x - world.x, e.y - world.y)).toBeLessThanOrEqual(DESPAWN_RADIUS + margin);
+    }
   });
 });

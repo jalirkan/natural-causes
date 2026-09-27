@@ -4,7 +4,9 @@
 
 > **Play it: <https://jalirkan.github.io/natural-causes/>** — the current
 > `main`, published by [`deploy.yml`](./.github/workflows/deploy.yml) on every
-> push. One act, about five minutes, keyboard only for now.
+> push once a repository admin has pointed Pages at GitHub Actions (see CI,
+> below). One act, about five minutes. Keyboard only for now; touch movement
+> is the next thing the link needs.
 >
 > **Status: the Conception act is complete and unjudged; School runs headless.**
 > Plan in [`PLAN.md`](./PLAN.md) (read its 2026-09-27 amendment first), art
@@ -39,10 +41,11 @@ exact enemies. That is funny before it is sad, and the game does not explain it.
 
 ## Built by agents, on purpose
 
-This is also a record of how it was made. A Cowork instance leads design, Claude
-Code runs long unattended implementation stretches, and a human decides what is
-funny. The process is instrumented and the findings are published — including
-what did not work.
+This is also a record of how it was made. One Claude Code session holds the
+design judgement and delegates bounded implementation to subagents — it began
+as a Cowork/Claude Code split, and `PLAN.md`'s 2026-09-27 amendment says why
+that changed — and a human decides what is funny. The process is instrumented
+and the findings are published, including what did not work.
 
 Six mechanisms exist specifically to stop an unattended agent producing generic
 content: mandatory rejected alternatives on every decision, a "why this life
@@ -94,13 +97,15 @@ rather than quietly spend money.
 
 [`deploy.yml`](./.github/workflows/deploy.yml) publishes `main` to GitHub
 Pages on every push, independently of CI (D-023). First-time setup is one
-repository setting: Pages → Source → "GitHub Actions"; the workflow asks for
-it itself and falls back to that instruction if it cannot.
+repository setting: Pages → Source → "GitHub Actions". The workflow asks for
+it itself, but the default token is not allowed to change settings, so the
+first run fails at that step until an admin has done it; re-run it after.
 
 The playtest bots are **not** in CI. They print measurements and exit 0
-whatever the measurements say, and tuning is frozen pending a session with a
-human — a pass condition would have to be invented to gate on, and an invented
-number is the thing this project is most careful not to produce.
+whatever the measurements say, and every act's values are labelled provisional
+until a person has played it — a pass condition would have to be invented to
+gate on, and an invented number is the thing this project is most careful not
+to produce.
 
 ### Playing
 
@@ -125,6 +130,11 @@ Nothing here asks for a number; every one is about the run you just had.
 3. **Was the Egg a fight or a shooting gallery?**
 4. **Did you work out what the magnet does?** Did it seem to help or hurt?
 5. **Did anything make you laugh?** Once is enough. Say what.
+
+§12.4's sixth question — how long you hold a heading — is not asked, because
+it is answered by an input log the game does not write yet. It is what sets
+the bots' decision cadence, and until the log exists the cadence stays a
+labelled placeholder.
 
 ### Dev mode
 
