@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <title>Acne</title>
+  <desc>A low dome on a flat base with one round light dot on its top. Two eyes look straight out at the viewer over a small proud smile: it has been waiting for today. The spot alone, never what it sits on.</desc>
+  <!--
+    Acne (ADOLESCENCE-ROSTER §3.3). The act's reserved dome (§1): the only
+    half-circle, and the smallest thing in the act, as the antibody was in
+    Conception. It wears the antibody's colours on purpose: red is the car's
+    claim about damage, and this deals none; it attaches.
+
+    Drawn on the finished sprite's own pixel grid. The group maps one unit to
+    one pixel of the 44px sprite: the dome is 42 units wide (44 less the 1px
+    outline each side) and 21 tall, a true half-circle. At the rasteriser's
+    first density one unit is exactly four supersampled pixels, so the fit
+    lands on the first try and each unit becomes one sprite pixel. The dot
+    and the face are stated as steps on that grid; only the dome's arc is
+    left to the rasteriser.
+    Colours are palette hex values: ink #2A2521, shadow #6E6353,
+    bone #D2C6AC. CONFORM adds the outline; there is none here.
+  -->
+  <g shape-rendering="crispEdges" transform="scale(2.2727273) translate(1 12)">
+  <!-- the dome: a half-circle of radius 21 on a flat base -->
+  <path d="M0,21 A21,21 0 0 1 42,21 Z" fill="#6E6353"/>
+  <!-- the head: one bone dot, 8 by 5, near the top -->
+  <path d="M18,2 H24 V3 H25 V6 H24 V7 H18 V6 H17 V3 H18 Z" fill="#D2C6AC"/>
+  <!-- eyes straight out -->
+  <rect x="14" y="10" width="3" height="4" fill="#2A2521"/>
+  <rect x="25" y="10" width="3" height="4" fill="#2A2521"/>
+  <!-- a small proud smile, corners up -->
+  <path d="M18,16 H19 V17 H23 V16 H24 V18 H18 Z" fill="#2A2521"/>
+  </g>
+</svg>
