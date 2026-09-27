@@ -6,7 +6,7 @@ import { check, distanceToleranceFor, DEFAULT_THRESHOLDS } from '../check';
 import { GRAIN_AMPLITUDE, grainTile, texture } from '../texture';
 import { pack } from '../pack';
 import { mutateSeed } from '../pipeline';
-import { BONE, FULL_PALETTE, INK, PAPER, SHADOW, actPalette, nearest, rgbToOklab } from '../palette';
+import { ACT_IDS, BONE, FULL_PALETTE, INK, PAPER, SHADOW, actPalette, nearest, rgbToOklab } from '../palette';
 
 /** Build a test image: a solid magenta field with a coloured blob in it. */
 function fixture(size = 64, blobColour: [number, number, number] = [240, 240, 226]): Bitmap {
@@ -26,9 +26,19 @@ function fixture(size = 64, blobColour: [number, number, number] = [240, 240, 22
 }
 
 describe('palette', () => {
-  it('law 3: the locked palette is 16–20 colours', () => {
+  it('law 3 (D-028): no act puts more than eleven colours on screen', () => {
+    // The constraint law 3 is about is what one screen shows: ink, shadow,
+    // paper, bone, the act's three tones and the four threat colours.
+    for (const act of ACT_IDS) {
+      expect(actPalette(act).length, `act "${act}"`).toBeLessThanOrEqual(11);
+    }
+  });
+
+  it('D-028: the catalogue across acts is 16–32 colours', () => {
+    // Seven acts' tones and the eight shared colours come to 29. The bound
+    // moved from 20 in a decision record, not in this file.
     expect(FULL_PALETTE.length).toBeGreaterThanOrEqual(16);
-    expect(FULL_PALETTE.length).toBeLessThanOrEqual(20);
+    expect(FULL_PALETTE.length).toBeLessThanOrEqual(32);
   });
 
   it('has no duplicate names or hexes', () => {

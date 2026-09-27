@@ -102,6 +102,20 @@ describe('every enemy holds a reserved silhouette in its own act (law 11)', () =
     ]);
   });
 
+  it('Adolescence is exactly the five the roster reserves, no more', () => {
+    const adolescence = Object.values(ENEMIES)
+      .filter((d) => d.act === 'adolescence')
+      .map((d) => d.id)
+      .sort();
+    expect(adolescence).toEqual([
+      'acne',
+      'drivers-ed',
+      'group-chat',
+      'hormones',
+      'standardised-test',
+    ]);
+  });
+
   it('every enemy has an asset specified for it', () => {
     // An enemy with no prompt is an enemy that cannot be drawn, which is a
     // thing that only shows up when someone runs a batch months later.
@@ -153,7 +167,7 @@ describe("law 10 / G-030 — pickups take the act's light tone", () => {
     // earlier, where it is enforceable today: the palette an enemy in each act
     // is allowed to be quantised INTO excludes paper (the player's) and the
     // act's light tone (the pickups').
-    for (const act of ['conception', 'school'] as const) {
+    for (const act of ['conception', 'school', 'adolescence'] as const) {
       const allowed = enemyPalette(act).map((c) => c.name);
       expect(allowed, `act "${act}" lets an enemy be paper`).not.toContain('paper');
       expect(allowed, `act "${act}" lets an enemy take the pickup tone`).not.toContain(

@@ -313,7 +313,10 @@ export class ActScene extends Phaser.Scene {
     this.bossSprite?.destroy();
     delete this.bossSprite;
     this.absorbZoomed = false;
-    this.cameras.main.zoomTo(1, 600, 'Sine.easeInOut');
+    // `force`: the Egg's 1.5s lean-in may still be tweening at the crossing
+    // (it always is at dev speed), and Phaser drops a zoomTo while one runs.
+    // Found by the smoke test: School played zoomed in with the HUD clipped.
+    this.cameras.main.zoomTo(1, 600, 'Sine.easeInOut', true);
     this.player
       .setTexture(this.visuals.atlas.key, this.visuals.playerFrame)
       .setDisplaySize(PLAYER_DISPLAY, PLAYER_DISPLAY);

@@ -395,9 +395,11 @@ export const ITEMS: Record<string, ItemDef> = {
       'Reach. It never touches anything further than one orbit away, a fast enemy slips through the gap between orbiters, and it cannot aim at anything at all.',
   },
 
+  // G-041: the weapon is Gossip. Group Chat is the Adolescence enemy
+  // (ADOLESCENCE-ROSTER §3.5); the id stays so nothing that keys on it moves.
   'group-chat': {
     id: 'group-chat',
-    name: 'Group Chat',
+    name: 'Gossip',
     kind: 'weapon',
     mode: 'seeking',
     cooldown: 1.1,

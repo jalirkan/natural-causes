@@ -15,13 +15,15 @@
     "art:svg": "tsx tools/art/run.ts svg",
     "art:pack": "tsx tools/art/run.ts pack",
     "art:sheet": "tsx tools/art/run.ts sheet",
-    "playtest": "tsx tools/playtest/run.ts"
+    "playtest": "tsx tools/playtest/run.ts",
+    "smoke": "tsx tools/smoke/run.ts"
   },
   "dependencies": {
     "phaser": "^3.90.0"
   },
   "devDependencies": {
     "@types/node": "^26.1.2",
+    "playwright-core": "1.56.1",
     "sharp": "^0.34.0",
     "tsx": "^4.19.0",
     "typescript": "^5.9.0",
