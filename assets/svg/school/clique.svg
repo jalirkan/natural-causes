@@ -16,13 +16,13 @@
   -->
   <g transform="scale(0.9765625)">
     <!-- body: shadow underside, school-mid over it -->
-    <path fill="#6E6353" d="M 9 73 L 9 71 C 9 62, 12 56, 18 54 L 84 52 C 90 54, 93 61, 93 70 L 93 72 C 93 80, 91 86, 84 87 C 77 88, 72 85, 65 87 C 58 89, 51 85, 44 87 C 37 89, 30 85, 23 87 C 14 88, 9 82, 9 73 Z"/>
-    <path fill="#6B7F53" d="M 9 72 L 9 71 C 9 62, 12 56, 18 54 L 84 52 C 90 54, 93 61, 93 70 L 93 71 C 93 76, 91 80, 84 81 C 77 82, 72 79, 65 81 C 58 83, 51 79, 44 81 C 37 83, 30 79, 23 81 C 14 82, 9 78, 9 72 Z"/>
+    <path fill="#6E6353" d="M 9 70 L 9 68 C 9 59, 12 52, 18 50 L 84 49 C 90 50, 93 56, 93 64 L 93 68 C 93 79, 89 84, 80 84 C 72 84, 70 82, 64 82 C 58 82, 56 84, 49 84 C 42 84, 40 82, 34 82 C 28 82, 26 84, 20 84 C 12 84, 9 79, 9 70 Z"/>
+    <path fill="#6B7F53" d="M 9 69 L 9 68 C 9 59, 12 52, 18 50 L 84 49 C 90 50, 93 56, 93 64 L 93 67 C 93 74, 89 78, 80 78 C 72 78, 70 76, 64 76 C 58 76, 56 78, 49 78 C 42 78, 40 76, 34 76 C 28 76, 26 78, 20 78 C 12 78, 9 75, 9 69 Z"/>
     <!-- chin shadows, where each head meets the mass -->
-    <circle cx="26" cy="50" r="14" fill="#6E6353"/>
-    <circle cx="44" cy="40" r="14" fill="#6E6353"/>
-    <circle cx="62" cy="45" r="14" fill="#6E6353"/>
-    <circle cx="79" cy="41" r="14" fill="#6E6353"/>
+    <circle cx="25" cy="50" r="13" fill="#6E6353"/>
+    <circle cx="43" cy="40" r="13" fill="#6E6353"/>
+    <circle cx="61" cy="45" r="13" fill="#6E6353"/>
+    <circle cx="78" cy="41" r="13" fill="#6E6353"/>
     <!-- heads, right to left so each sits in front of the next -->
     <circle cx="78" cy="37" r="14" fill="#6B7F53"/>
     <circle cx="61" cy="41" r="14" fill="#6B7F53"/>

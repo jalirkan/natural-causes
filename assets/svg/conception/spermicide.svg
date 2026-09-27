@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <!--
+    Spermicide, droplet state (CONCEPTION-ROSTER §3.2): a rounded teardrop
+    with a flat top, flat contact red, no interior detail. Asleep: two
+    closed-eye arcs and no mouth. The ring is its burst, drawn in code.
+    Colours: threat-contact #C4472E, ink #2A2521.
+  -->
+  <g shape-rendering="crispEdges">
+  <path fill="#C4472E" d="M42,4 H58 C66,22 84,40 84,64 A34,34 0 0,1 16,64 C16,40 34,22 42,4 Z"/>
+  <path fill="#2A2521" d="M28,67 Q37,84 46,67 Q37,74 28,67 Z"/>
+  <path fill="#2A2521" d="M54,67 Q63,84 72,67 Q63,74 54,67 Z"/>
+  </g>
+</svg>
