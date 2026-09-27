@@ -7,7 +7,7 @@
 - **SVG sha256:** `8db86082be84b87cd3d552680cfd9695d130352c0075a2e9968e07ec1aa8f142`
 - **Rasteriser:** sharp 0.34.5 (libvips 8.17.3, librsvg 2.61.2)
 - **Render:** 322.560 dpi, 4× supersampled and area-averaged
-- **Rendered:** 2026-09-27T23:25:20.073Z
+- **Rendered:** 2026-09-27T23:32:54.093Z
 - **Sprite size:** 112px
 
 ## Description

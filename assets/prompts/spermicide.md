@@ -7,7 +7,7 @@
 - **SVG sha256:** `9d23fd3ef5c467f805f88c9f1d4338caf20ab92137bbfa7bd243d78a214e8629`
 - **Rasteriser:** sharp 0.34.5 (libvips 8.17.3, librsvg 2.61.2)
 - **Render:** 40.500 dpi, 4× supersampled and area-averaged
-- **Rendered:** 2026-09-27T23:25:19.847Z
+- **Rendered:** 2026-09-27T23:32:53.893Z
 - **Sprite size:** 72px
 - **Tests:** a droplet that reads as asleep, with no interior detail at all
 

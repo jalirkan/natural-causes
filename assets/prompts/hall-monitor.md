@@ -7,7 +7,7 @@
 - **SVG sha256:** `33c6027bd3dafc9b8aef6f9b1270810759723c80867c064b55b6c1b3898812a4`
 - **Rasteriser:** sharp 0.34.5 (libvips 8.17.3, librsvg 2.61.2)
 - **Render:** 51.104 dpi, 4× supersampled and area-averaged
-- **Rendered:** 2026-09-27T23:25:20.033Z
+- **Rendered:** 2026-09-27T23:32:54.050Z
 - **Sprite size:** 88px
 - **Tests:** the sash — one hard diagonal that must not read as a badge
 

@@ -7,7 +7,7 @@
 - **SVG sha256:** `018035212b045d0cb4b59291321a8e219b882c67934df83ae63d79254ce1f252`
 - **Rasteriser:** sharp 0.34.5 (libvips 8.17.3, librsvg 2.61.2)
 - **Render:** 1079.851 dpi, 4× supersampled and area-averaged
-- **Rendered:** 2026-09-27T23:25:19.762Z
+- **Rendered:** 2026-09-27T23:32:53.716Z
 - **Sprite size:** 384px
 - **Tests:** does scale hold up; is a boss impressive
 

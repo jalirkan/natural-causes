@@ -1,5 +1,5 @@
-import type { ActDef, SpawnWave } from '../data/acts';
-import { rateAt, spawnStreams } from '../data/acts';
+import type { ActDef, BossDef, GymTeacherBoss, SpawnWave } from '../data/acts';
+import { rateAt, spawnStreams, whistleInterval } from '../data/acts';
 import { enemyDef, type EnemyDef } from '../data/enemies';
 import { ITEMS, isActive, itemDef, levelBonus, type ActiveItem, type ItemDef } from '../data/items';
 import { Grid } from './grid';
@@ -124,6 +124,13 @@ export const ANTIBODY_LEAD = 320;
  * not. Expect the bots to move it again.
  */
 export const BOSS_HP = 320;
+/**
+ * How long the Gym Teacher's `attack` phase reads after the whistle blows,
+ * before `idle`. The Egg's attack hold, reused. Presentation only: the whistle
+ * is instantaneous and the cadence is measured whistle to whistle, so this
+ * moves where `idle` starts and not how often he blows.
+ */
+export const WHISTLE_HOLD_SECONDS = 0.35;
 
 /**
  * How long ago "recently" is, for an enemy that lands where the player has
@@ -323,13 +330,28 @@ export interface GemState {
 }
 
 export interface BossState {
+  /** The act's `boss.kind`, copied at spawn so a renderer need not look it up. */
+  kind: BossDef['kind'];
   x: number;
   y: number;
   hp: number;
   maxHp: number;
-  /** `idle` → `telegraph` → `attack`, then back. Death is `absorbing`. */
+  /**
+   * `idle` → `telegraph` → `attack`, then back. For the Gym Teacher the
+   * telegraph is the whistle rising and `attack` begins on the step it blows.
+   * The exit, for either kind, is `absorbing`: the word is the Egg's, and it
+   * means the outcome has latched (G-033) and `finishAct` follows the timer —
+   * the Gym Teacher's stopwatch click and `ActDef.endWord` play in it.
+   */
   phase: 'idle' | 'telegraph' | 'attack' | 'absorbing';
+  /** Seconds left in the current phase. */
   timer: number;
+  /**
+   * True while he cannot be damaged: the Gym Teacher with any of his
+   * `enemyId` alive on the field (§9). Always false for the Egg. Plain state
+   * for the renderer and the bots; the sim reads the field itself.
+   */
+  shielded: boolean;
 }
 
 export interface Input {
@@ -565,9 +587,19 @@ export class World {
     return this.life[this.actIndex]!;
   }
 
+  /**
+   * The act's race, if its boss is one that is raced for. Only the Egg is
+   * (G-006); a `race` declared beside any other boss is read as absent, so
+   * the someone-else loss cannot reach an act whose boss nobody swims to.
+   * Every reader of the race goes through this.
+   */
+  private get race(): ActDef['race'] {
+    return this.act.boss.kind === 'egg' ? this.act.race : undefined;
+  }
+
   /** How many racers reaching the boss loses the act; 0 when it has no race. */
   get raceTarget(): number {
-    return this.act.race?.absorb ?? 0;
+    return this.race?.absorb ?? 0;
   }
 
   /**
@@ -576,7 +608,8 @@ export class World {
    * than flagged at spawn, so it cannot disagree with the act it is in.
    */
   private isRacing(e: EnemyState): boolean {
-    return this.boss !== null && this.act.race !== undefined && e.def.id === this.act.race.enemyId;
+    const race = this.race;
+    return this.boss !== null && race !== undefined && e.def.id === race.enemyId;
   }
 
   /** How many acts the life has got through, not counting the one playing. */
@@ -750,11 +783,13 @@ export class World {
 
   /**
    * G-015. Constant magnitude, no falloff, no dependence on the boss's health
-   * or on anything the player does. The fight is an orbit.
+   * or on anything the player does. The fight is an orbit. The Egg's alone:
+   * the Gym Teacher never touches the player (§9), so `--pull` does not reach
+   * School's fight.
    */
   private applyBossPull(dt: number): void {
     const b = this.boss;
-    if (!b) return;
+    if (!b || b.kind !== 'egg') return;
     const d = Math.hypot(b.x - this.x, b.y - this.y);
     if (d < 1) return;
     this.x += ((b.x - this.x) / d) * this.bossPull * dt;
@@ -858,7 +893,17 @@ export class World {
       }
     }
 
-    this.enemies.push({
+    this.addEnemy(def, x, y, vx, vy);
+  }
+
+  /**
+   * The one constructor for an enemy on the field. `spawnEnemy` decides where
+   * and how fast; the Gym Teacher's throw decides both itself; every field is
+   * set here, so a thrown ball and a spawned one cannot differ in anything
+   * but where they started.
+   */
+  private addEnemy(def: EnemyDef, x: number, y: number, vx: number, vy: number): EnemyState {
+    const e: EnemyState = {
       uid: this.nextUid++,
       hitBySerial: 0,
       hitByAreaSerial: 0,
@@ -872,7 +917,9 @@ export class World {
       xp: def.xp,
       consult: 0,
       reload: 0,
-    });
+    };
+    this.enemies.push(e);
+    return e;
   }
 
   private moveEnemies(dt: number): void {
@@ -959,7 +1006,7 @@ export class World {
    */
   private resolveRace(): void {
     const b = this.boss;
-    const race = this.act.race;
+    const race = this.race;
     if (!b || !race || this.outcomeDecided) return;
     for (let i = this.enemies.length - 1; i >= 0; i--) {
       const e = this.enemies[i]!;
@@ -1252,10 +1299,15 @@ export class World {
     this.areas.push(area);
   }
 
-  /** Damage to the boss from anything but the two older paths in updateBoss. */
+  /**
+   * Damage to the boss from anything but the two older paths in updateBoss.
+   * The shield is read live, not off `b.shielded`: orbiters run before
+   * `updateBoss` refreshes it, and a ball this step killed has stopped
+   * shielding him.
+   */
   private damageBoss(amount: number): void {
     const b = this.boss;
-    if (!b || b.phase === 'absorbing') return;
+    if (!b || b.phase === 'absorbing' || this.shieldUp()) return;
     b.hp -= amount;
     if (b.hp <= 0) {
       b.hp = 0;
@@ -1462,7 +1514,7 @@ export class World {
    * other kill, so they drop their gem.
    */
   private hitRacer(p: ProjectileState, pi: number): void {
-    if (!this.boss || !this.act.race) return;
+    if (!this.boss || !this.race) return;
     this.grid.query(p.x, p.y, p.radius + this.queryPad, this.near);
     for (const e of this.near) {
       if (e.hp <= 0 || e.def.invulnerable || !this.isRacing(e)) continue;
@@ -1919,15 +1971,33 @@ export class World {
     // player cannot walk above y=0 to bring it into view, so the fight was a
     // health bar over an empty screen. Reachable from anywhere in the top
     // quarter of the field.
+    //
+    // Both kinds stand where this puts them and never move. The Gym Teacher
+    // shares the placement, the health and the first idle: §9 changes what
+    // the boss does, not where it is or how long it takes to kill.
     const margin = BOSS_RADIUS + 40;
     this.boss = {
+      kind: this.act.boss.kind,
       x: clamp(this.x, margin, ARENA_WIDTH - margin),
       y: clamp(this.y - 420, margin, ARENA_HEIGHT - margin),
       hp: BOSS_HP,
       maxHp: BOSS_HP,
       phase: 'idle',
       timer: 2.2,
+      shielded: this.shieldUp(),
     };
+  }
+
+  /**
+   * §9: nobody leaves until the equipment is put away. True while the act's
+   * boss is the Gym Teacher and any of his `enemyId` is alive. A linear scan,
+   * like the merge: once a step for `updateBoss`, and on the rare orbiter hit.
+   */
+  private shieldUp(): boolean {
+    const boss = this.act.boss;
+    if (boss.kind !== 'gym-teacher') return false;
+    for (const e of this.enemies) if (e.def.id === boss.enemyId && e.hp > 0) return true;
+    return false;
   }
 
   private updateBoss(dt: number): void {
@@ -1940,6 +2010,10 @@ export class World {
       return;
     }
 
+    // Read after every kill this step has made (each damage pass reaps), so a
+    // ball killed this frame opens the gap this frame. The Egg is never shielded.
+    b.shielded = this.shieldUp();
+
     // Damage first, every frame. Folding this in after the phase timer would
     // mean the boss could only be hurt on the frames it changed phase.
     for (let i = this.projectiles.length - 1; i >= 0; i--) {
@@ -1947,6 +2021,12 @@ export class World {
       if (p.hostile) continue;
       const r = BOSS_RADIUS + p.radius;
       if ((p.x - b.x) ** 2 + (p.y - b.y) ** 2 > r * r) continue;
+      if (b.shielded) {
+        // It reaches him and does nothing: stopped, as the Egg stops a shot,
+        // without the damage.
+        swapRemove(this.projectiles, i);
+        continue;
+      }
       b.hp -= p.damage;
       swapRemove(this.projectiles, i);
       if (b.hp <= 0) {
@@ -1959,7 +2039,9 @@ export class World {
       }
     }
     for (const a of this.areas) {
-      if (a.pull || a.damage <= 0) continue;
+      // Shielded, a burst does not spend its one hit on him either: if the
+      // shield drops inside its lifetime, it lands then.
+      if (a.pull || a.damage <= 0 || b.shielded) continue;
       if (Math.hypot(a.x - b.x, a.y - b.y) > a.radius + BOSS_RADIUS) continue;
       if (a.tick) b.hp -= a.damage * dt * 6;
       else if (a.serial !== this.bossHitSerial) {
@@ -1977,6 +2059,12 @@ export class World {
     // It does not move from where it is. It has already decided.
     b.timer -= dt;
     if (b.timer > 0) return;
+
+    const boss = this.act.boss;
+    if (boss.kind === 'gym-teacher') {
+      this.gymTeacherPhase(b, boss);
+      return;
+    }
 
     if (b.phase === 'idle') {
       b.phase = 'telegraph';
@@ -2010,5 +2098,63 @@ export class World {
         serial: this.nextSerial++,
       });
     }
+  }
+
+  /**
+   * The Gym Teacher's machine (SCHOOL-ROSTER §9): idle, the whistle rising,
+   * the whistle. Called when a phase's timer has run out. The overshoot is
+   * carried rather than dropped, so the cadence is the same at every frame
+   * rate (AUDIT 16); the Egg's machine above predates that and is left as it
+   * is.
+   */
+  private gymTeacherPhase(b: BossState, boss: GymTeacherBoss): void {
+    if (b.phase === 'idle') {
+      b.phase = 'telegraph';
+      b.timer += boss.telegraphSeconds;
+    } else if (b.phase === 'telegraph') {
+      b.phase = 'attack';
+      b.timer += WHISTLE_HOLD_SECONDS;
+      this.whistle(b, boss);
+    } else {
+      // Whistle to whistle is the interval at the health he has now; the
+      // telegraph and the hold are inside it, not added to it.
+      b.phase = 'idle';
+      const interval = whistleInterval(boss, b.hp / b.maxHp);
+      b.timer += Math.max(0, interval - boss.telegraphSeconds - WHISTLE_HOLD_SECONDS);
+    }
+  }
+
+  /**
+   * The whistle. Every living `enemyId` on the field is relaunched at where
+   * the player is now, at its own def's full speed, and `thrown` more leave
+   * his position in a fan centred on the same line. Nothing here is aimed
+   * by him at the player except the balls: he never fires, and a death to
+   * one names the ball (`hurt` takes the enemy's def), which §9 says is right.
+   */
+  private whistle(b: BossState, boss: GymTeacherBoss): void {
+    const def = enemyDef(boss.enemyId);
+    for (const e of this.enemies) {
+      if (e.def.id !== def.id || e.hp <= 0) continue;
+      let dx = this.x - e.x;
+      let dy = this.y - e.y;
+      let d = Math.hypot(dx, dy);
+      if (d < 0.001) {
+        // Already on the player: keep its heading at full speed, rather than
+        // aim it at nothing and leave a ball standing still forever.
+        dx = e.vx;
+        dy = e.vy;
+        d = Math.hypot(dx, dy);
+        if (d < 0.001) continue;
+      }
+      e.vx = (dx / d) * e.def.speed;
+      e.vy = (dy / d) * e.def.speed;
+    }
+
+    const base = Math.atan2(this.y - b.y, this.x - b.x);
+    for (let i = 0; i < boss.thrown && this.enemies.length < MAX_ACTIVE_ENEMIES; i++) {
+      const angle = base + (i - (boss.thrown - 1) / 2) * boss.throwSpread;
+      this.addEnemy(def, b.x, b.y, Math.cos(angle) * def.speed, Math.sin(angle) * def.speed);
+    }
+    b.shielded = this.shieldUp();
   }
 }

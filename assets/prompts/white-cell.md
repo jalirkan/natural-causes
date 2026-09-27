@@ -7,7 +7,7 @@
 - **SVG sha256:** `0c3aac884d1b0974fe74c6f65c0893cab271d36396fca485329027a29c4f4ea0`
 - **Rasteriser:** sharp 0.34.5 (libvips 8.17.3, librsvg 2.61.2)
 - **Render:** 54.371 dpi, 4× supersampled and area-averaged
-- **Rendered:** 2026-09-27T23:25:19.814Z
+- **Rendered:** 2026-09-27T23:32:53.862Z
 - **Sprite size:** 96px
 - **Tests:** the blot silhouette, and a stamp face that must survive 48px
 

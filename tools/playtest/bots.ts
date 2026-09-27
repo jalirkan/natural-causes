@@ -1,7 +1,13 @@
 import { CONCEPTION, type ActDef } from '../../src/data/acts';
 import { ITEMS, isActive } from '../../src/data/items';
 import type { EnemyDef } from '../../src/data/enemies';
-import { World, type Input, type WorldOptions } from '../../src/sim/world';
+import {
+  PLAYER_RADIUS,
+  World,
+  type Input,
+  type ProjectileState,
+  type WorldOptions,
+} from '../../src/sim/world';
 
 /**
  * Automated playtest bots. The part of PLAN.md that genuinely runs for hours
@@ -14,6 +20,13 @@ import { World, type Input, type WorldOptions } from '../../src/sim/world';
  *
  * Every run is seeded and deterministic, so a seed that produces an
  * interesting death can be replayed exactly.
+ *
+ * The bot's own numbers are PLACEHOLDERS, each labelled where it is declared,
+ * and none of them is a game number — moving one changes the player the bot
+ * is, never the game: the decision cadence (`cadenceSeconds`, 0.2s) and the
+ * aimed-shot sidestep (`SHOT_LOOKAHEAD_SECONDS` 0.6s, `SHOT_SIDESTEP_WEIGHT`
+ * 0.8, `SHOT_MARGIN_PX` 8px). What retires them is a human input log (§11.5),
+ * not a bot run.
  */
 
 /** Fixed timestep. Real frames vary; a measurement must not. */
@@ -31,6 +44,12 @@ export interface BotPolicy {
   name: string;
   /** What it wants, best first. Falls back to whatever is offered. */
   priorities: string[];
+  /**
+   * Does not steer from aimed shots. Only the control has it: sidestepping is
+   * how a person plays, not a build, and a blind arm is what lets the report
+   * show what the sidestep changed. The shot tally counts either way.
+   */
+  blindToShots?: true;
 }
 
 /**
@@ -49,7 +68,7 @@ export const POLICIES: BotPolicy[] = [
   // the next level-up a one-card Tantrum offer.
   { name: 'acrosome+midpiece', priorities: ['acrosome', 'midpiece', 'membrane', 'lash'] },
   { name: 'grudge+group-chat', priorities: ['grudge', 'group-chat', 'appetite', 'lash'] },
-  { name: 'random', priorities: [] },
+  { name: 'random', priorities: [], blindToShots: true },
 ];
 
 export interface RunResult {
@@ -118,6 +137,17 @@ export interface RunResult {
    * correlation) must read; equal to `items` for a run that never crossed.
    */
   itemsAtFirstActEnd: Record<string, number>;
+  /**
+   * Hostile shots that came at the bot: each one counted once, the first time
+   * it would have passed within reach inside the look-ahead had the bot stood
+   * still (`threatens`). Counted for every policy, the blind one included, so
+   * the arms are compared on the same predicate.
+   */
+  shotsSeen: number;
+  /** Hostile shots that hurt the bot. Every one is also in `shotsSeen`. */
+  shotsHit: number;
+  /** The same two counts by who fired: the enemy's id, or 'boss'. */
+  shotsBy: Record<string, { seen: number; hit: number }>;
 }
 
 /**
@@ -189,6 +219,92 @@ export function setHeadingJitter(radians: number): void {
   headingJitter = radians;
 }
 
+// --- aimed shots -------------------------------------------------------------
+//
+// AUDIT part three: the bots never read `w.projectiles`, so they walked through
+// every aimed shot — the Egg's volley and the substitute's — and every boss-
+// phase and School reading was a reading of a player who does not look. These
+// three numbers make the bot look. They are the bot's, not the game's.
+
+/**
+ * PLACEHOLDER, 0.6s. How far ahead the bot reads a shot's path. At the Egg's
+ * and the substitute's 260px/s that is ~156px of warning; the base 190px/s
+ * clears a dead-on shot's reach in ~0.18s, and a decision can be up to one
+ * cadence (0.2s) late, so this is about the least that lets a sidestep land.
+ * Awaiting a human input log (§11.5), like the cadence.
+ */
+export const SHOT_LOOKAHEAD_SECONDS = 0.6;
+/**
+ * PLACEHOLDER, 0.8. The sidestep's pull, in the same units as the rest of the
+ * steering: above a gem's 0.55, so a person does not walk into a shot for XP,
+ * and below a threat-1 contact enemy's full-strength push (1.0 at touching;
+ * the white cell's is 1.9), so a person does not dodge a shot into a body.
+ * The sum over every threatening shot is capped at this, so a five-shot volley
+ * is one sidestep and not five.
+ */
+export const SHOT_SIDESTEP_WEIGHT = 0.8;
+/**
+ * PLACEHOLDER, 8px. Added to the contact reach (player radius + shot radius)
+ * when judging a pass as a threat: a shot that would graze is dodged too, and
+ * a bot one pixel outside the path is not pulled straight back into it.
+ */
+export const SHOT_MARGIN_PX = 8;
+
+/**
+ * True when a hostile shot, held to its current velocity, passes within
+ * reach of where the player stands now inside the look-ahead — and inside the
+ * shot's own remaining life, since a shot that expires short is no threat.
+ *
+ * The player is taken as standing still: the question a person asks of a shot
+ * is "will it hit me if I stay here", and that is the question a sidestep
+ * answers. Shared by the steering and the tally, so "seen" means exactly what
+ * the bot reacts to.
+ */
+export function threatens(w: World, p: ProjectileState): boolean {
+  if (!p.hostile) return false;
+  const dx = w.x - p.x;
+  const dy = w.y - p.y;
+  const v2 = p.vx * p.vx + p.vy * p.vy;
+  const horizon = Math.min(SHOT_LOOKAHEAD_SECONDS, Math.max(0, p.life));
+  // Time of the nearest pass, clamped to the window: a shot moving away is
+  // nearest now, and one still far out is nearest at the horizon.
+  const t = v2 > 0 ? Math.min(horizon, Math.max(0, (dx * p.vx + dy * p.vy) / v2)) : 0;
+  const mx = p.x + p.vx * t - w.x;
+  const my = p.y + p.vy * t - w.y;
+  const reach = PLAYER_RADIUS + p.radius + SHOT_MARGIN_PX;
+  return mx * mx + my * my <= reach * reach;
+}
+
+/**
+ * The sidestep: for every threatening shot, a unit push perpendicular to its
+ * path, toward the side of the path the player already stands on. A shot dead
+ * on (the Egg's centre shot is aimed exactly at the player) has no side, so
+ * the bot keeps going the way it was already heading — which is what a person
+ * does. Summed, then capped at SHOT_SIDESTEP_WEIGHT.
+ */
+function sidestep(w: World, state: BotState): { x: number; y: number } {
+  let sx = 0;
+  let sy = 0;
+  for (const p of w.projectiles) {
+    if (!threatens(w, p)) continue;
+    const speed = Math.hypot(p.vx, p.vy);
+    if (speed < 1e-9) continue;
+    const nx = -p.vy / speed;
+    const ny = p.vx / speed;
+    let side = (w.x - p.x) * nx + (w.y - p.y) * ny;
+    if (Math.abs(side) < 1e-6) side = state.headingX * nx + state.headingY * ny;
+    // Heading straight along the path too: any fixed side, so it is replayable.
+    if (Math.abs(side) < 1e-6) side = 1;
+    const s = side > 0 ? 1 : -1;
+    sx += nx * s;
+    sy += ny * s;
+  }
+  const len = Math.hypot(sx, sy);
+  if (len === 0) return { x: 0, y: 0 };
+  const k = SHOT_SIDESTEP_WEIGHT / Math.max(1, len);
+  return { x: sx * k, y: sy * k };
+}
+
 function decideMove(w: World, rng: () => number, state: BotState): Input {
   let ax = 0;
   let ay = 0;
@@ -215,6 +331,12 @@ function decideMove(w: World, rng: () => number, state: BotState): Input {
       ax += (dx / d) * 1.6;
       ay += (dy / d) * 1.6;
     }
+  }
+
+  if (state.watchesShots) {
+    const s = sidestep(w, state);
+    ax += s.x;
+    ay += s.y;
   }
 
   if (w.gems.length > 0) {
@@ -316,6 +438,97 @@ interface BotState {
   holdRemaining: number;
   /** Health at the last decision, to detect a damage event. */
   lastHp: number;
+  /** False only for a policy that is `blindToShots`. */
+  watchesShots: boolean;
+}
+
+function freshState(policy: BotPolicy, w: World): BotState {
+  return {
+    headingX: w.facingX,
+    headingY: w.facingY,
+    holdRemaining: 0,
+    lastHp: w.hp,
+    watchesShots: !policy.blindToShots,
+  };
+}
+
+/**
+ * One decision, as a fresh bot under `policy` would make it facing the way
+ * the player faces. The tests' view of the steering; `runOnce` holds and
+ * re-decides through the cadence instead.
+ */
+export function decideOnce(policy: BotPolicy, w: World): Input {
+  return decideMove(w, () => 0.5, freshState(policy, w));
+}
+
+/**
+ * The aimed-shot tally. `look` before each `world.step`, `settle` after.
+ *
+ * World records nothing about what hurt the player, so a hit is inferred from
+ * the outside: health fell on a step in which a hostile shot the bot could see
+ * vanished within contact reach, the i-frames had run out, and the fall was
+ * at least that shot's damage (or the player died). One per step at most,
+ * because the first shot to hurt grants i-frames and the rest are consumed
+ * harmlessly.
+ *
+ * Known limits, both rare: a shot fired AND consumed inside one step (a
+ * substitute firing from touching distance) is never in view and is missed;
+ * a contact or ring hurting for at least a shot's damage on the very step a
+ * racer ate a shot beside the player is counted as that shot.
+ */
+export class ShotLog {
+  seen = 0;
+  hit = 0;
+  readonly by: Record<string, { seen: number; hit: number }> = {};
+  private readonly counted = new WeakSet<ProjectileState>();
+  private readonly inView: ProjectileState[] = [];
+  private readonly alive = new Set<ProjectileState>();
+  private hpBefore = 0;
+  private iframesBefore = 0;
+
+  look(w: World): void {
+    this.hpBefore = w.hp;
+    this.iframesBefore = w.invulnerable;
+    this.inView.length = 0;
+    for (const p of w.projectiles) {
+      if (!p.hostile) continue;
+      this.inView.push(p);
+      if (!this.counted.has(p) && threatens(w, p)) this.see(p);
+    }
+  }
+
+  settle(w: World, dt: number): void {
+    const fell = this.hpBefore - w.hp;
+    // `step` ticks the i-frames down before anything can hurt; this is its
+    // arithmetic exactly, so a shot is never credited through i-frames.
+    if (fell <= 0 || Math.max(0, this.iframesBefore - dt) > 0) return;
+    this.alive.clear();
+    for (const p of w.projectiles) if (p.hostile) this.alive.add(p);
+    // Backwards, as `resolveContact` walks them, so the shot credited is the
+    // one the world most likely let through when two arrive together.
+    for (let i = this.inView.length - 1; i >= 0; i--) {
+      const p = this.inView[i]!;
+      if (this.alive.has(p)) continue;
+      const reach = PLAYER_RADIUS + p.radius;
+      if ((p.x - w.x) ** 2 + (p.y - w.y) ** 2 > reach * reach) continue;
+      if (w.hp > 0 && fell < p.damage * w.damageTaken - 1e-9) continue;
+      if (!this.counted.has(p)) this.see(p);
+      this.hit++;
+      this.tally(p).hit++;
+      return;
+    }
+  }
+
+  private see(p: ProjectileState): void {
+    this.counted.add(p);
+    this.seen++;
+    this.tally(p).seen++;
+  }
+
+  private tally(p: ProjectileState): { seen: number; hit: number } {
+    const id = p.owner?.id ?? 'boss';
+    return (this.by[id] ??= { seen: 0, hit: 0 });
+  }
 }
 
 function chooseOffer(
@@ -396,7 +609,8 @@ export function runOnce(
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 
-  const state: BotState = { headingX: 1, headingY: 0, holdRemaining: 0, lastHp: world.hp };
+  const state = freshState(policy, world);
+  const shots = new ShotLog();
   let steps = 0;
   let stacksAt300 = 0;
   let reached300 = false;
@@ -440,7 +654,10 @@ export function runOnce(
       continue;
     }
     const inCrowdPhase = world.actIndex === 0 && world.time < act.durationSeconds;
-    world.step(DT, decideWithCadence(world, rng, state, DT));
+    const input = decideWithCadence(world, rng, state, DT);
+    shots.look(world);
+    world.step(DT, input);
+    shots.settle(world, DT);
     steps++;
 
     if (stacksAtFirstActEnd === null) {
@@ -492,6 +709,9 @@ export function runOnce(
     meanSpeed: crowdSteps > 0 ? +(speedSum / crowdSteps).toFixed(1) : 0,
     items: Object.fromEntries(world.items),
     itemsAtFirstActEnd: itemsAtFirstActEnd ?? Object.fromEntries(world.items),
+    shotsSeen: shots.seen,
+    shotsHit: shots.hit,
+    shotsBy: shots.by,
   };
 }
 
@@ -612,6 +832,14 @@ export interface PolicySummary {
   endedIn: Record<string, number>;
   /** Causes on the certificate, most common first. */
   causes: Array<[string, number]>;
+  /**
+   * Aimed shots over every run of the policy, and how many runs any shot hit.
+   * Totals, not rates: shots within a run are not independent draws.
+   */
+  shotsSeen: number;
+  shotsHit: number;
+  runsHitByShot: number;
+  shotsBy: Record<string, { seen: number; hit: number }>;
 }
 
 export function summarise(results: RunResult[]): PolicySummary[] {
@@ -668,6 +896,17 @@ export function summarise(results: RunResult[]): PolicySummary[] {
         if (r.cause !== null) m.set(r.cause, (m.get(r.cause) ?? 0) + 1);
         return m;
       }, new Map()).entries()].sort((a, b) => b[1] - a[1]),
+      shotsSeen: runs.reduce((n, r) => n + r.shotsSeen, 0),
+      shotsHit: runs.reduce((n, r) => n + r.shotsHit, 0),
+      runsHitByShot: runs.filter((r) => r.shotsHit > 0).length,
+      shotsBy: runs.reduce<Record<string, { seen: number; hit: number }>>((acc, r) => {
+        for (const [id, c] of Object.entries(r.shotsBy)) {
+          const t = (acc[id] ??= { seen: 0, hit: 0 });
+          t.seen += c.seen;
+          t.hit += c.hit;
+        }
+        return acc;
+      }, {}),
     };
   });
 }

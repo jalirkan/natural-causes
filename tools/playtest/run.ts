@@ -5,6 +5,9 @@ import { ALL_ACTS, CONCEPTION, spawnStreams } from '../../src/data/acts';
 import {
   ITEMS,
   POLICIES,
+  SHOT_LOOKAHEAD_SECONDS,
+  SHOT_MARGIN_PX,
+  SHOT_SIDESTEP_WEIGHT,
   itemUptake,
   partial,
   pearson,
@@ -250,6 +253,39 @@ for (const s of summarise(results)) {
       `${String(none ? '-' : s.medianStacksAt300).padStart(8)}` +
       `${String(s.reached300).padStart(8)}`,
   );
+}
+
+// The only things in the game aimed at the player: the Egg's volley and a
+// ranged enemy's shot (AUDIT part three). Counts, not rates — shots inside a
+// run are not independent, and this section exists to show that aimed
+// pressure is present and whom it comes from, not how often it lands. An act
+// in which no shot ever came at anyone is skipped rather than printed as
+// zeros, the way the antibody sections are.
+out.push('');
+if (results.every((r) => r.shotsSeen === 0)) {
+  out.push(`(no aimed shot came at any bot in "${act.id}" — the aimed-shot section does not apply)`);
+} else {
+  out.push('aimed shots — seen, hit, and by whom (totals over the policy’s runs; counts, not rates)');
+  out.push('-'.repeat(84));
+  out.push('policy                   seen     hit   runs hit   by whom, hit of seen');
+  for (const s of summarise(results)) {
+    const blind = POLICIES.find((p) => p.name === s.policy)?.blindToShots === true;
+    const by = Object.entries(s.shotsBy)
+      .sort((a, b) => b[1].seen - a[1].seen)
+      .map(([id, c]) => `${id} ${c.hit}/${c.seen}`)
+      .join(', ');
+    out.push(
+      `${`${s.policy}${blind ? ' (blind)' : ''}`.padEnd(22)} ${String(s.shotsSeen).padStart(6)} ` +
+        `${String(s.shotsHit).padStart(7)} ${`${s.runsHitByShot}/${s.runs}`.padStart(10)}   ${by || '-'}`,
+    );
+  }
+  out.push(
+    `  seen: would pass within reach + ${SHOT_MARGIN_PX}px inside ${SHOT_LOOKAHEAD_SECONDS}s had the bot stood still.`,
+  );
+  out.push(
+    `  Every policy sidesteps (weight ${SHOT_SIDESTEP_WEIGHT}) except the blind control. All three are`,
+  );
+  out.push('  PLACEHOLDERS in bots.ts — the bot’s, not the game’s.');
 }
 
 // The certificate, tallied (D-024). Where the life ended, at what age, and of
