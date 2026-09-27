@@ -210,11 +210,11 @@ async function loadSprite(sheet: Sheet, act: ActId, id: string): Promise<Sprite 
 }
 
 /** Why a registered id has no sprite, in as few words as the row allows. */
-function missingNote(root: string, act: ActId, id: string): string {
-  if (existsSync(resolve(root, `assets/svg/${act}/${id}.svg`))) return `${id} (drawing on file, no sprite yet)`;
+function whyMissing(root: string, act: ActId, id: string): string {
+  if (existsSync(resolve(root, `assets/svg/${act}/${id}.svg`))) return 'drawing on file, no sprite yet';
   const spec = ALL_ASSETS.find((s) => s.id === id);
-  if (existsSync(resolve(root, `assets/prompts/${id}.md`)) && spec?.act === act) return `${id} (generated, did not pass)`;
-  return `${id} (not made)`;
+  if (existsSync(resolve(root, `assets/prompts/${id}.md`)) && spec?.act === act) return 'generated, did not pass';
+  return 'not made yet';
 }
 
 // ---------------------------------------------------------------------------
@@ -314,7 +314,7 @@ async function actBand(sheet: Sheet, act: ActId): Promise<string> {
     if (s) sprites.push(s);
   }
   sprites.sort((a, b) => ROLE_ORDER[a.role] - ROLE_ORDER[b.role]);
-  const missing = registered.filter((id) => !onDisk.includes(id)).map((id) => missingNote(root, act, id));
+  const missing = registered.filter((id) => !onDisk.includes(id)).map((id) => `${id} (${whyMissing(root, act, id)})`);
   if (sprites.length === 0 && missing.length === 0) return '';
 
   const bg = actBackground(act);
@@ -412,13 +412,7 @@ async function card(sheet: Sheet, spec: AssetSpec): Promise<string> {
   const bg = spec.role === 'icon' ? INK.hex : actBackground(spec.act).hex;
   const isReal = /REAL TEST/.test(spec.tests ?? '');
   const source = await sheet.source(spec.act, spec.id);
-  const status = has
-    ? source.kind
-    : source.kind === 'drawn'
-      ? 'drawing on file, no sprite yet'
-      : source.kind === 'generated'
-        ? 'did not pass the checks'
-        : 'not made yet';
+  const status = has ? source.kind : whyMissing(root, spec.act, spec.id);
 
   let conformed = '';
   if (has) {
