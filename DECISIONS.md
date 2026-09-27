@@ -345,22 +345,35 @@ different game from the person, which the sim/presentation split exists to stop.
 Rejected: independent acts plus a "campaign" mode — two meanings of "a run",
 and every metric would have to say which.
 
-## D-025 · 2026-09-27 · Sprites are drawn as SVG in the repository; the generator is no longer the only door
-`tools/art/draw.ts` is a second front door to the pipeline: an SVG at
-`assets/svg/<act>/<id>.svg` is rasterised and enters at CONFORM, so it is
-quantised, outlined, scaled and CHECKed by the same code as a generated
-asset, and `draw.test.ts` runs every drawing through those gates in CI. The
-SVG is the provenance (D-010). Drawing costs nothing per asset, needs no
-key, is deterministic, and can state a flat cartoon shape with a face
-exactly, which is the register the owner asked for. School's four missing
-sprites and its player frame were drawn this way; the Egg stands in for its
-boss through the same quantise step, labelled in `STAND_INS`. Found on the
-way: no shipped enemy wears a threat colour, because CONFORM only permits
-colours the act's reservation table assigns, and the tables assigned none;
-School's now gives contact to the dodgeball and elite to the hall monitor as
-the roster says. Conception's remain as shipped until redrawn.
-Rejected: generating School's sprites with the fal key — a person's money
-for a medium a drawing states better, and a key this environment must not
-hold.
-Rejected: a placeholder boss drawn for School — that is designing the Gym
-Teacher by accident; the Egg is already the sim's stand-in and says so.
+## D-025 · 2026-09-27 · Sprites are authored SVG, rasterised by `sharp` into the unchanged CONFORM and CHECK
+A spec with `source: 'svg'` reads `tools/art/svg/<act>/<id>.svg`. `pnpm art:svg`
+runs law 11 and D-007 (on the spec and on the SVG's own text) before opening
+the file, renders it at 4× and re-renders until the trimmed content is exactly
+the fitted size, box-downsamples (alpha averaged, colour the block's dominant —
+never a blend), then hands it to the same CONFORM, TEXTURE and CHECK. A failure
+writes nothing and is fixed by its author; no retries. Provenance records the
+SVG's sha256, and a test fails when a checked-in SVG no longer matches its
+sprite. The player is exempt from the enemy value ceiling (it is paper).
+All twelve Conception and School field sprites are now authored this way.
+Rejected: SVGs straight into the atlas — skips the palette lock and the checks,
+the only things that made generated art consistent.
+Rejected: rendering at target size and letting conform's nearest-neighbour
+resize fit it — jagged edges, and stray blended colours near the pickup tone.
+
+## D-026 · 2026-09-27 · Two sessions built D-025 independently; main's stage is kept, the branch's drawings compete sprite by sprite
+The cloud session and the local session each built the SVG stage on the same
+evening from the same handoff, because the handoff on `main` was never
+updated to say the cloud branch had started it. Main's stage (`art:svg`,
+`rasterise.ts`, sha256 provenance) is kept: it is deployed, it is the one the
+local session builds on, and its provenance is mechanical. The branch's
+`draw.ts`, its `assets/svg/` and its Egg stand-in are deleted. Its drawings
+were judged against main's at game size on the act ground, sprite by sprite:
+the antibody, spermicide, white cell and hall monitor come across (they wear
+the threat colours the rosters assign, which main's set lost because the
+reservation tables assigned none — that fix comes across too); the rest stay
+main's, the dodgeball included: its contact-red drawing fails CHECK's
+contrast against School's ground under main's stage (0.09 < 0.12), and the
+pipeline rejects, it does not correct. A duplicated step is the cost of two sessions reading
+one handoff; the handoff now says who holds which step.
+Rejected: keeping both stages — one registry per kind of content (CONCEPTION-ROSTER §5.3).
+Rejected: keeping the branch's stage because its drawings were reviewed harder — the drawings port; the stage does not need to.

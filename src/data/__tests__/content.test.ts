@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { ENEMIES } from '../enemies';
-import { ITEMS } from '../items';
+import { ITEMS, isActive } from '../items';
+import { itemIconFrame } from '../item-visuals';
+import iconsAtlas from '../../../assets/atlas/icons.json';
+import { World } from '../../sim/world';
 import { ACT_VISUALS } from '../act-visuals';
 import { ACTS, ALL_ACTS, rateAt, spawnStreams } from '../acts';
 import { BONE, INK, PAPER, SHADOW, THREAT_BOSS, THREAT_CONTACT, THREAT_ELITE, THREAT_RANGED } from '../../config';
@@ -186,6 +189,84 @@ describe('every item states what it enables and what it trades away (mechanism 5
   }
 });
 
+describe('upgrades gain (G-038)', () => {
+  const items = Object.values(ITEMS);
+
+  it('every active item has one level entry per level, each an offer-card line', () => {
+    for (const def of items) {
+      if (!isActive(def)) continue;
+      expect(def.levels.length, `"${def.id}" levels vs maxLevel`).toBe(def.maxLevel);
+      def.levels.forEach((level, i) => {
+        const where = `"${def.id}" level ${i + 1}`;
+        expect(level.text.length, `${where} text too short`).toBeGreaterThanOrEqual(10);
+        expect(level.text.length, `${where} text overflows the card`).toBeLessThanOrEqual(63);
+        expect(level.text, `${where} must be one line`).not.toContain(String.fromCharCode(10));
+      });
+    }
+  });
+
+  it('every evolution names an active weapon and a partner that exist', () => {
+    for (const def of items) {
+      if (!isActive(def) || !def.evolvesFrom) continue;
+      const weapon = ITEMS[def.evolvesFrom.weapon];
+      expect(weapon, `"${def.id}" evolves from unknown "${def.evolvesFrom.weapon}"`).toBeDefined();
+      expect(isActive(weapon!), `"${def.id}" evolves from a passive`).toBe(true);
+      expect(ITEMS[def.evolvesFrom.with], `"${def.id}" needs unknown "${def.evolvesFrom.with}"`).toBeDefined();
+      expect(def.evolvesFrom.weapon).not.toBe(def.id);
+    }
+  });
+
+  it('an evolved item never comes out of the ordinary roll', () => {
+    // rollOffers is private because nothing outside the sim should roll; the
+    // rule is about exactly that function, so the test reaches it directly,
+    // across states that make an evolution ready and states that do not.
+    const evolved = items.filter((d) => isActive(d) && d.evolvesFrom).map((d) => d.id);
+    expect(evolved.length).toBeGreaterThan(0);
+    for (let seed = 1; seed <= 30; seed++) {
+      const w = new World({ act: ALL_ACTS[0]!, seed });
+      if (seed % 2 === 0) {
+        w.items.set('acrosome', ITEMS['acrosome']!.maxLevel);
+        w.items.set('midpiece', 1);
+      }
+      const roll = (w as unknown as { rollOffers(): string[] }).rollOffers.bind(w);
+      for (let i = 0; i < 40; i++) {
+        for (const id of roll()) expect(evolved, `seed ${seed} rolled "${id}"`).not.toContain(id);
+      }
+    }
+  });
+
+  it('every passive is a gain; a cost may only be a timing (Late Bloomer\'s ramp)', () => {
+    for (const def of items) {
+      if (def.kind !== 'passive') continue;
+      expect(def.speedMultiplier, `"${def.id}" speed`).toBeGreaterThanOrEqual(1);
+      expect(def.healthMultiplier, `"${def.id}" health`).toBeGreaterThanOrEqual(1);
+      expect(def.cooldownMultiplier, `"${def.id}" cooldown`).toBeLessThanOrEqual(1);
+      expect(def.pickupMultiplier, `"${def.id}" pickup`).toBeGreaterThanOrEqual(1);
+      expect(def.damageTakenMultiplier, `"${def.id}" damage taken`).toBeLessThanOrEqual(1);
+      if (def.rampTo !== def.damageMultiplier) {
+        // A ramp: it may start below baseline, it must end above it.
+        expect(def.rampTo, `"${def.id}" ramps to a loss`).toBeGreaterThan(1);
+        expect(def.rampTo, `"${def.id}" ramps downward`).toBeGreaterThan(def.damageMultiplier);
+      } else {
+        expect(def.damageMultiplier, `"${def.id}" damage`).toBeGreaterThanOrEqual(1);
+      }
+    }
+  });
+
+  it('every icon is in the atlas, or the item says what retires its placeholder', () => {
+    const frames = (iconsAtlas as { frames: Record<string, unknown> }).frames;
+    for (const def of items) {
+      const drawn = itemIconFrame(def.icon) in frames;
+      if (drawn) {
+        expect(def.iconPending, `"${def.id}" has art and still says it is pending`).toBeUndefined();
+        continue;
+      }
+      expect(def.iconPending, `"${def.id}" icon "${def.icon}" has no frame and no pending note`).toBeDefined();
+      expect(def.iconPending!.length).toBeGreaterThan(30);
+    }
+  });
+});
+
 describe('the locked palette', () => {
   const hex = (n: number) => `#${n.toString(16).padStart(6, '0').toUpperCase()}`;
 
@@ -262,6 +343,17 @@ describe('acts', () => {
       for (const wave of act.waves) {
         expect(ENEMIES[wave.enemyId], `act "${act.id}" spawns unknown "${wave.enemyId}"`).toBeDefined();
       }
+    }
+  });
+
+  it("a race names an enemy that exists, is the act's own and is scheduled, and needs at least one to arrive", () => {
+    for (const act of ALL_ACTS) {
+      if (!act.race) continue;
+      const { enemyId, absorb } = act.race;
+      expect(ENEMIES[enemyId], `act "${act.id}" races unknown "${enemyId}"`).toBeDefined();
+      expect(ENEMIES[enemyId]?.act, `act "${act.id}" races "${enemyId}"`).toBe(act.id);
+      expect(spawnStreams(act.waves).has(enemyId), `act "${act.id}" races "${enemyId}", which never spawns`).toBe(true);
+      expect(absorb, `act "${act.id}" race absorb`).toBeGreaterThan(0);
     }
   });
 

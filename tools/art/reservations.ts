@@ -85,12 +85,6 @@ export const RESERVATIONS: Partial<Record<ActId, ActReservations>> = {
       // first aimed thing in the player's life announces itself by firing.
       boss: 'boss-egg',
       ranged: PROJECTILE_HOLDER,
-      // CONCEPTION-ROSTER §3.1 and §3.2, which this table omitted, so the
-      // generated spermicide and white cell shipped in act tones instead of
-      // the threat colours the design gave them (D-025). Reserved now so the
-      // drawn versions can wear them; the rival and the antibody hold none.
-      contact: 'spermicide',
-      elite: 'white-cell',
     },
   },
 
@@ -130,6 +124,13 @@ export const RESERVATIONS: Partial<Record<ActId, ActReservations>> = {
         heldBy: 'clique',
         consequence: 'The only silhouette with more than one head. Nothing else is a fused mass.',
       },
+      {
+        silhouette:
+          "the tallest thing in the act: a standing figure in gym shorts with a whistle on a cord, eight times the player's height",
+        heldBy: 'boss-gym-teacher',
+        consequence:
+          'The only figure at boss scale: its height is the read, and the whistle is the only thing it carries. Law 9: the whistle and the shorts are the role, not a person.',
+      },
     ],
     reservedThreat: {
       // Conception's first aimed thing was the boss; School's is a swarm
@@ -138,19 +139,14 @@ export const RESERVATIONS: Partial<Record<ActId, ActReservations>> = {
       // name it fires — and never its body, which has to stay the act's only
       // bright hard rectangle.
       ranged: PROJECTILE_HOLDER,
-      // SCHOOL-ROSTER §3.2 and §3.4 give the dodgeball contact red and the
-      // hall monitor elite purple, and this table did not, so CONFORM would
-      // have quantised both away exactly as it quantised the spermicide's red
-      // in Conception (measured 2026-09-27: no shipped enemy wears a threat
-      // colour). The roster is the design; the table now says what it says.
-      contact: 'dodgeball',
-      elite: 'hall-monitor',
+      // The boss colour, held as Conception's Egg holds it: the body is boss
+      // teal and nothing else in the act wears it. Written in the same change
+      // as the spec and before the first rasterisation, which is G-011's
+      // before-not-after ordering — the concept exists now (the direction
+      // panel's Gym Teacher), so the refusal that stood here has done its job.
+      boss: 'boss-gym-teacher',
     },
   },
-
-  // boss-gym-teacher is deliberately absent. It has no concept yet, so
-  // assertReserved refuses it — which is G-011's before-not-after ordering
-  // doing its job rather than an oversight to work around.
 };
 
 /**

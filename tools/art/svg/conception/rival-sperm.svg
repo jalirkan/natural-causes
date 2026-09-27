@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <title>Rival sperm</title>
+  <desc>A comet: an oval head with a long tail, looking past you at somewhere it is going.</desc>
+  <path d="M40 58 C28 64 32 74 22 80 C14 85 8 84 2 90 C12 91 20 90 28 84 C38 76 36 68 48 62 Z" fill="#6E6353"/>
+  <ellipse cx="60" cy="42" rx="24" ry="22" fill="#A86A63"/>
+  <ellipse cx="63" cy="36" rx="2.8" ry="4.6" fill="#2A2521"/>
+  <ellipse cx="72" cy="36" rx="2.8" ry="4.6" fill="#2A2521"/>
+  <rect x="63" y="46" width="8" height="2.6" rx="1.2" fill="#2A2521"/>
+</svg>

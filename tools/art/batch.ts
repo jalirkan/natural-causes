@@ -191,6 +191,7 @@ export const STYLE_SUFFIX = styleSuffix('conception');
 export const TEST_BATCH: AssetSpec[] = [
   {
     id: 'player-sperm',
+    source: 'svg',
     name: 'The player — sperm form',
     act: 'conception',
     role: 'player',
@@ -210,6 +211,7 @@ export const TEST_BATCH: AssetSpec[] = [
   },
   {
     id: 'rival-sperm',
+    source: 'svg',
     name: 'Rival sperm',
     act: 'conception',
     role: 'swarm',
@@ -229,6 +231,7 @@ export const TEST_BATCH: AssetSpec[] = [
   },
   {
     id: 'boss-egg',
+    source: 'svg',
     name: 'The Egg',
     act: 'conception',
     role: 'boss',
@@ -351,6 +354,7 @@ export function fullPrompt(spec: AssetSpec): string {
 export const CONCEPTION_ROSTER: AssetSpec[] = [
   {
     id: 'white-cell',
+    source: 'svg',
     name: 'White cell',
     act: 'conception',
     role: 'swarm',
@@ -378,6 +382,7 @@ export const CONCEPTION_ROSTER: AssetSpec[] = [
   },
   {
     id: 'spermicide',
+    source: 'svg',
     name: 'Spermicide',
     act: 'conception',
     role: 'swarm',
@@ -396,6 +401,7 @@ export const CONCEPTION_ROSTER: AssetSpec[] = [
   },
   {
     id: 'antibody',
+    source: 'svg',
     name: 'Antibody',
     act: 'conception',
     role: 'swarm',
@@ -429,7 +435,9 @@ export const CONCEPTION_ROSTER: AssetSpec[] = [
 /**
  * The School roster (SCHOOL-ROSTER.md §3). Four swarm-tier assets; the fifth,
  * `substitute-teacher`, is in the test batch above and already passed, and the
- * roster was written around it rather than over it.
+ * roster was written around it rather than over it. The four swarm assets, the
+ * school-age player and the Gym Teacher are authored SVG (G-038, `art:svg`);
+ * the substitute stays generated.
  *
  * Every silhouette here is what it is because the clipboard took the bright
  * hard rectangle (§1). Homework is a wedge and the hall monitor's sash runs
@@ -457,6 +465,7 @@ export const SCHOOL_ROSTER: AssetSpec[] = [
     tests: 'the cluster — one enemy that must not read as four',
     targetSize: 88,
     seed: 10010,
+    source: 'svg',
     whyThisStage:
       'School is the first place that has an inside, and the player finds out where they are by walking into the edge of it.',
     // The failure this prompt is written against: four separate figures
@@ -484,6 +493,7 @@ export const SCHOOL_ROSTER: AssetSpec[] = [
     tests: 'the circle — the only radially symmetric thing in the act',
     targetSize: 44,
     seed: 11011,
+    source: 'svg',
     whyThisStage:
       'School is where the player is first hurt by something that was aimed at the room rather than at them.',
     // A perfect circle at 44px carries nothing but its own edge, so every
@@ -493,7 +503,7 @@ export const SCHOOL_ROSTER: AssetSpec[] = [
     // picture (law 9) and it has no opinion about arriving.
     subject: [
       'a single perfectly round rubber ball seen straight on, one flat circle',
-      'flat muted brick red, one solid colour across the whole ball',
+      'flat warm grey-brown (#6E6353), one solid colour across the whole ball, with a muted tan (#D2C6AC) face disc',
       'absolutely no seam, no panel lines, no stripe, no highlight, no shine, no texture',
       'one small face dead centre: two small dark dots for eyes and one short straight horizontal line for a mouth',
       'completely blank and expressionless, not excited, not angry, not moving its face at all',
@@ -509,6 +519,7 @@ export const SCHOOL_ROSTER: AssetSpec[] = [
     tests: 'the wedge — paper that is deliberately not a rectangle',
     targetSize: 72,
     seed: 12012,
+    source: 'svg',
     whyThisStage:
       'School is the first stage that follows the player home and takes up the part of the day nobody was counting.',
     // §1: the bright hard rectangle is the substitute's and School is full of
@@ -534,6 +545,7 @@ export const SCHOOL_ROSTER: AssetSpec[] = [
     tests: 'the sash — one hard diagonal that must not read as a badge',
     targetSize: 88,
     seed: 13013,
+    source: 'svg',
     whyThisStage:
       'School is where authority is first handed to someone with no more standing than the player, and it works anyway.',
     // Law 9, and §1 twice over. The sash IS the character: at 48px the body
@@ -548,9 +560,52 @@ export const SCHOOL_ROSTER: AssetSpec[] = [
       'a simplified geometric body, plain and generic, more diagram than portrait',
       'the face is two small flat dots for eyes and one short straight line for a mouth, no eyebrows',
       'looking along its own route off to one side, not at the viewer, completely indifferent and unbothered',
-      'flat muted dusty purple with the band in one lighter flat tone',
+      'flat muted sage green body (#6B7F53, the act mid tone, never the pale pickup tone) with the band in flat muted tan (#D2C6AC)',
       'no badge, no name tag, no lettering, no armband, no rectangle on the chest, no clipboard, no lanyard',
       'no yellow, no gold, no olive green anywhere on the figure',
+    ].join(', '),
+  },
+  // G-038: the player and the boss for School are authored SVG from the
+  // start. Neither was ever generated, so neither has a prompt history; the
+  // subject is the drawing's written description, D-007 runs on it, and law
+  // 11 gates the rasteriser exactly as it gated fal.
+  {
+    id: 'player-school',
+    name: 'The player — school age',
+    act: 'school',
+    role: 'player',
+    source: 'svg',
+    targetSize: 112,
+    seed: 14014,
+    // G-003: the face and the one cowlick are the identity in every act, and
+    // the player is the only thing on the field wearing paper (law 10).
+    subject: [
+      'the player at school age: a small round-headed child figure, standing',
+      'the same face as the sperm form: two flat eyes and one short flat line for a mouth',
+      'the same single asymmetric cowlick sticking up above the left eye, one tuft and no other hair',
+      'paper coloured (#EFE7D6) head and body, warm grey-brown (#6E6353) as the only second tone',
+      'no threat colour anywhere, no accessories, no gear',
+    ].join(', '),
+  },
+  {
+    id: 'boss-gym-teacher',
+    name: 'The Gym Teacher',
+    act: 'school',
+    role: 'boss',
+    source: 'svg',
+    targetSize: 384,
+    seed: 15015,
+    whyThisStage:
+      'School is where the player is first organised into a crowd by someone who never touches them, and the whistle is how it is done.',
+    // Law 9: the whistle and the shorts are the character, the figure is what
+    // carries them. Nothing about the body is described but its height.
+    subject: [
+      'the tallest thing in the act: a standing figure in gym shorts with a whistle on a cord, eight times the player\'s height',
+      'shirt in flat muted deep teal (#2F7370), the boss colour, as Conception\'s Egg holds it',
+      'shorts in warm grey-brown (#6E6353), head, legs and whistle in muted tan (#D2C6AC), cord and face marks in warm near-black (#2A2521)',
+      'the face is two small flat dots for eyes and one short straight line for a mouth, not looking at the viewer',
+      'the role, not a person: no clipboard, no lettering, no badge, no build described',
+      'no yellow, no gold anywhere on the figure',
     ].join(', '),
   },
 ];

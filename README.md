@@ -5,11 +5,11 @@
 > **Play it: <https://jalirkan.github.io/natural-causes/>** — the current
 > `main`, published by [`deploy.yml`](./.github/workflows/deploy.yml) on every
 > push once a repository admin has pointed Pages at GitHub Actions (see CI,
-> below). One run is one life (D-024); today that life is two acts, Conception
-> and School, about ten minutes. Keyboard, or one thumb on a phone.
+> below). One run is one life (D-024); today that life is Conception then
+> School, about ten minutes. Keyboard, or one thumb on a phone.
 >
-> **Status: the life plays end to end in the sim and in the browser through
-> its first two acts. Every sprite in them is drawn, not generated (D-025).**
+> **Status: a two-act life — Conception, then School — playable at the link.
+> Every sprite in it is authored SVG (D-025). Every number is a labelled placeholder.**
 > Plan in [`PLAN.md`](./PLAN.md) (read its 2026-09-27 amendment first), art
 > spec in [`ART-DIRECTION.md`](./ART-DIRECTION.md) (binding), decisions in
 > [`DECISIONS.md`](./DECISIONS.md). Name is provisional.
@@ -81,8 +81,8 @@ pnpm test                 # the whole suite: the sim, the content rules, the art
 pnpm playtest -- --runs=40 # the bots, with intervals
 pnpm playtest -- --runs=16 --act=school   # any act with a schedule
 pnpm playtest -- --runs=16 --life         # the whole life, act after act
-pnpm art:draw             # every SVG in assets/svg through the pipeline, then pack
-pnpm art:draw -- --only=<id>              # one drawing, no pack
+pnpm art:svg              # every authored SVG in tools/art/svg through the pipeline, then pack
+pnpm art:svg -- --id=<id> # one drawing (also --act=<act>; --sheet rebuilds the review page)
 pnpm art:sheet            # the review page: every sprite at game size on its act
 pnpm art:batch -- --dry   # the retired generator's prompts through the content rule, no API calls
 ```
@@ -122,15 +122,16 @@ arrow keys to move. You fire automatically — there is no attack button.
 On a phone: tap to start, drag anywhere to move, tap a card to choose, the
 corner button pauses, and a tap restarts once the run is over.
 
-A life. Today it is two acts. Conception, about five minutes to the Egg: rival
-sperm from the start, antibodies at 0:45, spermicide at 1:30, white cells at
-2:10. The Egg falling is the threshold; you cross it with your build and your
-health restored, aged five. Then School: cliques from the start, dodgeballs
-early, homework piling up behind you from the second minute, hall monitors
-that stop you dead, and near the end a substitute teacher who stands still,
-checks the clipboard, and fires; its boss is the Egg standing in for a Gym
-Teacher nobody has designed. Outlive that and you die of natural causes, aged
-twelve. Dying earlier, the certificate names what did it.
+A life: Conception, about five minutes to the Egg: rival sperm from the
+start, antibodies at 0:45, spermicide at 1:30, white cells at 2:10. When the
+Egg appears every rival swims for it; beat them to it and you cross into
+School with everything you took, aged five. Then School: cliques from the
+start, dodgeballs early, homework piling up behind you from the second
+minute, hall monitors that stop you dead, and near the end a substitute
+teacher who stands still, checks the clipboard, and fires; its boss is the
+Gym Teacher's picture on the Egg's behaviour until his design (SCHOOL-ROSTER
+§9) is in the sim. Outlive School and you die of natural causes, aged twelve.
+Dying earlier, the certificate names what did it.
 
 #### After you play — six things to say
 
@@ -174,14 +175,16 @@ mode was still on twenty minutes ago.
 | **0** | Scaffold, Phaser + Vite, blank scene | done |
 | **1** | Art pipeline + test batch, art direction judged | done — `ART-DIRECTION.md` is binding |
 | **2** | Core loop, Conception act | **complete and unjudged** — title to Egg to certificate, sound, no known bugs, playable at the link; the drag curve and cadence are labelled placeholders until a person has played it |
-| **3** | The School act | **playable as the second act of the life** — five enemies, three behaviours, a **provisional** schedule (D-022), sprites drawn as SVG (D-025); the substitute's shot, homework's arrival point and the monitor's stop are built as labelled placeholders nobody has played; the Egg stands in for the undesigned Gym Teacher |
+| **3** | The School act | **playable as the second act of the life** — five enemies, three behaviours, a **provisional** schedule (D-022), sprites authored as SVG (D-025); the substitute's shot, homework's arrival point and the monitor's stop are built as labelled placeholders nobody has played; the Gym Teacher is designed (SCHOOL-ROSTER §9) and drawn, and fights as the Egg until his behaviour is built |
 
 The art pipeline (`tools/art/`) starts from a drawing: an SVG in
-`assets/svg/<act>/` is rasterised, conformed to the act's locked palette with a
-uniform outline, textured, checked and packed into the act's atlas. The check
+`tools/art/svg/<act>/` is rasterised, conformed to the act's locked palette with
+a uniform outline, textured, checked and packed into the act's atlas. The check
 stage is what makes it unattended — coverage, contrast against the act's
 background, palette conformance, silhouette variety, readability at 48px — and
-the pipeline rejects, it never corrects (G-032). The SVG is the provenance. The
+the pipeline rejects, it never corrects (G-032). The SVG is the provenance, and
+`assets/prompts/<id>.md` records its hash, so a drawing cannot drift from its
+sprite unnoticed. The
 generator path (`art:batch`) is retired and kept only so the content rule keeps
 running over its prompts in CI.
 

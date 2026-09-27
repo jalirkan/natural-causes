@@ -471,6 +471,14 @@ moment the art exists.
 a separately started act, and it is tuned in that life rather than after
 Conception is closed. The Egg still stands in as its boss.
 
+**Amendment 2026-09-27, later (G-038, D-025).** School is drawn and in the
+life. Clique, dodgeball, homework and hall monitor are authored SVG under
+`tools/art/svg/school/`, with a School player frame (same face and cowlick,
+no costume) and `boss-gym-teacher`, whose reservation now exists: tallest
+thing in the act, shorts and whistle, holding boss teal. The statements
+above that it is absent or ungeneratable are superseded. The Gym Teacher is
+still a picture on the Egg's behaviour; its design is §9.
+
 **Amendment 2026-09-27 — the three owed placeholders are built.** The
 substitute stops, consults the clipboard (the pause is the telegraph), fires
 one hostile shot at where the player is, and cools down (`ranged` on its

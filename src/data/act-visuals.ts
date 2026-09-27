@@ -12,15 +12,10 @@ import schoolAtlasJson from '../../assets/atlas/school.json';
  * works in dev and 404s in production, which is discovered at the worst time.
  */
 
-/** The slice of Phaser's JSON Hash atlas the tests need: which frames exist. */
-export interface AtlasJson {
-  frames: Record<string, unknown>;
-}
-
 export interface ActVisuals {
   /** Act background, from the locked palette (ART-DIRECTION law 3). */
   background: number;
-  atlas: { key: string; png: string; json: AtlasJson };
+  atlas: { key: string; png: string; json: object };
   playerFrame: string;
   bossFrame: string;
   /**
@@ -50,12 +45,10 @@ export const ACT_VISUALS: Record<string, ActVisuals> = {
     // school-deep.
     background: 0x3d5148,
     atlas: { key: 'school', png: schoolAtlasPng, json: schoolAtlasJson },
-    // Drawn, not generated (D-025): assets/svg/school/player-school.svg.
     playerFrame: 'player-school.png',
-    // The Egg, on loan from Conception, until the Gym Teacher is designed
-    // (SCHOOL-ROSTER §5). The sim fights the Egg in School too; the
-    // certificate names the Gym Teacher. See STAND_INS in tools/art/draw.ts.
-    bossFrame: 'boss-egg.png',
+    // The Gym Teacher's frame on the Egg's behaviour: the sim has one boss
+    // (acts.ts, `bossName`), so this is the name and the picture, not the fight.
+    bossFrame: 'boss-gym-teacher.png',
     // school-light.
     pickup: 0x9fa86b,
   },

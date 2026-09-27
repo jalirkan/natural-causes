@@ -1,7 +1,7 @@
 import type { ActDef, SpawnWave } from '../data/acts';
 import { rateAt, spawnStreams } from '../data/acts';
 import { enemyDef, type EnemyDef } from '../data/enemies';
-import { ITEMS, isActive, itemDef, type ItemDef } from '../data/items';
+import { ITEMS, isActive, itemDef, levelBonus, type ActiveItem, type ItemDef } from '../data/items';
 import { Grid } from './grid';
 
 /**
@@ -65,7 +65,7 @@ export const DRIFT_SPREAD = (120 * Math.PI) / 180;
  */
 export const ANTIBODY_DRAG_K = 0.03;
 export const ANTIBODY_FLOOR = 0.65;
-/** How close a gem has to be before it comes to the player. */
+/** How close a gem has to be before it comes to the player. Appetite multiplies it. */
 export const MAGNET_RADIUS = 96;
 export const GEM_SPEED = 320;
 export const RING_BAND = 6;
@@ -156,6 +156,28 @@ const TRAIL_CAPACITY = Math.ceil(TRAIL_SECONDS / TRAIL_SAMPLE_SECONDS) + 2;
 export const RANGED_SHOT_RADIUS = 10;
 export const RANGED_SHOT_REACH = 2;
 
+/** Seconds between a burst and its echo (a level bonus). */
+export const ECHO_DELAY = 0.25;
+/** How far a chaining shot looks for its next target. */
+export const CHAIN_RADIUS = 180;
+/** Damage a chained shot carries, as a fraction of the shot that hit. */
+export const CHAIN_DAMAGE = 0.7;
+
+/**
+ * XP from level `level` to the next. Fast early, steeper later, the survivors
+ * shape: a first minute of rapid choices, then each level has to be earned.
+ *
+ * PLACEHOLDER (Conception's `provisional` names it). The three slopes and the
+ * breakpoints were chosen to be cheaper than the old `round(5 + L*4.5)` for
+ * the first levels and continuous at each break, and for nothing else. A
+ * person playing at the link is what moves them.
+ */
+export function xpToNextLevel(level: number): number {
+  if (level < 10) return 2 + 3 * level; // 5, 8, 11 ... 29
+  if (level < 25) return 29 + 5 * (level - 9); // 34 ... 104
+  return 104 + 7 * (level - 24); // 111, 118 ...
+}
+
 export interface EnemyState {
   /** Monotonic. Lets a piercing shot avoid re-hitting without a Set per shot. */
   uid: number;
@@ -214,6 +236,22 @@ export interface ProjectileState {
   source?: string;
   /** Identifies this shot to enemies it has already hit. */
   serial: number;
+  /** On an enemy hit, jump to this many more nearby enemies. Absent is 0. */
+  chain?: number;
+  /** An enemy this shot passes through without hitting: where a chain left from. */
+  skipUid?: number;
+}
+
+/**
+ * Something circling the player. Recomputed from `time` every step, so it is
+ * deterministic and has no state of its own; the renderer reads positions.
+ */
+export interface OrbiterState {
+  x: number;
+  y: number;
+  /** The item this belongs to. */
+  source: string;
+  radius: number;
 }
 
 export interface RingState {
@@ -242,14 +280,14 @@ export interface Certificate {
   /** Index of the act it happened in; how far the life got. */
   actIndex: number;
   age: number;
-  /** Enemy id, 'boss', or 'natural-causes'. */
+  /** Enemy id, 'boss', 'someone-else' (the race was lost) or 'natural-causes'. */
   causeId: string;
   /** What the certificate prints after "of". */
   cause: string;
 }
 
 /** The thing that hurt the player, carried to `die` so the certificate can name it. */
-type Cause = EnemyDef | 'boss';
+type Cause = EnemyDef | 'boss' | 'someone-else';
 
 export interface AreaState {
   x: number;
@@ -272,6 +310,8 @@ export interface AreaState {
   tick: boolean;
   /** One-shot areas hit each enemy once. Reuses the projectile serial trick. */
   serial: number;
+  /** Pixels a hit pushes a non-boss enemy away from the player. */
+  knockback?: number;
 }
 
 export interface GemState {
@@ -405,6 +445,16 @@ export class World {
   private nextUid = 1;
   private nextSerial = 1;
   private bossHitSerial = 0;
+  /** A second query buffer, for a lookup made while `near` is being walked. */
+  private readonly near2: EnemyState[] = [];
+  /** Bursts owed an echo: which item, and at what life-clock time. */
+  private echoes: { id: string; at: number }[] = [];
+  /**
+   * When each orbiter last hit each enemy, per item: key uid*64+orbiter index.
+   * Pruned when it grows; an entry older than the item's cooldown means nothing.
+   */
+  private readonly orbitHits = new Map<string, Map<number, number>>();
+  private readonly orbitBossHits = new Map<string, number>();
 
   /**
    * The life clock, in seconds. Assigning it moves the ACT clock by the same
@@ -467,7 +517,7 @@ export class World {
 
   level = 1;
   xp = 0;
-  xpToNext = 5;
+  xpToNext = xpToNextLevel(1);
   kills = 0;
   /** Levels reached but not yet spent. See `presentOffers`. */
   private pendingLevels = 0;
@@ -480,7 +530,14 @@ export class World {
   rings: RingState[] = [];
   areas: AreaState[] = [];
   gems: GemState[] = [];
+  /** Everything circling the player this step. Read-only outside the sim. */
+  orbiters: OrbiterState[] = [];
   boss: BossState | null = null;
+  /**
+   * Racers that reached the boss this act (`ActDef.race`). Reset per act.
+   * Read by the renderer against `raceTarget`.
+   */
+  raceAbsorbed = 0;
 
   readonly bossPull: number;
   readonly spawnOverride: 'edge' | 'lead' | undefined;
@@ -502,6 +559,20 @@ export class World {
   /** The act that is playing. */
   get act(): ActDef {
     return this.life[this.actIndex]!;
+  }
+
+  /** How many racers reaching the boss loses the act; 0 when it has no race. */
+  get raceTarget(): number {
+    return this.act.race?.absorb ?? 0;
+  }
+
+  /**
+   * True for an enemy swimming for the boss rather than the player: the act
+   * has a race, the boss is up, and this is the racing kind. Derived rather
+   * than flagged at spawn, so it cannot disagree with the act it is in.
+   */
+  private isRacing(e: EnemyState): boolean {
+    return this.boss !== null && this.act.race !== undefined && e.def.id === this.act.race.enemyId;
   }
 
   /** How many acts the life has got through, not counting the one playing. */
@@ -586,14 +657,24 @@ export class World {
     return out;
   }
 
+  /** Restlessness: every active item's cooldown, multiplied. */
+  get cooldownFactor(): number {
+    return this.passiveProduct((d) => d.cooldownMultiplier);
+  }
+
+  /** Appetite: how far away a gem starts coming to the player. */
+  get magnetRadius(): number {
+    return MAGNET_RADIUS * this.passiveProduct((d) => d.pickupMultiplier);
+  }
+
   private activeDamage(def: ItemDef, level: number): number {
     if (!isActive(def)) return 0;
-    return def.damage * (1 + 0.35 * (level - 1)) * this.damageDealt;
+    return def.damage * (1 + 0.2 * (level - 1)) * this.damageDealt;
   }
 
   private activeCooldown(def: ItemDef, level: number): number {
     if (!isActive(def)) return Infinity;
-    return def.cooldown * Math.max(0.4, 1 - 0.08 * (level - 1));
+    return def.cooldown * Math.max(0.4, 1 - 0.08 * (level - 1)) * this.cooldownFactor;
   }
 
   // --- the step ---------------------------------------------------------
@@ -615,6 +696,8 @@ export class World {
     this.recordTrail();
     if (!this.boss) this.spawn(dt);
     this.moveEnemies(dt);
+    this.resolveRace();
+    if (this.dead) return;
     // Rebuilt after movement so every query this step sees current positions.
     this.grid.build(this.enemies);
     this.resolveSolids();
@@ -623,6 +706,7 @@ export class World {
     this.moveProjectiles(dt);
     this.updateRings(dt);
     this.updateAreas(dt);
+    this.updateOrbiters();
     this.updateGems(dt);
     this.resolveHits();
     this.resolveContact(dt);
@@ -801,10 +885,14 @@ export class World {
       if (ranged && this.consultClipboard(e, ranged, dt)) {
         // Standing still with the clipboard up. The consult is the telegraph
         // (§3.5), so it does not also walk through it.
-      } else if (e.def.movement === 'chase') {
-        const d = Math.hypot(this.x - e.x, this.y - e.y) || 1;
-        e.x += ((this.x - e.x) / d) * e.def.speed * dt;
-        e.y += ((this.y - e.y) / d) * e.def.speed * dt;
+      } else if (e.def.movement === 'chase' || this.isRacing(e)) {
+        // The same steering either way; a racer's target is the boss (G-006).
+        const racing = this.isRacing(e);
+        const tx = racing ? this.boss!.x : this.x;
+        const ty = racing ? this.boss!.y : this.y;
+        const d = Math.hypot(tx - e.x, ty - e.y) || 1;
+        e.x += ((tx - e.x) / d) * e.def.speed * dt;
+        e.y += ((ty - e.y) / d) * e.def.speed * dt;
       } else if (e.def.movement !== 'static') {
         e.x += e.vx * dt;
         e.y += e.vy * dt;
@@ -854,6 +942,30 @@ export class World {
         Math.hypot(e.x - this.x, e.y - this.y) > DESPAWN_RADIUS
       ) {
         swapRemove(this.enemies, i);
+      }
+    }
+  }
+
+  /**
+   * The race (`ActDef.race`, G-006): a racer touching the boss's corona is
+   * gone — no gem, no kill, it simply got there — and counts toward the act's
+   * `absorb`. Reaching it is someone else's life, and the player's ends.
+   * Nothing counts once the outcome is decided (G-033's latch).
+   */
+  private resolveRace(): void {
+    const b = this.boss;
+    const race = this.act.race;
+    if (!b || !race || this.outcomeDecided) return;
+    for (let i = this.enemies.length - 1; i >= 0; i--) {
+      const e = this.enemies[i]!;
+      if (e.def.id !== race.enemyId || e.hp <= 0) continue;
+      const r = BOSS_RADIUS + e.radius;
+      if ((e.x - b.x) ** 2 + (e.y - b.y) ** 2 > r * r) continue;
+      swapRemove(this.enemies, i);
+      this.raceAbsorbed++;
+      if (this.raceAbsorbed >= race.absorb) {
+        this.die('someone-else');
+        return;
       }
     }
   }
@@ -948,24 +1060,49 @@ export class World {
     return this.maxEnemyRadius > 64 ? this.maxEnemyRadius : 64;
   }
 
-  private nearestEnemy(within: number): EnemyState | null {
-    let best: EnemyState | null = null;
-    let bestD = within * within;
+  /**
+   * Up to `n` distinct enemies within range, nearest first, into `out`.
+   * Selection by repeated scan: n is a handful and the neighbourhood is small.
+   */
+  private nearestEnemies(within: number, n: number, out: EnemyState[]): EnemyState[] {
+    out.length = 0;
     this.grid.query(this.x, this.y, within, this.near);
-    for (const e of this.near) {
-      const d2 = (e.x - this.x) ** 2 + (e.y - this.y) ** 2;
-      if (d2 < bestD) {
-        bestD = d2;
-        best = e;
+    const limit = within * within;
+    for (let k = 0; k < n; k++) {
+      let best: EnemyState | null = null;
+      let bestD = limit;
+      for (const e of this.near) {
+        if (out.includes(e)) continue;
+        const d2 = (e.x - this.x) ** 2 + (e.y - this.y) ** 2;
+        if (d2 < bestD) {
+          bestD = d2;
+          best = e;
+        }
       }
+      if (!best) break;
+      out.push(best);
     }
-    return best;
+    return out;
   }
 
   private fireItems(dt: number): void {
+    // Echoes first: a burst owed from 0.25s ago goes off where the player is
+    // now, if the item that owed it is still held (an evolution removes it).
+    for (let i = this.echoes.length - 1; i >= 0; i--) {
+      const echo = this.echoes[i]!;
+      if (echo.at > this._time) continue;
+      swapRemove(this.echoes, i);
+      const level = this.items.get(echo.id);
+      const def = ITEMS[echo.id];
+      if (!level || !def || !isActive(def)) continue;
+      this.burst(def, level, this.activeDamage(def, level));
+    }
+
     for (const [id, level] of this.items) {
       const def = itemDef(id);
       if (!isActive(def)) continue;
+      // Orbiters do not activate; they are always there (updateOrbiters).
+      if (def.mode === 'orbit') continue;
 
       const remaining = (this.cooldowns.get(id) ?? 0) - dt;
       if (remaining > 0) {
@@ -982,6 +1119,11 @@ export class World {
   /** Returns false if the item had nothing to do, so it retries sooner. */
   private fireOne(def: ItemDef, level: number, damage: number): boolean {
     if (!isActive(def)) return false;
+    // What the levels owned add (items.ts `levels`). Generic: no item is
+    // named below, only the bonus fields.
+    const bonus = levelBonus(def, level);
+    const radius = def.radius * bonus.area;
+    const pierce = def.pierce + bonus.pierce;
 
     switch (def.mode) {
       case 'seeking': {
@@ -990,55 +1132,65 @@ export class World {
         // spawning stopped there was often nothing in `enemies`, so a seeking
         // weapon simply never fired. It only ever hit the boss by accident,
         // when a shot aimed at a rival happened to pass through it.
-        const enemy = this.nearestEnemy(def.range);
-        const target = enemy ?? this.bossAsTarget(def.range);
-        if (!target) return false;
-        const d = Math.hypot(target.x - this.x, target.y - this.y) || 1;
-        this.projectiles.push({
-          x: this.x,
-          y: this.y,
-          vx: ((target.x - this.x) / d) * def.projectileSpeed,
-          vy: ((target.y - this.y) / d) * def.projectileSpeed,
-          life: def.range / def.projectileSpeed,
-          damage,
-          pierce: def.pierce,
-          radius: def.radius,
-          hostile: false,
-          source: def.id,
-          serial: this.nextSerial++,
-        });
+        //
+        // Extra shots go to DISTINCT next-nearest targets; with fewer enemies
+        // than shots, the boss takes one, and the rest are not fired.
+        const want = 1 + bonus.projectiles;
+        const targets: { x: number; y: number }[] = this.nearestEnemies(def.range, want, []);
+        if (targets.length < want) {
+          const boss = this.bossAsTarget(def.range);
+          if (boss) targets.push(boss);
+        }
+        if (targets.length === 0) return false;
+        for (const target of targets) {
+          const d = Math.hypot(target.x - this.x, target.y - this.y) || 1;
+          this.projectiles.push({
+            x: this.x,
+            y: this.y,
+            vx: ((target.x - this.x) / d) * def.projectileSpeed,
+            vy: ((target.y - this.y) / d) * def.projectileSpeed,
+            life: def.range / def.projectileSpeed,
+            damage,
+            pierce,
+            radius,
+            hostile: false,
+            source: def.id,
+            serial: this.nextSerial++,
+            chain: bonus.chain,
+          });
+        }
         return true;
       }
       case 'line': {
-        // Along the player's facing, whatever is there. It does nothing about
-        // what is behind them, which is the trade.
-        this.projectiles.push({
-          x: this.x,
-          y: this.y,
-          vx: this.facingX * def.projectileSpeed,
-          vy: this.facingY * def.projectileSpeed,
-          life: def.range / def.projectileSpeed,
-          damage,
-          pierce: def.pierce,
-          radius: def.radius,
-          hostile: false,
-          source: def.id,
-          serial: this.nextSerial++,
-        });
+        // Along the player's facing, whatever is there. Extra shots: first
+        // straight backwards, then pairs either side of forward, 15° apart.
+        const facing = Math.atan2(this.facingY, this.facingX);
+        for (let k = 0; k <= bonus.projectiles; k++) {
+          let angle = facing;
+          if (k === 1) angle += Math.PI;
+          else if (k > 1) {
+            const pair = Math.floor(k / 2);
+            angle += (k % 2 === 0 ? 1 : -1) * pair * ((15 * Math.PI) / 180);
+          }
+          this.projectiles.push({
+            x: this.x,
+            y: this.y,
+            vx: Math.cos(angle) * def.projectileSpeed,
+            vy: Math.sin(angle) * def.projectileSpeed,
+            life: def.range / def.projectileSpeed,
+            damage,
+            pierce,
+            radius,
+            hostile: false,
+            source: def.id,
+            serial: this.nextSerial++,
+          });
+        }
         return true;
       }
       case 'burst': {
-        this.areas.push({
-          x: this.x,
-          y: this.y,
-          age: 0,
-          seconds: 0.12,
-          radius: def.radius * (1 + 0.08 * (level - 1)),
-          damage,
-          pull: false,
-          tick: false,
-          serial: this.nextSerial++,
-        });
+        this.burst(def, level, damage);
+        if (bonus.echo) this.echoes.push({ id: def.id, at: this._time + ECHO_DELAY });
         return true;
       }
       case 'trail': {
@@ -1046,8 +1198,8 @@ export class World {
           x: this.x,
           y: this.y,
           age: 0,
-          seconds: def.range,
-          radius: def.radius,
+          seconds: def.range * bonus.duration,
+          radius,
           damage,
           pull: false,
           tick: true,
@@ -1060,8 +1212,8 @@ export class World {
           x: this.x,
           y: this.y,
           age: 0,
-          seconds: 3.2,
-          radius: def.radius,
+          seconds: 3.2 * bonus.duration,
+          radius,
           damage: 0,
           pull: true,
           tick: true,
@@ -1069,7 +1221,99 @@ export class World {
         });
         return true;
       }
+      case 'orbit':
+        // Never fired; see updateOrbiters.
+        return false;
     }
+  }
+
+  /** One burst at the player, sized by the item's level bonuses. */
+  private burst(def: ActiveItem, level: number, damage: number): void {
+    const area: AreaState = {
+      x: this.x,
+      y: this.y,
+      age: 0,
+      seconds: 0.12,
+      radius: def.radius * levelBonus(def, level).area,
+      damage,
+      pull: false,
+      tick: false,
+      serial: this.nextSerial++,
+    };
+    if (def.knockback) area.knockback = def.knockback;
+    this.areas.push(area);
+  }
+
+  /** Damage to the boss from anything but the two older paths in updateBoss. */
+  private damageBoss(amount: number): void {
+    const b = this.boss;
+    if (!b || b.phase === 'absorbing') return;
+    b.hp -= amount;
+    if (b.hp <= 0) {
+      b.hp = 0;
+      b.phase = 'absorbing';
+      b.timer = 1.8;
+    }
+  }
+
+  /**
+   * Orbit items: N objects on a circle around the player, placed from the life
+   * clock alone (so a seed replays them exactly), each hitting any enemy it
+   * touches at most once per the item's cooldown.
+   */
+  private updateOrbiters(): void {
+    this.orbiters.length = 0;
+    for (const [id, level] of this.items) {
+      const def = ITEMS[id];
+      if (!def || !isActive(def) || def.mode !== 'orbit') continue;
+      const bonus = levelBonus(def, level);
+      const count = 1 + bonus.projectiles;
+      const distance = def.range * bonus.area;
+      const omega = def.projectileSpeed / distance;
+      const damage = this.activeDamage(def, level);
+      const cooldown = def.cooldown;
+      let hits = this.orbitHits.get(id);
+      if (!hits) this.orbitHits.set(id, (hits = new Map()));
+      if (hits.size > 4096) {
+        for (const [key, at] of hits) if (this._time - at >= cooldown) hits.delete(key);
+      }
+
+      for (let i = 0; i < count; i++) {
+        const angle = this._time * omega + (i * Math.PI * 2) / count;
+        const o: OrbiterState = {
+          x: this.x + Math.cos(angle) * distance,
+          y: this.y + Math.sin(angle) * distance,
+          source: id,
+          radius: def.radius,
+        };
+        this.orbiters.push(o);
+
+        this.grid.query(o.x, o.y, o.radius + this.queryPad, this.near);
+        for (const e of this.near) {
+          if (e.def.invulnerable || e.hp <= 0) continue;
+          const r = e.radius + o.radius;
+          if ((e.x - o.x) ** 2 + (e.y - o.y) ** 2 > r * r) continue;
+          const key = e.uid * 64 + i;
+          const last = hits.get(key);
+          if (last !== undefined && this._time - last < cooldown) continue;
+          hits.set(key, this._time);
+          e.hp -= damage;
+          e.hitFlash = 0.08;
+        }
+
+        const b = this.boss;
+        if (b && b.phase !== 'absorbing') {
+          const r = BOSS_RADIUS + o.radius;
+          const bossKey = `${id}:${i}`;
+          const last = this.orbitBossHits.get(bossKey);
+          if ((b.x - o.x) ** 2 + (b.y - o.y) ** 2 <= r * r && (last === undefined || this._time - last >= cooldown)) {
+            this.orbitBossHits.set(bossKey, this._time);
+            this.damageBoss(damage);
+          }
+        }
+      }
+    }
+    this.reapDead();
   }
 
   private moveProjectiles(dt: number): void {
@@ -1116,6 +1360,7 @@ export class World {
           if (e.hitBySerial === a.serial) continue;
           e.hitBySerial = a.serial;
           e.hp -= a.damage;
+          if (a.knockback) this.knockBack(e, a.knockback);
         }
         e.hitFlash = 0.08;
       }
@@ -1127,11 +1372,27 @@ export class World {
     this.reapDead();
   }
 
+  /**
+   * Pushes an enemy straight away from the player, held inside the arena. The
+   * boss is never in `enemies`, so it is never pushed.
+   */
+  private knockBack(e: EnemyState, distance: number): void {
+    const dx = e.x - this.x;
+    const dy = e.y - this.y;
+    const d = Math.hypot(dx, dy);
+    // Standing exactly on the player: any consistent direction will do.
+    const nx = d < 0.001 ? 1 : dx / d;
+    const ny = d < 0.001 ? 0 : dy / d;
+    e.x = clamp(e.x + nx * distance, 0, ARENA_WIDTH);
+    e.y = clamp(e.y + ny * distance, 0, ARENA_HEIGHT);
+  }
+
   private updateGems(dt: number): void {
+    const magnet = this.magnetRadius;
     for (let i = this.gems.length - 1; i >= 0; i--) {
       const g = this.gems[i]!;
       const d = Math.hypot(this.x - g.x, this.y - g.y);
-      if (d < MAGNET_RADIUS) {
+      if (d < magnet) {
         g.x += ((this.x - g.x) / (d || 1)) * GEM_SPEED * dt;
         g.y += ((this.y - g.y) / (d || 1)) * GEM_SPEED * dt;
       }
@@ -1145,17 +1406,22 @@ export class World {
   private resolveHits(): void {
     for (let pi = this.projectiles.length - 1; pi >= 0; pi--) {
       const p = this.projectiles[pi]!;
-      if (p.hostile) continue;
+      if (p.hostile) {
+        this.hitRacer(p, pi);
+        continue;
+      }
       this.grid.query(p.x, p.y, p.radius + this.queryPad, this.near);
       for (const e of this.near) {
         // You cannot shoot a document (G-018).
         if (e.def.invulnerable || e.hitBySerial === p.serial || e.hp <= 0) continue;
+        if (e.uid === p.skipUid) continue;
         const r = e.radius + p.radius;
         if ((e.x - p.x) ** 2 + (e.y - p.y) ** 2 > r * r) continue;
 
         e.hitBySerial = p.serial;
         e.hp -= p.damage;
         e.hitFlash = 0.08;
+        if (p.chain && p.chain > 0) this.chainFrom(p, e);
         if (--p.pierce <= 0) {
           swapRemove(this.projectiles, pi);
           break;
@@ -1163,6 +1429,72 @@ export class World {
       }
     }
     this.reapDead();
+  }
+
+  /**
+   * A boss shot thins the race: it hits the first racer it touches, for its
+   * full damage, and is consumed exactly as it is on the player. It hits
+   * nothing else in the crowd. Killed racers go through `reapDead` like any
+   * other kill, so they drop their gem.
+   */
+  private hitRacer(p: ProjectileState, pi: number): void {
+    if (!this.boss || !this.act.race) return;
+    this.grid.query(p.x, p.y, p.radius + this.queryPad, this.near);
+    for (const e of this.near) {
+      if (e.hp <= 0 || e.def.invulnerable || !this.isRacing(e)) continue;
+      const r = e.radius + p.radius;
+      if ((e.x - p.x) ** 2 + (e.y - p.y) ** 2 > r * r) continue;
+      e.hp -= p.damage;
+      e.hitFlash = 0.08;
+      swapRemove(this.projectiles, pi);
+      return;
+    }
+  }
+
+  /**
+   * A chaining shot hit `from`: one new shot to each of up to `p.chain` of the
+   * nearest other enemies within CHAIN_RADIUS that this shot has not hit, at
+   * reduced damage. One hop — the new shots do not chain again.
+   *
+   * Uses the second query buffer: this runs inside a walk of `near`.
+   */
+  private chainFrom(p: ProjectileState, from: EnemyState): void {
+    this.grid.query(from.x, from.y, CHAIN_RADIUS + this.queryPad, this.near2);
+    const picked: EnemyState[] = [];
+    const limit = CHAIN_RADIUS * CHAIN_RADIUS;
+    for (let k = 0; k < (p.chain ?? 0); k++) {
+      let best: EnemyState | null = null;
+      let bestD = limit;
+      for (const e of this.near2) {
+        if (e === from || e.hp <= 0 || e.def.invulnerable || e.hitBySerial === p.serial) continue;
+        if (picked.includes(e)) continue;
+        const d2 = (e.x - from.x) ** 2 + (e.y - from.y) ** 2;
+        if (d2 < bestD) {
+          bestD = d2;
+          best = e;
+        }
+      }
+      if (!best) break;
+      picked.push(best);
+    }
+    const speed = Math.hypot(p.vx, p.vy) || 1;
+    for (const target of picked) {
+      const d = Math.hypot(target.x - from.x, target.y - from.y) || 1;
+      this.projectiles.push({
+        x: from.x,
+        y: from.y,
+        vx: ((target.x - from.x) / d) * speed,
+        vy: ((target.y - from.y) / d) * speed,
+        life: (CHAIN_RADIUS * 1.5) / speed,
+        damage: p.damage * CHAIN_DAMAGE,
+        pierce: 1,
+        radius: p.radius,
+        hostile: false,
+        ...(p.source !== undefined ? { source: p.source } : {}),
+        serial: this.nextSerial++,
+        skipUid: from.uid,
+      });
+    }
   }
 
   /**
@@ -1268,8 +1600,8 @@ export class World {
       actName: this.act.name,
       actIndex: this.actIndex,
       age: this.age,
-      causeId: cause === 'boss' ? 'boss' : cause.id,
-      cause: cause === 'boss' ? this.act.bossName : cause.name,
+      causeId: typeof cause === 'string' ? cause : cause.id,
+      cause: cause === 'boss' ? this.act.bossName : cause === 'someone-else' ? 'Someone else' : cause.name,
     };
   }
 
@@ -1416,6 +1748,10 @@ export class World {
     this.streams = spawnStreams(this.act.waves);
     this.accumulators.clear();
     this.cooldowns.clear();
+    this.echoes.length = 0;
+    this.orbitHits.clear();
+    this.orbitBossHits.clear();
+    this.orbiters.length = 0;
     this.enemies.length = 0;
     this.projectiles.length = 0;
     this.rings.length = 0;
@@ -1424,6 +1760,7 @@ export class World {
     this.maxEnemyRadius = 0;
     this.grid.build(this.enemies);
     this.boss = null;
+    this.raceAbsorbed = 0;
     this.dragStacks = 0;
     this.engulfTimer = 0;
     this.engulfSlow = 1;
@@ -1446,7 +1783,7 @@ export class World {
     while (this.xp >= this.xpToNext) {
       this.xp -= this.xpToNext;
       this.level++;
-      this.xpToNext = Math.round(5 + this.level * 4.5);
+      this.xpToNext = xpToNextLevel(this.level);
       // Levels QUEUE. Assigning `offers` here discarded a pending one: two
       // gems collected in the same frame — routine once white cells drop 12
       // apiece — took the player from level 1 to level 3 and presented a
@@ -1468,14 +1805,48 @@ export class World {
   private presentOffers(): void {
     while (!this.offers && this.pendingLevels > 0) {
       this.pendingLevels--;
+      // An evolution is not a choice: when one is ready, the level IS it.
+      const evolution = this.readyEvolution();
+      if (evolution) {
+        this.offers = [evolution];
+        break;
+      }
       const rolled = this.rollOffers();
       if (rolled.length > 0) this.offers = rolled;
     }
   }
 
+  /**
+   * The evolution the player has earned and not taken, if any: its weapon at
+   * max level, its partner owned at any level. Registry order breaks a tie.
+   */
+  readyEvolution(): string | null {
+    for (const def of Object.values(ITEMS)) {
+      if (!isActive(def) || !def.evolvesFrom || this.items.has(def.id)) continue;
+      const weapon = ITEMS[def.evolvesFrom.weapon];
+      if (!weapon) continue;
+      if ((this.items.get(weapon.id) ?? 0) < weapon.maxLevel) continue;
+      if ((this.items.get(def.evolvesFrom.with) ?? 0) < 1) continue;
+      return def.id;
+    }
+    return null;
+  }
+
   /** Three choices: upgrades to what you have, and things you do not. */
   private rollOffers(): string[] {
-    const pool = Object.keys(ITEMS).filter((id) => (this.items.get(id) ?? 0) < ITEMS[id]!.maxLevel);
+    // Evolutions are never rolled, and a weapon an owned evolution replaced
+    // is not offered again as if it were new.
+    const replaced = new Set<string>();
+    for (const id of this.items.keys()) {
+      const def = ITEMS[id];
+      if (def && isActive(def) && def.evolvesFrom) replaced.add(def.evolvesFrom.weapon);
+    }
+    const pool = Object.keys(ITEMS).filter((id) => {
+      const def = ITEMS[id]!;
+      if (isActive(def) && def.evolvesFrom) return false;
+      if (replaced.has(id)) return false;
+      return (this.items.get(id) ?? 0) < def.maxLevel;
+    });
     const picked: string[] = [];
     while (picked.length < 3 && picked.length < pool.length) {
       const candidate = pool[Math.floor(this.rng() * pool.length)]!;
@@ -1488,9 +1859,16 @@ export class World {
   choose(id: string): void {
     if (!this.offers || !this.offers.includes(id)) return;
     const before = this.maxHp;
+    const def = itemDef(id);
+    if (isActive(def) && def.evolvesFrom) {
+      // The weapon becomes the evolution; it does not sit beside it.
+      this.items.delete(def.evolvesFrom.weapon);
+      this.cooldowns.delete(def.evolvesFrom.weapon);
+    }
     this.items.set(id, (this.items.get(id) ?? 0) + 1);
-    // Midpiece lowers max health; keep current health inside the new ceiling
-    // without silently healing a player who took the other one.
+    // No passive lowers max health any more (G-038), but the clamp costs
+    // nothing and a future one would need it: keep current health inside the
+    // new ceiling without silently healing past it.
     const after = this.maxHp;
     if (after < before) this.hp = Math.min(this.hp, after);
     else this.hp += after - before;

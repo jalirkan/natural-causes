@@ -149,8 +149,8 @@ export function attachDevPanel(host: DevPanelHost): () => void {
       const set = (n: number) => () => {
         if (n <= 0) w.items.delete(def.id);
         else w.items.set(def.id, Math.min(def.maxLevel, n));
-        // Midpiece and Membrane move maxHp, and nothing else would pull the
-        // current value back under the new ceiling.
+        // Thick Skin moves maxHp, and removing it must pull the current
+        // value back under the new ceiling.
         w.hp = Math.min(w.hp, w.maxHp);
       };
       return line(name, lv, button('−', act(set(owned - 1))), button('+', act(set(owned + 1))));
@@ -163,7 +163,12 @@ export function attachDevPanel(host: DevPanelHost): () => void {
         button(
           'max all',
           act(() => {
-            for (const def of Object.values(ITEMS)) w.items.set(def.id, def.maxLevel);
+            // Not the evolutions: holding one beside the weapon it replaces is
+            // a state play cannot reach. Maxing is what makes one ready.
+            for (const def of Object.values(ITEMS)) {
+              if ('evolvesFrom' in def && def.evolvesFrom) continue;
+              w.items.set(def.id, def.maxLevel);
+            }
             w.hp = Math.min(w.hp, w.maxHp);
           }),
         ),

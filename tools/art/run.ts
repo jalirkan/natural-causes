@@ -1,8 +1,7 @@
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fromPng, toPng } from './bitmap';
 import { ALL_ASSETS, CONCEPTION_ROSTER, ITEM_ICONS, TEST_BATCH } from './batch';
-import { drawAll, packableIds } from './draw';
 import { pack, type PackEntry } from './pack';
 import { runBatch } from './pipeline';
 import { ACT_IDS, type ActId } from './palette';
@@ -16,6 +15,8 @@ import type { AssetSpec } from './types';
  *   pnpm art:batch          generate the six-asset test batch
  *   pnpm art:batch -- --dry print the prompts, run D-007 and law 11, no API
  *   pnpm art:batch -- --dry --only=school   one act's prompts and verdicts
+ *   pnpm art:svg            rasterise authored SVGs through CONFORM and CHECK (G-038)
+ *   pnpm art:svg -- --id=clique | --act=school | --sheet
  *   pnpm art:pack           pack conformed sprites into per-act atlases
  *   pnpm art:sheet          rebuild the review page from what is on disk
  */
@@ -63,13 +64,24 @@ async function cmdBatch(argv: string[]): Promise<number> {
           : only
             ? ALL_ASSETS
             : TEST_BATCH;
-  const specs: AssetSpec[] = only
+  const matched: AssetSpec[] = only
     ? source.filter((s) => s.id === only || s.act === only)
     : source;
+  // G-038: authored SVG assets are never generated. The dry run still puts
+  // them through D-007 and law 11 (below); the paid run leaves them out.
+  const authored = matched.filter((s) => s.source === 'svg');
+  const specs = dry ? matched : matched.filter((s) => s.source !== 'svg');
+  if (!dry && authored.length > 0) {
+    log(`Skipping ${authored.length} authored SVG asset(s) — run \`pnpm art:svg\`: ${authored.map((s) => s.id).join(', ')}`);
+  }
 
-  if (specs.length === 0) {
+  if (matched.length === 0) {
     log(`No assets matched --only=${only}`);
     return 1;
+  }
+  if (specs.length === 0) {
+    log('Nothing to generate.');
+    return 0;
   }
 
   if (dry) {
@@ -89,6 +101,19 @@ async function cmdBatch(argv: string[]): Promise<number> {
         styleSuffix: styleSuffixFor(spec),
       });
 
+      if (spec.source === 'svg') {
+        // The drawing's own words — <title>, <desc>, comments — are asset
+        // text too, and CI's dry run is the cheapest place to read them.
+        const { svgPathFor, svgRelativePath, svgTextFields } = await import('./rasterise');
+        const file = svgPathFor(spec, root);
+        if (existsSync(file)) {
+          assertContentRule(
+            `asset "${spec.id}" (${svgRelativePath(spec)})`,
+            svgTextFields(readFileSync(file, 'utf8')),
+          );
+        }
+      }
+
       const verdict = reservationVerdict(spec.act, spec.id, spec.role);
       // An asset missing from a list its act HAS is this repository
       // contradicting itself, and it fails here exactly as it would fail at
@@ -101,7 +126,14 @@ async function cmdBatch(argv: string[]): Promise<number> {
 
       log(`\n=== ${spec.id} (${spec.act}, ${spec.role}, ${spec.targetSize}px) ===`);
       log(`law 11: ${describeVerdict(verdict)}`);
-      log(fullPrompt(spec));
+      if (spec.source === 'svg') {
+        // Not a prompt: nothing is sent anywhere. The description is what the
+        // content rule just ran on.
+        log(`authored SVG (G-038) — tools/art/svg/${spec.act}/${spec.id}.svg — not generated`);
+        log(spec.subject);
+      } else {
+        log(fullPrompt(spec));
+      }
     }
 
     log(`\n${specs.length} prompts, all clean under D-007.`);
@@ -139,6 +171,57 @@ async function cmdBatch(argv: string[]): Promise<number> {
   return passed === outcomes.length ? 0 : 1;
 }
 
+/**
+ * `pnpm art:svg` — rasterise every authored asset whose SVG exists, through
+ * CONFORM and CHECK (G-038). `--id=<id>` or `--act=<act>` narrows it;
+ * `--sheet` rebuilds the review page afterwards. Pack with `pnpm art:pack`.
+ */
+async function cmdSvg(argv: string[]): Promise<number> {
+  const { runSvgAsset } = await import('./pipeline');
+  const { svgPathFor } = await import('./rasterise');
+  const id = argv.find((a) => a.startsWith('--id='))?.slice('--id='.length);
+  const act = argv.find((a) => a.startsWith('--act='))?.slice('--act='.length);
+
+  const candidates = ALL_ASSETS.filter(
+    (s) => s.source === 'svg' && (!id || s.id === id) && (!act || s.act === act),
+  );
+  if ((id || act) && candidates.length === 0) {
+    log(`No authored SVG assets matched${id ? ` --id=${id}` : ''}${act ? ` --act=${act}` : ''}.`);
+    return 1;
+  }
+  const present = candidates.filter((s) => existsSync(svgPathFor(s, root)));
+  const missing = candidates.filter((s) => !present.includes(s));
+  if (missing.length > 0) {
+    log(`Not drawn yet (no SVG): ${missing.map((s) => s.id).join(', ')}`);
+  }
+  if (present.length === 0) {
+    log('No authored SVGs to rasterise.');
+    return 0;
+  }
+
+  let failed = 0;
+  for (const spec of present) {
+    try {
+      const o = await runSvgAsset(spec, { root, onProgress: log });
+      if (!o.ok) {
+        failed++;
+        for (const r of o.report?.results ?? []) {
+          if (!r.pass) log(`      ${r.name}: measured ${r.measured}, expected ${r.expected}`);
+        }
+      }
+    } catch (err) {
+      // D-007 and law 11 refusals land here, as do unreadable SVGs. All of
+      // them fail the run; none of them is retried.
+      failed++;
+      log(`  ${spec.id}: REFUSED — ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+  log(`\n${present.length - failed}/${present.length} authored asset(s) passed.`);
+  if (failed === 0) log('Run `pnpm art:pack` to rebuild the atlases.');
+  if (argv.includes('--sheet')) await cmdSheet();
+  return failed === 0 ? 0 : 1;
+}
+
 async function cmdPack(): Promise<number> {
   let packed = 0;
   // Icons are game-wide UI art and get their own atlas: an act atlas is loaded
@@ -169,13 +252,12 @@ async function cmdPack(): Promise<number> {
   }
   for (const act of ACT_IDS) {
     const entries: PackEntry[] = [];
-    // Generated, drawn, or standing in — the atlas does not care which.
-    for (const id of packableIds(act)) {
-      const file = resolve(root, `assets/sprites/${act}/${id}.png`);
+    for (const spec of ALL_ASSETS.filter((s) => s.act === act && s.role !== 'icon')) {
+      const file = resolve(root, `assets/sprites/${act}/${spec.id}.png`);
       try {
-        entries.push({ id, bitmap: await fromPng(readFileSync(file)) });
+        entries.push({ id: spec.id, bitmap: await fromPng(readFileSync(file)) });
       } catch {
-        // Not made yet. Packing what exists is the useful behaviour.
+        // Not generated yet. Packing what exists is the useful behaviour.
       }
     }
     if (entries.length === 0) continue;
@@ -198,37 +280,6 @@ async function cmdPack(): Promise<number> {
   return 0;
 }
 
-/**
- * `pnpm art:draw [-- --only=<id|act>]`. Every SVG under assets/svg through
- * CONFORM and CHECK, plus the stand-ins; packs when everything passed.
- */
-async function cmdDraw(argv: string[]): Promise<number> {
-  const only = argv.find((a) => a.startsWith('--only='))?.slice('--only='.length);
-  const outcomes = await drawAll(root, only);
-  if (outcomes.length === 0) {
-    log(`No drawings found${only ? ` for --only=${only}` : ''}. Put an SVG at assets/svg/<act>/<id>.svg.`);
-    return 1;
-  }
-  for (const o of outcomes) {
-    const tag = o.source === 'stand-in' ? ' (stand-in)' : '';
-    if (o.ok) {
-      log(`PASS  ${o.id.padEnd(22)}${tag}`);
-      continue;
-    }
-    const why = o.error ?? [...(o.report?.failures ?? []), ...o.violations].join(', ');
-    log(`FAIL  ${o.id.padEnd(22)}${tag}  ${why}`);
-    for (const r of o.report?.results ?? []) {
-      if (!r.pass) log(`        ${r.name}: measured ${r.measured}, expected ${r.expected}`);
-    }
-  }
-  const passed = outcomes.filter((o) => o.ok).length;
-  log(`\n${passed}/${outcomes.length} passed`);
-  if (passed !== outcomes.length) return 1;
-  // A single-asset run is an author iterating; the atlas is rebuilt by the
-  // full run, so several authors can check their own drawings at once.
-  return only ? 0 : cmdPack();
-}
-
 async function cmdSheet(): Promise<number> {
   const out = resolve(root, 'assets/review/test-batch.html');
   const html = await buildContactSheet(root, ALL_ASSETS);
@@ -245,12 +296,12 @@ async function main(): Promise<number> {
       return cmdBatch(argv);
     case 'pack':
       return cmdPack();
-    case 'draw':
-      return cmdDraw(argv);
     case 'sheet':
       return cmdSheet();
+    case 'svg':
+      return cmdSvg(argv);
     default:
-      log(`Unknown command "${cmd}". Try: batch | draw | pack | sheet`);
+      log(`Unknown command "${cmd}". Try: batch | svg | pack | sheet`);
       return 1;
   }
 }

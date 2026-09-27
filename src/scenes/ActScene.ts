@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { ACTS, type ActDef } from '../data/acts';
 import { actVisuals, type ActVisuals } from '../data/act-visuals';
-import { itemDef } from '../data/items';
+import { ITEMS, isActive, itemDef, type ItemIcon } from '../data/items';
 import { neutralDevState, type DevState } from '../dev/state';
 import { addVignette, ensureFieldTile, ensureGemTexture, ensureShotTextures } from './dressing';
 import { ITEM_ICON_ATLAS, itemIconFrame } from '../data/item-visuals';
@@ -73,6 +73,8 @@ export class ActScene extends Phaser.Scene {
   private gemSprites: Phaser.GameObjects.Image[] = [];
   private ringSprites: Phaser.GameObjects.Arc[] = [];
   private areaSprites: Phaser.GameObjects.Arc[] = [];
+  /** Orbit items' objects (Grudge), each wearing its card's icon (G-036). */
+  private orbiterSprites: Phaser.GameObjects.Image[] = [];
   private attachedSprites: Phaser.GameObjects.Image[] = [];
   private bossSprite?: Phaser.GameObjects.Image;
   /** Scale the boss frame sits at when idle. The telegraph pulses around it. */
@@ -111,13 +113,14 @@ export class ActScene extends Phaser.Scene {
    * it must not know sound exists — so the renderer notices changes the same
    * way it notices everything else: by reading state and diffing.
    */
-  private heard = { kills: 0, hp: 0, stacks: 0, offers: false, boss: false, dead: false, won: false, xp: 0, level: 1 };
+  private heard = { kills: 0, hp: 0, stacks: 0, offers: false, boss: false, dead: false, won: false, xp: 0, level: 1, raced: 0 };
 
   private hudLevel!: Phaser.GameObjects.Text;
   private hudClock!: Phaser.GameObjects.Text;
   private hudRight!: Phaser.GameObjects.Text;
   private hudDrag!: Phaser.GameObjects.Text;
   private hudBossLabel!: Phaser.GameObjects.Text;
+  private hudRaceLabel!: Phaser.GameObjects.Text;
   private bars!: Phaser.GameObjects.Graphics;
   private overlay!: Phaser.GameObjects.Text;
   private endScrim!: Phaser.GameObjects.Rectangle;
@@ -172,6 +175,7 @@ export class ActScene extends Phaser.Scene {
     this.gemSprites = [];
     this.ringSprites = [];
     this.areaSprites = [];
+    this.orbiterSprites = [];
     this.attachedSprites = [];
     delete this.bossSprite;
 
@@ -243,7 +247,7 @@ export class ActScene extends Phaser.Scene {
     delete this.offerHeader;
 
     this.dev = neutralDevState();
-    this.heard = { kills: 0, hp: this.world.hp, stacks: 0, offers: false, boss: false, dead: false, won: false, xp: 0, level: 1 };
+    this.heard = { kills: 0, hp: this.world.hp, stacks: 0, offers: false, boss: false, dead: false, won: false, xp: 0, level: 1, raced: 0 };
     if (import.meta.env.DEV) {
       this.detachDev?.();
       void import('../dev/panel').then(({ attachDevPanel }) => {
@@ -477,6 +481,12 @@ export class ActScene extends Phaser.Scene {
       .setScrollFactor(0)
       .setDepth(100)
       .setVisible(false);
+    this.hudRaceLabel = this.add
+      .text(cam.width / 2, 86, 'someone else', style(10, '#D2C6AC'))
+      .setOrigin(0.5, 0)
+      .setScrollFactor(0)
+      .setDepth(100)
+      .setVisible(false);
     this.bars = this.add.graphics().setScrollFactor(0).setDepth(100);
 
     this.endScrim = this.add
@@ -554,6 +564,7 @@ export class ActScene extends Phaser.Scene {
     this.syncGems();
     this.syncRings();
     this.syncAreas();
+    this.syncOrbiters();
     this.syncBoss();
     this.syncAttached();
     this.drawHud();
@@ -577,6 +588,8 @@ export class ActScene extends Phaser.Scene {
     }
     if (!!w.offers && !h.offers) sfx.offer();
     if (w.boss && !h.boss) sfx.bossSpawn();
+    // A rival got there. The Egg flinches; the bar under its name moves.
+    if (w.boss && w.raceAbsorbed > h.raced) this.spawnPuff(w.boss.x, w.boss.y);
     if (w.projectiles.some((p) => p.hostile && p.life > 3.9)) sfx.bossShot();
     if (w.dead && !h.dead) sfx.death();
     if (w.won && !h.won) sfx.win();
@@ -590,6 +603,7 @@ export class ActScene extends Phaser.Scene {
       won: w.won,
       xp: w.xp,
       level: w.level,
+      raced: w.raceAbsorbed,
     };
   }
 
@@ -738,14 +752,13 @@ export class ActScene extends Phaser.Scene {
       const heading = Math.atan2(p.vy, p.vx);
       if (p.hostile) {
         s.setTexture('nc-shot-hostile').setDisplaySize(p.radius * 2, p.radius * 2).setRotation(0);
-      } else if (p.source === 'lash') {
-        s.setTexture(ITEM_ICON_ATLAS.key, itemIconFrame('strike'))
-          .setDisplaySize(30, 30)
-          .setRotation(heading);
-      } else if (p.source === 'motility') {
-        s.setTexture(ITEM_ICON_ATLAS.key, itemIconFrame('pierce'))
-          .setDisplaySize(42, 42)
-          .setRotation(heading);
+      } else if (p.source && ITEMS[p.source]) {
+        // Any item's shot is its card's icon: the manicule, the dart, the
+        // group chat's placeholder until its art lands.
+        const def = ITEMS[p.source]!;
+        const [key, frame] = this.iconTexture(def.icon, def.name);
+        const size = isActive(def) && def.mode === 'line' ? 42 * (p.radius / def.radius) : 30;
+        s.setTexture(key, frame).setDisplaySize(size, size).setRotation(heading);
       } else {
         s.setTexture('nc-shot')
           .setDisplaySize(p.radius * 3.2, p.radius * 1.3)
@@ -911,6 +924,57 @@ export class ActScene extends Phaser.Scene {
     }
   }
 
+  /** Grudge and anything else that circles: the item's own icon, turning. */
+  private syncOrbiters(): void {
+    const list = this.world.orbiters;
+    this.fit(this.orbiterSprites, list.length, () => this.add.image(0, 0, 'nc-shot').setDepth(8));
+    for (let i = 0; i < list.length; i++) {
+      const o = list[i]!;
+      const def = ITEMS[o.source];
+      const [key, frame] = def ? this.iconTexture(def.icon, def.name) : ['nc-shot', undefined];
+      this.orbiterSprites[i]!.setTexture(key, frame)
+        .setPosition(o.x, o.y)
+        .setDisplaySize(o.radius * 2.6, o.radius * 2.6)
+        .setRotation(this.world.time * 2)
+        .setVisible(true);
+    }
+  }
+
+  /**
+   * The texture for an item icon: the atlas frame when the atlas has it,
+   * otherwise a PLACEHOLDER — a plain ring with the item's initial, made once
+   * per icon key from the locked palette. It stands in until the authored SVG
+   * icon set lands (G-038; the item's `iconPending` says so and a content
+   * test holds it to that). Not art; a label.
+   */
+  private iconTexture(icon: ItemIcon, name: string): [string, string | undefined] {
+    const frame = itemIconFrame(icon);
+    if (this.textures.get(ITEM_ICON_ATLAS.key).has(frame)) return [ITEM_ICON_ATLAS.key, frame];
+    const key = `nc-icon-pending-${icon}`;
+    if (!this.textures.exists(key)) {
+      const size = 96;
+      const canvas = this.textures.createCanvas(key, size, size);
+      const ctx = canvas?.getContext();
+      if (canvas && ctx) {
+        const hex = (n: number) => `#${n.toString(16).padStart(6, '0')}`;
+        ctx.lineWidth = 7;
+        ctx.strokeStyle = hex(PAPER);
+        ctx.beginPath();
+        ctx.arc(size / 2, size / 2, size / 2 - 8, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.fillStyle = hex(PAPER);
+        // Word initials, so Grudge and Group Chat do not share a "G".
+        const label = name.split(/\s+/).map((w) => w.charAt(0).toUpperCase()).join('').slice(0, 2);
+        ctx.font = `bold ${label.length > 1 ? 34 : 44}px monospace`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(label, size / 2, size / 2 + 2);
+        canvas.refresh();
+      }
+    }
+    return [key, undefined];
+  }
+
   private syncBoss(): void {
     const b = this.world.boss;
     if (!b) return;
@@ -984,8 +1048,11 @@ export class ActScene extends Phaser.Scene {
       .rectangle(cam.width / 2, cam.height / 2, cam.width, cam.height, INK, 0.45)
       .setScrollFactor(0)
       .setDepth(195);
+    // An evolution arrives alone and is not a choice; the header says what it is.
+    const first = offers.length === 1 ? itemDef(offers[0]!) : null;
+    const evolution = first && isActive(first) && first.evolvesFrom ? first.evolvesFrom : null;
     this.offerHeader = this.add
-      .text(cam.width / 2, 232, `LEVEL ${this.world.level}`, {
+      .text(cam.width / 2, 232, evolution ? 'EVOLUTION' : `LEVEL ${this.world.level}`, {
         fontFamily: 'monospace',
         fontSize: '15px',
         color: '#D2C6AC',
@@ -1022,25 +1089,32 @@ export class ActScene extends Phaser.Scene {
           color: '#D2C6AC',
         })
         .setOrigin(0.5);
-      const icon = this.add
-        .image(-W / 2 + 54, -12, ITEM_ICON_ATLAS.key, itemIconFrame(def.icon))
-        .setDisplaySize(52, 52);
+      const [iconKey, iconFrame] = this.iconTexture(def.icon, def.name);
+      const icon = this.add.image(-W / 2 + 54, -12, iconKey, iconFrame).setDisplaySize(52, 52);
       const name = this.add.text(-W / 2 + 100, -42, def.name, {
         fontFamily: 'monospace',
         fontSize: '20px',
         color: '#EFE7D6',
         letterSpacing: 1,
       });
+      // Pips: up to eight now. Spaced when they fit, packed when they do not;
+      // either way inside the 250px right of the medallion.
+      const gap = def.maxLevel > 6 ? '' : ' ';
+      const evolvedFrom =
+        isActive(def) && def.evolvesFrom
+          ? `${itemDef(def.evolvesFrom.weapon).name} + ${itemDef(def.evolvesFrom.with).name}`
+          : null;
       const pips = this.add.text(
         -W / 2 + 100,
         -12,
-        owned === 0
-          ? 'new'
-          : '● '.repeat(owned) + '○ '.repeat(def.maxLevel - owned),
+        evolvedFrom ??
+          (owned === 0 ? 'new' : ('●' + gap).repeat(owned) + ('○' + gap).repeat(def.maxLevel - owned)),
         { fontFamily: 'monospace', fontSize: '13px', color: '#D2C6AC' },
       );
+      // New: what it is. Owned: what the next level adds.
+      const next = owned > 0 && isActive(def) ? def.levels[owned]?.text : undefined;
       const blurb = this.add
-        .text(-W / 2 + 24, 20, def.blurb, {
+        .text(-W / 2 + 24, 20, next ?? def.blurb, {
           fontFamily: 'monospace',
           fontSize: '15px',
           color: '#EFE7D6',
@@ -1128,6 +1202,16 @@ export class ActScene extends Phaser.Scene {
       if (frac > 0.02) {
         this.bars.fillStyle(UI_FILL, 1).fillRoundedRect(240, 68, width * frac, 8, 4);
       }
+    }
+    // The race (G-006): how close someone else is to getting there first.
+    // Thinner than the boss bar and under it; chrome colours only (law 10).
+    const racing = !!w.boss && w.raceTarget > 0;
+    this.hudRaceLabel.setVisible(racing);
+    if (racing) {
+      const width = this.cameras.main.width - 480;
+      this.bars.fillStyle(INK, 0.6).fillRoundedRect(240, 80, width, 4, 2);
+      const frac = Math.min(1, w.raceAbsorbed / w.raceTarget);
+      if (frac > 0) this.bars.fillStyle(PAPER, 0.85).fillRect(240, 80, width * frac, 4);
     }
 
     // Cards, not a text panel. drawHud runs every frame; the key turns

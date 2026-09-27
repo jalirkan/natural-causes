@@ -68,12 +68,6 @@ export interface CheckThresholds {
    */
   surface?: 'field' | 'card';
   /**
-   * Whether the enemy value ceiling applies. It exists so the PLAYER is the
-   * lightest thing on the field, so it cannot sensibly be applied to the
-   * player. Defaults to on for everything drawn on the field.
-   */
-  valueCeiling?: boolean;
-  /**
    * Distinct palette colours still present at 48px (D-018).
    *
    * This is the check that enforces the detail budget. An asset authored with
@@ -83,6 +77,13 @@ export interface CheckThresholds {
    * the size it was generated.
    */
   minDistinctColours48: number;
+  /**
+   * Whether the enemy value ceiling (G-032) applies. Default true on the
+   * field. False for the player only: law 10 gives paper to the player, and
+   * the ceiling exists to keep everything else below it — applying it to the
+   * player rejects the one sprite the law says must wear paper.
+   */
+  valueCeiling?: boolean;
 }
 
 export const DEFAULT_THRESHOLDS: CheckThresholds = {
@@ -128,19 +129,22 @@ export const SWARM_THRESHOLDS: CheckThresholds = {
 };
 
 /**
- * Item icons: card-surface UI art. Small objects with real negative space
- * (a manicule, an umbrella), so the coverage floor drops; two palette
- * colours plus ink is a legitimate mid-century pictogram.
- */
-/**
- * The player: swarm-scale readability, and no ceiling, because the ceiling is
- * measured against the player.
+ * The player: swarm-scale on the field, and the one field sprite the value
+ * ceiling does not bind (law 10, G-012). Found when the first authored
+ * school-age player failed `enemy-value-ceiling` at exactly paper's
+ * lightness; `player-sperm` predates G-032's ceiling and was never re-run
+ * against it.
  */
 export const PLAYER_THRESHOLDS: CheckThresholds = {
   ...SWARM_THRESHOLDS,
   valueCeiling: false,
 };
 
+/**
+ * Item icons: card-surface UI art. Small objects with real negative space
+ * (a manicule, an umbrella), so the coverage floor drops; two palette
+ * colours plus ink is a legitimate mid-century pictogram.
+ */
 export const ICON_THRESHOLDS: CheckThresholds = {
   ...DEFAULT_THRESHOLDS,
   minCoverage: 0.1,

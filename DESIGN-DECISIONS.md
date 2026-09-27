@@ -1118,3 +1118,32 @@ certificate, title); the sprite register is picked by Justin from a rendered
 batch, and laws 3 and 4 wait on it. Kept: D-007, the split, the checks, CI, G-003.
 Rejected: one record per retirement — nine entries arguing one decision.
 Rejected: keep fal and tighten prompts — per-subject patching against a wrong register is D-005's named failure, paid per attempt.
+
+## G-039 · 2026-09-27 · Items take life names for the whole life, and an evolution is dealt, not offered
+The eight items are Reflex, Stubbornness, Temper, Baggage, Charisma,
+Restlessness, Thick Skin and Late Bloomer from conception on (the Loud
+Pictures table in the direction panel): a sperm with a Temper is the joke, and
+one name per item keeps the build legible across the life. Weapons level to 8
+and each level adds a thing the card names. The first evolution is Tantrum
+(Temper at max + Restlessness): when it is earned, the next level-up is that
+one card and nothing else, because what you became was not a choice. Grudge,
+Group Chat and Appetite join the pool. Every number is a placeholder (Conception's
+`provisional`); the three new icons are labelled placeholders until SVG art.
+Rejected: renaming per act (Classroom Reel) — seven costumes of one item is a
+lookup table the player has to learn, and Conception would show none of it.
+Rejected: the evolution as one card among three — then it is a shop item, and
+the joke that it happens to you is gone.
+
+## G-040 · 2026-09-27 · The Egg is a race the rivals also run
+When the Egg appears, every living rival sperm swims for it. Each one that
+reaches it is absorbed (no gem, no kill) and fills a "someone else" meter
+under the boss bar; sixty of them (a placeholder, in `race.absorb`) and the
+certificate reads "Cause of death: Someone else." The Egg still holds still
+and still fires its spread (G-010), and the spread now kills rivals too, so
+standing in its fire is a strategy. G-006's absorption and G-033's latch
+stand: once the Egg reaches zero the race stops counting. The race lives in
+the act's data, so School's stand-in Egg does not race.
+Rejected: the Egg moving or enraging (G-019's objection holds) — a boss that
+chases makes the fight about the Egg; the joke is that it is about everyone else.
+Rejected: a plain timer on the fight — a deadline with no crowd is a number,
+and the rivals turning away from you is the first thing in the act that ignores you.

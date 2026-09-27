@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ARENA_HEIGHT, ARENA_WIDTH, BOSS_RADIUS, World } from '../world';
+import { ARENA_HEIGHT, ARENA_WIDTH, BOSS_RADIUS, World, xpToNextLevel } from '../world';
 import { CONCEPTION } from '../../data/acts';
 import { ITEMS } from '../../data/items';
 
@@ -27,10 +27,12 @@ describe('a level-up always has something to choose, or does not block', () => {
 
   it('two levels in one frame present two choices, not one', () => {
     const w = new World({ act: CONCEPTION, seed: 2 });
-    // White cells drop 12 XP and the first two levels cost 5 and 14, so a pair
-    // of them collected together is an ordinary event, not a contrived one.
-    w.gems.push({ x: w.x, y: w.y, value: 12 });
-    w.gems.push({ x: w.x, y: w.y, value: 12 });
+    // White cells drop 12 XP and the first two levels cost less than that
+    // together, so two gems collected in one frame crossing two levels is an
+    // ordinary event, not a contrived one. Sized off the curve so the test
+    // survives the curve (a placeholder) moving.
+    w.gems.push({ x: w.x, y: w.y, value: xpToNextLevel(1) });
+    w.gems.push({ x: w.x, y: w.y, value: xpToNextLevel(2) });
     w.step(1 / 60, { moveX: 0, moveY: 0 });
     expect(w.level).toBe(3);
 

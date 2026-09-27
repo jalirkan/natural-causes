@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <title>Homework</title>
+  <desc>A leaning stack of sheets, triangular in profile, with two dots for eyes and no mouth.</desc>
+  <!-- Wide at the bottom, tapering, and tilting right; the sheets never line up. -->
+  <path d="M6 96 L90 96 L88 86 L91 82 L84 70 L86 66 L78 54 L79 50 L72 38 L73 34 L68 16 L58 22 L50 34 L44 40 L36 52 L30 56 L22 68 L18 72 L12 84 L8 86 Z" fill="#D2C6AC"/>
+  <path d="M8 88 L90 86 L89 82 L11 84 Z" fill="#6E6353"/>
+  <path d="M17 72 L86 68 L84 64 L20 68 Z" fill="#6E6353"/>
+  <path d="M29 56 L79 52 L77 48 L32 52 Z" fill="#6E6353"/>
+  <path d="M43 40 L73 37 L72 33 L46 36 Z" fill="#6E6353"/>
+  <ellipse cx="61" cy="26" rx="2.8" ry="4.2" fill="#2A2521"/>
+  <ellipse cx="69" cy="25" rx="2.8" ry="4.2" fill="#2A2521"/>
+</svg>
