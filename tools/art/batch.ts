@@ -748,6 +748,55 @@ export const ITEM_ICONS: AssetSpec[] = [
       'flat muted brick red body, one darker shadow tone',
     ].join(', '),
   },
+  // G-038: the three icons added with Grudge, Gossip and Appetite are drawn,
+  // not generated. Grudge's and Gossip's also fly on the field (the orbiter
+  // and the shot wear the card's icon, G-036), so both keep to rose, bone and
+  // ink: no threat colour, no paper, no pickup tone. Appetite is card-only.
+  {
+    id: 'icon-orbit',
+    name: 'Grudge icon',
+    act: 'conception',
+    role: 'icon',
+    source: 'svg',
+    targetSize: 96,
+    seed: 61019,
+    tests: 'a fist that keeps going round, read at 52px on a card and 36px circling the player',
+    subject: [
+      'a clenched fist seen knuckles-on, four finger rolls over a short palm, the thumb folded across the front, no forearm',
+      'standing in a tilted orbit ring that passes behind it and across its foot, one bead riding the ring',
+      'flat muted dusty rose fist, pale warm ring and bead, dark interior lines between the fingers',
+    ].join(', '),
+  },
+  {
+    id: 'icon-chain',
+    name: 'Gossip icon',
+    act: 'conception',
+    role: 'icon',
+    source: 'svg',
+    targetSize: 96,
+    seed: 61020,
+    tests: 'one hit passed on to two more, read at 52px on a card and 30px in flight',
+    subject: [
+      'three plain round dots joined by one bent line, like a diagram of who told whom',
+      'the first dot larger with a pale mark at its centre where it landed, the other two equal',
+      'flat muted dusty rose dots on a pale warm line, no tails on any dot',
+    ].join(', '),
+  },
+  {
+    id: 'icon-magnet',
+    name: 'Appetite icon',
+    act: 'conception',
+    role: 'icon',
+    source: 'svg',
+    targetSize: 96,
+    seed: 61021,
+    tests: 'a meal at a glance: the dining-car sign, read at 52px on a card',
+    subject: [
+      'a round plate seen from directly above between an upright fork on the left and an upright knife on the right, as on a station sign',
+      'the plate a pale warm rim around a paler well, one dark line between them',
+      'fork and knife in flat muted dusty rose, three tines on the fork, a rounded blade on the knife',
+    ].join(', '),
+  },
 ];
 
 /**

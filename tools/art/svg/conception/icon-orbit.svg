@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <title>Grudge icon</title>
+  <desc>A clenched fist seen knuckles-on, standing in a tilted orbit ring with one bead riding the ring.</desc>
+  <!--
+    Grudge (items.ts, icon "orbit"). A card icon, and also what circles the
+    player on the field (ActScene syncOrbiters), so it keeps off the field's
+    reserved colours: no threat colour, no paper, no conception-light.
+    The fist says the grudge; the ring says it keeps going round.
+    No forearm: a fist on a raised arm is a salute, and this is not one.
+    CONFORM adds the outer outline; interior lines are drawn here.
+    Colours: conception-mid #A86A63, bone #D2C6AC, ink #2A2521.
+  -->
+  <g shape-rendering="crispEdges">
+    <!-- the ring, back half: drawn whole, the fist covers what is behind it -->
+    <g transform="translate(50 58) rotate(-10)">
+      <ellipse cx="0" cy="0" rx="46" ry="15" fill="none" stroke="#D2C6AC" stroke-width="6"/>
+    </g>
+
+    <!-- the fist: a thin ink underlay where it covers the ring, then the rose -->
+    <g fill="#2A2521" stroke="#2A2521" stroke-width="2.5" stroke-linejoin="round">
+      <rect x="25" y="25" width="13" height="30" rx="6.5"/>
+      <rect x="37" y="23" width="13" height="30" rx="6.5"/>
+      <rect x="49" y="23" width="13" height="30" rx="6.5"/>
+      <rect x="61" y="26" width="13" height="30" rx="6.5"/>
+      <rect x="25" y="40" width="49" height="31" rx="11"/>
+      <rect x="20" y="48" width="41" height="14" rx="7"/>
+    </g>
+    <g fill="#A86A63">
+      <rect x="25" y="25" width="13" height="30" rx="6.5"/>
+      <rect x="37" y="23" width="13" height="30" rx="6.5"/>
+      <rect x="49" y="23" width="13" height="30" rx="6.5"/>
+      <rect x="61" y="26" width="13" height="30" rx="6.5"/>
+      <rect x="25" y="40" width="49" height="31" rx="11"/>
+    </g>
+    <!-- the gaps between the fingers -->
+    <g stroke="#2A2521" stroke-width="2.2" stroke-linecap="round">
+      <line x1="37.5" y1="29" x2="37.5" y2="46"/>
+      <line x1="49.5" y1="28" x2="49.5" y2="46"/>
+      <line x1="61.5" y1="30" x2="61.5" y2="46"/>
+    </g>
+    <!-- the thumb, folded across the front -->
+    <rect x="20" y="48" width="41" height="14" rx="7" fill="#A86A63" stroke="#2A2521" stroke-width="2.2"/>
+
+    <!-- the ring, front half, across the foot of the fist -->
+    <g transform="translate(50 58) rotate(-10)">
+      <path d="M -46 0 A 46 15 0 0 0 46 0" fill="none" stroke="#2A2521" stroke-width="9"/>
+      <path d="M -46 0 A 46 15 0 0 0 46 0" fill="none" stroke="#D2C6AC" stroke-width="6"/>
+      <!-- the bead riding the ring -->
+      <circle cx="35" cy="9.7" r="7.5" fill="#D2C6AC" stroke="#2A2521" stroke-width="2.5"/>
+    </g>
+  </g>
+</svg>

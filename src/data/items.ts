@@ -25,8 +25,7 @@ export type ItemKind = 'weapon' | 'control' | 'passive';
 
 /**
  * The offer-card glyph vocabulary. One per item today; categories if it grows.
- * `orbit`, `chain` and `magnet` have no art in the atlas yet — see
- * `iconPending`.
+ * Every one has authored art in the icon atlas (tools/art/svg/conception/icon-*).
  */
 export type ItemIcon =
   | 'strike'
@@ -162,10 +161,6 @@ export interface PassiveItem extends ItemBase {
 }
 
 export type ItemDef = ActiveItem | PassiveItem;
-
-/** Placeholder for icons the atlas does not hold yet (G-038's authored-SVG step). */
-const ICON_PENDING =
-  'No icon art exists yet; the renderer draws a lettered ring until the authored SVG icon set (G-038) lands in the atlas.';
 
 /** The same bonus on every level from `from` to `to` inclusive. */
 function each(from: number, to: number, bonus: LevelBonus): (level: number) => LevelBonus {
@@ -374,7 +369,6 @@ export const ITEMS: Record<string, ItemDef> = {
     pierce: 99,
     maxLevel: 8,
     icon: 'orbit',
-    iconPending: ICON_PENDING,
     blurb: 'You keep it close. It keeps going round.',
     levels: table(
       [
@@ -410,7 +404,6 @@ export const ITEMS: Record<string, ItemDef> = {
     pierce: 1,
     maxLevel: 8,
     icon: 'chain',
-    iconPending: ICON_PENDING,
     blurb: 'Hits one, and then everyone it knows.',
     levels: table(
       [
@@ -549,7 +542,6 @@ export const ITEMS: Record<string, ItemDef> = {
     rampTo: 1,
     maxLevel: 5,
     icon: 'magnet',
-    iconPending: ICON_PENDING,
     blurb: 'Everything on the floor is yours now.',
     enables:
       'A levelling build: gems come from further away, so a run reaches its max levels and its evolution sooner without walking into the crowd to collect them.',
