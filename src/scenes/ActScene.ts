@@ -117,7 +117,7 @@ export class ActScene extends Phaser.Scene {
    * it must not know sound exists — so the renderer notices changes the same
    * way it notices everything else: by reading state and diffing.
    */
-  private heard = { kills: 0, hp: 0, stacks: 0, offers: false, boss: false, dead: false, won: false, xp: 0, level: 1, raced: 0, shot: 0, homework: 0, stun: 0, bossPhase: '' };
+  private heard = { kills: 0, hp: 0, stacks: 0, offers: false, boss: false, dead: false, won: false, xp: 0, level: 1, raced: 0, shot: 0, homework: 0, stun: 0, bossPhase: '', typing: 0, car: 0 };
 
   /**
    * How long this run held each heading (§12.4's sixth question). Fed the
@@ -258,7 +258,7 @@ export class ActScene extends Phaser.Scene {
     delete this.offerHeader;
 
     this.dev = neutralDevState();
-    this.heard = { kills: 0, hp: this.world.hp, stacks: 0, offers: false, boss: false, dead: false, won: false, xp: 0, level: 1, raced: 0, shot: 0, homework: 0, stun: 0, bossPhase: '' };
+    this.heard = { kills: 0, hp: this.world.hp, stacks: 0, offers: false, boss: false, dead: false, won: false, xp: 0, level: 1, raced: 0, shot: 0, homework: 0, stun: 0, bossPhase: '', typing: 0, car: 0 };
     this.inputLog = new InputLog();
     if (import.meta.env.DEV) {
       this.detachDev?.();
@@ -663,15 +663,20 @@ export class ActScene extends Phaser.Scene {
     // appeared" and so could never hear a shot that lives 3.2s.
     let shot = h.shot;
     let bossFired = false;
-    let enemyFired = false;
+    // Which ranged enemies fired: each has its own sound, because the
+    // substitute's ah-hem on a group chat's notification is the wrong joke.
+    const firedBy = new Set<string>();
     for (const p of w.projectiles) {
       if (!p.hostile || p.serial <= h.shot) continue;
-      if (p.owner) enemyFired = true;
+      if (p.owner) firedBy.add(p.owner.id);
       else bossFired = true;
       shot = Math.max(shot, p.serial);
     }
     if (bossFired) sfx.bossShot();
-    if (enemyFired) sfx.substituteShot();
+    if (firedBy.has('group-chat')) sfx.notification();
+    if (firedBy.has('substitute-teacher')) sfx.substituteShot();
+    // Any ranged enemy nobody has given a voice yet borrows the substitute's.
+    for (const id of firedBy) if (id !== 'group-chat' && id !== 'substitute-teacher') sfx.substituteShot();
     // The Gym Teacher's whistle (SCHOOL-ROSTER §9): rising on the telegraph,
     // one long blow on the exit. Read off the phase edge like everything else;
     // the Egg's phases make no sound of their own.
@@ -680,6 +685,9 @@ export class ActScene extends Phaser.Scene {
       if (bossPhase === 'telegraph') sfx.whistle();
       else if (bossPhase === 'absorbing') sfx.whistle(true);
     }
+    // Prom's telegraph is the lights going down (ADOLESCENCE-ROSTER §4): the slow
+    // song, on the edge into it. String(): typechecks before and after 'prom' joins BossDef['kind'].
+    if (String(w.boss?.kind) === 'prom' && bossPhase === 'telegraph' && h.bossPhase !== 'telegraph') sfx.slowSong();
     // The hall monitor's stop, on its leading edge. A touch during a running
     // stun refreshes it without an edge, and stays silent.
     if (w.stunTimer > 0 && h.stun <= 0) sfx.stun();
@@ -689,6 +697,17 @@ export class ActScene extends Phaser.Scene {
     let homework = h.homework;
     for (const e of w.enemies) if (e.def.id === 'homework' && e.uid > homework) homework = e.uid;
     if (homework > h.homework) sfx.homeworkLand();
+    // Adolescence (§3.5, §3.2). A consult starting is the number of group chats
+    // typing rising; a car entering is a drivers-ed uid above the highest heard,
+    // as homework's is. One of each per frame.
+    let typing = 0;
+    let car = h.car;
+    for (const e of w.enemies) {
+      if (e.def.id === 'group-chat' && e.consult > 0) typing++;
+      else if (e.def.id === 'drivers-ed' && e.uid > car) car = e.uid;
+    }
+    if (typing > h.typing) sfx.typing();
+    if (car > h.car) sfx.carPass();
     if (w.dead && !h.dead) sfx.death();
     if (w.won && !h.won) sfx.win();
     this.heard = {
@@ -706,6 +725,8 @@ export class ActScene extends Phaser.Scene {
       homework,
       stun: w.stunTimer,
       bossPhase,
+      typing,
+      car,
     };
   }
 
