@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <title>Group chat</title>
+  <desc>A fat rounded speech bubble, wider than tall, with one tail at its bottom corner; flat grey, two dot eyes looking straight out and a small sideways smirk. No phone, no avatars, no names; nobody in it is drawn.</desc>
+  <!--
+    Group chat (ADOLESCENCE-ROSTER §3.5): the speech bubble, the only
+    silhouette in the act with a tail, drawn as what comes out of a phone
+    because the phone would be the standardised test's rectangle. One flat
+    tone, shadow #6E6353, the colour of messages that are theirs; ink #2A2521
+    for the face. No gold on the body: it goes on the notification it sends,
+    which is drawn in code (G-031).
+  -->
+  <!-- The bubble and its tail are one fill; the pipeline outlines the union. -->
+  <rect x="3" y="6" width="94" height="64" rx="30" fill="#6E6353"/>
+  <path fill="#6E6353" d="M16,58 L44,68 C37,80 25,89 9,94 Q4,95 6,91 C13,82 17,73 16,58 Z"/>
+  <!-- The face: eyes straight out at the viewer, the mouth up on one side. -->
+  <g fill="#2A2521">
+    <ellipse cx="39" cy="31" rx="4.6" ry="6.2"/>
+    <ellipse cx="61" cy="31" rx="4.6" ry="6.2"/>
+    <path d="M41,46 L55,46 Q61,46 64,39.5 L68,41 Q65,51 55,51 L41,51 A2.5,2.5 0 0 1 41,46 Z"/>
+  </g>
+</svg>
