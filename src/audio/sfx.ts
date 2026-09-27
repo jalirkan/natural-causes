@@ -219,6 +219,17 @@ class Sfx {
   }
 
   /**
+   * The group chat's notification (ADOLESCENCE-ROSTER §3.5): the gold dot it
+   * sends is a message arriving, so it sounds like one. A short bright ding,
+   * two partials, quieter than the substitute's ah-hem and nothing like it.
+   */
+  notification(): void {
+    if (!this.due('notification', 200)) return;
+    this.tone(1760, { gain: 0.03, decay: 0.12 });
+    this.tone(2637, { gain: 0.012, decay: 0.09, delay: 0.01 });
+  }
+
+  /**
    * The hall monitor's touch stops you dead (§3.4): a dull thud into a wall,
    * then a small descending boop as the cartoon slides down it.
    */
@@ -250,6 +261,55 @@ class Sfx {
     const wobble = { rate: 50, depth: 110 };
     if (long) this.tone(2750, { gain: 0.022, attack: 0.02, hold: 0.5, decay: 0.68, wobble });
     else this.tone(2750, { gain: 0.022, attack: 0.01, hold: 0.2, decay: 0.14, wobble });
+  }
+
+  // --- Adolescence -------------------------------------------------------
+
+  /**
+   * The group chat's three dots (ADOLESCENCE-ROSTER §3.5): someone is typing.
+   * Three soft high ticks, a little uneven like thumbs, done in ~150ms. It
+   * plays on every consult in the act, so it is barely there and floored, and
+   * a room of them reads as murmur rather than a drum roll.
+   */
+  typing(): void {
+    if (!this.due('typing', 300)) return;
+    const tick = { wave: 'triangle' as const, gain: 0.012, attack: 0.002, decay: 0.018 };
+    this.tone(1700 + Math.random() * 60, tick);
+    this.tone(1820 + Math.random() * 60, { ...tick, delay: 0.06 });
+    this.tone(1760 + Math.random() * 60, { ...tick, delay: 0.13 });
+  }
+
+  /**
+   * Driver's ed pulling onto the field (§3.2): a low engine swelling in and
+   * dropping two semitones as it goes by, the doppler centred on the peak. A
+   * fast putter on the pitch is the motor; the octave partial keeps it audible
+   * on laptop speakers. ~340ms, and a swell where `hurt` is a fall.
+   */
+  carPass(): void {
+    if (!this.due('carPass', 400)) return;
+    const env = { attack: 0.12, decay: 0.22 };
+    this.tone(118, { ...env, wave: 'triangle', gain: 0.06, glideTo: 104, wobble: { rate: 32, depth: 5 } });
+    this.tone(236, { ...env, gain: 0.02, glideTo: 208, wobble: { rate: 32, depth: 10 } });
+  }
+
+  /**
+   * Prom's telegraph (§4): the lights going down and the slow song starting.
+   * A held minor third, low-mid and soft, the upper note leaning in late, with
+   * a slow vibrato for the mirror ball turning; ~700ms. Everything the whistle
+   * is not: low, round, two notes, no trill.
+   */
+  slowSong(): void {
+    if (!this.due('slowSong', 700)) return;
+    this.tone(220, { wave: 'triangle', gain: 0.045, attack: 0.12, hold: 0.28, decay: 0.3, wobble: { rate: 4.5, depth: 1.5 } });
+    this.tone(261.63, {
+      wave: 'triangle',
+      gain: 0.035,
+      attack: 0.12,
+      hold: 0.24,
+      decay: 0.3,
+      delay: 0.04,
+      wobble: { rate: 4.5, depth: 1.8 },
+    });
   }
 }
 
