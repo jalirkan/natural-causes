@@ -87,7 +87,7 @@ export const CONCEPTION: ActDef = {
   bossName: 'The Egg',
   age: { from: 0, to: 0 },
   provisional:
-    'The rates, the antibody drag floor and curvature (ANTIBODY_FLOOR and ANTIBODY_DRAG_K in world.ts), the bot cadence and the boss HP were all set from bot runs and nobody has played the act; a person playing it at the link is what moves them (§11.5, G-028).',
+    'The rates, the antibody drag floor and curvature (ANTIBODY_FLOOR and ANTIBODY_DRAG_K in world.ts), the bot cadence and the boss HP were all set from bot runs, the XP curve and the weapon level tables (xpToNextLevel in world.ts, `levels` in items.ts) were written as placeholders, and nobody has played the act; a person playing it at the link is what moves them (§11.5, G-028, G-038).',
   // CONCEPTION-ROSTER.md §3.5. One track per enemy, read as concurrent
   // streams. A new pressure roughly every forty-five seconds for the first
   // half, then only escalation: nothing new arrives after 130s, so the last

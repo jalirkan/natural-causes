@@ -108,21 +108,32 @@ describe('levelling', () => {
 });
 
 describe('passives change the player', () => {
-  it('midpiece trades health for speed', () => {
+  // G-038: upgrades gain. These used to assert the cost (G-014).
+  it('restlessness is faster and quickens every cooldown, at no health', () => {
     const w = new World({ act: CONCEPTION, seed: 1 });
     const speed = w.speed;
     const hp = w.maxHp;
     w.items.set('midpiece', 1);
     expect(w.speed).toBeGreaterThan(speed);
-    expect(w.maxHp).toBeLessThan(hp);
+    expect(w.cooldownFactor).toBeLessThan(1);
+    expect(w.maxHp).toBe(hp);
   });
 
-  it('membrane trades speed for durability', () => {
+  it('thick skin takes less damage and more health, at no speed', () => {
     const w = new World({ act: CONCEPTION, seed: 1 });
     const speed = w.speed;
+    const hp = w.maxHp;
     w.items.set('membrane', 1);
-    expect(w.speed).toBeLessThan(speed);
+    expect(w.speed).toBe(speed);
     expect(w.damageTaken).toBeLessThan(1);
+    expect(w.maxHp).toBeGreaterThan(hp);
+  });
+
+  it('appetite pulls gems in from further away', () => {
+    const w = new World({ act: CONCEPTION, seed: 1 });
+    const radius = w.magnetRadius;
+    w.items.set('appetite', 1);
+    expect(w.magnetRadius).toBeGreaterThan(radius);
   });
 
   it('capacitation starts below baseline and ends above it', () => {
@@ -138,14 +149,15 @@ describe('passives change the player', () => {
   });
 
   it('every passive actually does something', () => {
-    // A passive that changes no derived stat is a dead item taking a slot in a
-    // capped budget.
+    // A passive that changes no derived stat is a dead item taking a slot.
     for (const [id, def] of Object.entries(ITEMS)) {
       if (def.kind !== 'passive') continue;
       const changes =
         def.speedMultiplier !== 1 ||
         def.healthMultiplier !== 1 ||
         def.damageTakenMultiplier !== 1 ||
+        def.cooldownMultiplier !== 1 ||
+        def.pickupMultiplier !== 1 ||
         def.damageMultiplier !== 1 ||
         def.rampTo !== 1;
       expect(changes, `passive "${id}" has no effect`).toBe(true);

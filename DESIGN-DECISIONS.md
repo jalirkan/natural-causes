@@ -1118,3 +1118,18 @@ certificate, title); the sprite register is picked by Justin from a rendered
 batch, and laws 3 and 4 wait on it. Kept: D-007, the split, the checks, CI, G-003.
 Rejected: one record per retirement — nine entries arguing one decision.
 Rejected: keep fal and tighten prompts — per-subject patching against a wrong register is D-005's named failure, paid per attempt.
+
+## G-039 · 2026-09-27 · Items take life names for the whole life, and an evolution is dealt, not offered
+The eight items are Reflex, Stubbornness, Temper, Baggage, Charisma,
+Restlessness, Thick Skin and Late Bloomer from conception on (the Loud
+Pictures table in the direction panel): a sperm with a Temper is the joke, and
+one name per item keeps the build legible across the life. Weapons level to 8
+and each level adds a thing the card names. The first evolution is Tantrum
+(Temper at max + Restlessness): when it is earned, the next level-up is that
+one card and nothing else, because what you became was not a choice. Grudge,
+Group Chat and Appetite join the pool. Every number is a placeholder (Conception's
+`provisional`); the three new icons are labelled placeholders until SVG art.
+Rejected: renaming per act (Classroom Reel) — seven costumes of one item is a
+lookup table the player has to learn, and Conception would show none of it.
+Rejected: the evolution as one card among three — then it is a shop item, and
+the joke that it happens to you is gone.

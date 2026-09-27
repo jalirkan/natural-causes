@@ -45,6 +45,10 @@ export const POLICIES: BotPolicy[] = [
   { name: 'membrane+acrosome', priorities: ['membrane', 'acrosome', 'chemotaxis', 'lash'] },
   { name: 'motility', priorities: ['motility', 'midpiece', 'lash', 'capacitation'] },
   { name: 'greedy-capacitation', priorities: ['capacitation', 'membrane', 'acrosome', 'lash'] },
+  // G-038: exercises the evolution. Temper to max beside Restlessness makes
+  // the next level-up a one-card Tantrum offer.
+  { name: 'acrosome+midpiece', priorities: ['acrosome', 'midpiece', 'membrane', 'lash'] },
+  { name: 'grudge+group-chat', priorities: ['grudge', 'group-chat', 'appetite', 'lash'] },
   { name: 'random', priorities: [] },
 ];
 
@@ -304,6 +308,8 @@ function chooseOffer(
   levels: Map<string, number>,
   rng: () => number,
 ): string {
+  // An evolution is offered alone and is not a choice (G-038).
+  if (offers.length === 1) return offers[0]!;
   // Two passes. A single pass down the priority list sinks every level into
   // the first item it names before touching the second — which measured
   // "membrane+acrosome" as five levels of Membrane and no Acrosome, and then
