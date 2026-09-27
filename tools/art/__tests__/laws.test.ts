@@ -118,9 +118,10 @@ describe('law 11 — each act reserves its silhouettes, before generation', () =
     expect(() => assertReserved('office', [])).toThrow(/before any asset/);
   });
 
-  it('School is lifted and accepts its five, and still refuses the unwritten boss', () => {
+  it('School is lifted and accepts its five swarm shapes and its boss, and refuses the undeclared', () => {
     const ids = RESERVATIONS['school']!.silhouettes.map((r) => r.heldBy);
     expect(ids.sort()).toEqual([
+      'boss-gym-teacher',
       'clique',
       'dodgeball',
       'hall-monitor',
@@ -128,10 +129,17 @@ describe('law 11 — each act reserves its silhouettes, before generation', () =
       'substitute-teacher',
     ]);
     expect(() => assertReserved('school', ids)).not.toThrow();
-    // boss-gym-teacher has no concept yet. Refusing it is G-011 working.
-    expect(() => assertReserved('school', [...ids, 'boss-gym-teacher'])).toThrow(
+    // The boss was refused here until its reservation was written (G-011:
+    // before, not after — the entry landed in the same change as its spec,
+    // ahead of its first rasterisation). What stays refused is anything the
+    // act has not declared.
+    expect(() => assertReserved('school', [...ids, 'some-new-enemy'])).toThrow(
       /holds no reserved silhouette/,
     );
+  });
+
+  it('the Gym Teacher holds boss teal, as the Egg does in Conception', () => {
+    expect(RESERVATIONS['school']!.reservedThreat.boss).toBe('boss-gym-teacher');
   });
 
   it('G-031: School holds gold on the projectile, never on the body', () => {
@@ -241,19 +249,25 @@ describe('law 11 is enforced on the path that spends money, not only in tests', 
 describe('the School roster is in the batch (SCHOOL-ROSTER.md §3)', () => {
   const school = ALL_ASSETS.filter((s) => s.act === 'school');
 
-  it('all five School assets are specified, one per reserved silhouette', () => {
+  it('all six School enemies are specified, one per reserved silhouette, plus the player', () => {
     expect(school.map((s) => s.id).sort()).toEqual([
+      'boss-gym-teacher',
       'clique',
       'dodgeball',
       'hall-monitor',
       'homework',
+      'player-school',
       'substitute-teacher',
     ]);
-    const shapes = school.map((s) => {
-      const v = reservationVerdict(s.act, s.id, s.role);
-      return v.status === 'holds' ? v.silhouette : v.status;
-    });
-    expect(new Set(shapes).size, 'two School assets share a silhouette').toBe(5);
+    // The player is outside the vocabulary (law 11's player exemption), so
+    // the uniqueness count is over the enemies.
+    const shapes = school
+      .filter((s) => s.role !== 'player')
+      .map((s) => {
+        const v = reservationVerdict(s.act, s.id, s.role);
+        return v.status === 'holds' ? v.silhouette : v.status;
+      });
+    expect(new Set(shapes).size, 'two School assets share a silhouette').toBe(6);
   });
 
   it('G-031: no School prompt asks for gold on a body', () => {
@@ -272,11 +286,15 @@ describe('the School roster is in the batch (SCHOOL-ROSTER.md §3)', () => {
     }
   });
 
-  it('D-018: every School asset is authored at the swarm detail budget', () => {
+  it('D-018: every School roster enemy is authored at the swarm detail budget', () => {
     // §3: "All five are swarm-tier — bold flat shapes, strong silhouette, no
     // halftone, no hairlines, no grain." That is not a note, it is which
     // clause the prompt gets, so it is asserted where the clause is chosen.
-    for (const spec of school) {
+    // §3's five are the swarm; the boss and the player were never in it, and
+    // the boss is at boss scale by definition (D-018 spends detail there).
+    const roster = school.filter((s) => s.role !== 'boss' && s.role !== 'player');
+    expect(roster).toHaveLength(5);
+    for (const spec of roster) {
       expect(spec.role, `${spec.id}`).toBe('swarm');
       expect(spec.targetSize, `${spec.id} would take the boss detail clause`).toBeLessThan(
         DETAIL_THRESHOLD_PX,

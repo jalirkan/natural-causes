@@ -1,9 +1,49 @@
 {
   "frames": {
-    "substitute-teacher.png": {
+    "boss-gym-teacher.png": {
       "frame": {
         "x": 2,
         "y": 2,
+        "w": 384,
+        "h": 384
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 384,
+        "h": 384
+      },
+      "sourceSize": {
+        "w": 384,
+        "h": 384
+      }
+    },
+    "player-school.png": {
+      "frame": {
+        "x": 388,
+        "y": 2,
+        "w": 112,
+        "h": 112
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 112,
+        "h": 112
+      },
+      "sourceSize": {
+        "w": 112,
+        "h": 112
+      }
+    },
+    "substitute-teacher.png": {
+      "frame": {
+        "x": 2,
+        "y": 388,
         "w": 96,
         "h": 96
       },
@@ -19,6 +59,86 @@
         "w": 96,
         "h": 96
       }
+    },
+    "clique.png": {
+      "frame": {
+        "x": 100,
+        "y": 388,
+        "w": 88,
+        "h": 88
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 88,
+        "h": 88
+      },
+      "sourceSize": {
+        "w": 88,
+        "h": 88
+      }
+    },
+    "hall-monitor.png": {
+      "frame": {
+        "x": 190,
+        "y": 388,
+        "w": 88,
+        "h": 88
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 88,
+        "h": 88
+      },
+      "sourceSize": {
+        "w": 88,
+        "h": 88
+      }
+    },
+    "homework.png": {
+      "frame": {
+        "x": 280,
+        "y": 388,
+        "w": 72,
+        "h": 72
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 72,
+        "h": 72
+      },
+      "sourceSize": {
+        "w": 72,
+        "h": 72
+      }
+    },
+    "dodgeball.png": {
+      "frame": {
+        "x": 354,
+        "y": 388,
+        "w": 44,
+        "h": 44
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 44,
+        "h": 44
+      },
+      "sourceSize": {
+        "w": 44,
+        "h": 44
+      }
     }
   },
   "meta": {
@@ -27,8 +147,8 @@
     "image": "school.png",
     "format": "RGBA8888",
     "size": {
-      "w": 128,
-      "h": 128
+      "w": 512,
+      "h": 512
     },
     "scale": "1"
   }

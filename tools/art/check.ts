@@ -77,6 +77,13 @@ export interface CheckThresholds {
    * the size it was generated.
    */
   minDistinctColours48: number;
+  /**
+   * Whether the enemy value ceiling (G-032) applies. Default true on the
+   * field. False for the player only: law 10 gives paper to the player, and
+   * the ceiling exists to keep everything else below it — applying it to the
+   * player rejects the one sprite the law says must wear paper.
+   */
+  valueCeiling?: boolean;
 }
 
 export const DEFAULT_THRESHOLDS: CheckThresholds = {
@@ -119,6 +126,18 @@ export const SWARM_THRESHOLDS: CheckThresholds = {
   minDistinctColours: 2,
   maxSingleColourShare: 0.97,
   minDistinctColours48: 2,
+};
+
+/**
+ * The player: swarm-scale on the field, and the one field sprite the value
+ * ceiling does not bind (law 10, G-012). Found when the first authored
+ * school-age player failed `enemy-value-ceiling` at exactly paper's
+ * lightness; `player-sperm` predates G-032's ceiling and was never re-run
+ * against it.
+ */
+export const PLAYER_THRESHOLDS: CheckThresholds = {
+  ...SWARM_THRESHOLDS,
+  valueCeiling: false,
 };
 
 /**
@@ -305,7 +324,7 @@ export async function check(
   //    a GPU multiply is invisible to every other check in this function.
   //    Field art only — the ceiling exists so the player is the lightest
   //    thing on the FIELD, and card art never reaches the field.
-  if (thresholds.surface !== 'card') {
+  if (thresholds.surface !== 'card' && thresholds.valueCeiling !== false) {
   let brightest = 0;
   for (let i = 0; i < bmp.data.length; i += CHANNELS) {
     if (bmp.data[i + 3] === 0) continue;

@@ -344,3 +344,18 @@ Rejected: a scene per act handing state across — the bots would play a
 different game from the person, which the sim/presentation split exists to stop.
 Rejected: independent acts plus a "campaign" mode — two meanings of "a run",
 and every metric would have to say which.
+
+## D-025 · 2026-09-27 · Sprites are authored SVG, rasterised by `sharp` into the unchanged CONFORM and CHECK
+A spec with `source: 'svg'` reads `tools/art/svg/<act>/<id>.svg`. `pnpm art:svg`
+runs law 11 and D-007 (on the spec and on the SVG's own text) before opening
+the file, renders it at 4× and re-renders until the trimmed content is exactly
+the fitted size, box-downsamples (alpha averaged, colour the block's dominant —
+never a blend), then hands it to the same CONFORM, TEXTURE and CHECK. A failure
+writes nothing and is fixed by its author; no retries. Provenance records the
+SVG's sha256, and a test fails when a checked-in SVG no longer matches its
+sprite. The player is exempt from the enemy value ceiling (it is paper).
+All twelve Conception and School field sprites are now authored this way.
+Rejected: SVGs straight into the atlas — skips the palette lock and the checks,
+the only things that made generated art consistent.
+Rejected: rendering at target size and letting conform's nearest-neighbour
+resize fit it — jagged edges, and stray blended colours near the pickup tone.

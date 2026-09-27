@@ -124,6 +124,13 @@ export const RESERVATIONS: Partial<Record<ActId, ActReservations>> = {
         heldBy: 'clique',
         consequence: 'The only silhouette with more than one head. Nothing else is a fused mass.',
       },
+      {
+        silhouette:
+          "the tallest thing in the act: a standing figure in gym shorts with a whistle on a cord, eight times the player's height",
+        heldBy: 'boss-gym-teacher',
+        consequence:
+          'The only figure at boss scale: its height is the read, and the whistle is the only thing it carries. Law 9: the whistle and the shorts are the role, not a person.',
+      },
     ],
     reservedThreat: {
       // Conception's first aimed thing was the boss; School's is a swarm
@@ -132,12 +139,14 @@ export const RESERVATIONS: Partial<Record<ActId, ActReservations>> = {
       // name it fires — and never its body, which has to stay the act's only
       // bright hard rectangle.
       ranged: PROJECTILE_HOLDER,
+      // The boss colour, held as Conception's Egg holds it: the body is boss
+      // teal and nothing else in the act wears it. Written in the same change
+      // as the spec and before the first rasterisation, which is G-011's
+      // before-not-after ordering — the concept exists now (the direction
+      // panel's Gym Teacher), so the refusal that stood here has done its job.
+      boss: 'boss-gym-teacher',
     },
   },
-
-  // boss-gym-teacher is deliberately absent. It has no concept yet, so
-  // assertReserved refuses it — which is G-011's before-not-after ordering
-  // doing its job rather than an oversight to work around.
 };
 
 /**

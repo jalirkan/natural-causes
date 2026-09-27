@@ -187,7 +187,8 @@ G-013. All three are now enforced as well:
 - ~~**Law 11 needs the reservation list to be data.**~~ **Done.**
   `tools/art/reservations.ts`, and an act with no entry refuses generation rather
   than defaulting to permissive. School's list is `SCHOOL-ROSTER.md` §1;
-  `boss-gym-teacher` is deliberately absent and therefore not generatable.
+  `boss-gym-teacher` was absent until 2026-09-27, when its reservation was
+  written ahead of its authored SVG (G-038, D-025).
 - ~~**Law 4's exception moved from per-act to per-asset** and `styleSuffix()` has
   not caught up.~~ **Done, Run 4.** `AssetSpec.geometry` selects it per asset,
   `styleSuffixFor()` applies it, and two tests assert that every act defaults to

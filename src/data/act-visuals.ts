@@ -1,5 +1,7 @@
 import conceptionAtlasPng from '../../assets/atlas/conception.png';
 import conceptionAtlasJson from '../../assets/atlas/conception.json';
+import schoolAtlasPng from '../../assets/atlas/school.png';
+import schoolAtlasJson from '../../assets/atlas/school.json';
 
 /**
  * Act PRESENTATION. Imported only by the renderer.
@@ -38,6 +40,17 @@ export const ACT_VISUALS: Record<string, ActVisuals> = {
     bossFrame: 'boss-egg.png',
     // conception-light.
     pickup: 0xc99b8c,
+  },
+  school: {
+    // school-deep.
+    background: 0x3d5148,
+    atlas: { key: 'school', png: schoolAtlasPng, json: schoolAtlasJson },
+    playerFrame: 'player-school.png',
+    // The Gym Teacher's frame on the Egg's behaviour: the sim has one boss
+    // (acts.ts, `bossName`), so this is the name and the picture, not the fight.
+    bossFrame: 'boss-gym-teacher.png',
+    // school-light.
+    pickup: 0x9fa86b,
   },
 };
 

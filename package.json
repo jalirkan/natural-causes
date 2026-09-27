@@ -12,6 +12,7 @@
     "test:watch": "vitest",
     "typecheck": "tsc -b --noEmit",
     "art:batch": "tsx tools/art/run.ts batch",
+    "art:svg": "tsx tools/art/run.ts svg",
     "art:pack": "tsx tools/art/run.ts pack",
     "art:sheet": "tsx tools/art/run.ts sheet",
     "playtest": "tsx tools/playtest/run.ts"

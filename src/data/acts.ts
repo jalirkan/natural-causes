@@ -184,10 +184,11 @@ export const ALL_ACTS: ActDef[] = [CONCEPTION, SCHOOL];
 
 /**
  * The life the browser plays, in order: the prefix of `ALL_ACTS` with an
- * atlas, a player frame and a boss frame registered in `act-visuals.ts`. School has a schedule and
- * the bots can run it; it is not here because four of its five sprites have
- * never been generated and it has no boss. A test asserts this list and
+ * atlas, a player frame and a boss frame registered in `act-visuals.ts`.
+ * School joined when its authored SVG sprites landed (G-038); its boss is the
+ * Gym Teacher's picture on the Egg's behaviour until the Gym Teacher is
+ * designed. A test asserts this list and
  * `ACT_VISUALS` agree, so moving an act in is a one-line change that fails
  * loudly if the art is not there.
  */
-export const ACTS: ActDef[] = [CONCEPTION];
+export const ACTS: ActDef[] = [CONCEPTION, SCHOOL];

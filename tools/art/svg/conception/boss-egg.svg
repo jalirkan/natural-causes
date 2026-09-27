@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <title>The Egg</title>
+  <desc>A vast round egg inside its corona, eyes half closed. It has already decided.</desc>
+  <circle cx="50" cy="50" r="49" fill="#2F7370"/>
+  <circle cx="50" cy="50" r="40" fill="#A86A63"/>
+  <circle cx="47" cy="46" r="36" fill="#D2C6AC"/>
+  <rect x="34" y="42" width="10" height="3" rx="1.4" fill="#2A2521"/>
+  <rect x="56" y="42" width="10" height="3" rx="1.4" fill="#2A2521"/>
+  <rect x="45" y="56" width="10" height="2.6" rx="1.2" fill="#2A2521"/>
+</svg>

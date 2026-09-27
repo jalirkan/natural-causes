@@ -5,11 +5,11 @@
 > **Play it: <https://jalirkan.github.io/natural-causes/>** — the current
 > `main`, published by [`deploy.yml`](./.github/workflows/deploy.yml) on every
 > push once a repository admin has pointed Pages at GitHub Actions (see CI,
-> below). One run is one life (D-024); today that life is one act, Conception,
-> about five minutes. Keyboard, or one thumb on a phone.
+> below). One run is one life (D-024); today that life is Conception then
+> School, about ten minutes. Keyboard, or one thumb on a phone.
 >
-> **Status: the life plays in the sim end to end; the browser plays the acts
-> that have art — Conception today. School runs headless until its art exists.**
+> **Status: a two-act life — Conception, then School — playable at the link,
+> drawn in a first authored-SVG batch (G-038). Every number is a labelled placeholder.**
 > Plan in [`PLAN.md`](./PLAN.md) (read its 2026-09-27 amendment first), art
 > spec in [`ART-DIRECTION.md`](./ART-DIRECTION.md) (binding), decisions in
 > [`DECISIONS.md`](./DECISIONS.md). Name is provisional.
@@ -119,11 +119,10 @@ arrow keys to move. You fire automatically — there is no attack button.
 On a phone: tap to start, drag anywhere to move, tap a card to choose, the
 corner button pauses, and a tap restarts once the run is over.
 
-A life. Today it is one act, Conception, about five minutes to the Egg. Rival
-sperm from the start, antibodies at 0:45, spermicide at 1:30, white cells at
-2:10. The Egg falling is the threshold to the next act; with no next act yet,
-you die of natural causes, aged nought. Dying earlier, the certificate names
-what did it.
+A life: Conception, about five minutes to the Egg, then School, ages five to
+twelve. When the Egg appears every rival swims for it; beat them to it and you
+cross into School with everything you took. Outlive School and you die of
+natural causes, aged twelve. Dying earlier, the certificate names what did it.
 
 #### After you play — five things to say
 

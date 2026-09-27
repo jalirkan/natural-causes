@@ -36,11 +36,11 @@ describe('School has a schedule, and it is provisional', () => {
     expect(SCHOOL.provisional).toMatch(/D-022/);
   });
 
-  it('is not startable from the title until its art exists', () => {
-    // Four of five School sprites have never been generated and there is no
-    // boss. The content test ties ACTS to ACT_VISUALS; this one says which
+  it('is the second act of the life the browser plays, now its art exists', () => {
+    // Its sprites are authored SVG (G-038) and its boss frame is the Gym
+    // Teacher. The content test ties ACTS to ACT_VISUALS; this one says which
     // side School is currently on, so a future change to either is deliberate.
-    expect(ACTS).not.toContain(SCHOOL);
+    expect(ACTS.indexOf(SCHOOL)).toBe(1);
   });
 });
 
