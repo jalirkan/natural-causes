@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ARENA_HEIGHT, ARENA_WIDTH, BOSS_RADIUS, World } from '../world';
-import { CONCEPTION } from '../../data/acts';
+import { CONCEPTION, type ActDef } from '../../data/acts';
 import { ITEMS } from '../../data/items';
 
 /**
@@ -144,5 +144,83 @@ describe('a boss shot is evaluated on every frame', () => {
     // Contact used to `return` before the hostile-projectile pass, so the shot
     // survived the frame and stayed live to be re-checked later.
     expect(w.projectiles.some((p) => p.hostile)).toBe(false);
+  });
+});
+
+/**
+ * Part three, 2026-09-27 (AUDIT.md). Both were found by reading the LIFE for
+ * the same class of defect, and both were reproduced before being written down.
+ */
+describe('part three', () => {
+  /** No schedule, so nothing is on the field but what the test places there. */
+  const EMPTY: ActDef = {
+    id: 'audit-fixture',
+    name: 'Fixture',
+    durationSeconds: 300,
+    bossName: 'Fixture',
+    age: { from: 0, to: 0 },
+    waves: [],
+  };
+
+  it('16. a weapon fires the same number of times a minute at 30, 60 and 144Hz', () => {
+    // The cooldown was reset to its full value on the frame it expired, so the
+    // overshoot was dropped and the rate was quantised to the frame: Wake fired
+    // 300 times a minute at 30Hz, 328 at 60Hz, 333 at 144Hz. The bots run at
+    // 60 and a browser runs at the display rate, so the two played different
+    // games — the divergence world.ts exists to prevent.
+    const fires = (item: string, hz: number): number => {
+      const w = new World({ act: EMPTY, seed: 1, startingItems: [item] });
+      // A target always in range that never dies, for the seeking weapon.
+      w.spawnEnemy('white-cell');
+      const e = w.enemies[0]!;
+      let seen = 0;
+      let count = 0;
+      for (let i = 0; i < 60 * hz; i++) {
+        e.x = w.x + 120; e.y = w.y; e.hp = 1e9; e.age = 0;
+        w.step(1 / hz, { moveX: 0, moveY: 0 });
+        // Serials are monotonic and at most one new one appears per step.
+        for (const p of item === 'wake' ? w.areas : w.projectiles) {
+          if (p.serial > seen) { seen = p.serial; count++; }
+        }
+      }
+      return count;
+    };
+    for (const item of ['lash', 'wake']) {
+      const [a, b, c] = [30, 60, 144].map((hz) => fires(item, hz)) as [number, number, number];
+      expect(Math.abs(a - b), `${item}: ${a} at 30Hz vs ${b} at 60Hz`).toBeLessThanOrEqual(1);
+      expect(Math.abs(b - c), `${item}: ${b} at 60Hz vs ${c} at 144Hz`).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it('17. a one-shot burst hits an enemy once, even when a shot lands on it mid-burst', () => {
+    // `hitBySerial` was one field shared by shots and one-shot areas. A Lash
+    // shot landing during Acrosome's 0.12s burst overwrote the burst's serial
+    // and the burst hit again on its next frame: 5 damage became 12 in the
+    // controlled case, and a Lash+Acrosome minute against one enemy applied 43
+    // bursts 52 times.
+    const w = new World({ act: EMPTY, seed: 1, startingItems: [] });
+    w.spawnEnemy('white-cell');
+    const e = w.enemies[0]!;
+    e.x = w.x + 30; e.y = w.y; e.vx = 0; e.vy = 0;
+    const hp0 = e.hp;
+    w.areas.push({ x: w.x, y: w.y, age: 0, seconds: 0.12, radius: 96, damage: 5, pull: false, tick: false, serial: 100 });
+    w.step(1 / 60, { moveX: 0, moveY: 0 });
+    expect(hp0 - e.hp).toBe(5);
+    w.projectiles.push({ x: e.x, y: e.y, vx: 0, vy: 0, life: 5, damage: 2, pierce: 1, radius: 7, hostile: false, serial: 101 });
+    for (let i = 0; i < 6; i++) w.step(1 / 60, { moveX: 0, moveY: 0 });
+    expect(hp0 - e.hp).toBe(7);
+
+    // And the other way round: a piercing shot parked on the enemy must not
+    // re-hit because a burst landed between its frames.
+    const v = new World({ act: EMPTY, seed: 1, startingItems: [] });
+    v.spawnEnemy('white-cell');
+    const f = v.enemies[0]!;
+    f.x = v.x + 30; f.y = v.y; f.vx = 0; f.vy = 0;
+    const fhp0 = f.hp;
+    v.projectiles.push({ x: f.x, y: f.y, vx: 0, vy: 0, life: 5, damage: 4, pierce: 99, radius: 10, hostile: false, serial: 200 });
+    v.step(1 / 60, { moveX: 0, moveY: 0 });
+    v.areas.push({ x: v.x, y: v.y, age: 0, seconds: 0.12, radius: 96, damage: 5, pull: false, tick: false, serial: 201 });
+    for (let i = 0; i < 6; i++) v.step(1 / 60, { moveX: 0, moveY: 0 });
+    expect(fhp0 - f.hp).toBe(9);
   });
 });
