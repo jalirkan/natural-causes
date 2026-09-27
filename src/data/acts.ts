@@ -54,6 +54,21 @@ export interface ActDef {
   durationSeconds: number;
   waves: SpawnWave[];
   /**
+   * What the act's boss is called on the certificate when it kills you.
+   *
+   * The boss's BEHAVIOUR is still the Egg's for every act (world.ts spawns one
+   * boss and it has one attack); this is only the name the record uses, so a
+   * death at the end of School can say what it was and not "the Egg".
+   */
+  bossName: string;
+  /**
+   * The years this act covers, for the certificate. A run is one life
+   * (PLAN.md 2026-09-27; D-024): age advances through the act's clock from
+   * `from` to `to`, and the age at death is what the certificate prints.
+   * Conception is age nought throughout; nobody has yet been born.
+   */
+  age: { from: number; to: number };
+  /**
    * Set when the numbers in this act are placeholders nobody has played.
    *
    * One sentence: what is provisional and what resolves it. A test requires
@@ -69,6 +84,8 @@ export const CONCEPTION: ActDef = {
   id: 'conception',
   name: 'Conception',
   durationSeconds: 300,
+  bossName: 'The Egg',
+  age: { from: 0, to: 0 },
   provisional:
     'The rates, the antibody drag floor and curvature (ANTIBODY_FLOOR and ANTIBODY_DRAG_K in world.ts), the bot cadence and the boss HP were all set from bot runs and nobody has played the act; a person playing it at the link is what moves them (§11.5, G-028).',
   // CONCEPTION-ROSTER.md §3.5. One track per enemy, read as concurrent
@@ -98,6 +115,10 @@ export const SCHOOL: ActDef = {
   id: 'school',
   name: 'School',
   durationSeconds: 300,
+  // Named in PLAN.md, not designed (SCHOOL-ROSTER §5). The sim's one boss,
+  // the Egg, stands in mechanically; the name is what the certificate says.
+  bossName: 'The Gym Teacher',
+  age: { from: 5, to: 12 },
   provisional:
     'Every rate and time here is a placeholder built to make the act runnable; SCHOOL-ROSTER.md §5 leaves the schedule undesigned, and a person playing it is what moves these (D-022).',
   // SCHOOL-ROSTER.md §3.6 gives an introduction ORDER and no table: clique
@@ -139,10 +160,15 @@ export const SCHOOL: ActDef = {
 };
 
 /**
- * Every act with a schedule. The content rules iterate THIS list, so an act
- * cannot escape them by not being startable yet (the sibling-collection trap
- * CONCEPTION-ROSTER §5.3 describes — here, deliberately, the rules run over
- * the superset).
+ * Every act with a schedule, in life order. The content rules iterate THIS
+ * list, so an act cannot escape them by not being startable yet (the
+ * sibling-collection trap CONCEPTION-ROSTER §5.3 describes — here,
+ * deliberately, the rules run over the superset).
+ *
+ * A run is one life (D-024): `World` takes a sequence of acts and plays them
+ * end to end. The bots run this whole list (`--life`); the browser runs
+ * `ACTS`, the prefix whose art exists, so the life gets longer as acts become
+ * startable and nothing about the sim changes when one does.
  */
 export const ALL_ACTS: ActDef[] = [CONCEPTION, SCHOOL];
 

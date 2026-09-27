@@ -34,6 +34,9 @@ if (!act) {
   process.stderr.write(`No act "${actArg}". Known: ${ALL_ACTS.map((a) => a.id).join(', ')}\n`);
   process.exit(1);
 }
+// `--life` runs every act as one life (D-024). The instrument's marks stay on
+// the first act, so a life's Conception figures are the same figures.
+const acts = argv.includes('--life') ? ALL_ACTS : [act];
 const onlyPolicy = argv.find((a) => a.startsWith('--policy='))?.slice(9);
 const pullArg = argv.find((a) => a.startsWith('--pull='))?.slice(7);
 const bossPull = pullArg === undefined ? undefined : Number(pullArg);
@@ -59,7 +62,7 @@ const started = Date.now();
 const results: RunResult[] = [];
 for (const policy of policies) {
   for (let i = 0; i < runsPerPolicy; i++) {
-    results.push(runOnce(policy, 1000 + i, bossPull, spawnOverride, act));
+    results.push(runOnce(policy, 1000 + i, bossPull, spawnOverride, acts));
   }
 }
 const elapsed = (Date.now() - started) / 1000;
@@ -68,13 +71,16 @@ const elapsed = (Date.now() - started) / 1000;
 const mark = act.durationSeconds;
 const pct = (n: number) => `${(n * 100).toFixed(0)}%`;
 const out: string[] = [];
-if (act.provisional) {
-  out.push(`ACT "${act.id}" IS PROVISIONAL — ${act.provisional}`);
+for (const a of acts) {
+  if (a.provisional) out.push(`ACT "${a.id}" IS PROVISIONAL — ${a.provisional}`);
+}
+if (acts.some((a) => a.provisional)) {
   out.push('Read presence and ordering below. Nothing here is a calibration.');
   out.push('');
 }
+const lifeName = acts.length === 1 ? act.name : `A life: ${acts.map((a) => a.name).join(' → ')}`;
 out.push(
-  `${act.name}: ${results.length} runs across ${policies.length} policies in ${elapsed.toFixed(1)}s ` +
+  `${lifeName}: ${results.length} runs across ${policies.length} policies in ${elapsed.toFixed(1)}s ` +
     `(${runsPerPolicy} per policy, seeds 1000..${1000 + runsPerPolicy - 1}` +
     `${bossPull === undefined ? '' : `, boss pull ${bossPull}`}` +
     `${spawnOverride === undefined ? '' : `, all spawns forced to ${spawnOverride}`}` +
@@ -234,6 +240,25 @@ for (const s of summarise(results)) {
   );
 }
 
+// The certificate, tallied (D-024). Where the life ended, at what age, and of
+// what. This is the table a person would want first; it is last because the
+// ones above it existed first.
+out.push('');
+out.push('how it ended — median age, the act it ended in, and the certificate');
+out.push('-'.repeat(84));
+out.push('policy                   age   ended in                      of');
+for (const s of summarise(results)) {
+  const endedIn = Object.entries(s.endedIn)
+    .sort((a, b) => b[1] - a[1])
+    .map(([id, n]) => `${id} ${n}`)
+    .join(', ');
+  const causes = s.causes
+    .slice(0, 3)
+    .map(([cause, n]) => `${cause} ${n}`)
+    .join(', ');
+  out.push(`${s.policy.padEnd(22)} ${String(s.medianAge).padStart(5)}   ${endedIn.padEnd(29)} ${causes}`);
+}
+
 out.push('');
 out.push('item uptake — share of runs that took it at least once, rarest first');
 out.push('-'.repeat(84));
@@ -251,5 +276,8 @@ process.stdout.write(`${report}\n`);
 
 const file = resolve(process.cwd(), 'tools/playtest/runs/latest.json');
 mkdirSync(dirname(file), { recursive: true });
-writeFileSync(file, `${JSON.stringify({ act: act.id, runsPerPolicy, elapsed, results }, null, 2)}\n`);
+writeFileSync(
+  file,
+  `${JSON.stringify({ acts: acts.map((a) => a.id), runsPerPolicy, elapsed, results }, null, 2)}\n`,
+);
 writeFileSync(resolve(process.cwd(), 'tools/playtest/runs/latest.txt'), `${report}\n`);

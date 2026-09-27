@@ -180,7 +180,33 @@ export interface RingState {
   seconds: number;
   maxRadius: number;
   damage: number;
+  /** What burst. Optional so hand-built rings in tests need not care. */
+  cause?: EnemyDef;
 }
+
+/**
+ * What the certificate says. Set once, when the run ends either way.
+ *
+ * A run is one life (D-024), so the win is also a death — of natural causes,
+ * at the end of the last act — and it gets the same record as any other. The
+ * renderer prints it; the bots tally it. Age is read off the act's declared
+ * years at the moment it happened.
+ */
+export interface Certificate {
+  outcome: 'died' | 'won';
+  actId: string;
+  actName: string;
+  /** Index of the act it happened in; how far the life got. */
+  actIndex: number;
+  age: number;
+  /** Enemy id, 'boss', or 'natural-causes'. */
+  causeId: string;
+  /** What the certificate prints after "of". */
+  cause: string;
+}
+
+/** The thing that hurt the player, carried to `die` so the certificate can name it. */
+type Cause = EnemyDef | 'boss';
 
 export interface AreaState {
   x: number;
@@ -227,7 +253,14 @@ export interface Input {
 }
 
 export interface WorldOptions {
-  act: ActDef;
+  /**
+   * The life, in order. One act is a life of one act, and that is the browser
+   * today (`ACTS`); the bots run `ALL_ACTS`. `act` is the older spelling and
+   * means `acts: [act]`; every existing caller and test uses it and nothing
+   * about a one-act run changed when the sequence arrived.
+   */
+  acts?: ActDef[];
+  act?: ActDef;
   seed?: number;
   /** Items the run starts with. */
   startingItems?: string[];
@@ -295,10 +328,15 @@ function swapRemove<T>(arr: T[], i: number): void {
 }
 
 export class World {
-  readonly act: ActDef;
+  /** The acts this life passes through, in order. */
+  readonly life: readonly ActDef[];
+  /** Which act is playing. Advances when a boss falls; never goes back. */
+  actIndex = 0;
+  /** Seconds into the current act. `time` is the whole life. */
+  actTime = 0;
   readonly seed: number;
   private readonly rng: () => number;
-  private readonly streams: Map<string, SpawnWave[]>;
+  private streams: Map<string, SpawnWave[]>;
   private readonly accumulators = new Map<string, number>();
   private readonly cooldowns = new Map<string, number>();
   private readonly grid = new Grid<EnemyState>();
@@ -325,11 +363,28 @@ export class World {
   private nextSerial = 1;
   private bossHitSerial = 0;
 
-  time = 0;
+  /**
+   * The life clock, in seconds. Assigning it moves the ACT clock by the same
+   * amount, so "skip to the boss" in the dev panel and the tests' `w.time =
+   * durationSeconds` still do what they say in the first act and mean "jump
+   * the clock" in a later one. `step` advances both directly.
+   */
+  private _time = 0;
+  get time(): number {
+    return this._time;
+  }
+  set time(value: number) {
+    this.actTime += value - this._time;
+    this._time = value;
+  }
   dead = false;
   won = false;
   /** Set when the run ends, for the bots' report. */
   outcome: 'alive' | 'died' | 'won' = 'alive';
+  /** The record of how it ended. Null while alive. */
+  certificate: Certificate | null = null;
+  /** The enemy whose engulf is ticking, so a death to it can be named. */
+  private engulfBy: EnemyDef | null = null;
 
   /**
    * Set to the middle of the arena by the constructor.
@@ -372,15 +427,39 @@ export class World {
   readonly spawnOverride: 'edge' | 'lead' | undefined;
 
   constructor(options: WorldOptions) {
-    this.act = options.act;
+    const life = options.acts ?? (options.act ? [options.act] : []);
+    if (life.length === 0) throw new Error('A World needs at least one act');
+    this.life = life;
     this.bossPull = options.bossPull ?? BOSS_PULL;
     this.spawnOverride = options.spawnOverride;
     this.seed = options.seed ?? 1;
     this.rng = mulberry32(this.seed);
-    this.streams = spawnStreams(options.act.waves);
+    this.streams = spawnStreams(this.act.waves);
     this.x = ARENA_WIDTH / 2;
     this.y = ARENA_HEIGHT / 2;
     for (const id of options.startingItems ?? ['lash']) this.items.set(id, 1);
+  }
+
+  /** The act that is playing. */
+  get act(): ActDef {
+    return this.life[this.actIndex]!;
+  }
+
+  /** How many acts the life has got through, not counting the one playing. */
+  get actsCleared(): number {
+    return this.actIndex;
+  }
+
+  /**
+   * Age, in the act's declared years, read off the act clock.
+   *
+   * Presentation and the certificate use it; nothing in the rules does. The
+   * boss phase holds at the act's last year, which is where the boss is.
+   */
+  get age(): number {
+    const { from, to } = this.act.age;
+    const progress = Math.min(1, this.actTime / this.act.durationSeconds);
+    return from + (to - from) * progress;
   }
 
   // --- derived stats ----------------------------------------------------
@@ -435,9 +514,9 @@ export class World {
     return this.passiveProduct((d) => d.damageTakenMultiplier);
   }
 
-  /** Capacitation: below baseline early, well above it late. */
+  /** Capacitation: below baseline early, well above it late. Per act. */
   get damageDealt(): number {
-    const progress = Math.min(1, this.time / this.act.durationSeconds);
+    const progress = Math.min(1, this.actTime / this.act.durationSeconds);
     let out = 1;
     for (const [id, level] of this.items) {
       const def = ITEMS[id];
@@ -464,7 +543,8 @@ export class World {
     // A pending level-up freezes the world. The choice is the only input.
     if (this.offers || this.dead || this.won) return;
 
-    this.time += dt;
+    this._time += dt;
+    this.actTime += dt;
     this.invulnerable = Math.max(0, this.invulnerable - dt);
 
     this.movePlayer(dt, input);
@@ -488,7 +568,7 @@ export class World {
     this.resolveContact(dt);
     this.updateBoss(dt);
 
-    if (!this.boss && this.time >= this.act.durationSeconds) this.spawnBoss();
+    if (!this.boss && this.actTime >= this.act.durationSeconds) this.spawnBoss();
   }
 
   private movePlayer(dt: number, input: Input): void {
@@ -535,7 +615,7 @@ export class World {
   /** One concurrent stream per enemy, each with its own rate and accumulator. */
   private spawn(dt: number): void {
     for (const [enemyId, stream] of this.streams) {
-      const rate = rateAt(stream, this.time);
+      const rate = rateAt(stream, this.actTime);
       if (rate === 0) continue;
       const acc = (this.accumulators.get(enemyId) ?? 0) + rate * dt;
       let whole = Math.floor(acc);
@@ -682,6 +762,7 @@ export class World {
 
       if (e.def.burst && e.age >= e.def.burst.fuseSeconds) {
         this.rings.push({
+          cause: e.def,
           x: e.x,
           y: e.y,
           age: 0,
@@ -938,7 +1019,7 @@ export class World {
       if (this.invulnerable > 0) continue;
       const radius = r.maxRadius * (r.age / r.seconds);
       const d = Math.hypot(this.x - r.x, this.y - r.y);
-      if (Math.abs(d - radius) <= RING_BAND + PLAYER_RADIUS) this.hurt(r.damage);
+      if (Math.abs(d - radius) <= RING_BAND + PLAYER_RADIUS) this.hurt(r.damage, r.cause ?? 'boss');
     }
   }
 
@@ -1034,7 +1115,7 @@ export class World {
     if (this.engulfTimer > 0) {
       this.engulfTimer -= dt;
       this.hp -= this.engulfDps * dt * this.damageTaken;
-      if (this.hp <= 0) return this.die();
+      if (this.hp <= 0) return this.die(this.engulfBy ?? 'boss');
     }
 
     for (let i = this.enemies.length - 1; i >= 0; i--) {
@@ -1050,7 +1131,7 @@ export class World {
         this.dragStacks++;
         swapRemove(this.enemies, i);
         this.hp -= e.def.contactDamage * this.damageTaken;
-        if (this.hp <= 0) return this.die();
+        if (this.hp <= 0) return this.die(e.def);
         continue;
       }
       if (e.def.contact === 'engulf' && e.def.engulf) {
@@ -1058,11 +1139,12 @@ export class World {
           this.engulfTimer = e.def.engulf.seconds;
           this.engulfSlow = e.def.engulf.slow;
           this.engulfDps = e.def.engulf.damagePerSecond;
+          this.engulfBy = e.def;
         }
         continue;
       }
       if (this.invulnerable > 0) continue;
-      this.hurt(e.def.contactDamage);
+      this.hurt(e.def.contactDamage, e.def);
       // `break`, not `return`. Returning here skipped the boss-shot loop
       // below for the whole frame, so on any frame the player was touching a
       // rival a boss projectile passed through them and stayed alive to be
@@ -1078,7 +1160,7 @@ export class World {
       const r = p.radius + PLAYER_RADIUS;
       if ((p.x - this.x) ** 2 + (p.y - this.y) ** 2 > r * r) continue;
       swapRemove(this.projectiles, i);
-      if (this.invulnerable <= 0) this.hurt(p.damage);
+      if (this.invulnerable <= 0) this.hurt(p.damage, 'boss');
     }
   }
 
@@ -1092,23 +1174,99 @@ export class World {
     return this.dead || this.won || this.boss?.phase === 'absorbing';
   }
 
-  private hurt(amount: number): void {
+  private hurt(amount: number, cause: Cause): void {
     if (this.outcomeDecided) return;
     this.hp -= amount * this.damageTaken;
     this.invulnerable = IFRAMES;
-    if (this.hp <= 0) this.die();
+    if (this.hp <= 0) this.die(cause);
   }
 
-  private die(): void {
+  private die(cause: Cause): void {
     this.hp = 0;
     this.dead = true;
     this.outcome = 'died';
+    this.certificate = {
+      outcome: 'died',
+      actId: this.act.id,
+      actName: this.act.name,
+      actIndex: this.actIndex,
+      age: this.age,
+      causeId: cause === 'boss' ? 'boss' : cause.id,
+      cause: cause === 'boss' ? this.act.bossName : cause.name,
+    };
+  }
+
+  // --- the life ---------------------------------------------------------
+
+  /**
+   * The boss is down and its exit has played. Either the next act begins or,
+   * after the last one, the player dies of natural causes and that is the win.
+   */
+  private finishAct(): void {
+    if (this.actIndex + 1 < this.life.length) {
+      this.beginAct(this.actIndex + 1);
+      return;
+    }
+    this.won = true;
+    this.outcome = 'won';
+    this.certificate = {
+      outcome: 'won',
+      actId: this.act.id,
+      actName: this.act.name,
+      actIndex: this.actIndex,
+      age: this.act.age.to,
+      causeId: 'natural-causes',
+      cause: 'natural causes',
+    };
+  }
+
+  /**
+   * The threshold between acts. What crosses it is the player: items, level,
+   * the XP still on the ground (collected now rather than lost — you leave
+   * with what you earned). What does not is the act: its crowd, its
+   * projectiles and fields, the antibodies' drag, and the boss. Health is
+   * restored, because arriving at School on three hit points after the Egg is
+   * a death with extra steps. PLACEHOLDER: full heal is the simplest rule
+   * with no number in it; a person playing the crossing decides otherwise.
+   */
+  private beginAct(index: number): void {
+    for (const g of this.gems) this.xp += g.value;
+    this.gems.length = 0;
+    // Levels earned from that XP are offered as soon as the new act's first
+    // step runs, exactly as a mid-act pickup would be.
+    this.settleXp();
+
+    this.actIndex = index;
+    this.actTime = 0;
+    this.streams = spawnStreams(this.act.waves);
+    this.accumulators.clear();
+    this.cooldowns.clear();
+    this.enemies.length = 0;
+    this.projectiles.length = 0;
+    this.rings.length = 0;
+    this.areas.length = 0;
+    this.solids.length = 0;
+    this.maxEnemyRadius = 0;
+    this.grid.build(this.enemies);
+    this.boss = null;
+    this.dragStacks = 0;
+    this.engulfTimer = 0;
+    this.engulfSlow = 1;
+    this.engulfDps = 0;
+    this.engulfBy = null;
+    this.invulnerable = 0;
+    this.hp = this.maxHp;
   }
 
   // --- levelling --------------------------------------------------------
 
   private gainXp(value: number): void {
     this.xp += value;
+    this.settleXp();
+  }
+
+  /** Turns accumulated XP into queued levels and offers the next one. */
+  private settleXp(): void {
     while (this.xp >= this.xpToNext) {
       this.xp -= this.xpToNext;
       this.level++;
@@ -1192,10 +1350,7 @@ export class World {
 
     if (b.phase === 'absorbing') {
       b.timer -= dt;
-      if (b.timer <= 0) {
-        this.won = true;
-        this.outcome = 'won';
-      }
+      if (b.timer <= 0) this.finishAct();
       return;
     }
 
