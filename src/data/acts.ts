@@ -130,7 +130,7 @@ export const SCHOOL: ActDef = {
   bossName: 'The Gym Teacher',
   age: { from: 5, to: 12 },
   provisional:
-    'Every rate and time here is a placeholder built to make the act runnable; SCHOOL-ROSTER.md §5 leaves the schedule undesigned, and a person playing it is what moves these (D-022).',
+    "Every rate and time here is a placeholder built to make the act runnable, as are the substitute's attack, homework's arrival point and the monitor's stop (`ranged`, TRAIL_SECONDS, `contactStun`); SCHOOL-ROSTER.md §5 leaves the schedule undesigned, and a person playing it is what moves these (D-022).",
   // SCHOOL-ROSTER.md §3.6 gives an introduction ORDER and no table: clique
   // from the start, dodgeball early, homework from the first third, hall
   // monitor mid, substitute last — and pure contact until the substitute

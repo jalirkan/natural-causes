@@ -744,7 +744,8 @@ export class ActScene extends Phaser.Scene {
     // pointing hand flying at whatever is nearest — and Motility fires the
     // paper dart. The card icon and the field effect are the same drawing, so
     // a weapon chosen on a card is recognised the first time it fires. G-031
-    // unchanged: hostile gold stays on the Egg's shots and nothing else.
+    // unchanged: hostile gold stays on aimed shots — the Egg's and the
+    // substitute's — and nothing else.
     this.fit(this.projectileSprites, list.length, () => this.add.image(0, 0, 'nc-shot').setDepth(8));
     for (let i = 0; i < list.length; i++) {
       const p = list[i]!;
