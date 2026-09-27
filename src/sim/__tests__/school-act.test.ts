@@ -70,8 +70,9 @@ describe('the introduction order is §3.6, and it is the design', () => {
   it('opens the substitute last (§3.6: pure contact until it arrives)', () => {
     // "The act should be pure contact until the substitute arrives, so that
     // gold appearing means something." The substitute is the act's only
-    // ranged enemy — and its attack is not built (SCHOOL-ROSTER §7), so today
-    // "last stream to open" is the whole of what this test can say.
+    // ranged enemy; its attack is a labelled placeholder (SCHOOL-ROSTER §8)
+    // and is tested in school.test.ts. Here, "last stream to open" is the
+    // whole of what the schedule can say.
     const substitute = firstAppearance('substitute-teacher');
     for (const [id, stream] of spawnStreams(SCHOOL.waves)) {
       if (id === 'substitute-teacher') continue;

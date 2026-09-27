@@ -470,3 +470,14 @@ moment the art exists.
 **Amendment 2026-09-27 (D-024).** School is the second phase of one life, not
 a separately started act, and it is tuned in that life rather than after
 Conception is closed. The Egg still stands in as its boss.
+
+**Amendment 2026-09-27 — the three owed placeholders are built.** The
+substitute stops, consults the clipboard (the pause is the telegraph), fires
+one hostile shot at where the player is, and cools down (`ranged` on its
+def); a death to that shot names the substitute on the certificate. Homework
+lands where the player was `TRAIL_SECONDS` ago and merges there
+(`spawnAt: 'trail'`). The hall monitor's touch ignores input for
+`contactStun` seconds alongside the i-frames. Every number in the three is a
+labelled placeholder under `SCHOOL.provisional` — nobody has played them —
+and the intended projectile, the player's name spelled wrong, still waits on
+a player name (§3.5).

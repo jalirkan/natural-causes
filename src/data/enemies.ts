@@ -102,9 +102,11 @@ export interface EnemyDef {
   invulnerable?: boolean;
   /**
    * Where it enters (G-020). `edge` is the arena rim; `lead` is a fixed
-   * distance ahead of the player's current heading. Defaults to `edge`.
+   * distance ahead of the player's current heading; `trail` is where the
+   * player was `TRAIL_SECONDS` ago (world.ts), read off a short record of
+   * where they have been. Defaults to `edge`.
    */
-  spawnAt?: 'edge' | 'lead';
+  spawnAt?: 'edge' | 'lead' | 'trail';
   /** Zone hazards. Bursts on a timer, never on proximity. */
   burst?: { fuseSeconds: number; ringRadius: number; ringSeconds: number; ringDamage: number };
   /**
@@ -137,6 +139,29 @@ export interface EnemyDef {
    * which is the only reason the enemy exists.
    */
   merge?: boolean;
+  /**
+   * An aimed attack (substitute teacher, SCHOOL-ROSTER §3.5).
+   *
+   * With the player within `range` and no cooldown running, it stops and
+   * consults for `consultSeconds` — the standing still IS the telegraph, body
+   * language rather than a colour flash — then fires one hostile shot at
+   * where the player is at that moment, resumes its own movement, and cannot
+   * begin another consult for `cooldownSeconds`. The shot is never corrected.
+   */
+  ranged?: {
+    range: number;
+    consultSeconds: number;
+    cooldownSeconds: number;
+    projectileSpeed: number;
+    damage: number;
+  };
+  /**
+   * Seconds the player's input is ignored after this enemy's contact damage
+   * lands (hall monitor, §3.4: "stops the player dead for a moment").
+   * Alongside the hit's i-frames, never instead of them; a second touch
+   * refreshes the window and never extends it past this value.
+   */
+  contactStun?: number;
   /** One sentence. Required. */
   whyThisStage: string;
 }
@@ -295,12 +320,14 @@ export const ENEMIES: Record<string, EnemyDef> = {
     // Zero damage AND `none`: the two are not the same thing. See `Contact`.
     contact: 'none',
     merge: true,
-    // NOT BUILT YET, and owed a labelled placeholder rather than withheld
-    // (D-022): where it lands. §3.3 says homework "spawns where the player
-    // has recently been", and "recently" is the same class of dial as
-    // ANTIBODY_LEAD, which G-020 shows is the knob that decides whether an
-    // arrival mechanic exists at all. It lands at the default entry point
-    // until the placeholder is built and labelled.
+    // BUILT as a labelled placeholder (D-022): where it lands. §3.3 says
+    // homework "spawns where the player has recently been", so it lands where
+    // the player was TRAIL_SECONDS ago (world.ts) and merges there. "Recently"
+    // is the same class of dial as ANTIBODY_LEAD, which G-020 shows decides
+    // whether an arrival mechanic exists at all; its value is a PLACEHOLDER
+    // under SCHOOL's `provisional` label, and a person watching where the
+    // paper lands behind them is what moves it.
+    spawnAt: 'trail',
     whyThisStage:
       'School is the first stage that follows the player home and takes up the part of the day nobody was counting.',
   },
@@ -317,12 +344,13 @@ export const ENEMIES: Record<string, EnemyDef> = {
     displaySize: 88,
     xp: 11,
     movement: 'cross',
-    // NOT BUILT YET, and owed a labelled placeholder rather than withheld
-    // (D-022): "touching it stops the player dead for a moment" (§3.4). The
-    // moment is a duration the roster does not give. Contact is elite-tier
-    // damage and nothing else until the placeholder exists; the roadblock
-    // reads off the patrol line, which needs no number.
+    // BUILT as a labelled placeholder (D-022): "touching it stops the player
+    // dead for a moment" (§3.4). The moment is `contactStun`, a duration the
+    // roster does not give. PLACEHOLDER 0.4s under SCHOOL's `provisional`
+    // label — long enough to read as a stop, shorter than the 0.6s i-frames
+    // it rides alongside; a person walking into it at the link moves it.
     contact: 'damage',
+    contactStun: 0.4,
     patrol: true,
     whyThisStage:
       'School is where authority is first handed to someone with no more standing than the player, and it works anyway.',
@@ -341,15 +369,25 @@ export const ENEMIES: Record<string, EnemyDef> = {
     xp: 5,
     movement: 'cross',
     contact: 'damage',
-    // NOT BUILT YET: the attack, which is the entire reason this enemy is in
-    // the roster. §3.5 gates the intended projectile — the player's name,
-    // spelled wrong — on the run carrying a player name, which G-002's
-    // certificate needs and which does not exist; that is a design
-    // dependency, not a number. The roster asks for a placeholder attack
-    // meanwhile, and under D-022 one is owed, labelled, rather than withheld
-    // for want of its five numbers. Until then this is a slow enemy that does
-    // not pursue, and the act's ranged pressure — the whole point of School
-    // under G-010 — is not in the game.
+    // BUILT as a labelled placeholder (D-022): the attack, which is the
+    // entire reason this enemy is in the roster and the act's only ranged
+    // pressure (G-010). It stops, consults the clipboard, and fires one shot
+    // at where the player is; see `ranged` on EnemyDef. The intended
+    // projectile — the player's name, spelled wrong — still waits on the run
+    // carrying a player name (G-002); that is a design dependency, not a
+    // number, and this shot is a stand-in for a joke, not a joke. Gold is the
+    // shot's colour (G-031) and belongs to the renderer.
+    //
+    // PLACEHOLDER, all five, under SCHOOL's `provisional` label; none has
+    // been played, and a person dodging it at the link is what moves them:
+    //   range 420 — Lash's range, so it opens fire from about where the
+    //     starting weapon reaches it;
+    //   consultSeconds 0.8 — about the Egg's 0.85s telegraph;
+    //   cooldownSeconds 4 — "a few seconds";
+    //   projectileSpeed 260 — the Egg's shot speed;
+    //   damage 8 — under the dodgeball's 11, so the aimed thing is not the
+    //     worst thing in the room.
+    ranged: { range: 420, consultSeconds: 0.8, cooldownSeconds: 4, projectileSpeed: 260, damage: 8 },
     whyThisStage:
       'School is the first place the player is judged by someone who does not know who they are, and the substitute is that experience with a lanyard on.',
   },

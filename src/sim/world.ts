@@ -125,6 +125,37 @@ export const ANTIBODY_LEAD = 320;
  */
 export const BOSS_HP = 320;
 
+/**
+ * How long ago "recently" is, for an enemy that lands where the player has
+ * been (`spawnAt: 'trail'` — homework, SCHOOL-ROSTER §3.3).
+ *
+ * PLACEHOLDER (D-022), under SCHOOL's `provisional` label. The same class of
+ * dial as ANTIBODY_LEAD, which G-020 showed decides whether an arrival
+ * mechanic exists at all: too short and the pile lands on the player, too
+ * long and it lands somewhere they have already forgotten. A person watching
+ * where the paper lands behind them at the link is what moves it.
+ */
+export const TRAIL_SECONDS = 2.5;
+/**
+ * How often the player's position is written to the trail. By time rather
+ * than once per step because the browser steps by frame delta, and a buffer
+ * of N steps reaches back less far on a faster display. PLACEHOLDER as a
+ * resolution rather than a dial: at base speed it lands a pile within ~10px
+ * of where the player actually was. Move it only if that error shows.
+ */
+export const TRAIL_SAMPLE_SECONDS = 0.05;
+/** Enough samples that the oldest is always older than TRAIL_SECONDS. */
+const TRAIL_CAPACITY = Math.ceil(TRAIL_SECONDS / TRAIL_SAMPLE_SECONDS) + 2;
+/**
+ * The body of a `ranged` enemy's shot (the substitute, §3.5). The five numbers
+ * that matter are on the def; these two are what is left. PLACEHOLDER, under
+ * SCHOOL's `provisional` label: the radius is the Egg's shot radius, and the
+ * reach is twice the enemy's range so a shot fired at the edge of it still
+ * arrives. A person dodging it at the link is what moves them.
+ */
+export const RANGED_SHOT_RADIUS = 10;
+export const RANGED_SHOT_REACH = 2;
+
 export interface EnemyState {
   /** Monotonic. Lets a piercing shot avoid re-hitting without a Set per shot. */
   uid: number;
@@ -149,6 +180,13 @@ export interface EnemyState {
   radius: number;
   displaySize: number;
   xp: number;
+  /**
+   * `def.ranged` only (the substitute, §3.5): seconds left in the current
+   * consult, zero when it is not consulting, and seconds before it may begin
+   * another. Every other enemy carries two zeros and never reads them.
+   */
+  consult: number;
+  reload: number;
 }
 
 export interface ProjectileState {
@@ -160,8 +198,13 @@ export interface ProjectileState {
   damage: number;
   pierce: number;
   radius: number;
-  /** Boss shots. The only things in the act that aim at the player. */
+  /** Shots aimed at the player: the boss's, and a `ranged` enemy's. */
   hostile: boolean;
+  /**
+   * The enemy that fired a hostile shot, so a death to it names that enemy
+   * on the certificate. Absent on the boss's shots, which name the boss.
+   */
+  owner?: EnemyDef;
   /**
    * The item id that fired this, or 'boss'. Presentation metadata: the
    * renderer draws a Lash shot and a Motility shot as different objects, and
@@ -405,6 +448,22 @@ export class World {
   engulfSlow = 1;
   engulfDps = 0;
   dragStacks = 0;
+  /**
+   * Seconds left of a `contactStun` (the hall monitor, §3.4). While it runs
+   * `movePlayer` ignores input. Refreshed by a touch, never extended past it.
+   */
+  stunTimer = 0;
+  /**
+   * Where the player has been: a ring of (time, x, y), one sample every
+   * TRAIL_SAMPLE_SECONDS, for `spawnAt: 'trail'`. Typed arrays so the step
+   * that writes it does not allocate.
+   */
+  private readonly trailT = new Float64Array(TRAIL_CAPACITY);
+  private readonly trailX = new Float64Array(TRAIL_CAPACITY);
+  private readonly trailY = new Float64Array(TRAIL_CAPACITY);
+  /** Next slot to write. */
+  private trailHead = 0;
+  private trailCount = 0;
 
   level = 1;
   xp = 0;
@@ -553,6 +612,7 @@ export class World {
     // off `movePlayer` meant a frame with no input did not clamp at all, so any
     // other way of setting a position escaped the field.
     this.clampPlayer();
+    this.recordTrail();
     if (!this.boss) this.spawn(dt);
     this.moveEnemies(dt);
     // Rebuilt after movement so every query this step sees current positions.
@@ -572,6 +632,7 @@ export class World {
   }
 
   private movePlayer(dt: number, input: Input): void {
+    if (this.stunned(dt)) return;
     const len = Math.hypot(input.moveX, input.moveY);
     if (len === 0) return;
     const nx = input.moveX / len;
@@ -653,6 +714,13 @@ export class World {
       // made literal: the record was opened before they arrived.
       x = this.x + this.facingX * ANTIBODY_LEAD;
       y = this.y + this.facingY * ANTIBODY_LEAD;
+    } else if ((this.spawnOverride ?? def.spawnAt) === 'trail') {
+      // SCHOOL-ROSTER §3.3: where the player has recently been. Merging below
+      // happens on this point, so paper dropped behind a player who keeps
+      // coming back the same way becomes one growing pile.
+      const at = this.trailPosition();
+      x = at.x;
+      y = at.y;
     } else {
       const angle = this.rng() * Math.PI * 2;
       x = this.x + Math.cos(angle) * SPAWN_RADIUS;
@@ -713,6 +781,8 @@ export class World {
       radius: def.radius,
       displaySize: def.displaySize,
       xp: def.xp,
+      consult: 0,
+      reload: 0,
     });
   }
 
@@ -727,7 +797,11 @@ export class World {
       if (e.radius > this.maxEnemyRadius) this.maxEnemyRadius = e.radius;
       if (e.def.merge) this.solids.push(e);
 
-      if (e.def.movement === 'chase') {
+      const ranged = e.def.ranged;
+      if (ranged && this.consultClipboard(e, ranged, dt)) {
+        // Standing still with the clipboard up. The consult is the telegraph
+        // (§3.5), so it does not also walk through it.
+      } else if (e.def.movement === 'chase') {
         const d = Math.hypot(this.x - e.x, this.y - e.y) || 1;
         e.x += ((this.x - e.x) / d) * e.def.speed * dt;
         e.y += ((this.y - e.y) / d) * e.def.speed * dt;
@@ -1145,6 +1219,7 @@ export class World {
       }
       if (this.invulnerable > 0) continue;
       this.hurt(e.def.contactDamage, e.def);
+      if (e.def.contactStun !== undefined) this.stun(e.def.contactStun);
       // `break`, not `return`. Returning here skipped the boss-shot loop
       // below for the whole frame, so on any frame the player was touching a
       // rival a boss projectile passed through them and stayed alive to be
@@ -1153,14 +1228,16 @@ export class World {
       break;
     }
 
-    // Boss shots. The only things in the act that were aimed.
+    // Hostile shots: the boss's and a `ranged` enemy's. The only things in
+    // the game that were aimed. A shot with an owner names it on the
+    // certificate; the boss's have none and name the boss.
     for (let i = this.projectiles.length - 1; i >= 0; i--) {
       const p = this.projectiles[i]!;
       if (!p.hostile) continue;
       const r = p.radius + PLAYER_RADIUS;
       if ((p.x - this.x) ** 2 + (p.y - this.y) ** 2 > r * r) continue;
       swapRemove(this.projectiles, i);
-      if (this.invulnerable <= 0) this.hurt(p.damage, 'boss');
+      if (this.invulnerable <= 0) this.hurt(p.damage, p.owner ?? 'boss');
     }
   }
 
@@ -1194,6 +1271,104 @@ export class World {
       causeId: cause === 'boss' ? 'boss' : cause.id,
       cause: cause === 'boss' ? this.act.bossName : cause.name,
     };
+  }
+
+  // --- School's three placeholders (D-022) ------------------------------
+  //
+  // SCHOOL-ROSTER §3.3, §3.4, §3.5. Each is data-driven off an EnemyDef field
+  // and does nothing for an enemy without it, so Conception runs through
+  // these as no-ops. Every number they read is a PLACEHOLDER under SCHOOL's
+  // `provisional` label.
+
+  /**
+   * The substitute's attack, for any enemy with `ranged`. Returns true while
+   * it is standing still.
+   *
+   * Idle until the player is within range and no cooldown is running; then
+   * consults for `consultSeconds`, not moving; then fires one shot at where
+   * the player is when the consult ends, and resumes. The cooldown runs from
+   * the shot. Moving during the consult is how the telegraph is read; moving
+   * after the shot is how it is dodged, because it is never corrected.
+   */
+  private consultClipboard(e: EnemyState, r: NonNullable<EnemyDef['ranged']>, dt: number): boolean {
+    if (e.reload > 0) e.reload = Math.max(0, e.reload - dt);
+    if (e.consult > 0) {
+      e.consult -= dt;
+      if (e.consult > 0) return true;
+      e.consult = 0;
+      e.reload = r.cooldownSeconds;
+      this.fireRanged(e, r);
+      return true;
+    }
+    if (e.reload > 0) return false;
+    if ((e.x - this.x) ** 2 + (e.y - this.y) ** 2 > r.range * r.range) return false;
+    e.consult = r.consultSeconds;
+    return true;
+  }
+
+  /**
+   * One hostile shot. `source` is the enemy's id so the renderer can tell it
+   * from the Egg's (gold is the shot's colour, G-031, and is presentation);
+   * `owner` is what the certificate names.
+   */
+  private fireRanged(e: EnemyState, r: NonNullable<EnemyDef['ranged']>): void {
+    const d = Math.hypot(this.x - e.x, this.y - e.y) || 1;
+    this.projectiles.push({
+      x: e.x,
+      y: e.y,
+      vx: ((this.x - e.x) / d) * r.projectileSpeed,
+      vy: ((this.y - e.y) / d) * r.projectileSpeed,
+      life: (r.range * RANGED_SHOT_REACH) / r.projectileSpeed,
+      damage: r.damage,
+      pierce: 1,
+      radius: RANGED_SHOT_RADIUS,
+      hostile: true,
+      source: e.def.id,
+      owner: e.def,
+      serial: this.nextSerial++,
+    });
+  }
+
+  /** The hall monitor's stop. Refreshes the window; never stacks past it. */
+  private stun(seconds: number): void {
+    if (seconds > this.stunTimer) this.stunTimer = seconds;
+  }
+
+  /** True, and spends a step of it, while a stun is running. */
+  private stunned(dt: number): boolean {
+    if (this.stunTimer <= 0) return false;
+    this.stunTimer = Math.max(0, this.stunTimer - dt);
+    return true;
+  }
+
+  /** Writes the player's position to the trail, at most once per sample interval. */
+  private recordTrail(): void {
+    if (this.trailCount > 0) {
+      const newest = (this.trailHead + TRAIL_CAPACITY - 1) % TRAIL_CAPACITY;
+      if (this._time - this.trailT[newest]! < TRAIL_SAMPLE_SECONDS) return;
+    }
+    this.trailT[this.trailHead] = this._time;
+    this.trailX[this.trailHead] = this.x;
+    this.trailY[this.trailHead] = this.y;
+    this.trailHead = (this.trailHead + 1) % TRAIL_CAPACITY;
+    if (this.trailCount < TRAIL_CAPACITY) this.trailCount++;
+  }
+
+  /**
+   * Where the player was TRAIL_SECONDS ago: the newest sample at least that
+   * old. Early in a life, when nothing is that old, the oldest place on
+   * record; before the first step, where the player is.
+   */
+  private trailPosition(): { x: number; y: number } {
+    if (this.trailCount === 0) return { x: this.x, y: this.y };
+    const target = this._time - TRAIL_SECONDS;
+    let i = (this.trailHead + TRAIL_CAPACITY - 1) % TRAIL_CAPACITY;
+    for (let n = 0; n < this.trailCount; n++) {
+      if (this.trailT[i]! <= target) return { x: this.trailX[i]!, y: this.trailY[i]! };
+      i = (i + TRAIL_CAPACITY - 1) % TRAIL_CAPACITY;
+    }
+    const oldest = (this.trailHead + TRAIL_CAPACITY - this.trailCount) % TRAIL_CAPACITY;
+    return { x: this.trailX[oldest]!, y: this.trailY[oldest]! };
   }
 
   // --- the life ---------------------------------------------------------
@@ -1255,6 +1430,7 @@ export class World {
     this.engulfDps = 0;
     this.engulfBy = null;
     this.invulnerable = 0;
+    this.stunTimer = 0;
     this.hp = this.maxHp;
   }
 
