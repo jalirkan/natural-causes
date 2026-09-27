@@ -85,6 +85,12 @@ export const RESERVATIONS: Partial<Record<ActId, ActReservations>> = {
       // first aimed thing in the player's life announces itself by firing.
       boss: 'boss-egg',
       ranged: PROJECTILE_HOLDER,
+      // CONCEPTION-ROSTER §3.1 and §3.2, which this table omitted, so the
+      // generated spermicide and white cell shipped in act tones instead of
+      // the threat colours the design gave them (D-025). Reserved now so the
+      // drawn versions can wear them; the rival and the antibody hold none.
+      contact: 'spermicide',
+      elite: 'white-cell',
     },
   },
 

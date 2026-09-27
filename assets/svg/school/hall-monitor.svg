@@ -1,20 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
   <defs>
     <clipPath id="torso">
-      <path d="M 9 59 Q 9 40 28 40 L 72 40 Q 91 40 91 59 L 88 86 L 12 86 Z"/>
+      <path d="M 8 58 Q 8 40 26 40 L 74 40 Q 92 40 92 58 L 87 74 Q 86 80 81 80 L 19 80 Q 14 80 13 74 Z"/>
     </clipPath>
   </defs>
-  <!-- legs -->
-  <rect x="19" y="82" width="26" height="16" rx="4" fill="#6B7F53"/>
-  <rect x="55" y="82" width="26" height="16" rx="4" fill="#6B7F53"/>
-  <!-- torso -->
-  <path d="M 9 59 Q 9 40 28 40 L 72 40 Q 91 40 91 59 L 88 86 L 12 86 Z" fill="#7C5C8A"/>
-  <!-- the sash -->
-  <polygon points="-12,32 18,12 112,90 82,110" fill="#D2C6AC" clip-path="url(#torso)"/>
-  <!-- head -->
-  <rect x="29" y="2" width="42" height="35" rx="16" fill="#7C5C8A"/>
-  <!-- face, looking along its route -->
-  <circle cx="54" cy="17" r="3.8" fill="#2A2521"/>
-  <circle cx="66" cy="17" r="3.8" fill="#2A2521"/>
-  <rect x="53" y="26" width="14" height="3.4" fill="#2A2521"/>
+  <rect x="19.0" y="74" width="26" height="24" rx="4" fill="#6B7F53"/>
+  <rect x="55.0" y="74" width="26" height="24" rx="4" fill="#6B7F53"/>
+  <path d="M 8 58 Q 8 40 26 40 L 74 40 Q 92 40 92 58 L 87 74 Q 86 80 81 80 L 19 80 Q 14 80 13 74 Z" fill="#7C5C8A"/>
+  <polygon points="-38.5,-22.8 -54.6,0.2 142.0,137.8 158.0,114.9" fill="#D2C6AC" clip-path="url(#torso)"/>
+  <rect x="32" y="6" width="36" height="30" rx="15" fill="#7C5C8A"/>
+  <circle cx="52" cy="19" r="3.8" fill="#2A2521"/>
+  <circle cx="62.5" cy="19" r="3.8" fill="#2A2521"/>
+  <rect x="51" y="27" width="13" height="3.4" fill="#2A2521"/>
 </svg>

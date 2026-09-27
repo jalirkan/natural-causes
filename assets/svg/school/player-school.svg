@@ -2,7 +2,9 @@
   <!--
     The player, at school (G-003). The same face and the same one cowlick as
     the Conception sprite, on a stubby front-facing kid. No gear, no props.
-    CONFORM adds the outline; there is none here.
+    CONFORM adds the outline; there is none here. The cowlick is paper so
+    that outline makes it the same inked stalk as the sperm's. crispEdges
+    stops anti-aliased ink/paper edges quantising to stray greens.
     Colours are palette hex values: paper #EFE7D6, bone #D2C6AC,
     school-mid #6B7F53, ink #2A2521.
   -->
@@ -25,7 +27,8 @@
   <path d="M34,64 H66 Q70,64 71,68 L73,85 H27 L29,68 Q30,64 34,64 Z" fill="#D2C6AC"/>
   <!-- head -->
   <circle cx="50" cy="42" r="29" fill="#EFE7D6"/>
-  <!-- face: two tall dots and a small flat mouth, off-centre -->
+  <!-- face, as Conception's: two tall dots, a short flat mouth under the
+       left eye, and the small tick beside it. Deadpan. -->
   <ellipse cx="43.5" cy="44" rx="3.2" ry="9.5" fill="#2A2521"/>
   <ellipse cx="56.5" cy="44" rx="3.2" ry="9.5" fill="#2A2521"/>
   <rect x="42" y="60.5" width="8.5" height="2.2" fill="#2A2521"/>

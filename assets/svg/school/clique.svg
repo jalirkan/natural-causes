@@ -1,22 +1,39 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
-  <!-- body: one mound, shadow underside then school-mid over it -->
-  <path fill="#6E6353" d="M 8 72 C 8 62, 11 56, 17 54 L 83 52 C 89 54, 92 61, 92 71 C 92 80, 90 86, 83 87 C 76 88, 71 85, 64 87 C 57 89, 50 85, 43 87 C 36 89, 29 85, 22 87 C 13 88, 8 82, 8 72 Z"/>
-  <path fill="#6B7F53" d="M 8 71 C 8 62, 11 56, 17 54 L 83 52 C 89 54, 92 61, 92 70 C 92 76, 90 80, 83 81 C 76 82, 71 79, 64 81 C 57 83, 50 79, 43 81 C 36 83, 29 79, 22 81 C 13 82, 8 78, 8 71 Z"/>
-  <!-- chin shadows, where each head meets the mass -->
-  <circle cx="25" cy="50" r="13" fill="#6E6353"/>
-  <circle cx="43" cy="40" r="13" fill="#6E6353"/>
-  <circle cx="61" cy="45" r="13" fill="#6E6353"/>
-  <circle cx="78" cy="41" r="13" fill="#6E6353"/>
-  <!-- heads, right to left so each sits in front of the next -->
-  <circle cx="77" cy="37" r="13" fill="#6B7F53"/>
-  <circle cx="60" cy="41" r="13" fill="#6B7F53"/>
-  <circle cx="42" cy="36" r="13" fill="#6B7F53"/>
-  <circle cx="24" cy="46" r="13" fill="#6B7F53"/>
-  <!-- the one face, four times, all looking right -->
-  <g fill="#2A2521">
-    <circle cx="25.5" cy="43.5" r="2.5"/><circle cx="32.5" cy="43.5" r="2.5"/><rect x="26" y="50" width="8" height="3"/>
-    <circle cx="43.5" cy="33.5" r="2.5"/><circle cx="50.5" cy="33.5" r="2.5"/><rect x="44" y="40" width="8" height="3"/>
-    <circle cx="61.5" cy="38.5" r="2.5"/><circle cx="68.5" cy="38.5" r="2.5"/><rect x="62" y="45" width="8" height="3"/>
-    <circle cx="78.5" cy="34.5" r="2.5"/><circle cx="85.5" cy="34.5" r="2.5"/><rect x="79" y="41" width="8" height="3"/>
+  <!--
+    Clique (SCHOOL-ROSTER §3.1). Cluster: the only silhouette in the act with
+    more than one head. One wide lumpy mass in flat school-mid, fused at the
+    shoulder, with four heads on top at slightly different heights. All four
+    look the same way, off to the right, and none of them at the player.
+    One face, four times: two dots and a flat line, nothing else.
+    CONFORM adds the outline; there is none here.
+    Colours are palette hex values: school-mid #6B7F53, shadow #6E6353,
+    ink #2A2521.
+
+    The group scale makes one unit here five rendered pixels, and the mass is
+    exactly 84 units wide (the 88px grid less the 2px outline each side), so
+    one unit lands on one sprite pixel. Heads sit on whole units, so the
+    nearest-neighbour downscale gives every head the pixel-identical face.
+  -->
+  <g transform="scale(0.9765625)">
+    <!-- body: shadow underside, school-mid over it -->
+    <path fill="#6E6353" d="M 9 73 L 9 71 C 9 62, 12 56, 18 54 L 84 52 C 90 54, 93 61, 93 70 L 93 72 C 93 80, 91 86, 84 87 C 77 88, 72 85, 65 87 C 58 89, 51 85, 44 87 C 37 89, 30 85, 23 87 C 14 88, 9 82, 9 73 Z"/>
+    <path fill="#6B7F53" d="M 9 72 L 9 71 C 9 62, 12 56, 18 54 L 84 52 C 90 54, 93 61, 93 70 L 93 71 C 93 76, 91 80, 84 81 C 77 82, 72 79, 65 81 C 58 83, 51 79, 44 81 C 37 83, 30 79, 23 81 C 14 82, 9 78, 9 72 Z"/>
+    <!-- chin shadows, where each head meets the mass -->
+    <circle cx="26" cy="50" r="14" fill="#6E6353"/>
+    <circle cx="44" cy="40" r="14" fill="#6E6353"/>
+    <circle cx="62" cy="45" r="14" fill="#6E6353"/>
+    <circle cx="79" cy="41" r="14" fill="#6E6353"/>
+    <!-- heads, right to left so each sits in front of the next -->
+    <circle cx="78" cy="37" r="14" fill="#6B7F53"/>
+    <circle cx="61" cy="41" r="14" fill="#6B7F53"/>
+    <circle cx="43" cy="36" r="14" fill="#6B7F53"/>
+    <circle cx="25" cy="46" r="14" fill="#6B7F53"/>
+    <!-- the one face, four times, all looking right -->
+    <g fill="#2A2521">
+      <circle cx="27.5" cy="43.5" r="2.5"/><circle cx="34.5" cy="43.5" r="2.5"/><rect x="28" y="50" width="8" height="3"/>
+      <circle cx="45.5" cy="33.5" r="2.5"/><circle cx="52.5" cy="33.5" r="2.5"/><rect x="46" y="40" width="8" height="3"/>
+      <circle cx="63.5" cy="38.5" r="2.5"/><circle cx="70.5" cy="38.5" r="2.5"/><rect x="64" y="45" width="8" height="3"/>
+      <circle cx="80.5" cy="34.5" r="2.5"/><circle cx="87.5" cy="34.5" r="2.5"/><rect x="81" y="41" width="8" height="3"/>
+    </g>
   </g>
 </svg>
