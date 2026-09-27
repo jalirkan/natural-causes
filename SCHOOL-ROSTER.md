@@ -481,3 +481,33 @@ lands where the player was `TRAIL_SECONDS` ago and merges there
 labelled placeholder under `SCHOOL.provisional` — nobody has played them —
 and the intended projectile, the player's name spelled wrong, still waits on
 a player name (§3.5).
+
+## 9 · The Gym Teacher — 2026-09-27
+
+§5's first bullet is answered. The design, then its one open question.
+
+**What it is.** School's boss, standing where the boss spawns and never moving.
+Drawn as the whistle, the stopwatch and the shorts (law 9: the role, not the
+person); eyes on the watch, never on you (indifference kept as this boss's
+flavour). Boss teal body like the Egg's; the whistle is the act's gold, and
+it is the only gold on the boss.
+
+**What it does.** It never touches you. Its telegraph is the whistle rising;
+its attack is the whistle: every dodgeball on the field is relaunched at full
+speed at the player and three more are thrown from its hands. It cannot be
+damaged while any dodgeball is alive — nobody leaves until the equipment is
+put away — so the fight is clear the balls, hit him in the gap, repeat, and
+the gap shortens as his health falls. At zero he does not die: he clicks the
+stopwatch and the act ends on one word, PARTICIPATION. A death in the fight
+names the dodgeball on the certificate, and that is correct: he did not hit
+you, he made everyone else hit you and called it character.
+
+**Numbers.** All placeholders under `SCHOOL.provisional`: whistle every 6s
+shortening to 3s at low health, telegraph the Egg's 0.85s, health `BOSS_HP`,
+thrown balls the dodgeball's own def. The sim cost is the existing
+idle → telegraph → attack machine with the attack pointed at the act's own
+enemies, and one invulnerability check over the enemy list.
+
+**Open question.** Whether "cannot be damaged while a ball is alive" makes a
+fight or a chore. The bots can say whether it ends; only a person can say
+which.
