@@ -525,3 +525,11 @@ enemies, and one invulnerability check over the enemy list.
 **Open question.** Whether "cannot be damaged while a ball is alive" makes a
 fight or a chore. The bots can say whether it ends; only a person can say
 which.
+
+**Built 2026-09-27.** `SCHOOL.boss` declares him and the sim runs it: the
+whistle relaunches every dodgeball at the player at its own speed and throws
+three from him; no damage while one lives (`BossState.shielded`); never raced
+for; zero ends the act on `SCHOOL.endWord`. Placeholders: whistle 6s→3s,
+telegraph 0.85s, three thrown in the Egg's 0.16 fan, `BOSS_HP`. Bots: it ends
+in 44 of 52 arrivals (median 22s); 8 hit the 120s cap, balls bounded (≤24) but
+never all cleared, shield up 96–100%, because no bot hunts the last ball.
