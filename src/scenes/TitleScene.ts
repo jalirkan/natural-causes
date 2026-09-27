@@ -4,6 +4,7 @@ import { actVisuals } from '../data/act-visuals';
 import { sfx } from '../audio/sfx';
 import { INK, VIEW_HEIGHT, VIEW_WIDTH } from '../config';
 import { addVignette, ensureFieldTile } from './dressing';
+import { obituary, recentLives } from '../meta/ancestors';
 
 /**
  * The front door. Until this existed the game booted straight into the field,
@@ -18,6 +19,9 @@ import { addVignette, ensureFieldTile } from './dressing';
  * mean something rather than being a label on a list nothing consults.
  */
 const FIRST_ACT = ACTS[0]!;
+
+/** How many ancestors the title remembers aloud. */
+const OBITUARIES = 6;
 
 export class TitleScene extends Phaser.Scene {
   constructor() {
@@ -84,13 +88,33 @@ export class TitleScene extends Phaser.Scene {
       ease: 'Sine.easeInOut',
     });
 
-    text(
+    const controls = text(
       520,
       'WASD or arrows (or drag anywhere) to move   ·   you fire automatically\n1/2/3 or tap a card to upgrade   ·   P pauses   ·   M mutes',
       15,
       0.8,
     );
-    const prompt = text(600, 'press any key or tap', 18);
+
+    // The ancestors: the lives already lived here, newest first, so "try
+    // again" has a history. Nothing at all on a first visit. The prompt only
+    // moves down when the lines need the room.
+    let promptY = 600;
+    const lives = recentLives(OBITUARIES);
+    if (lives.length > 0) {
+      const top = controls.y + controls.displayHeight / 2 + 14;
+      const obits = this.add
+        .text(cx, top, ['before you:', ...lives.map(obituary)].join('\n'), {
+          fontFamily: 'monospace',
+          fontSize: '13px',
+          color: '#EFE7D6',
+          align: 'center',
+          lineSpacing: 1,
+        })
+        .setOrigin(0.5, 0)
+        .setAlpha(0.6);
+      promptY = Math.min(VIEW_HEIGHT - 20, Math.max(promptY, top + obits.displayHeight + 22));
+    }
+    const prompt = text(promptY, 'press any key or tap', 18);
     this.tweens.add({ targets: prompt, alpha: 0.35, duration: 900, yoyo: true, repeat: -1 });
 
     const begin = () => {
