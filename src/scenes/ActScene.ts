@@ -117,7 +117,7 @@ export class ActScene extends Phaser.Scene {
    * it must not know sound exists — so the renderer notices changes the same
    * way it notices everything else: by reading state and diffing.
    */
-  private heard = { kills: 0, hp: 0, stacks: 0, offers: false, boss: false, dead: false, won: false, xp: 0, level: 1, raced: 0, shot: 0, homework: 0, stun: 0 };
+  private heard = { kills: 0, hp: 0, stacks: 0, offers: false, boss: false, dead: false, won: false, xp: 0, level: 1, raced: 0, shot: 0, homework: 0, stun: 0, bossPhase: '' };
 
   /**
    * How long this run held each heading (§12.4's sixth question). Fed the
@@ -258,7 +258,7 @@ export class ActScene extends Phaser.Scene {
     delete this.offerHeader;
 
     this.dev = neutralDevState();
-    this.heard = { kills: 0, hp: this.world.hp, stacks: 0, offers: false, boss: false, dead: false, won: false, xp: 0, level: 1, raced: 0, shot: 0, homework: 0, stun: 0 };
+    this.heard = { kills: 0, hp: this.world.hp, stacks: 0, offers: false, boss: false, dead: false, won: false, xp: 0, level: 1, raced: 0, shot: 0, homework: 0, stun: 0, bossPhase: '' };
     this.inputLog = new InputLog();
     if (import.meta.env.DEV) {
       this.detachDev?.();
@@ -342,6 +342,34 @@ export class ActScene extends Phaser.Scene {
       tweens: [
         { alpha: 0.9, duration: 350 },
         { alpha: 0, delay: 1600, duration: 700 },
+      ],
+      onComplete: () => card.destroy(),
+    });
+  }
+
+  /**
+   * One word across the middle as the act ends on it. The stopwatch click
+   * and the word are the whole ceremony; it stays up as long as the exit.
+   */
+  private announceWord(word: string): void {
+    const cam = this.cameras.main;
+    const card = this.add
+      .text(cam.width / 2, cam.height / 2 - 60, word, {
+        fontFamily: 'monospace',
+        fontSize: '44px',
+        color: '#EFE7D6',
+        align: 'center',
+        letterSpacing: 10,
+      })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(150)
+      .setAlpha(0);
+    this.tweens.chain({
+      targets: card,
+      tweens: [
+        { alpha: 0.95, duration: 250 },
+        { alpha: 0, delay: 1400, duration: 500 },
       ],
       onComplete: () => card.destroy(),
     });
@@ -641,7 +669,14 @@ export class ActScene extends Phaser.Scene {
     }
     if (bossFired) sfx.bossShot();
     if (enemyFired) sfx.substituteShot();
-    // TODO(whistle): the School boss's telegraph plays sfx.whistle() here (sfx.whistle(true) on the PARTICIPATION ending) once the sim exposes it.
+    // The Gym Teacher's whistle (SCHOOL-ROSTER §9): rising on the telegraph,
+    // one long blow on the exit. Read off the phase edge like everything else;
+    // the Egg's phases make no sound of their own.
+    const bossPhase = w.boss?.phase ?? '';
+    if (w.boss?.kind === 'gym-teacher' && bossPhase !== h.bossPhase) {
+      if (bossPhase === 'telegraph') sfx.whistle();
+      else if (bossPhase === 'absorbing') sfx.whistle(true);
+    }
     // The hall monitor's stop, on its leading edge. A touch during a running
     // stun refreshes it without an edge, and stays silent.
     if (w.stunTimer > 0 && h.stun <= 0) sfx.stun();
@@ -667,6 +702,7 @@ export class ActScene extends Phaser.Scene {
       shot,
       homework,
       stun: w.stunTimer,
+      bossPhase,
     };
   }
 
@@ -1070,6 +1106,8 @@ export class ActScene extends Phaser.Scene {
       // The ending leans in. Presentation only — the outcome latched already.
       this.absorbZoomed = true;
       this.cameras.main.zoomTo(1.1, 1500, 'Sine.easeInOut');
+      // The act's one word, if it has one (ActDef.endWord: PARTICIPATION).
+      if (this.world.act.endWord) this.announceWord(this.world.act.endWord);
     }
     this.bossSprite
       .setPosition(b.x, b.y)
@@ -1260,7 +1298,13 @@ export class ActScene extends Phaser.Scene {
     this.bars.fillStyle(INK, 0.55).fillRect(22, 43, 216, 4);
     this.bars.fillStyle(UI_FILL, 1).fillRect(22, 43, (216 * w.xp) / w.xpToNext, 4);
     // The boss carries its own bar across the top, under its name.
-    this.hudBossLabel.setText(w.act.bossName.toLowerCase()).setVisible(!!w.boss);
+    // Shielded (the Gym Teacher with a ball still on the floor): the bar
+    // dims and the label says why, because hitting him does nothing and the
+    // bots showed a player who never learns that sits in the fight forever.
+    const bossLabel = w.boss?.shielded
+      ? `${w.act.bossName.toLowerCase()} \u00b7 put the equipment away`
+      : w.act.bossName.toLowerCase();
+    this.hudBossLabel.setText(bossLabel).setVisible(!!w.boss);
     if (w.boss) {
       const width = this.cameras.main.width - 480;
       this.bars.fillStyle(INK, 0.6).fillRoundedRect(240, 68, width, 8, 4);
@@ -1268,7 +1312,7 @@ export class ActScene extends Phaser.Scene {
       // says UI chrome, without an exception. Flagged rather than argued.
       const frac = w.boss.hp / w.boss.maxHp;
       if (frac > 0.02) {
-        this.bars.fillStyle(UI_FILL, 1).fillRoundedRect(240, 68, width * frac, 8, 4);
+        this.bars.fillStyle(UI_FILL, w.boss.shielded ? 0.35 : 1).fillRoundedRect(240, 68, width * frac, 8, 4);
       }
     }
     // The race (G-006): how close someone else is to getting there first.
