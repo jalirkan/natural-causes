@@ -5,11 +5,11 @@
 > **Play it: <https://jalirkan.github.io/natural-causes/>** — the current
 > `main`, published by [`deploy.yml`](./.github/workflows/deploy.yml) on every
 > push once a repository admin has pointed Pages at GitHub Actions (see CI,
-> below). One run is one life (D-024); today that life is Conception then
-> School, about ten minutes. Keyboard, or one thumb on a phone.
+> below). One run is one life (D-024); today that life is Conception, School
+> and Adolescence, about fourteen minutes. Keyboard, or one thumb on a phone.
 >
-> **Status: a two-act life — Conception, then School — playable at the link.
-> Every sprite in the field but the substitute's is authored SVG (D-025). Every number is a labelled placeholder.**
+> **Status: a three-act life — Conception, School, Adolescence — playable at
+> the link. Every sprite in it is authored SVG (D-025). Every number is a labelled placeholder.**
 > Plan in [`PLAN.md`](./PLAN.md) (read its 2026-09-27 amendment first), art
 > spec in [`ART-DIRECTION.md`](./ART-DIRECTION.md) (binding), decisions in
 > [`DECISIONS.md`](./DECISIONS.md). Name is provisional.
@@ -134,10 +134,15 @@ teacher who stands still, checks the clipboard, and fires. Its boss is the
 Gym Teacher (SCHOOL-ROSTER §9): he never touches you; his whistle sends every
 dodgeball on the floor at you and throws three more, and he cannot be hurt
 while one is still rolling. Clear the balls, hit him in the gap, and the act
-ends on one word. Outlive School and you die of natural causes, aged twelve.
-Dying earlier, the certificate names what did it.
+ends on one word. Then Adolescence, thirteen to eighteen on a shorter clock:
+hormones come out of your own footsteps, acne waits where you are heading and
+can only be cleared by wearing it, a group chat follows you and types before
+it fires, a standardised test sits you, and driver's ed crosses the room at a
+speed nobody can walk. Its boss is Prom, a mirror ball the hormones race for.
+Outlive it and you die of natural causes, aged eighteen. Dying earlier, the
+certificate names what did it.
 
-#### After you play — seven things to say
+#### After you play — eight things to say
 
 These replace the six calibration questions in `CONCEPTION-ROSTER.md` §12.4.
 Nothing here asks for a number; every one is about the run you just had.
@@ -153,11 +158,14 @@ Nothing here asks for a number; every one is about the run you just had.
 6. **Did anything make you laugh?** Once is enough. Say what.
 7. **The Gym Teacher: a fight or a chore?** The bots clear the balls and win
    in about twenty seconds, or never learn to and sit there. Which were you?
+8. **Adolescence: did being followed feel like being looked at, or like the
+   rival sperm again?** Three of its five enemies follow you. That is the
+   act's whole bet, and only a person can say whether it landed.
 
 §12.4's sixth question — how long you hold a heading — is not asked, because
-it is answered by an input log the game does not write yet. It is what sets
-the bots' decision cadence, and until the log exists the cadence stays a
-labelled placeholder.
+the game answers it itself now: an input log records every heading you hold
+and the dev panel shows your median beside the bots' cadence, which stays a
+labelled placeholder until a person's number has been read.
 
 ### Dev mode
 
