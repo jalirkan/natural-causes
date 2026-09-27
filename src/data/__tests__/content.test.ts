@@ -329,6 +329,17 @@ describe('acts', () => {
     }
   });
 
+  it("a race names an enemy that exists, is the act's own and is scheduled, and needs at least one to arrive", () => {
+    for (const act of ALL_ACTS) {
+      if (!act.race) continue;
+      const { enemyId, absorb } = act.race;
+      expect(ENEMIES[enemyId], `act "${act.id}" races unknown "${enemyId}"`).toBeDefined();
+      expect(ENEMIES[enemyId]?.act, `act "${act.id}" races "${enemyId}"`).toBe(act.id);
+      expect(spawnStreams(act.waves).has(enemyId), `act "${act.id}" races "${enemyId}", which never spawns`).toBe(true);
+      expect(absorb, `act "${act.id}" race absorb`).toBeGreaterThan(0);
+    }
+  });
+
   it('every wave spawns an enemy of its own act', () => {
     for (const act of ALL_ACTS) {
       for (const wave of act.waves) {

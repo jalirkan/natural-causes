@@ -112,13 +112,14 @@ export class ActScene extends Phaser.Scene {
    * it must not know sound exists — so the renderer notices changes the same
    * way it notices everything else: by reading state and diffing.
    */
-  private heard = { kills: 0, hp: 0, stacks: 0, offers: false, boss: false, dead: false, won: false, xp: 0, level: 1 };
+  private heard = { kills: 0, hp: 0, stacks: 0, offers: false, boss: false, dead: false, won: false, xp: 0, level: 1, raced: 0 };
 
   private hudLevel!: Phaser.GameObjects.Text;
   private hudClock!: Phaser.GameObjects.Text;
   private hudRight!: Phaser.GameObjects.Text;
   private hudDrag!: Phaser.GameObjects.Text;
   private hudBossLabel!: Phaser.GameObjects.Text;
+  private hudRaceLabel!: Phaser.GameObjects.Text;
   private bars!: Phaser.GameObjects.Graphics;
   private overlay!: Phaser.GameObjects.Text;
   private endScrim!: Phaser.GameObjects.Rectangle;
@@ -245,7 +246,7 @@ export class ActScene extends Phaser.Scene {
     delete this.offerHeader;
 
     this.dev = neutralDevState();
-    this.heard = { kills: 0, hp: this.world.hp, stacks: 0, offers: false, boss: false, dead: false, won: false, xp: 0, level: 1 };
+    this.heard = { kills: 0, hp: this.world.hp, stacks: 0, offers: false, boss: false, dead: false, won: false, xp: 0, level: 1, raced: 0 };
     if (import.meta.env.DEV) {
       this.detachDev?.();
       void import('../dev/panel').then(({ attachDevPanel }) => {
@@ -479,6 +480,12 @@ export class ActScene extends Phaser.Scene {
       .setScrollFactor(0)
       .setDepth(100)
       .setVisible(false);
+    this.hudRaceLabel = this.add
+      .text(cam.width / 2, 86, 'someone else', style(10, '#D2C6AC'))
+      .setOrigin(0.5, 0)
+      .setScrollFactor(0)
+      .setDepth(100)
+      .setVisible(false);
     this.bars = this.add.graphics().setScrollFactor(0).setDepth(100);
 
     this.endScrim = this.add
@@ -578,6 +585,8 @@ export class ActScene extends Phaser.Scene {
     }
     if (!!w.offers && !h.offers) sfx.offer();
     if (w.boss && !h.boss) sfx.bossSpawn();
+    // A rival got there. The Egg flinches; the bar under its name moves.
+    if (w.boss && w.raceAbsorbed > h.raced) this.spawnPuff(w.boss.x, w.boss.y);
     if (w.projectiles.some((p) => p.hostile && p.life > 3.9)) sfx.bossShot();
     if (w.dead && !h.dead) sfx.death();
     if (w.won && !h.won) sfx.win();
@@ -591,6 +600,7 @@ export class ActScene extends Phaser.Scene {
       won: w.won,
       xp: w.xp,
       level: w.level,
+      raced: w.raceAbsorbed,
     };
   }
 
@@ -1189,6 +1199,16 @@ export class ActScene extends Phaser.Scene {
       if (frac > 0.02) {
         this.bars.fillStyle(UI_FILL, 1).fillRoundedRect(240, 68, width * frac, 8, 4);
       }
+    }
+    // The race (G-006): how close someone else is to getting there first.
+    // Thinner than the boss bar and under it; chrome colours only (law 10).
+    const racing = !!w.boss && w.raceTarget > 0;
+    this.hudRaceLabel.setVisible(racing);
+    if (racing) {
+      const width = this.cameras.main.width - 480;
+      this.bars.fillStyle(INK, 0.6).fillRoundedRect(240, 80, width, 4, 2);
+      const frac = Math.min(1, w.raceAbsorbed / w.raceTarget);
+      if (frac > 0) this.bars.fillStyle(PAPER, 0.85).fillRect(240, 80, width * frac, 4);
     }
 
     // Cards, not a text panel. drawHud runs every frame; the key turns

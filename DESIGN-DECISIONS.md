@@ -1133,3 +1133,17 @@ Rejected: renaming per act (Classroom Reel) — seven costumes of one item is a
 lookup table the player has to learn, and Conception would show none of it.
 Rejected: the evolution as one card among three — then it is a shop item, and
 the joke that it happens to you is gone.
+
+## G-040 · 2026-09-27 · The Egg is a race the rivals also run
+When the Egg appears, every living rival sperm swims for it. Each one that
+reaches it is absorbed (no gem, no kill) and fills a "someone else" meter
+under the boss bar; sixty of them (a placeholder, in `race.absorb`) and the
+certificate reads "Cause of death: Someone else." The Egg still holds still
+and still fires its spread (G-010), and the spread now kills rivals too, so
+standing in its fire is a strategy. G-006's absorption and G-033's latch
+stand: once the Egg reaches zero the race stops counting. The race lives in
+the act's data, so School's stand-in Egg does not race.
+Rejected: the Egg moving or enraging (G-019's objection holds) — a boss that
+chases makes the fight about the Egg; the joke is that it is about everyone else.
+Rejected: a plain timer on the fight — a deadline with no crowd is a number,
+and the rivals turning away from you is the first thing in the act that ignores you.

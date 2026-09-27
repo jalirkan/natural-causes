@@ -57,8 +57,9 @@ export interface ActDef {
    * What the act's boss is called on the certificate when it kills you.
    *
    * The boss's BEHAVIOUR is still the Egg's for every act (world.ts spawns one
-   * boss and it has one attack); this is only the name the record uses, so a
-   * death at the end of School can say what it was and not "the Egg".
+   * boss and it has one attack; `race` is what varies it); this is only the
+   * name the record uses, so a death at the end of School can say what it
+   * was and not "the Egg".
    */
   bossName: string;
   /**
@@ -78,6 +79,13 @@ export interface ActDef {
    * not before, and not because the bots liked them.
    */
   provisional?: string;
+  /**
+   * The boss fight is a race (G-006). When the boss appears, every living
+   * enemy of `enemyId` stops chasing the player and swims for it; if `absorb`
+   * of them reach it before the player empties it, someone else got there
+   * first and the life ends. Absent means the boss is only a fight.
+   */
+  race?: { enemyId: string; absorb: number };
 }
 
 export const CONCEPTION: ActDef = {
@@ -86,8 +94,10 @@ export const CONCEPTION: ActDef = {
   durationSeconds: 300,
   bossName: 'The Egg',
   age: { from: 0, to: 0 },
+  // PLACEHOLDER: 60 is invented; named in `provisional` below.
+  race: { enemyId: 'rival-sperm', absorb: 60 },
   provisional:
-    'The rates, the antibody drag floor and curvature (ANTIBODY_FLOOR and ANTIBODY_DRAG_K in world.ts), the bot cadence and the boss HP were all set from bot runs, the XP curve and the weapon level tables (xpToNextLevel in world.ts, `levels` in items.ts) were written as placeholders, and nobody has played the act; a person playing it at the link is what moves them (§11.5, G-028, G-038).',
+    'The rates, the antibody drag floor and curvature (ANTIBODY_FLOOR and ANTIBODY_DRAG_K in world.ts), the bot cadence, the boss HP and the absorb count of the race (`race.absorb`) were all set from bot runs, the XP curve and the weapon level tables (xpToNextLevel in world.ts, `levels` in items.ts) were written as placeholders, and nobody has played the act; a person playing it at the link is what moves them (§11.5, G-028, G-038).',
   // CONCEPTION-ROSTER.md §3.5. One track per enemy, read as concurrent
   // streams. A new pressure roughly every forty-five seconds for the first
   // half, then only escalation: nothing new arrives after 130s, so the last

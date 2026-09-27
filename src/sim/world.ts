@@ -237,14 +237,14 @@ export interface Certificate {
   /** Index of the act it happened in; how far the life got. */
   actIndex: number;
   age: number;
-  /** Enemy id, 'boss', or 'natural-causes'. */
+  /** Enemy id, 'boss', 'someone-else' (the race was lost) or 'natural-causes'. */
   causeId: string;
   /** What the certificate prints after "of". */
   cause: string;
 }
 
 /** The thing that hurt the player, carried to `die` so the certificate can name it. */
-type Cause = EnemyDef | 'boss';
+type Cause = EnemyDef | 'boss' | 'someone-else';
 
 export interface AreaState {
   x: number;
@@ -474,6 +474,11 @@ export class World {
   /** Everything circling the player this step. Read-only outside the sim. */
   orbiters: OrbiterState[] = [];
   boss: BossState | null = null;
+  /**
+   * Racers that reached the boss this act (`ActDef.race`). Reset per act.
+   * Read by the renderer against `raceTarget`.
+   */
+  raceAbsorbed = 0;
 
   readonly bossPull: number;
   readonly spawnOverride: 'edge' | 'lead' | undefined;
@@ -495,6 +500,20 @@ export class World {
   /** The act that is playing. */
   get act(): ActDef {
     return this.life[this.actIndex]!;
+  }
+
+  /** How many racers reaching the boss loses the act; 0 when it has no race. */
+  get raceTarget(): number {
+    return this.act.race?.absorb ?? 0;
+  }
+
+  /**
+   * True for an enemy swimming for the boss rather than the player: the act
+   * has a race, the boss is up, and this is the racing kind. Derived rather
+   * than flagged at spawn, so it cannot disagree with the act it is in.
+   */
+  private isRacing(e: EnemyState): boolean {
+    return this.boss !== null && this.act.race !== undefined && e.def.id === this.act.race.enemyId;
   }
 
   /** How many acts the life has got through, not counting the one playing. */
@@ -617,6 +636,8 @@ export class World {
     this.clampPlayer();
     if (!this.boss) this.spawn(dt);
     this.moveEnemies(dt);
+    this.resolveRace();
+    if (this.dead) return;
     // Rebuilt after movement so every query this step sees current positions.
     this.grid.build(this.enemies);
     this.resolveSolids();
@@ -790,10 +811,14 @@ export class World {
       if (e.radius > this.maxEnemyRadius) this.maxEnemyRadius = e.radius;
       if (e.def.merge) this.solids.push(e);
 
-      if (e.def.movement === 'chase') {
-        const d = Math.hypot(this.x - e.x, this.y - e.y) || 1;
-        e.x += ((this.x - e.x) / d) * e.def.speed * dt;
-        e.y += ((this.y - e.y) / d) * e.def.speed * dt;
+      if (e.def.movement === 'chase' || this.isRacing(e)) {
+        // The same steering either way; a racer's target is the boss (G-006).
+        const racing = this.isRacing(e);
+        const tx = racing ? this.boss!.x : this.x;
+        const ty = racing ? this.boss!.y : this.y;
+        const d = Math.hypot(tx - e.x, ty - e.y) || 1;
+        e.x += ((tx - e.x) / d) * e.def.speed * dt;
+        e.y += ((ty - e.y) / d) * e.def.speed * dt;
       } else if (e.def.movement !== 'static') {
         e.x += e.vx * dt;
         e.y += e.vy * dt;
@@ -843,6 +868,30 @@ export class World {
         Math.hypot(e.x - this.x, e.y - this.y) > DESPAWN_RADIUS
       ) {
         swapRemove(this.enemies, i);
+      }
+    }
+  }
+
+  /**
+   * The race (`ActDef.race`, G-006): a racer touching the boss's corona is
+   * gone — no gem, no kill, it simply got there — and counts toward the act's
+   * `absorb`. Reaching it is someone else's life, and the player's ends.
+   * Nothing counts once the outcome is decided (G-033's latch).
+   */
+  private resolveRace(): void {
+    const b = this.boss;
+    const race = this.act.race;
+    if (!b || !race || this.outcomeDecided) return;
+    for (let i = this.enemies.length - 1; i >= 0; i--) {
+      const e = this.enemies[i]!;
+      if (e.def.id !== race.enemyId || e.hp <= 0) continue;
+      const r = BOSS_RADIUS + e.radius;
+      if ((e.x - b.x) ** 2 + (e.y - b.y) ** 2 > r * r) continue;
+      swapRemove(this.enemies, i);
+      this.raceAbsorbed++;
+      if (this.raceAbsorbed >= race.absorb) {
+        this.die('someone-else');
+        return;
       }
     }
   }
@@ -1283,7 +1332,10 @@ export class World {
   private resolveHits(): void {
     for (let pi = this.projectiles.length - 1; pi >= 0; pi--) {
       const p = this.projectiles[pi]!;
-      if (p.hostile) continue;
+      if (p.hostile) {
+        this.hitRacer(p, pi);
+        continue;
+      }
       this.grid.query(p.x, p.y, p.radius + this.queryPad, this.near);
       for (const e of this.near) {
         // You cannot shoot a document (G-018).
@@ -1303,6 +1355,26 @@ export class World {
       }
     }
     this.reapDead();
+  }
+
+  /**
+   * A boss shot thins the race: it hits the first racer it touches, for its
+   * full damage, and is consumed exactly as it is on the player. It hits
+   * nothing else in the crowd. Killed racers go through `reapDead` like any
+   * other kill, so they drop their gem.
+   */
+  private hitRacer(p: ProjectileState, pi: number): void {
+    if (!this.boss || !this.act.race) return;
+    this.grid.query(p.x, p.y, p.radius + this.queryPad, this.near);
+    for (const e of this.near) {
+      if (e.hp <= 0 || e.def.invulnerable || !this.isRacing(e)) continue;
+      const r = e.radius + p.radius;
+      if ((e.x - p.x) ** 2 + (e.y - p.y) ** 2 > r * r) continue;
+      e.hp -= p.damage;
+      e.hitFlash = 0.08;
+      swapRemove(this.projectiles, pi);
+      return;
+    }
   }
 
   /**
@@ -1451,8 +1523,8 @@ export class World {
       actName: this.act.name,
       actIndex: this.actIndex,
       age: this.age,
-      causeId: cause === 'boss' ? 'boss' : cause.id,
-      cause: cause === 'boss' ? this.act.bossName : cause.name,
+      causeId: typeof cause === 'string' ? cause : cause.id,
+      cause: cause === 'boss' ? this.act.bossName : cause === 'someone-else' ? 'Someone else' : cause.name,
     };
   }
 
@@ -1513,6 +1585,7 @@ export class World {
     this.maxEnemyRadius = 0;
     this.grid.build(this.enemies);
     this.boss = null;
+    this.raceAbsorbed = 0;
     this.dragStacks = 0;
     this.engulfTimer = 0;
     this.engulfSlow = 1;
