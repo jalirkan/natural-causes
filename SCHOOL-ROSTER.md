@@ -457,8 +457,8 @@ here.
 §7's "no `ActDef`" is reversed by D-022. `SCHOOL` in `src/data/acts.ts` has a
 schedule following §3.6's introduction order — clique from 0s, dodgeball at
 25s, homework at 100s, hall monitor at 150s, substitute at 220s, pure contact
-until then — with the smallest rates that make it runnable, labelled
-`provisional` in the data. The bots run it (`--act=school`); the first reading
+until then — with placeholder rates that escalate in the shape Conception's
+did, labelled `provisional` in the data. The bots run it (`--act=school`); the first reading
 is at the top of `PLAYTEST-FINDINGS.md`. The title cannot start it: four of
 the five sprites have never been generated, there is no boss, and a test keeps
 it out of `ACTS` until `ACT_VISUALS` has a `school` entry. Everything else §7

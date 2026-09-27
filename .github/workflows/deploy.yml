@@ -6,8 +6,8 @@
 # size?", "is any of it funny?") therefore required that person to sit down at
 # that machine, and none of the questions got answered. This file makes the
 # current main branch playable from a URL within a few minutes of landing, so
-# reacting to the game is something that happens on a phone in a queue rather
-# than in a scheduled session.
+# reacting to the game is something that happens in a browser tab rather than
+# in a scheduled sitting at the one machine with a checkout.
 #
 # The deploy is deliberately not gated on ci.yml. CI answers "is the code
 # right"; this answers "can Justin play what is on main". A red CI and a live
@@ -18,12 +18,11 @@
 # behind `import.meta.env.DEV` (README, "Dev mode").
 #
 # First-time setup, once, by a repository admin: Settings -> Pages -> Source
-# -> "GitHub Actions". `configure-pages` below asks for that itself
-# (`enablement: true`), but the default GITHUB_TOKEN is not allowed to change
-# repository settings, so expect the FIRST run to fail at that step until it
-# has been done by hand; re-run the workflow afterwards. Pages serves a public
-# site: from a public repository on any plan, from a private one only on a
-# paid plan, and the site is public either way.
+# -> "GitHub Actions". The default GITHUB_TOKEN cannot create the Pages site
+# (configure-pages' `enablement` input needs a token with admin rights, which
+# is why it is not used below), so until that setting exists the run fails at
+# Configure Pages; re-run the workflow once it does. Pages serves a public
+# site from a public repository on any plan.
 
 name: Deploy
 
@@ -49,7 +48,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Same toolchain pins as ci.yml, for the same reasons given there.
+      # Node 24 follows package.json's engines field (>=24); pnpm 11 follows
+      # the lockfile and pnpm-workspace.yaml, as in ci.yml.
       - uses: pnpm/action-setup@v4
         with:
           version: 11
@@ -76,8 +76,6 @@ jobs:
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
-        with:
-          enablement: true
 
       - name: Upload
         uses: actions/upload-pages-artifact@v3

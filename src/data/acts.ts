@@ -104,9 +104,9 @@ export const SCHOOL: ActDef = {
   // from the start, dodgeball early, homework from the first third, hall
   // monitor mid, substitute last — and pure contact until the substitute
   // arrives, so that gold appearing means something. That order is the
-  // design and is under test. The rates are not the design; they are the
-  // smallest numbers that make the order playable, chosen with two things in
-  // mind that Conception never had to consider:
+  // design and is under test. The rates are not the design; they are
+  // placeholders that escalate in the shape Conception's rates did, written
+  // with two things in mind that Conception never had to consider:
   //
   //   - Dodgeballs, monitors and homework never despawn (they belong to the
   //     arena), so their rates are cumulative counts, not densities. At these

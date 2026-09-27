@@ -248,6 +248,28 @@ describe('acts', () => {
     }
   });
 
+  it('every wave spawns an enemy of its own act', () => {
+    for (const act of ALL_ACTS) {
+      for (const wave of act.waves) {
+        expect(ENEMIES[wave.enemyId]?.act, `act "${act.id}" spawns "${wave.enemyId}"`).toBe(act.id);
+      }
+    }
+  });
+
+  it('every enemy the registry gives an act is scheduled by that act', () => {
+    // The per-act form of the sibling-collection trap: an enemy defined for an
+    // act and left out of its schedule is content nothing can reach, and it
+    // would stay green forever.
+    for (const act of ALL_ACTS) {
+      const defined = Object.values(ENEMIES)
+        .filter((d) => d.act === act.id)
+        .map((d) => d.id)
+        .sort();
+      const scheduled = [...spawnStreams(act.waves).keys()].sort();
+      expect(scheduled, `act "${act.id}"`).toEqual(defined);
+    }
+  });
+
   /**
    * Escalation is per enemy, not across the flat array.
    *
@@ -354,21 +376,42 @@ describe('acts', () => {
     }
   });
 
-  it('a provisional act says what is provisional and what resolves it', () => {
+  /**
+   * Acts a person has played and whose numbers were moved in response.
+   *
+   * Empty today, deliberately. Removing an act's `provisional` label means
+   * adding its id here, so "this act is tuned" is a reviewable line in a diff
+   * and can never happen by omission — which is the hole a label with no
+   * forcing function would have left open.
+   */
+  const TUNED: string[] = [];
+
+  it('every act not listed as tuned carries a provisional label that names a person and a decision', () => {
     // The marker is the rule from PLAN.md's 2026-09-27 amendment: placeholder
     // numbers are allowed and must be labelled, in data, with the thing that
     // retires them. An empty or glib label is a placeholder pretending to be
     // a decision.
     //
-    // The one thing a regex can check is that a PERSON is named as the
-    // resolver, on a word boundary. The first draft matched /play|session/,
-    // which "playtest" satisfies — and a label retired by a playtest bot is
-    // exactly what D-022 forbids.
+    // What a regex can check: a PERSON is named as the resolver, on a word
+    // boundary (the first draft matched /play|session/, which "playtest"
+    // satisfies — a label retired by a bot is exactly what D-022 forbids); the
+    // decision that made it provisional is cited; and no word claims finality.
     for (const act of ALL_ACTS) {
-      if (act.provisional === undefined) continue;
-      expect(act.provisional.length, `act "${act.id}" provisional label is too short`).toBeGreaterThan(60);
-      expect(act.provisional, `act "${act.id}" must name a person as what resolves it`).toMatch(
+      if (TUNED.includes(act.id)) {
+        expect(act.provisional, `act "${act.id}" is listed as tuned and still labelled`).toBeUndefined();
+        continue;
+      }
+      const label = act.provisional;
+      expect(label, `act "${act.id}" has no provisional label and is not listed as tuned`).toBeDefined();
+      expect(label!.length, `act "${act.id}" provisional label is too short`).toBeGreaterThan(60);
+      expect(label, `act "${act.id}" must name a person as what resolves it`).toMatch(
         /\b(person|human|Justin)\b/i,
+      );
+      expect(label, `act "${act.id}" must cite the decision that made it provisional`).toMatch(
+        /\b[DG]-\d{3}\b/,
+      );
+      expect(label, `act "${act.id}" label claims finality`).not.toMatch(
+        /\b(final|tuned|settled|calibrated)\b/i,
       );
     }
   });

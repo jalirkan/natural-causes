@@ -10,7 +10,10 @@ import { DESPAWN_RADIUS, World } from '../world';
  * the part of it that IS the design — SCHOOL-ROSTER.md §3.6's introduction
  * order — and the presence claims the bots can make about an act nobody has
  * played: everything spawns, the act only gets worse, a run is deterministic.
- * No number in the schedule is asserted, because none of them is a decision.
+ * No rate is asserted, because none of them is a decision; the only times
+ * asserted are §3.6's own words — clique from 0s, homework within the first
+ * third. The rules that hold for every act (an act spawns only its own
+ * enemies, and all of them) live in content.test.ts over ALL_ACTS.
  */
 
 function alive(world: World, seconds: number, moveX = 0, moveY = 0): void {
@@ -38,21 +41,6 @@ describe('School has a schedule, and it is provisional', () => {
     // boss. The content test ties ACTS to ACT_VISUALS; this one says which
     // side School is currently on, so a future change to either is deliberate.
     expect(ACTS).not.toContain(SCHOOL);
-  });
-
-  it('spawns only School enemies', () => {
-    for (const wave of SCHOOL.waves) {
-      expect(ENEMIES[wave.enemyId]?.act, `"${wave.enemyId}"`).toBe('school');
-    }
-  });
-
-  it('spawns every School enemy the registry defines', () => {
-    const inRoster = Object.values(ENEMIES)
-      .filter((d) => d.act === 'school')
-      .map((d) => d.id)
-      .sort();
-    const inSchedule = [...spawnStreams(SCHOOL.waves).keys()].sort();
-    expect(inSchedule).toEqual(inRoster);
   });
 });
 
@@ -128,8 +116,8 @@ describe('a School run', () => {
   });
 
   it('keeps the enemies that belong to the arena and culls the ones that do not', () => {
-    // The property the schedule's rates were chosen around, tested without
-    // reference to any rate. With no weapons nothing is killed, so a dodgeball
+    // The property the placeholder rates assume, tested without reference to
+    // any rate. With no weapons nothing is killed, so a dodgeball
     // or monitor ever seen is one still on the field, while cliques drift
     // through and are culled at DESPAWN_RADIUS. Counting uids ever seen
     // against uids alive separates "never despawns" from "was not killed" —

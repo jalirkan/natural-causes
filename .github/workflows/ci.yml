@@ -41,11 +41,9 @@ jobs:
         with:
           version: 11
 
-      # The repo declares no Node version anywhere - no .nvmrc, no engines
-      # field, no packageManager. So this pins the version the documented
-      # commands were actually observed passing on (24.20.0 locally) rather
-      # than inventing a floor nobody has tested against. If a Node version is
-      # ever declared in the repo, this should follow it rather than lead it.
+      # Node 24 follows package.json's engines field (>=24, added in 873e6c4).
+      # This file used to lead that declaration and asked to follow it once
+      # one existed; it does now.
       - uses: actions/setup-node@v4
         with:
           node-version: '24'

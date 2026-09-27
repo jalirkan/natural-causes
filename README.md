@@ -47,11 +47,12 @@ as a Cowork/Claude Code split, and `PLAN.md`'s 2026-09-27 amendment says why
 that changed — and a human decides what is funny. The process is instrumented
 and the findings are published, including what did not work.
 
-Six mechanisms exist specifically to stop an unattended agent producing generic
-content: mandatory rejected alternatives on every decision, a "why this life
-stage" justification required of every enemy, checkable planted payoffs, a
-read-only coherence pass, a hard content budget, and automated playtest bots.
-Details in [`PLAN.md`](./PLAN.md).
+Six mechanisms were planned to stop an unattended agent producing generic
+content. Four are built and enforced by tests: mandatory rejected alternatives
+on every decision, a "why this life stage" justification required of every
+enemy, a hard content budget, and automated playtest bots. Two — checkable
+planted payoffs and a read-only coherence pass — are not built, and
+[`PLAN.md`](./PLAN.md)'s 2026-09-27 amendment says what happens to them.
 
 ## Stack
 
@@ -75,7 +76,7 @@ it is set to `AllSigned` here and blocks pnpm's shim; `pnpm.cmd dev` also works.
 Other tasks:
 
 ```bash
-pnpm test                 # 251 tests: the sim, the content rules, the art pipeline
+pnpm test                 # the whole suite: the sim, the content rules, the art pipeline
 pnpm playtest -- --runs=40 # the bots, with intervals
 pnpm playtest -- --runs=16 --act=school   # any act with a schedule
 pnpm art:batch            # regenerate sprites (needs FAL_KEY in .env)
@@ -147,7 +148,7 @@ and it never touches `World`. Every cheat is applied from `ActScene` after the
 step, so nothing in the panel can reach the playtest bots or a test.
 
 **Any cheat taints the run.** The HUD says `DEV · RUN TAINTED` for the rest of
-it and only a restart clears the flag. §12.4 needs six questions answered by
+it and only a restart clears the flag. The five questions under "Playing" need
 someone playing honestly, and a badge is cheaper than remembering whether god
 mode was still on twenty minutes ago.
 
