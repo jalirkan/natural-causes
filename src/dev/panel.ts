@@ -24,7 +24,6 @@ import type { DevState } from './state';
 export interface DevPanelHost {
   world: World;
   dev: DevState;
-  durationSeconds: number;
   restart: () => void;
 }
 
@@ -122,10 +121,13 @@ export function attachDevPanel(host: DevPanelHost): () => void {
     );
 
     const clock = document.createElement('span');
-    const m = Math.floor(w.time / 60);
-    clock.textContent = `${m}:${String(Math.floor(w.time % 60)).padStart(2, '0')} / ${
-      Math.floor(host.durationSeconds / 60)
-    }:${String(host.durationSeconds % 60).padStart(2, '0')}`;
+    // The ACT's clock against the act's length: the life clock runs on
+    // through every act, and "skip to boss" means this act's boss.
+    const dur = w.act.durationSeconds;
+    const m = Math.floor(w.actTime / 60);
+    clock.textContent = `${w.act.name.toLowerCase()} ${m}:${String(Math.floor(w.actTime % 60)).padStart(2, '0')} / ${
+      Math.floor(dur / 60)
+    }:${String(dur % 60).padStart(2, '0')}`;
     section(
       'time',
       line(clock),
@@ -133,7 +135,7 @@ export function attachDevPanel(host: DevPanelHost): () => void {
         button('+30s', act(() => (w.time += 30))),
         button('+60s', act(() => (w.time += 60))),
         // The boss spawns at the end of the step that crosses the duration.
-        button('skip to boss', act(() => (w.time = host.durationSeconds))),
+        button('skip to boss', act(() => (w.time += Math.max(0, w.act.durationSeconds - w.actTime)))),
       ),
     );
 

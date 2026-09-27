@@ -376,6 +376,18 @@ describe('acts', () => {
     }
   });
 
+  it('every act names its boss and covers a span of years, in life order (D-024)', () => {
+    let previousTo = -Infinity;
+    for (const act of ALL_ACTS) {
+      expect(act.bossName.length, `act "${act.id}" has no boss name`).toBeGreaterThan(2);
+      expect(act.age.from, `act "${act.id}" ages backwards`).toBeLessThanOrEqual(act.age.to);
+      expect(act.age.from, `act "${act.id}" starts before the act before it ended`).toBeGreaterThanOrEqual(
+        previousTo,
+      );
+      previousTo = act.age.to;
+    }
+  });
+
   /**
    * Acts a person has played and whose numbers were moved in response.
    *

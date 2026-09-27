@@ -52,6 +52,13 @@ export interface RunResult {
   policy: string;
   seed: number;
   outcome: 'alive' | 'died' | 'won';
+  /** Where the life got to (D-024). Index and id of the act it ended in. */
+  actIndex: number;
+  actId: string;
+  /** Age at the end, in the act's declared years. */
+  age: number;
+  /** What the certificate says, or null if the run hit the step cap alive. */
+  cause: string | null;
   seconds: number;
   kills: number;
   level: number;
@@ -349,9 +356,12 @@ export function runOnce(
   seed: number,
   bossPull?: number,
   spawnOverride?: 'edge' | 'lead',
-  act: ActDef = CONCEPTION,
+  acts: ActDef[] = [CONCEPTION],
 ): RunResult {
-  const options: WorldOptions = { act, seed };
+  const options: WorldOptions = { acts, seed };
+  // The instrument's "300s mark" is the FIRST act's crowd phase, so every
+  // Conception figure reads exactly as it did before there were lives.
+  const act = acts[0]!;
   if (bossPull !== undefined) options.bossPull = bossPull;
   if (spawnOverride !== undefined) options.spawnOverride = spawnOverride;
   const world = new World(options);
@@ -382,9 +392,10 @@ export function runOnce(
   let prevFx = world.facingX;
   let prevFy = world.facingY;
 
-  const maxSteps = (act.durationSeconds + BOSS_PHASE_MAX_SECONDS) / DT;
+  const lifeSeconds = acts.reduce((n, a) => n + a.durationSeconds + BOSS_PHASE_MAX_SECONDS, 0);
+  const maxSteps = lifeSeconds / DT;
   while (!world.dead && !world.won && steps < maxSteps) {
-    if (!reached300 && world.time >= act.durationSeconds) {
+    if (!reached300 && world.actIndex === 0 && world.time >= act.durationSeconds) {
       reached300 = true;
       stacksAt300 = world.dragStacks;
       itemSpeedAt300 = world.itemSpeed;
@@ -397,7 +408,7 @@ export function runOnce(
       world.choose(chooseOffer(policy, world.offers, world.items, rng));
       continue;
     }
-    const inCrowdPhase = world.time < act.durationSeconds;
+    const inCrowdPhase = world.actIndex === 0 && world.time < act.durationSeconds;
     world.step(DT, decideWithCadence(world, rng, state, DT));
     steps++;
 
@@ -418,6 +429,10 @@ export function runOnce(
     policy: policy.name,
     seed,
     outcome: world.outcome,
+    actIndex: world.actIndex,
+    actId: world.act.id,
+    age: +world.age.toFixed(1),
+    cause: world.certificate?.cause ?? null,
     bossHpLeft: world.boss ? Math.round(world.boss.hp) : null,
     bossHpFraction: world.boss ? +(world.boss.hp / world.boss.maxHp).toFixed(3) : null,
     seconds: +world.time.toFixed(1),
@@ -550,6 +565,11 @@ export interface PolicySummary {
   /** Median share of the boss still standing when the run ended. */
   medianBossLeft: number | null;
   reachedBoss: number;
+  /** The life: median age at the end, and how many runs ended in each act. */
+  medianAge: number;
+  endedIn: Record<string, number>;
+  /** Causes on the certificate, most common first. */
+  causes: Array<[string, number]>;
 }
 
 export function summarise(results: RunResult[]): PolicySummary[] {
@@ -595,6 +615,15 @@ export function summarise(results: RunResult[]): PolicySummary[] {
         const reached = runs.filter((r) => r.bossHpFraction !== null);
         return reached.length ? median(reached.map((r) => r.bossHpFraction!)) : null;
       })(),
+      medianAge: median(runs.map((r) => r.age)),
+      endedIn: runs.reduce<Record<string, number>>((acc, r) => {
+        acc[r.actId] = (acc[r.actId] ?? 0) + 1;
+        return acc;
+      }, {}),
+      causes: [...runs.reduce<Map<string, number>>((m, r) => {
+        if (r.cause !== null) m.set(r.cause, (m.get(r.cause) ?? 0) + 1);
+        return m;
+      }, new Map()).entries()].sort((a, b) => b[1] - a[1]),
     };
   });
 }

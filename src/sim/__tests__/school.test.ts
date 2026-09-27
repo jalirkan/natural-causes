@@ -25,6 +25,8 @@ const EMPTY_ACT: ActDef = {
   id: 'school-behaviour-fixture',
   name: 'Fixture',
   durationSeconds: 300,
+  bossName: 'Fixture',
+  age: { from: 0, to: 0 },
   waves: [],
 };
 
