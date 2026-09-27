@@ -24,6 +24,46 @@ Running record of what the automated bots measured and what it means for design.
 
 ---
 
+# 2026-09-27 · The life after the merge — the race, the substitute. Presence only.
+
+`pnpm playtest -- --runs=24 --life` (seeds 1000–1023, 168 lives) and
+`pnpm playtest -- --runs=16 --act=school` (112 runs, fresh build), both at
+`5829a0c`, clean tree. Seven policies now, so rows do not line up with below.
+
+| policy | outlived School (95% CI) | median age | ended in | Conception deaths | School alone, deaths of 16 |
+|---|---|---|---|---|---|
+| midpiece+wake | 71% [51–85] | 12 | conception 7, school 17 | Someone else 5, Rival sperm 2 | Substitute teacher 1 |
+| membrane+acrosome | 58% [39–76] | 12 | conception 10, school 14 | Someone else 8, Rival sperm 2 | none |
+| motility | 88% [69–96] | 12 | conception 3, school 21 | Rival sperm 3 | Substitute teacher 1, Clique 1 |
+| greedy-capacitation | 67% [47–82] | 12 | conception 8, school 16 | Someone else 4, Rival sperm 4 | Substitute teacher 1 |
+| acrosome+midpiece | 79% [60–91] | 12 | conception 5, school 19 | Someone else 5 | Substitute teacher 1 |
+| grudge+group-chat | 54% [35–72] | 12 | conception 11, school 13 | Someone else 8, Rival sperm 3 | Substitute teacher 2, The Gym Teacher 1 |
+| random | 79% [60–91] | 12 | conception 5, school 19 | Someone else 1, Rival sperm 4 | Clique 2 |
+| **all** | 71% [64–77] | 12 | conception 49, school 119 | Someone else 31, Rival sperm 18 | Substitute teacher 6, Clique 3, The Gym Teacher 1 (of 112) |
+
+Every life ends, at a median age of 12 in every policy: all 49 deaths are in
+Conception, and every life that cleared the Egg outlived School (119 of 119,
+[97–100%]), crossing on a level 23–43 build and a full heal. The substitute
+teacher is therefore on no life certificate, but on School alone it is now that
+act's commonest killer, 6 of 10 deaths, each after 250s and so behind its 220s
+entry; the hall monitor and the dodgeball are on no certificate in either run,
+and homework cannot be, since it deals no damage. All twelve cards are taken;
+over the life, rarest first (shaped by the policies' priority lists, so presence
+and not preference): Tantrum 17%, Temper and Appetite 66%, Stubbornness 70%,
+Baggage 73%, Group Chat and Charisma 75%, Grudge 76%, Late Bloomer 82%,
+Restlessness 84%, Thick Skin 85%, Reflex past level 1 95%. The race moved
+Conception's ending to the Egg: "Someone else" is 31 of its 49 deaths (the 18
+Rival sperm deaths are all before 222s), and in 12 of the 31 the Egg appeared on
+a crowd already holding 60 or more rivals inside its corona, so the life ended
+one step (0.02s) after it spawned, untouched; all 31 replay identically at
+`5829a0c` with the race probed, so it is the sim's rule meeting the bot's crowd,
+and how dense a person's crowd is at 300s decides whether they ever meet it. At
+the link, play Conception to 300s with the crowd on you: did you see the Egg
+before the certificate said "Someone else", and did that land as the joke or as
+the game breaking?
+
+---
+
 # 2026-09-27 · The first life — Conception into School. Presence only.
 
 `pnpm playtest -- --runs=16 --life` · seeds 1000–1015 · 80 lives, checked
