@@ -6,6 +6,7 @@ import { neutralDevState, type DevState } from '../dev/state';
 import { addVignette, ensureFieldTile, ensureGemTexture, ensureShotTextures } from './dressing';
 import { ITEM_ICON_ATLAS, itemIconFrame } from '../data/item-visuals';
 import { sfx } from '../audio/sfx';
+import { combineMoves, stickVector, type Move } from './touch';
 import {
   BOSS_RADIUS,
   World,
@@ -43,6 +44,14 @@ const PLAYER_DISPLAY = 56;
 const GEM_SIZE = 9;
 /** Attached Y-shapes drawn on the player. Stacks keep counting past this. */
 const MAX_ATTACHED_SPRITES = 16;
+/**
+ * How far a finger travels for full stick, in CSS pixels rather than game
+ * pixels: the canvas is FIT-scaled, and a radius in game units would be a
+ * third of the size on a portrait phone that it is on a desktop.
+ */
+const STICK_RADIUS_CSS = 56;
+/** A tap this soon after the run ends is the thumb still steering, not a restart. */
+const RESTART_GRACE_MS = 700;
 
 export class ActScene extends Phaser.Scene {
   private act!: ActDef;
@@ -65,6 +74,22 @@ export class ActScene extends Phaser.Scene {
 
   /** Set by P or Escape. Distinct from the offer freeze, which is the rules. */
   private paused = false;
+
+  /**
+   * The drag-anywhere stick: the pointer that owns it (-1 when none), where it
+   * went down, and the vector it currently asks for. The arithmetic is in
+   * `touch.ts`; this is only the bookkeeping for pointer events.
+   */
+  private stickId = -1;
+  private stickOrigin = { x: 0, y: 0 };
+  private stickMove: Move = { moveX: 0, moveY: 0 };
+  private stickRing!: Phaser.GameObjects.Arc;
+  private stickKnob!: Phaser.GameObjects.Arc;
+  /** Touch devices only: a corner tap target for pause. P/Esc still work. */
+  private pauseButton?: Phaser.GameObjects.Container;
+  private touch = false;
+  /** `time.now` when the run was first seen over, for the restart grace. */
+  private endedAt = -1;
 
   /**
    * Dev-mode cheats. Development builds only, and deliberately NOT inside
@@ -169,6 +194,8 @@ export class ActScene extends Phaser.Scene {
     const togglePause = () => {
       if (this.world.dead || this.world.won || this.world.offers) return;
       this.paused = !this.paused;
+      // A thumb held through the pause must not resume the walk on unpause.
+      this.releaseStick();
     };
     keyboard.on('keydown-P', togglePause);
     keyboard.on('keydown-M', () => sfx.toggleMute());
@@ -190,6 +217,7 @@ export class ActScene extends Phaser.Scene {
         }
       });
     }
+    this.createTouch(togglePause);
 
     this.createHud();
 
@@ -223,7 +251,9 @@ export class ActScene extends Phaser.Scene {
       .text(
         this.cameras.main.width / 2,
         this.cameras.main.height - 54,
-        'WASD or arrows to move   ·   you fire automatically   ·   1/2/3 choose an upgrade   ·   P pauses',
+        this.touch
+          ? 'drag anywhere to move   ·   you fire automatically   ·   tap a card to choose'
+          : 'WASD or arrows to move   ·   you fire automatically   ·   1/2/3 choose an upgrade   ·   P pauses',
         { fontFamily: 'monospace', fontSize: '15px', color: '#EFE7D6' },
       )
       .setOrigin(0.5)
@@ -231,6 +261,105 @@ export class ActScene extends Phaser.Scene {
       .setDepth(150)
       .setAlpha(0.85);
     this.tweens.add({ targets: hint, alpha: 0, delay: 6500, duration: 1200 });
+  }
+
+  /**
+   * Pointer input: a drag anywhere is a stick, a tap on a card chooses it (the
+   * cards' own handler, in buildOfferUi), a tap on the ended run restarts, and
+   * on touch devices a corner button pauses. Mouse drags count too — the
+   * pointer events do not distinguish, and there is no reason they should.
+   */
+  private createTouch(togglePause: () => void): void {
+    this.touch = this.sys.game.device.input.touch;
+    this.stickId = -1;
+    this.stickMove = { moveX: 0, moveY: 0 };
+    this.endedAt = -1;
+    delete this.pauseButton;
+    // A second touch pointer, so a card or the pause button can be tapped
+    // with the steering thumb still down. The pointers belong to the game,
+    // not the scene, so only add it once across restarts. (`pointersTotal`
+    // counts touch pointers only; the default is one.)
+    if (this.input.manager.pointersTotal < 2) this.input.addPointer(1);
+
+    // Where the thumb went down and where it is now. Screen space, faint:
+    // this is feedback that the drag registered, not a control to look at.
+    this.stickRing = this.add
+      .circle(0, 0, 10)
+      .setFillStyle()
+      .setStrokeStyle(2, UI_FILL, 0.3)
+      .setScrollFactor(0)
+      .setDepth(140)
+      .setVisible(false);
+    this.stickKnob = this.add.circle(0, 0, 14, UI_FILL, 0.25).setScrollFactor(0).setDepth(140).setVisible(false);
+
+    if (this.touch) {
+      const cam = this.cameras.main;
+      const plate = this.add.graphics();
+      plate.fillStyle(INK, 0.4).fillCircle(0, 0, 30);
+      plate.lineStyle(2, UI_FILL, 0.45).strokeCircle(0, 0, 30);
+      plate.fillStyle(PAPER, 0.85).fillRect(-10, -12, 7, 24).fillRect(3, -12, 7, 24);
+      // The hit area is larger than the plate: a thumb is not a cursor.
+      this.pauseButton = this.add
+        .container(cam.width - 64, cam.height - 64, [plate])
+        .setSize(104, 104)
+        .setScrollFactor(0)
+        .setDepth(205);
+      this.pauseButton.setInteractive();
+      this.pauseButton.on('pointerdown', togglePause);
+    }
+
+    this.input.on(
+      'pointerdown',
+      (p: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]) => {
+        sfx.unlock();
+        // The pause button and the offer cards handle their own taps (their
+        // events fire before this one); a stick must not start under them.
+        if (over.length > 0) return;
+        if (this.paused) {
+          togglePause();
+          return;
+        }
+        if (this.world.dead || this.world.won) {
+          if (this.endedAt >= 0 && this.time.now - this.endedAt >= RESTART_GRACE_MS) {
+            this.scene.restart({ act: this.act });
+          }
+          return;
+        }
+        if (this.stickId !== -1) return;
+        this.stickId = p.id;
+        this.stickOrigin = { x: p.x, y: p.y };
+        this.stickMove = { moveX: 0, moveY: 0 };
+        this.stickRing.setPosition(p.x, p.y).setRadius(this.stickRadius()).setVisible(true);
+        this.stickKnob.setPosition(p.x, p.y).setVisible(true);
+      },
+    );
+    this.input.on('pointermove', (p: Phaser.Input.Pointer) => {
+      if (p.id !== this.stickId) return;
+      const radius = this.stickRadius();
+      this.stickMove = stickVector(this.stickOrigin, p, radius);
+      // The knob follows the finger but stops at the rim, as the vector does.
+      const dx = p.x - this.stickOrigin.x;
+      const dy = p.y - this.stickOrigin.y;
+      const k = Math.min(1, radius / (Math.hypot(dx, dy) || 1));
+      this.stickKnob.setPosition(this.stickOrigin.x + dx * k, this.stickOrigin.y + dy * k);
+    });
+    const up = (p: Phaser.Input.Pointer) => {
+      if (p.id === this.stickId) this.releaseStick();
+    };
+    this.input.on('pointerup', up);
+    this.input.on('pointerupoutside', up);
+  }
+
+  /** Stick radius in game pixels for the canvas's current CSS size. */
+  private stickRadius(): number {
+    return STICK_RADIUS_CSS * this.scale.displayScale.x;
+  }
+
+  private releaseStick(): void {
+    this.stickId = -1;
+    this.stickMove = { moveX: 0, moveY: 0 };
+    this.stickRing?.setVisible(false);
+    this.stickKnob?.setVisible(false);
   }
 
   /**
@@ -323,10 +452,13 @@ export class ActScene extends Phaser.Scene {
     const right = this.cursors.right.isDown || this.wasd.D.isDown;
     const up = this.cursors.up.isDown || this.wasd.W.isDown;
     const down = this.cursors.down.isDown || this.wasd.S.isDown;
-    const input = {
-      moveX: (right ? 1 : 0) - (left ? 1 : 0),
-      moveY: (down ? 1 : 0) - (up ? 1 : 0),
-    };
+    const input = combineMoves(
+      {
+        moveX: (right ? 1 : 0) - (left ? 1 : 0),
+        moveY: (down ? 1 : 0) - (up ? 1 : 0),
+      },
+      this.stickMove,
+    );
 
     // Fast-forward runs whole extra steps rather than a longer one: a 4x dt
     // would be a 200ms step, and things that move at 640px/s tunnel straight
@@ -336,6 +468,14 @@ export class ActScene extends Phaser.Scene {
     else this.world.step(dt * scale, input);
 
     this.applyDevCheats();
+
+    const over = this.world.dead || this.world.won;
+    if (over && this.endedAt < 0) {
+      this.endedAt = this.time.now;
+      this.releaseStick();
+    }
+    // Pause refuses during offers and after the run, so the button hides then.
+    this.pauseButton?.setVisible(!over && !this.world.offers);
 
     this.hearWorld();
     this.syncPlayer();
@@ -945,7 +1085,9 @@ export class ActScene extends Phaser.Scene {
 
     if (this.paused) {
       this.endScrim.setVisible(true);
-      this.overlay.setText('paused' + '\n\n' + 'P or Esc to resume').setVisible(true);
+      this.overlay
+        .setText('paused' + '\n\n' + (this.touch ? 'tap to resume' : 'P or Esc to resume'))
+        .setVisible(true);
       return;
     }
 
@@ -965,7 +1107,7 @@ export class ActScene extends Phaser.Scene {
             `${this.formatTime()}   ${w.kills} killed   level ${w.level}`,
             ...buildLines,
             '',
-            'R to try again',
+            this.touch ? 'tap to try again' : 'R to try again',
           ].join('\n'),
         )
         .setVisible(true);

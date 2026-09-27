@@ -14,6 +14,13 @@
         height: 100%;
         background: #12100c;
         overflow: hidden;
+        /* A drag is the movement stick: the page must not scroll, zoom or
+           pull-to-refresh under it, nor select text on a long press. */
+        touch-action: none;
+        overscroll-behavior: none;
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-touch-callout: none;
       }
       body {
         display: grid;
@@ -21,6 +28,7 @@
       }
       canvas {
         display: block;
+        touch-action: none;
       }
     </style>
   </head>
