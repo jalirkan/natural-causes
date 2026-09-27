@@ -2,6 +2,8 @@ import conceptionAtlasPng from '../../assets/atlas/conception.png';
 import conceptionAtlasJson from '../../assets/atlas/conception.json';
 import schoolAtlasPng from '../../assets/atlas/school.png';
 import schoolAtlasJson from '../../assets/atlas/school.json';
+import adolescenceAtlasPng from '../../assets/atlas/adolescence.png';
+import adolescenceAtlasJson from '../../assets/atlas/adolescence.json';
 
 export interface AtlasJson {
   frames: Record<string, unknown>;
@@ -27,6 +29,13 @@ export interface ActVisuals {
   playerFrame: string;
   bossFrame: string;
   /**
+   * What an attach stack is drawn as on the player (`World.dragStacks`):
+   * the antibody in Conception, acne in Adolescence (ADOLESCENCE-ROSTER §5).
+   * Absent for an act with no attaching enemy; the scene never draws one
+   * there because the stacks come off at the crossing.
+   */
+  attachFrame?: string;
+  /**
    * Pickups take the ACT'S LIGHT TONE (law 10, G-030), so this is per act
    * rather than one global colour.
    *
@@ -45,6 +54,7 @@ export const ACT_VISUALS: Record<string, ActVisuals> = {
     background: 0x6b3a44,
     atlas: { key: 'conception', png: conceptionAtlasPng, json: conceptionAtlasJson },
     playerFrame: 'player-sperm.png',
+    attachFrame: 'antibody.png',
     bossFrame: 'boss-egg.png',
     // conception-light.
     pickup: 0xc99b8c,
@@ -59,6 +69,18 @@ export const ACT_VISUALS: Record<string, ActVisuals> = {
     bossFrame: 'boss-gym-teacher.png',
     // school-light.
     pickup: 0x9fa86b,
+  },
+  adolescence: {
+    // adolescence-deep: night, the darkest ground in the life.
+    background: 0x2e3453,
+    atlas: { key: 'adolescence', png: adolescenceAtlasPng, json: adolescenceAtlasJson },
+    playerFrame: 'player-adolescence.png',
+    // Prom's picture on the Egg's behaviour until Prom's own kind exists
+    // (ADOLESCENCE-ROSTER §4); the hormones already race for it.
+    bossFrame: 'boss-prom.png',
+    attachFrame: 'acne.png',
+    // adolescence-light: blush, pickups only.
+    pickup: 0xd6aebb,
   },
 };
 

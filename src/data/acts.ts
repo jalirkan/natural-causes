@@ -162,7 +162,7 @@ export const CONCEPTION: ActDef = {
   // PLACEHOLDER: 60 is invented; named in `provisional` below.
   race: { enemyId: 'rival-sperm', absorb: 60 },
   provisional:
-    'The rates, the antibody drag floor and curvature (ANTIBODY_FLOOR and ANTIBODY_DRAG_K in world.ts), the bot cadence, the boss HP and the absorb count of the race (`race.absorb`) were all set from bot runs, the XP curve and the weapon level tables (xpToNextLevel in world.ts, `levels` in items.ts) were written as placeholders, and nobody has played the act; a person playing it at the link is what moves them (§11.5, G-028, G-038).',
+    'The rates, the antibody drag floor and curvature (ANTIBODY_FLOOR and ANTIBODY_DRAG_K in world.ts), the bot cadence, the boss HP, the absorb count of the race (`race.absorb`), the second the Egg parts the crowd by on arrival (RACE_PARTING_SECONDS) and the spacing of Wake drops (WAKE_MIN_SPACING) were all set from bot runs, the XP curve and the weapon level tables (xpToNextLevel in world.ts, `levels` in items.ts) were written as placeholders, and nobody has played the act; a person playing it at the link is what moves them (§11.5, G-028, G-038).',
   // CONCEPTION-ROSTER.md §3.5. One track per enemy, read as concurrent
   // streams. A new pressure roughly every forty-five seconds for the first
   // half, then only escalation: nothing new arrives after 130s, so the last
@@ -251,6 +251,58 @@ export const SCHOOL: ActDef = {
   ],
 };
 
+export const ADOLESCENCE: ActDef = {
+  id: 'adolescence',
+  name: 'Adolescence',
+  durationSeconds: 240,
+  bossName: 'Prom',
+  // ADOLESCENCE-ROSTER §4. Prom is the Egg's race, a full turning ring of gold
+  // spots, and the Gym Teacher's untouchability pointed at the player's
+  // distance from the ball. Its own `kind` is not built yet, so the Egg STANDS
+  // IN for Prom mechanically until it is: the same stillness, fan and race,
+  // under Prom's name on the certificate. `provisional` says so.
+  boss: { kind: 'egg' },
+  // The house lights come up, a camera flashes, and the act ends on one word.
+  endWord: 'SMILE',
+  age: { from: 13, to: 18 },
+  // The second race of the player's life, and the first one they were invited
+  // to: at Prom every living hormone goes to the dance. The Egg races, so this
+  // works today. PLACEHOLDER: 40 is §4's, named in `provisional` below.
+  race: { enemyId: 'hormones', absorb: 40 },
+  provisional:
+    "Every rate, time and enemy number here, the race's absorb count and Prom's ring, floor and cadence were written as placeholders before anyone played the act, and the Egg stands in for Prom's behaviour until Prom's own kind is built (ADOLESCENCE-ROSTER §4); a person playing it at the link is what moves them (D-022).",
+  // ADOLESCENCE-ROSTER.md §3.6, transcribed. The ORDER is the design and is
+  // under test (adolescence-act.test.ts): age runs 13 to 18, a year every 48
+  // seconds, and each enemy arrives about when it does in a life — hormones
+  // from 0s (13), acne at 24s, the group chat at 48s (14), the standardised
+  // test at 120s, driver's ed at 144s (16). School held gold back so it would
+  // mean something; here it arrives in the first minute and means that it is
+  // always there. Nothing new arrives after 144s; the last 96 seconds are
+  // escalation, then Prom.
+  //
+  // The rates are placeholders. Nothing in this act is ever culled (three
+  // chasers, a static, a patrol), so every rate is a count: an act that kills
+  // nothing spawns about five tests, four cars, fifty spots and twenty chats,
+  // and the hormones are the density, as the rivals were.
+  waves: [
+    { fromSeconds: 0, enemyId: 'hormones', rate: 1.2 },
+    { fromSeconds: 24, enemyId: 'acne', rate: 0.15 },
+    { fromSeconds: 48, enemyId: 'group-chat', rate: 0.06 },
+    { fromSeconds: 48, enemyId: 'hormones', rate: 2.2 },
+    { fromSeconds: 96, enemyId: 'acne', rate: 0.25 },
+    { fromSeconds: 96, enemyId: 'hormones', rate: 3.5 },
+    { fromSeconds: 120, enemyId: 'group-chat', rate: 0.12 },
+    { fromSeconds: 120, enemyId: 'standardised-test', rate: 0.03 },
+    { fromSeconds: 144, enemyId: 'drivers-ed', rate: 0.03 },
+    { fromSeconds: 144, enemyId: 'hormones', rate: 5.5 },
+    { fromSeconds: 192, enemyId: 'acne', rate: 0.4 },
+    { fromSeconds: 192, enemyId: 'group-chat', rate: 0.2 },
+    { fromSeconds: 192, enemyId: 'hormones', rate: 8 },
+    { fromSeconds: 192, enemyId: 'standardised-test', rate: 0.06 },
+    { fromSeconds: 216, enemyId: 'drivers-ed', rate: 0.06 },
+  ],
+};
+
 /**
  * Every act with a schedule, in life order. The content rules iterate THIS
  * list, so an act cannot escape them by not being startable yet (the
@@ -262,14 +314,15 @@ export const SCHOOL: ActDef = {
  * `ACTS`, the prefix whose art exists, so the life gets longer as acts become
  * startable and nothing about the sim changes when one does.
  */
-export const ALL_ACTS: ActDef[] = [CONCEPTION, SCHOOL];
+export const ALL_ACTS: ActDef[] = [CONCEPTION, SCHOOL, ADOLESCENCE];
 
 /**
  * The life the browser plays, in order: the prefix of `ALL_ACTS` with an
  * atlas, a player frame and a boss frame registered in `act-visuals.ts`.
  * School joined when its authored SVG sprites landed (G-038); its boss is the
- * Gym Teacher, picture and behaviour (SCHOOL-ROSTER §9). A test asserts this list and
+ * Gym Teacher, picture and behaviour (SCHOOL-ROSTER §9). Adolescence waits on
+ * its drawings: it has a schedule and no atlas. A test asserts this list and
  * `ACT_VISUALS` agree, so moving an act in is a one-line change that fails
  * loudly if the art is not there.
  */
-export const ACTS: ActDef[] = [CONCEPTION, SCHOOL];
+export const ACTS: ActDef[] = [CONCEPTION, SCHOOL, ADOLESCENCE];

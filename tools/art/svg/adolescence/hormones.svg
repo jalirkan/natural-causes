@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <title>Hormones</title>
+  <desc>A fat three-stroke zigzag bolt with one face on its middle stroke, eyes straight out at you and a wide flat grin: thrilled, and it does not know about what.</desc>
+  <!-- The bolt: three fat strokes, two sharp bends, the only jagged outline in the act. -->
+  <path d="M46.5 3 L13.2 49.9 L48.4 62.3 L27.1 97 L52.9 97 L85.6 43.7 L52.8 32.1 L73.5 3 Z" fill="#5E95C3"/>
+  <!-- One shadow tone, on every edge that faces down and to the right. -->
+  <path d="M73.5 3 L52.8 32.1 L44.7 35.7 L68 3 Z" fill="#6E6353"/>
+  <path d="M13.2 49.9 L48.4 62.3 L54 59.5 L19.1 47.2 Z" fill="#6E6353"/>
+  <path d="M85.6 43.7 L52.9 97 L47.6 97 L78 47.5 Z" fill="#6E6353"/>
+  <!-- The face, on the middle stroke, looking straight out of the screen. -->
+  <g fill="#2A2521">
+    <ellipse cx="48.22" cy="41.83" rx="2.5" ry="4.8"/>
+    <ellipse cx="60.48" cy="41.83" rx="2.5" ry="4.8"/>
+    <path d="M44.15 47.96 L64.55 47.96 C64.55 53.31 59.96 54.26 54.35 54.26 C48.74 54.26 44.15 53.31 44.15 47.96 Z"/>
+  </g>
+</svg>

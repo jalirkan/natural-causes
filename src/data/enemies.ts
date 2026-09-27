@@ -7,8 +7,8 @@
  * build if any entry is missing one, because the whole point of the rule is
  * that it survives a long unattended run with nobody reading the diffs.
  *
- * Numbers are from CONCEPTION-ROSTER.md §3.4 and SCHOOL-ROSTER.md §3.6, and
- * are starting values in both. The relationships are the design commitment —
+ * Numbers are from CONCEPTION-ROSTER.md §3.4, SCHOOL-ROSTER.md §3.6 and
+ * ADOLESCENCE-ROSTER.md §3.6, and are starting values in all three. The relationships are the design commitment —
  * the white cell is an order of magnitude tankier and slower than everything
  * else, the antibody's contact damage is nearly zero on purpose, homework
  * cannot hurt anyone at all — and the absolute figures are the playtest bots'
@@ -390,6 +390,160 @@ export const ENEMIES: Record<string, EnemyDef> = {
     ranged: { range: 420, consultSeconds: 0.8, cooldownSeconds: 4, projectileSpeed: 260, damage: 8 },
     whyThisStage:
       'School is the first place the player is judged by someone who does not know who they are, and the substitute is that experience with a lanyard on.',
+  },
+
+  /**
+   * Adolescence (ADOLESCENCE-ROSTER.md §3). Five swarm-tier enemies, and not
+   * one new field: every behaviour below is a field Conception or School
+   * already needed.
+   *
+   * Numbers are §3.6's table, transcribed, and every one is a PLACEHOLDER
+   * under `ADOLESCENCE.provisional` (D-022). Nobody has played any of it. The
+   * relationships are the roster's commitment — the car is the first thing in
+   * the life faster than the player, the test is slower than an engulfed
+   * player can walk, acne cannot be shot — and a person at the link moves the
+   * figures. The act is in `ALL_ACTS` and not in `ACTS` until its art exists.
+   *
+   * The act's costume of the life script: everything is suddenly about you,
+   * and none of it is for you. Every face in the act looks straight out of the
+   * screen at the person playing, except the car's, which has its eyes on the
+   * road. Three of the five follow the player; that is the new pressure.
+   */
+  hormones: {
+    id: 'hormones',
+    name: 'Hormones',
+    act: 'adolescence',
+    frame: 'hormones.png',
+    hp: 2,
+    // Faster than the rival sperm, slower than the player, weak, never in
+    // short supply. It is the act's race (`ADOLESCENCE.race`): at Prom every
+    // living one stops following the player and goes to the dance.
+    speed: 58,
+    contactDamage: 4,
+    radius: 14,
+    displaySize: 48,
+    xp: 1,
+    movement: 'chase',
+    contact: 'damage',
+    // The clique had an edge you walked into; this crowd comes out of your
+    // footsteps. It enters where the player was TRAIL_SECONDS ago (world.ts),
+    // on screen and in their own wake — homework's arrival on a chaser. A
+    // player who stands still longer than that is standing where it arrives.
+    spawnAt: 'trail',
+    whyThisStage:
+      'Adolescence is the first stage where the crowd comes from inside the player, so there is no edge of it to walk out of.',
+  },
+
+  acne: {
+    id: 'acne',
+    name: 'Acne',
+    act: 'adolescence',
+    frame: 'acne.png',
+    // hp is inert: it cannot be damaged. Kept at 1 so nothing divides by zero.
+    hp: 1,
+    invulnerable: true,
+    speed: 0,
+    // It costs speed and never health, and it is not a kill, so no XP.
+    contactDamage: 0,
+    radius: 12,
+    displaySize: 44,
+    xp: 0,
+    // The antibody drifted to where the player was going; acne is already
+    // there, waiting (G-001). It appears ANTIBODY_LEAD ahead of the player's
+    // heading and stays: static, so never culled, and every one the player
+    // swerved around is still on the floor at Prom.
+    movement: 'static',
+    spawnAt: 'lead',
+    // The only way to clear one from the floor is to wear it: one stack on the
+    // antibody's drag curve (World.antibodyDrag, shared on purpose). `drag` is
+    // the antibody's, retained for the same reason the antibody retains it.
+    // The stacks come off at the crossing, as every attach stack does.
+    contact: 'attach',
+    attach: { drag: 0.03 },
+    whyThisStage:
+      "Adolescence is the first stage where the player's own body gets to every important moment first, and it cannot be shot because it is theirs.",
+  },
+
+  'group-chat': {
+    id: 'group-chat',
+    name: 'Group chat',
+    act: 'adolescence',
+    frame: 'group-chat.png',
+    hp: 10,
+    // Follows, slower than the player.
+    speed: 70,
+    contactDamage: 0,
+    radius: 24,
+    displaySize: 72,
+    xp: 5,
+    movement: 'chase',
+    // It never touches the player; it has no need to. Zero damage AND `none`,
+    // for the reason `Contact` gives.
+    contact: 'none',
+    // The substitute's attack on a chaser (G-010). In range and off cooldown
+    // it stops and types — the consult, and the renderer's three dots are the
+    // telegraph — sends one gold notification at where the player is (G-031:
+    // the gold is the shot's, never the body's) and resumes following. The
+    // substitute had to look the player up; this one already knows where they
+    // are. Stop, and they gather and type.
+    //
+    // PLACEHOLDER, all five, under ADOLESCENCE's `provisional` label: the
+    // substitute's numbers, with a shorter cooldown and a lighter hit because
+    // there are more of them and they arrive in the first minute.
+    ranged: { range: 420, consultSeconds: 0.8, cooldownSeconds: 3.5, projectileSpeed: 260, damage: 6 },
+    whyThisStage:
+      'Adolescence is the first stage where the room is carried home in a pocket, and it keeps talking about the player after they have left.',
+  },
+
+  'standardised-test': {
+    id: 'standardised-test',
+    name: 'Standardised test',
+    act: 'adolescence',
+    frame: 'standardised-test.png',
+    hp: 48,
+    // The slowest thing in the act, and the relationship is the design: its
+    // speed stays below an engulfed player's at full drag, so the player can
+    // always walk out of it, slowly (18 against an engulfed 43, §3.4). Chasers
+    // are never culled, so ignore them and a queue follows you across the
+    // arena: the retakes.
+    speed: 18,
+    contactDamage: 0,
+    radius: 34,
+    displaySize: 96,
+    xp: 12,
+    movement: 'chase',
+    // Sitting it. The white cell's successor with the white cell's engulf
+    // (G-001): the white cell crossed without noticing you; the test has your
+    // name on it and arrives on the date.
+    contact: 'engulf',
+    engulf: { seconds: 1.2, slow: 0.35, damagePerSecond: 10 },
+    whyThisStage:
+      'Adolescence is the first stage where one morning with a pencil decides where the player goes next, and the morning was booked before anyone asked if they were ready.',
+  },
+
+  'drivers-ed': {
+    id: 'drivers-ed',
+    name: "Driver's ed",
+    act: 'adolescence',
+    frame: 'drivers-ed.png',
+    hp: 30,
+    // The first enemy in the life faster than the player. It never steers or
+    // brakes, so it is answered by timing alone.
+    speed: 240,
+    // The act's heaviest hit, and its only red thing.
+    contactDamage: 16,
+    radius: 26,
+    displaySize: 88,
+    xp: 8,
+    // Enters aimed at where the player stands, drives to the arena's edge and
+    // reverses back down the same line, forever: the hall monitor's line at a
+    // speed nobody can walk (G-001). A patrol is never culled, so every one
+    // adds a road, and by Prom they cross the dance floor.
+    movement: 'cross',
+    contact: 'damage',
+    patrol: true,
+    whyThisStage:
+      'Adolescence is the only stage where the most dangerous thing the player will ever do is scheduled as a class.',
   },
 };
 

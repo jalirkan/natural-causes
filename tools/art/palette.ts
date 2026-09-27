@@ -1,7 +1,8 @@
 /**
  * The locked palette (ART-DIRECTION.md law 3).
  *
- * Twenty colours, act tints included. Every asset is quantised to this after
+ * Eleven colours on screen in any one act; the catalogue across acts is
+ * bounded separately (D-028). Every asset is quantised to this after
  * generation; an asset that quantises badly is regenerated rather than
  * hand-corrected. Nothing outside this list may appear in a shipped sprite.
  *
@@ -73,6 +74,14 @@ const ACT_TONES = {
     c('school-mid', '#6B7F53'),
     c('school-light', '#9FA86B'),
   ],
+  // ADOLESCENCE-ROSTER.md §1, lifted. The first act after dark, on the darkest
+  // ground in the life. No enemy wears the light tone (law 10, G-030). These
+  // three took FULL_PALETTE past twenty, which D-028 decided in a record.
+  adolescence: [
+    c('adolescence-deep', '#2E3453'), // night; the act background
+    c('adolescence-mid', '#5E95C3'), // a screen in that room
+    c('adolescence-light', '#D6AEBB'), // blush; pickups only (law 10, G-030)
+  ],
   service: [
     c('service-deep', '#6E6248'),
     c('service-mid', '#A2946F'),
@@ -88,7 +97,7 @@ const ACT_TONES = {
 export type ActId = keyof typeof ACT_TONES;
 export const ACT_IDS = Object.keys(ACT_TONES) as ActId[];
 
-/** The act's background. Deep tone, so the palette stays at twenty. */
+/** The act's background. Deep tone, so an act's screen stays at eleven (D-028). */
 export function actBackground(act: ActId): Colour {
   return ACT_TONES[act][0];
 }
@@ -144,7 +153,14 @@ export function enemyPalette(act: ActId, holdsThreat: ThreatClass[] = []): Colou
   ];
 }
 
-/** The full locked palette. Law 3 caps this at twenty. */
+/**
+ * The full locked palette: every act's tones plus the shared eleven.
+ *
+ * D-028: law 3's constraint is what one act puts on screen (`actPalette`, at
+ * most eleven), which is asserted per act. This catalogue grows by three tones
+ * per act and is bounded at 32: seven acts' tones and the eight shared colours
+ * come to 29.
+ */
 export const FULL_PALETTE: Colour[] = [
   INK,
   SHADOW,

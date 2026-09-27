@@ -12,6 +12,13 @@ import type { ItemIcon } from './items';
  * Reflex, a sneaker for Restlessness, an umbrella for Thick Skin, an alarm
  * clock for the late bloomer — quantised to the locked palette and mechanically
  * checked against the ink card surface they actually sit on.
+ *
+ * Grudge, Gossip and Appetite are drawn rather than generated (G-038,
+ * `tools/art/svg/conception/icon-{orbit,chain,magnet}.svg`) and go through the
+ * same CONFORM and CHECK: a fist standing in an orbit ring, three dots on one
+ * bent line, a plate between a fork and a knife. The frame name is the icon
+ * tag, not the item — Appetite's tag is `magnet` (its mechanic, pickup reach),
+ * so its plate is `icon-magnet.png`; Charisma's horseshoe magnet is `pull`.
  */
 export const ITEM_ICON_ATLAS = {
   key: 'nc-icons',

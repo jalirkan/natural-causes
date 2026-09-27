@@ -315,3 +315,89 @@ describe('the School roster is in the batch (SCHOOL-ROSTER.md §3)', () => {
     }
   });
 });
+
+describe('law 11 — Adolescence is lifted (ADOLESCENCE-ROSTER.md §1)', () => {
+  const reserved = RESERVATIONS['adolescence']!;
+
+  it('holds the six shapes the roster reserves, each by the asset it names', () => {
+    const held = Object.fromEntries(reserved.silhouettes.map((r) => [r.silhouette, r.heldBy]));
+    expect(held).toEqual({
+      'tall sheet': 'standardised-test',
+      'speech bubble': 'group-chat',
+      wheels: 'drivers-ed',
+      bolt: 'hormones',
+      dome: 'acne',
+      'hanging sphere': 'boss-prom',
+    });
+    const ids = reserved.silhouettes.map((r) => r.heldBy);
+    expect(() => assertReserved('adolescence', ids)).not.toThrow();
+    expect(() => assertReserved('adolescence', [...ids, 'some-new-enemy'])).toThrow(
+      /holds no reserved silhouette/,
+    );
+  });
+
+  it('holds all four threat colours, and gold on the projectile (G-031)', () => {
+    // Red is the car's claim about damage, purple is the white cell's on its
+    // successor, teal is the mirror ball's body, and the gold rides the
+    // notification and Prom's spots — never a body.
+    expect(reserved.reservedThreat).toEqual({
+      contact: 'drivers-ed',
+      elite: 'standardised-test',
+      ranged: PROJECTILE_HOLDER,
+      boss: 'boss-prom',
+    });
+  });
+});
+
+describe('the Adolescence roster is in the batch (ADOLESCENCE-ROSTER.md §3, §4)', () => {
+  const adolescence = ALL_ASSETS.filter((s) => s.act === 'adolescence');
+
+  it('five enemies, Prom and the player, one reserved silhouette each but the player', () => {
+    expect(adolescence.map((s) => s.id).sort()).toEqual([
+      'acne',
+      'boss-prom',
+      'drivers-ed',
+      'group-chat',
+      'hormones',
+      'player-adolescence',
+      'standardised-test',
+    ]);
+    const shapes = adolescence
+      .filter((s) => s.role !== 'player')
+      .map((s) => {
+        const v = reservationVerdict(s.act, s.id, s.role);
+        return v.status === 'holds' ? v.silhouette : v.status;
+      });
+    expect(new Set(shapes).size, 'two Adolescence assets share a silhouette').toBe(6);
+  });
+
+  it('every one is authored SVG (G-038)', () => {
+    for (const spec of adolescence) expect(spec.source, spec.id).toBe('svg');
+  });
+
+  it('no Adolescence description asks for gold or blush on a body (G-031, law 10)', () => {
+    // Gold is the notification's and Prom's light, both drawn in code; blush
+    // is the pickups'. The only legal mention of either in a clause is an
+    // exclusion of it.
+    const asked = /\b(gold|golden|yellow|mustard|amber|pink|blush)\b/i;
+    for (const spec of adolescence) {
+      for (const clause of spec.subject.split(',').map((c) => c.trim())) {
+        if (!asked.test(clause)) continue;
+        expect(clause, `${spec.id} asks for a reserved colour rather than excluding it`).toMatch(
+          /^(no|not)\b/,
+        );
+      }
+    }
+  });
+
+  it('D-018: the five are authored at the swarm detail budget', () => {
+    const roster = adolescence.filter((s) => s.role !== 'boss' && s.role !== 'player');
+    expect(roster).toHaveLength(5);
+    for (const spec of roster) {
+      expect(spec.role, `${spec.id}`).toBe('swarm');
+      expect(spec.targetSize, `${spec.id} would take the boss detail clause`).toBeLessThan(
+        DETAIL_THRESHOLD_PX,
+      );
+    }
+  });
+});

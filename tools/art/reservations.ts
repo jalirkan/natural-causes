@@ -157,6 +157,62 @@ export const RESERVATIONS: Partial<Record<ActId, ActReservations>> = {
       elite: 'hall-monitor',
     },
   },
+
+  // Lifted from ADOLESCENCE-ROSTER.md §1, consequences verbatim. Five shapes
+  // and the boss's: School's count, because this act adds a pressure (being
+  // followed) rather than a verb. The tall sheet is the one most at risk — a
+  // phone and a car would both be rectangles — and it is what put the group
+  // chat into a bubble and the car side-on on two wheels.
+  adolescence: {
+    silhouettes: [
+      {
+        silhouette: 'tall sheet',
+        heldBy: 'standardised-test',
+        consequence:
+          'The only rectangle in the act, and the act is built around it: a phone and a car would both be rectangles, so neither is drawn as one.',
+      },
+      {
+        silhouette: 'speech bubble',
+        heldBy: 'group-chat',
+        consequence:
+          'The only silhouette with a tail. Drawn as what comes out of a phone, because the phone would be a rectangle.',
+      },
+      {
+        silhouette: 'wheels',
+        heldBy: 'drivers-ed',
+        consequence: 'The only thing in the act with wheels.',
+      },
+      {
+        silhouette: 'bolt',
+        heldBy: 'hormones',
+        consequence: 'The only jagged outline in the act. Nothing else zigzags.',
+      },
+      {
+        silhouette: 'dome',
+        heldBy: 'acne',
+        consequence: 'The only half-circle, and the smallest thing in the act.',
+      },
+      {
+        silhouette: 'hanging sphere',
+        heldBy: 'boss-prom',
+        consequence:
+          'The only thing in the act that hangs from above. Its gold is on its reflections, never its body.',
+      },
+    ],
+    reservedThreat: {
+      // The act's heaviest hit is its only red thing. Acne, which anyone would
+      // draw red, wears the antibody's colours, so red stays a claim about damage.
+      contact: 'drivers-ed',
+      // The white cell's colour on the white cell's successor (§3.4).
+      elite: 'standardised-test',
+      // G-031: the group chat's gold is on its notification, never its body,
+      // and Prom's spots are the only other gold. Gold arrives in the first
+      // minute and never leaves: School's order reversed, and the point (§2).
+      ranged: PROJECTILE_HOLDER,
+      // The mirror ball's body.
+      boss: 'boss-prom',
+    },
+  },
 };
 
 /**

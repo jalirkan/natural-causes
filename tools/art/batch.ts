@@ -154,6 +154,7 @@ const GEOMETRY_CLAUSE: Record<Geometry, string> = {
 const ACT_DEFAULT_GEOMETRY: Record<ActId, Geometry> = {
   conception: 'hand-cut',
   school: 'hand-cut',
+  adolescence: 'hand-cut',
   service: 'hand-cut',
   office: 'hand-cut',
 };
@@ -747,11 +748,238 @@ export const ITEM_ICONS: AssetSpec[] = [
       'flat muted brick red body, one darker shadow tone',
     ].join(', '),
   },
+  // G-038: the three icons added with Grudge, Gossip and Appetite are drawn,
+  // not generated. Grudge's and Gossip's also fly on the field (the orbiter
+  // and the shot wear the card's icon, G-036), so both keep to rose, bone and
+  // ink: no threat colour, no paper, no pickup tone. Appetite is card-only.
+  {
+    id: 'icon-orbit',
+    name: 'Grudge icon',
+    act: 'conception',
+    role: 'icon',
+    source: 'svg',
+    targetSize: 96,
+    seed: 61019,
+    tests: 'a fist that keeps going round, read at 52px on a card and 36px circling the player',
+    subject: [
+      'a clenched fist seen knuckles-on, four finger rolls over a short palm, the thumb folded across the front, no forearm',
+      'standing in a tilted orbit ring that passes behind it and across its foot, one bead riding the ring',
+      'flat muted dusty rose fist, pale warm ring and bead, dark interior lines between the fingers',
+    ].join(', '),
+  },
+  {
+    id: 'icon-chain',
+    name: 'Gossip icon',
+    act: 'conception',
+    role: 'icon',
+    source: 'svg',
+    targetSize: 96,
+    seed: 61020,
+    tests: 'one hit passed on to two more, read at 52px on a card and 30px in flight',
+    subject: [
+      'three plain round dots joined by one bent line, like a diagram of who told whom',
+      'the first dot larger with a pale mark at its centre where it landed, the other two equal',
+      'flat muted dusty rose dots on a pale warm line, no tails on any dot',
+    ].join(', '),
+  },
+  {
+    id: 'icon-magnet',
+    name: 'Appetite icon',
+    act: 'conception',
+    role: 'icon',
+    source: 'svg',
+    targetSize: 96,
+    seed: 61021,
+    tests: 'a meal at a glance: the dining-car sign, read at 52px on a card',
+    subject: [
+      'a round plate seen from directly above between an upright fork on the left and an upright knife on the right, as on a station sign',
+      'the plate a pale warm rim around a paler well, one dark line between them',
+      'fork and knife in flat muted dusty rose, three tines on the fork, a rounded blade on the knife',
+    ].join(', '),
+  },
+];
+
+/**
+ * The Adolescence roster (ADOLESCENCE-ROSTER.md §1, §3, §4). Five swarm-tier
+ * enemies, Prom and the player at thirteen, all authored SVG (G-038) and none
+ * drawn yet: every spec here is the written description a drawing is owed
+ * against, so D-007 and law 11 run on it before a line exists.
+ *
+ * The tall sheet is the act's claim about two other enemies, as the clipboard
+ * was School's: the group chat is a bubble because a phone would be a
+ * rectangle, and the car is side-on because from above it would be a slab.
+ *
+ * **Gold appears on no body here.** The group chat's notification and Prom's
+ * spots are the act's gold, and both are projectiles drawn in code (G-031), so
+ * every subject excludes it. So is blush: `adolescence-light` is the pickups'
+ * (law 10, G-030). Nothing in the act is a person and nothing is drawn with
+ * skin (§3); every face looks straight out at the player except the car's.
+ */
+export const ADOLESCENCE_ROSTER: AssetSpec[] = [
+  {
+    id: 'hormones',
+    name: 'Hormones',
+    act: 'adolescence',
+    role: 'swarm',
+    tests: 'the bolt — the only jagged outline, a squiggle with a face in a horde',
+    targetSize: 48,
+    seed: 16016,
+    source: 'svg',
+    whyThisStage:
+      'Adolescence is the first stage where the crowd comes from inside the player, so there is no edge of it to walk out of.',
+    subject: [
+      'a fat three-stroke zigzag bolt, taller than wide, the only jagged outline in the act',
+      'strokes thick enough to carry two small dark dots for eyes on the middle one',
+      'flat mid blue (#5E95C3, the act mid tone) with one darker flat tone as the only shadow',
+      'eyes looking straight out at the viewer and a wide flat grin',
+      'thrilled, and it does not know about what',
+      'no arms, no legs, no spark lines, no glow',
+      'no yellow, no gold, no pink anywhere',
+    ].join(', '),
+  },
+  {
+    id: 'drivers-ed',
+    name: "Driver's ed",
+    act: 'adolescence',
+    role: 'swarm',
+    tests: 'the wheels — side-on, so the car is neither a rectangle nor a dome',
+    targetSize: 88,
+    seed: 17017,
+    source: 'svg',
+    whyThisStage:
+      'Adolescence is the only stage where the most dangerous thing the player will ever do is scheduled as a class.',
+    // Law 9: the plate on the roof is the instructor, who is never drawn. The
+    // one face in the act not looking at the player, because it was taught not to.
+    subject: [
+      'a lumpy little hatchback seen exactly side-on, a rounded uneven body on two round wheels',
+      'the body flat muted red (#C4472E), the contact threat colour, one solid tone',
+      'two wheels in warm near-black (#2A2521), the only wheels in the act',
+      'a flat blank muted tan (#D2C6AC) plate standing on the roof',
+      'the windscreen is the face: two small dark dots looking forward along the road and one short flat line for a mouth',
+      'not looking at the viewer, eyes on the road',
+      'nobody inside, no driver, no instructor, no lettering on the plate',
+      'no yellow, no gold, no pink, no headlight glow',
+    ].join(', '),
+  },
+  {
+    id: 'acne',
+    name: 'Acne',
+    act: 'adolescence',
+    role: 'swarm',
+    tests: 'the dome — the smallest thing in the act; raise the size, never add detail',
+    targetSize: 44,
+    seed: 18018,
+    source: 'svg',
+    whyThisStage:
+      "Adolescence is the first stage where the player's own body gets to every important moment first, and it cannot be shot because it is theirs.",
+    // §3.3: anyone would draw it red, and red is the car's claim about damage,
+    // so it wears the antibody's colours. Drawn as the spot, never the face it
+    // is on.
+    subject: [
+      'a low half-circle dome on a flat base, wider than tall, the smallest thing in the act',
+      'flat warm grey-brown (#6E6353), one solid tone, with one round muted tan (#D2C6AC) dot on the very top',
+      'two small dark dots for eyes looking straight out at the viewer and a small proud closed smile',
+      'it has been waiting for today',
+      'the spot alone: no face around it, no cheek, no skin, nothing it sits on',
+      'not red, no pink, no yellow, no gold',
+    ].join(', '),
+  },
+  {
+    id: 'standardised-test',
+    name: 'Standardised test',
+    act: 'adolescence',
+    role: 'swarm',
+    tests: 'the tall sheet — the only rectangle in the act, read by its column of dots',
+    targetSize: 96,
+    seed: 19019,
+    source: 'svg',
+    whyThisStage:
+      'Adolescence is the first stage where one morning with a pencil decides where the player goes next, and the morning was booked before anyone asked if they were ready.',
+    subject: [
+      'an upright portrait rectangle, taller than wide, the only rectangle in the act',
+      'one column of small round warm near-black (#2A2521) dots down its left edge, exactly one of them filled in',
+      'flat muted purple (#7C5C8A), the elite threat colour, one solid tone',
+      'two small dark dots for eyes looking straight out at the viewer and one short flat line for a mouth',
+      'completely calm, it has all morning',
+      'no text, no letters, no numbers, no pencil, no desk',
+      'no yellow, no gold, no pink anywhere',
+    ].join(', '),
+  },
+  {
+    id: 'group-chat',
+    name: 'Group chat',
+    act: 'adolescence',
+    role: 'swarm',
+    tests: 'the tail — a bubble that must not read as a phone or a cloud',
+    targetSize: 72,
+    seed: 20020,
+    source: 'svg',
+    whyThisStage:
+      'Adolescence is the first stage where the room is carried home in a pocket, and it keeps talking about the player after they have left.',
+    // One frame. §3.5's typing face (three ink dots while it consults) is a
+    // second frame and belongs to the renderer; the gold notification it
+    // sends is a projectile, drawn in code (G-031).
+    subject: [
+      'a fat rounded speech bubble, wider than tall, with one short tail at a bottom corner',
+      'the only silhouette in the act with a tail',
+      "flat warm grey-brown (#6E6353), one solid tone, the colour of messages that are someone else's",
+      'two small dark dots for eyes looking straight out at the viewer and a small sideways smirk',
+      'no phone, no screen, no avatars, no names, no text, nobody in it drawn',
+      'no yellow, no gold anywhere on the bubble, no pink',
+    ].join(', '),
+  },
+  {
+    id: 'boss-prom',
+    name: 'Prom',
+    act: 'adolescence',
+    role: 'boss',
+    tests: 'the hanging sphere — boss teal at boss scale, gold only on the light it throws',
+    targetSize: 384,
+    seed: 21021,
+    source: 'svg',
+    // Not in the roster, which gives Prom a design and no sentence; written
+    // here from §4 ("the best night of its life", "the first one they were
+    // invited to") because the batch requires one of every boss.
+    whyThisStage:
+      "Adolescence is the first stage that ends on a night everyone agreed in advance would be the best of the player's life.",
+    // Law 9 and D-007: the event, drawn as its mirror ball. Nobody at Prom is
+    // drawn. Its gold is on its reflections (projectiles), never its body.
+    subject: [
+      'a mirror ball hanging on a short chain from the top edge of the frame, at boss scale',
+      'the only thing in the act that hangs from above',
+      'tiled all over with small square tiles in flat muted deep teal (#2F7370), the boss colour, with warm near-black (#2A2521) grout between them',
+      'a few single tiles in muted tan (#D2C6AC) as glints',
+      'a face spread across four tiles, low and off-centre: two closed eye arcs and a wide closed smile',
+      'having the best night of its life',
+      'no dancers, no couples, no crowns, nobody at the dance drawn',
+      'no yellow, no gold anywhere on the ball or the chain, no pink',
+    ].join(', '),
+  },
+  {
+    id: 'player-adolescence',
+    name: 'The player — thirteen',
+    act: 'adolescence',
+    role: 'player',
+    tests: 'G-003 at thirteen: the same face and cowlick, one frame, no taller',
+    source: 'svg',
+    targetSize: 112,
+    seed: 22022,
+    // ADOLESCENCE-ROSTER §6 leaves the player at thirteen undesigned beyond
+    // G-003. Taller is Growth Spurt's joke, and Growth Spurt is not in the pool.
+    subject: [
+      'the player at thirteen: the same small round-headed figure as at school age, standing, no taller',
+      'the same face as every act: two flat eyes and one short flat line for a mouth',
+      'the same single asymmetric cowlick sticking up above the left eye, one tuft and no other hair',
+      'paper coloured (#EFE7D6) head and body, warm grey-brown (#6E6353) as the only second tone',
+      'no threat colour anywhere, no phone, no accessories, no gear',
+    ].join(', '),
+  },
 ];
 
 export const ALL_ASSETS: AssetSpec[] = [
   ...TEST_BATCH,
   ...CONCEPTION_ROSTER,
   ...SCHOOL_ROSTER,
+  ...ADOLESCENCE_ROSTER,
   ...ITEM_ICONS,
 ];
