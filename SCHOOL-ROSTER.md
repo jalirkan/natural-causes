@@ -196,7 +196,7 @@ time.
 
 ---
 
-### 3.5 · Substitute teacher — ranged · *asset exists*
+### 3.5 · Substitute teacher — ranged · *drawn 2026-09-27*
 
 **`whyThisStage`** — already committed in `assets/prompts/substitute-teacher.md`,
 unchanged:
