@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <title>Your knees</title>
+  <desc>Two rounded bone kneecaps side by side, seen from the front: two domes of equal size with flat bases, standing one face apart. Between them, lower than either, a square of shadow holds the one face: two ink dots and a short ink mouth turned down one step at each end, worried. No legs, nothing else; the pair is the whole of it.</desc>
+  <!--
+    Your knees (DECLINE-ROSTER §3.3), the act's accumulator: the antibody's
+    final costume, unkillable, already where you are going, costing speed.
+    Reserved silhouette (§1): the knees, two rounded kneecaps side by side
+    with one face between them; the only pair in the act, and nothing else
+    in it comes in twos.
+
+    Bone, never skin. The knees are the player's own, the one part of a
+    person anywhere in the act, so law 9 has nothing to render: drawn as
+    bone they are a joint and not a body, and the palette has no skin tone
+    and should not get one. They wear the antibody's three colours exactly,
+    bone, shadow and ink, because they are the antibody come home.
+
+    Drawn on the finished sprite's own pixel grid. The group maps one unit
+    to one pixel of the 40px sprite: the knees are 38 units wide (40 less
+    the 1px outline each side) and 14 tall, centred, so the rasteriser fits
+    them on their width and every edge lands where it is written.
+
+    Each knee is a dome 15 across and 14 tall, its top stepped 5, 9, 11,
+    11, 13, 13, 13 and then full width for its last seven rows: round
+    enough to be a dome and not a tombstone, and flat at the base so it
+    stands and is not an egg. The two are mirror images.
+
+    The face is between them, not on them. The roster has the knees nearly
+    touching; at 40px a face needs eight units of surface and a join has
+    none. Drawn touching with the face straddling the join, the pair read
+    as one loaf: a shadow seam through the face became a nose, an ink gap
+    cut it into two half-faces, and joined below a notch it was one bun
+    with ears, the domes gone to cheeks. Bulged together over a hollow
+    beneath, it read as anatomy it is not. So they stand one face apart,
+    eight units at the base, and the face sits in the hollow between them.
+
+    The hollow is shadow, 8 wide and 7 tall, set low so both domes rise
+    seven rows above it: the recess between the knees, not a third thing
+    standing there. Its top meets each dome where the dome's side goes
+    straight, so it is a plain square with no shoulders; with shoulders it
+    grew ears.
+
+    The face: two 2px ink dots two apart, and a mouth 2 across with one
+    pixel stepped down at each end, 4 in all. Short and pinched reads
+    worried; a mouth as wide as the eyes read only sad. It is the only
+    frown in the life. Ink on shadow keeps less contrast than ink on bone,
+    and the hollow is the only surface between the domes; at 48px the
+    frown still reads.
+
+    Colours are palette hex values: bone #D2C6AC the knees, shadow
+    #6E6353 the hollow, ink #2A2521 the face. No threat colour, because it
+    deals no damage; it attaches, and every one worn costs speed. No paper
+    (the player's) and no decline-light, which is the pickups' (law 10).
+    CONFORM adds the outline; there is none here.
+  -->
+  <g shape-rendering="crispEdges" transform="scale(2.5) translate(1 13)">
+  <!-- the hollow between the knees, low and square, behind both -->
+  <path fill="#6E6353" d="M15,7 H23 V14 H15 Z"/>
+  <!-- the left knee: a dome 15 across, rows 5, 9, 11, 11, 13, 13, 13, then 15 to the base -->
+  <path fill="#D2C6AC" d="M5,0 H10 V1 H12 V2 H13 V4 H14 V7 H15 V14 H0 V7 H1 V4 H2 V2 H3 V1 H5 Z"/>
+  <!-- the right knee, its mirror -->
+  <path fill="#D2C6AC" d="M28,0 H33 V1 H35 V2 H36 V4 H37 V7 H38 V14 H23 V7 H24 V4 H25 V2 H26 V1 H28 Z"/>
+  <!-- the one face, in the hollow: two dots, and a short mouth turned down one step at each end -->
+  <path fill="#2A2521" d="M16,8 h2 v2 h-2 Z M20,8 h2 v2 h-2 Z M18,11 h2 v1 h-2 Z M17,12 h1 v1 h-1 Z M20,12 h1 v1 h-1 Z"/>
+  </g>
+</svg>
