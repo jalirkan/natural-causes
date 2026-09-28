@@ -1,15 +1,21 @@
+import { ACTS, type ActDef } from '../data/acts';
+import type { ActDocument } from '../data/documents';
 import { ENEMIES } from '../data/enemies';
 import { offerTitle } from '../data/item-text';
 import { ITEMS, OFFER_PATH_SEPARATOR, isActive, offerIdFor, type ItemDef } from '../data/items';
 import type { InputLog } from '../meta/input-log';
 import type { World } from '../sim/world';
 import { bossCheats, bossReadout } from './boss-cheats';
+import { modeName, taintBadge } from './review';
+import { grantLevels, lifeFrom, nextAct, previewPaper, skipToBoss, takeHabits } from './review-cheats';
 import type { DevState } from './state';
 
 /**
- * The dev panel. Development builds only — `ActScene` imports it behind
- * `import.meta.env.DEV`, so Rollup drops this file and its dynamic import from
- * a production bundle entirely.
+ * The dev panel, and at the link the review panel (D-030). `ActScene`
+ * imports it with a dynamic `import()` behind `reviewMode()` — always on in a
+ * dev build, on at the link only with `?review` — so Rollup emits this file
+ * and what only it imports as a chunk of their own, which a page without the
+ * flag never loads.
  *
  * **It touches the World only through its public surface.** Nothing here is a
  * flag inside `world.ts`, and that is the whole design: the playtest bots
@@ -30,6 +36,12 @@ export interface DevPanelHost {
   /** This run's held headings. Read only; the scene feeds and stores it. */
   inputLog: InputLog;
   restart: () => void;
+  /** A fresh life of `acts`, tainted from its first frame (`start at`). */
+  startAt: (acts: ActDef[]) => void;
+  /** The scene's paper path (`showDocument`); false when it cannot show one now. */
+  showPaper: (doc: ActDocument) => boolean;
+  /** The name on the form, as the scene's papers print it. */
+  playerName: string;
 }
 
 const CSS = `
@@ -49,8 +61,9 @@ font:inherit;padding:2px 6px;margin:0 3px 3px 0;cursor:pointer}
 #nc-dev .lv{width:22px;text-align:right;color:#d2c6ac}
 #nc-dev .row span.lv{flex:none}
 #nc-dev .row span.path{padding-left:8px;color:#d2c6ac}
+#nc-dev .row.wrap{flex-wrap:wrap;gap:0}
 #nc-dev .hd{display:flex;justify-content:space-between;align-items:center;
-font-size:10px;letter-spacing:.13em;color:#c4472e}
+font-size:10px;letter-spacing:.13em;color:#d2c6ac}
 #nc-dev .note{color:#9a8f7d;font-size:10px;margin-top:8px;line-height:1.4}
 `;
 
@@ -98,6 +111,32 @@ export function attachDevPanel(host: DevPanelHost): () => void {
     return d;
   };
 
+  /** A cheat's button with its hover saying what it writes, as the boss row's do. */
+  const cheatButton = (label: string, hint: string, fn: () => void): HTMLButtonElement => {
+    const b = button(label, act(fn));
+    b.title = `cheat: ${hint}`;
+    return b;
+  };
+
+  /**
+   * `next act`'s drop (review-cheats.ts): the boss is made inside a step the
+   * scene takes, so the poll runs until it has stood and been dropped. Its
+   * press already tainted the run; the drop is the same cheat, landing later.
+   */
+  let dropTimer = 0;
+  const dropWhenStanding = (poll: () => boolean): void => {
+    window.clearInterval(dropTimer);
+    if (poll()) return;
+    dropTimer = window.setInterval(() => {
+      if (!poll()) return;
+      window.clearInterval(dropTimer);
+      if (open) render();
+    }, 50);
+  };
+
+  /** What the review row last could not do, said under it until the next press. */
+  let reviewNote = '';
+
   function render(): void {
     const w = host.world;
     const d = host.dev;
@@ -105,9 +144,54 @@ export function attachDevPanel(host: DevPanelHost): () => void {
 
     const head = document.createElement('div');
     head.className = 'hd';
-    head.append(document.createTextNode(d.tainted ? 'DEV · RUN TAINTED' : 'DEV MODE'));
+    head.append(document.createTextNode(d.tainted ? taintBadge() : `${modeName()} MODE`));
     head.append(button('hide', () => toggle()));
     root.append(head);
+
+    // D-030: across the seven acts in a few presses. Every one is a cheat
+    // through `act`, so it taints; `start at` restarts into a life the scene
+    // taints from its first frame (`reviewedLife`), so no life begun here is
+    // ever an ancestor.
+    const paper = previewPaper(w, host.playerName);
+    const starts = line(
+      ...ACTS.map((a) =>
+        cheatButton(a.name, `a fresh life from ${a.name} on, tainted from its first frame`, () =>
+          host.startAt(lifeFrom(a.id)),
+        ),
+      ),
+    );
+    starts.className = 'row wrap';
+    const said = document.createElement('div');
+    said.className = 'note';
+    said.textContent = reviewNote;
+    section(
+      'review',
+      line(document.createTextNode('start at')),
+      starts,
+      line(
+        cheatButton('next act', 'skip to the boss and drop it (at Time, its clock run out)', () => {
+          reviewNote = '';
+          dropWhenStanding(nextAct(w));
+        }),
+        paper
+          ? cheatButton('preview paper', `${w.act.name}’s paper as it would read if the act ended now`, () => {
+              const doc = previewPaper(w, host.playerName);
+              reviewNote = doc && host.showPaper(doc) ? '' : 'No paper now: one is up already, or the life is over.';
+            })
+          : document.createTextNode(`${w.act.name} issues no paper`),
+      ),
+      line(
+        cheatButton('level +5', 'five level-ups’ worth of XP as one gem at your feet; the cards come one at a time', () => {
+          reviewNote = '';
+          grantLevels(w);
+        }),
+        cheatButton('every habit', 'Highlighter, Calendar Block, Strongly Worded Letter and Nap at level 1, where not held', () => {
+          reviewNote = '';
+          takeHabits(w);
+        }),
+      ),
+      ...(reviewNote ? [said] : []),
+    );
 
     section(
       'run',
@@ -142,7 +226,7 @@ export function attachDevPanel(host: DevPanelHost): () => void {
         button('+30s', act(() => (w.time += 30))),
         button('+60s', act(() => (w.time += 60))),
         // The boss spawns at the end of the step that crosses the duration.
-        button('skip to boss', act(() => (w.time += Math.max(0, w.act.durationSeconds - w.actTime)))),
+        button('skip to boss', act(() => skipToBoss(w))),
       ),
     );
 
@@ -318,7 +402,7 @@ export function attachDevPanel(host: DevPanelHost): () => void {
     const note = document.createElement('div');
     note.className = 'note';
     note.textContent = d.tainted
-      ? 'This run is tainted and cannot answer §12.4. Restart for a clean one.'
+      ? 'This run is tainted and cannot answer §12.4. Restart for a clean one (a life started past Conception stays tainted).'
       : 'Nothing used yet — this run still counts. ` toggles this panel.';
     root.append(note);
   }
@@ -343,6 +427,7 @@ export function attachDevPanel(host: DevPanelHost): () => void {
 
   return () => {
     window.clearInterval(timer);
+    window.clearInterval(dropTimer);
     window.removeEventListener('keydown', onKey);
     root.remove();
     style.remove();

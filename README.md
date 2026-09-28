@@ -255,14 +255,34 @@ the game answers it itself now: an input log records every heading you hold
 and the dev panel shows your median beside the bots' cadence, which stays a
 labelled placeholder until a person's number has been read.
 
+### Reviewing at the link
+
+**<https://jalirkan.github.io/natural-causes/?review>** is the same game with
+the dev panel open (D-030); the title says so. The panel's `review` row:
+
+- **start at** Conception … Decline — a fresh life from that act on: level 1,
+  the name on the form, the inheritance dealt at its first crossing as always.
+- **next act** — skip to the boss and drop it; at Time, its clock runs out.
+- **preview paper** — the act's paper as it would read if the act ended now.
+  Decline has none: the certificate is its paper.
+- **level +5** — five level-ups' worth of XP; the cards come one at a time.
+- **every habit** — Highlighter, Calendar Block, Strongly Worded Letter and
+  Nap, at level 1.
+
+**Any control taints the run.** The HUD says `REVIEW · RUN TAINTED`, and a
+tainted life is never recorded as an ancestor — nor is a life started past
+Conception, however it is restarted. **`** hides the panel. Without `?review`
+the panel is not even downloaded.
+
 ### Dev mode
 
 Press **`** in a `pnpm dev` build for a panel: god mode, no antibody drag, an
 empty field, 0.25x–4x speed, jump the clock or skip straight to the boss, set
 any item to any level, spawn anything, and damage or kill the Egg.
 
-It exists in development builds only — production bundles do not contain it —
-and it never touches `World`. Every cheat is applied from `ActScene` after the
+It is in development builds, and at the link only behind `?review` (above):
+the production bundle carries it as a chunk of its own that no page without
+the flag loads. It never touches `World`. Every cheat is applied from `ActScene` after the
 step, so nothing in the panel can reach the playtest bots or a test.
 
 **Any cheat taints the run.** The HUD says `DEV · RUN TAINTED` for the rest of

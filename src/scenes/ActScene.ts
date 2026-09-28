@@ -4,6 +4,8 @@ import { ACT_VISUALS, actVisuals, type ActVisuals } from '../data/act-visuals';
 import { ENEMIES } from '../data/enemies';
 import { ITEMS, isActive, itemDef, type ItemIcon } from '../data/items';
 import { neutralDevState, type DevState } from '../dev/state';
+import { reviewedLife, reviewMode, taintBadge } from '../dev/review';
+import type { ActDocument } from '../data/documents';
 import { addVignette, ensureFieldTile, ensureGemTexture, ensureShotTextures } from './dressing';
 import { ITEM_ICON_ATLAS, itemIconFrame } from '../data/item-visuals';
 import { parseOfferId } from '../data/items';
@@ -414,13 +416,16 @@ export class ActScene extends Phaser.Scene {
   private endedAt = -1;
 
   /**
-   * Dev-mode cheats. Development builds only, and deliberately NOT inside
+   * Dev-mode cheats. Development builds, and the link behind `?review`
+   * (D-030, `reviewMode()`), and deliberately NOT inside
    * `World` — the playtest bots construct a World directly, and a `god` field
    * on the rules object is a field that can be set during a measured run.
    * Everything here is applied from outside the simulation instead.
    */
   private dev: DevState = neutralDevState();
   private detachDev?: () => void;
+  /** Set by `init` when the panel's `start at` began this life (D-030). */
+  private startTainted = false;
 
   /**
    * Last frame's world counters, for sound. The simulation emits no events —
@@ -510,10 +515,12 @@ export class ActScene extends Phaser.Scene {
     super('act');
   }
 
-  init(data?: { acts?: ActDef[] }): void {
+  init(data?: { acts?: ActDef[]; tainted?: boolean }): void {
     const life = data?.acts ?? this.life ?? ACTS;
     if (life.length === 0) throw new Error('ActScene was started without an act');
     this.life = life;
+    // The panel's `start at` (D-030): the life it begins is tainted from its first frame.
+    this.startTainted = data?.tainted === true;
     // Throws here, before a frame is drawn, if an act in the life has no art.
     for (const act of life) actVisuals(act.id);
   }
@@ -621,7 +628,7 @@ export class ActScene extends Phaser.Scene {
       oncePerEvent(() => {
         // Mid-run restarts are a dev affordance. In a clean run R still only
         // works once the run is over, so it cannot be a panic button.
-        const anytime = import.meta.env.DEV && this.dev.tainted;
+        const anytime = reviewMode() && this.dev.tainted;
         if (this.world.dead || this.world.won || anytime) this.scene.restart({ acts: this.life });
       }),
     );
@@ -659,16 +666,31 @@ export class ActScene extends Phaser.Scene {
     this.resetArrivals();
 
     this.dev = neutralDevState();
+    // A life the panel began, or one that does not begin where the title
+    // begins one, is tainted before its first step and on every restart of
+    // it (D-030): R cannot make a life begun at Family an ancestor.
+    this.dev.tainted = this.startTainted || reviewedLife(this.life);
     this.heard = { kills: 0, hp: this.world.hp, worn: new Map(this.world.wornBy), offers: false, boss: false, dead: false, won: false, xp: 0, level: 1, raced: 0, shot: 0, homework: 0, stun: 0, bossPhase: '', typing: 0, car: 0, bell: 0, interestIn: 0, time: this.world.time, auraAt: -Infinity, holds: this.world.holds.slice(), restructures: 0, bill: 0, ringing: 0, engulf: 0, paid: 0, medication: 0, denying: 0, secondsLeft: 0, filed: 0 };
     this.inputLog = new InputLog();
-    if (import.meta.env.DEV) {
+    if (reviewMode()) {
       this.detachDev?.();
+      // At the link this fetches the panel's chunk the first time (D-030); a
+      // restart before it lands must not mount a panel onto the world it left.
+      const world = this.world;
       void import('../dev/panel').then(({ attachDevPanel }) => {
+        if (this.world !== world) return;
         this.detachDev = attachDevPanel({
           world: this.world,
           dev: this.dev,
           inputLog: this.inputLog,
           restart: () => this.scene.restart({ acts: this.life }),
+          startAt: (acts) => {
+            // `paused` is the scene's own and outlives a restart.
+            this.paused = false;
+            this.scene.restart({ acts, tainted: true });
+          },
+          showPaper: (doc) => !this.paper && !this.world.dead && !this.world.won && this.showDocument(doc),
+          playerName: this.playerName,
         });
       });
       this.events.once('shutdown', () => this.detachDev?.());
@@ -816,16 +838,17 @@ export class ActScene extends Phaser.Scene {
    * the paper takes a canvas of the screen's shape in the certificate's
    * narrow type, and `hideDocument` gives 1280×720 back.
    */
-  private showDocument(): boolean {
+  private showDocument(preview?: ActDocument): boolean {
     const w = this.world;
     // The finished act's clock, off the life clock: when this act began, less
     // when the last one did. Exact at any time scale, and under the dev
     // panel's skip, which moves both clocks together.
     const began = w.time - w.actTime;
     const clock = began - this.actBegan;
-    this.actBegan = began;
+    if (!preview) this.actBegan = began;
     const finished = this.life[w.actIndex - 1];
-    const doc = finished ? actDocument(w, this.playerName, finished, clock) : null;
+    // `preview`: the review panel's (D-030), the playing act's paper as it would read now.
+    const doc = preview ?? (finished ? actDocument(w, this.playerName, finished, clock) : null);
     if (!doc) return false;
 
     const cam = this.cameras.main;
@@ -1244,7 +1267,7 @@ export class ActScene extends Phaser.Scene {
     // A restart destroys the old sheet with the display list; forget it.
     delete this.form;
     this.devBadge = this.add
-      .text(cam.width - 14, 58, 'DEV · RUN TAINTED', {
+      .text(cam.width - 14, 58, taintBadge(), {
         ...style(13, '#EFE7D6'),
         backgroundColor: '#2A2521',
         padding: { x: 7, y: 3 },
@@ -1300,7 +1323,7 @@ export class ActScene extends Phaser.Scene {
       // The ancestor log and the input log (src/meta): once per life, outside
       // World. Not for a tainted run: a cheated life is not an ancestor, and
       // under a time scale every hold is multiplied, so its log is not a
-      // person's number. The HUD said DEV · RUN TAINTED the whole way.
+      // person's number. The HUD said RUN TAINTED the whole way (DEV, or REVIEW at the link).
       if (!this.dev.tainted) {
         if (this.world.certificate) recordLife(this.world.certificate, this.playerName);
         try {
@@ -1578,7 +1601,7 @@ export class ActScene extends Phaser.Scene {
    * affected by it — which is the point of doing it here.
    */
   private applyDevCheats(): void {
-    if (!import.meta.env.DEV) return;
+    if (!reviewMode()) return;
     const w = this.world;
     if (this.dev.god) {
       w.hp = w.maxHp;
@@ -2922,7 +2945,10 @@ export class ActScene extends Phaser.Scene {
     // On the canvas, not in the DOM panel, so it is present in a screenshot
     // and present with the panel hidden. Paper on ink rather than a threat
     // colour: law 10 keeps those off UI chrome without an exception.
-    this.devBadge.setVisible(import.meta.env.DEV && this.dev.tainted);
+    // D-030: on the taint alone. Only the panel (behind `reviewMode()`) or a
+    // life it began can latch it, so without the flag this is never shown;
+    // and if anything else ever did, the badge would say so.
+    this.devBadge.setVisible(this.dev.tainted);
 
     if (this.paused) {
       this.endScrim.setVisible(true);

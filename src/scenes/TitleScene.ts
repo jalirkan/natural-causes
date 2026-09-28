@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { ACTS } from '../data/acts';
 import { actVisuals } from '../data/act-visuals';
 import { sfx } from '../audio/sfx';
+import { REVIEW_TITLE_LINE, reviewMode } from '../dev/review';
 import { INK, VIEW_HEIGHT, VIEW_WIDTH } from '../config';
 import { addVignette, ensureFieldTile } from './dressing';
 import { oncePerEvent } from './keys';
@@ -56,6 +57,9 @@ export class TitleScene extends Phaser.Scene {
         })
         .setOrigin(0.5)
         .setAlpha(alpha);
+
+    // D-030: at the link with `?review`, the page says so before a life begins.
+    if (reviewMode()) text(40, REVIEW_TITLE_LINE, 14, 0.7);
 
     text(180, 'N A T U R A L   C A U S E S', 44);
     this.add.rectangle(cx, 216, 336, 2, 0xefe7d6, 0.28);
