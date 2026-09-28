@@ -684,19 +684,25 @@ export const ITEM_ICONS: AssetSpec[] = [
       'flat muted dusty rose outer starburst with a smaller flat pale warm starburst inset inside it, a dark interior edge round the inset, no text, no numbers, no face',
     ].join(', '),
   },
+  // Drawn, not generated (G-038). Baggage stamps this on the field behind the
+  // player (G-036; ActScene syncAreas, 26px), and the generated sole was
+  // contact red all over, so the player's own trail read as a threat. It
+  // keeps to rose, bone and ink as Rut's slippers do, and stays a bare foot.
   {
     id: 'icon-trail',
     name: 'Wake icon',
     act: 'conception',
     role: 'icon',
     fieldRiding: true,
+    source: 'svg',
     targetSize: 96,
     seed: 61034,
-    tests: 'two footprints reading as a stride at 40px',
+    tests: 'one bare footprint, read at 52px on a card and 26px stamped along a trail, never footwear',
     subject: [
       'a bare footprint pressed in sand, seen from directly above, toes pointing up, as on a beach safety sign',
-      'one smooth foot-sole shape narrow at the arch and wide at the ball, with five small round toe dots arranged in an arc above it',
-      'flat muted brick red, one darker shadow tone',
+      'one smooth foot-sole shape narrow at the arch and wide at the ball, with five fat round toe dots arranged in an arc above it',
+      'flat muted dusty rose (#A86A63) sole and toes, a muted tan (#D2C6AC) mark in the hollow of the inner arch, a warm near-black (#2A2521) edge where the ball meets the arch',
+      'no red, no pale paper tone, no light rose, no shoe, no sandal, no slipper, no text',
     ].join(', '),
   },
   {

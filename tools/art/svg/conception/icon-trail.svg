@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <title>Wake icon</title>
+  <desc>One bare footprint seen from directly above, toes up: a sole narrow at the arch and wide at the ball, with five round toe dots in an arc above it.</desc>
+  <!--
+    Baggage (items.ts, icon "trail"; Wake before G-039). A card icon, and
+    also the stamp Baggage leaves behind the player on the field (G-036,
+    ActScene syncAreas: 26px, 0.6 alpha, rotated along the path, alternate
+    stamps flipped into the other foot), so it keeps off the field's reserved
+    colours: no threat colour, no paper, no conception-light. The generated
+    print it replaces was contact red over the whole sole, and the player's
+    own trail read as a threat.
+    A right foot, as on a beach sign: big toe and arch on the left.
+    A bare foot and never footwear: Rut's slippers (icon-rut) take this
+    stamp's place when Baggage evolves, so this one has toes and nothing on.
+    At 26px one unit here is about a quarter of a pixel. All five toes are
+    kept, none merged: the smallest is still nine units across, so it stays
+    a dot and not a speck. The gaps between toes shrink to about one ink
+    pixel there, and if they close the five read as one scalloped arc,
+    which is still a footprint. The gap that has to survive is the one
+    between the toes and the ball, so it is the widest in the drawing.
+    Pressed in sand: the ball and heel press deepest, the inner arch not at
+    all. The bone mark is that hollow, and the ink line over it is the rim
+    of the ball where it meets the arch.
+    CONFORM adds the outer outline; the rim line is drawn here.
+    Colours: conception-mid #A86A63, bone #D2C6AC, ink #2A2521.
+  -->
+  <defs>
+    <clipPath id="sole">
+      <path d="M 48 25 C 58 24.5, 68 27, 71 36 C 73.5 44, 71.5 52, 69 60 C 67 67, 67.5 75, 66.5 82
+               C 65 91, 58.5 96, 51.5 96 C 44 96, 38.5 90.5, 38.5 83 C 38.5 75, 43 70, 42 62
+               C 41 53, 29.5 50, 29 42 C 28.5 33, 36 25.5, 48 25 Z"/>
+    </clipPath>
+  </defs>
+  <g shape-rendering="crispEdges">
+    <!-- the sole -->
+    <path d="M 48 25 C 58 24.5, 68 27, 71 36 C 73.5 44, 71.5 52, 69 60 C 67 67, 67.5 75, 66.5 82
+             C 65 91, 58.5 96, 51.5 96 C 44 96, 38.5 90.5, 38.5 83 C 38.5 75, 43 70, 42 62
+             C 41 53, 29.5 50, 29 42 C 28.5 33, 36 25.5, 48 25 Z" fill="#A86A63"/>
+    <g clip-path="url(#sole)">
+      <!-- the hollow of the inner arch, where the foot did not press -->
+      <path d="M 28 45.5 C 34 52.5, 41 54.5, 46 55 C 48.5 61, 47 69, 40 77 L 20 77 L 20 45.5 Z" fill="#D2C6AC"/>
+      <!-- the rim of the ball, where it meets the arch -->
+      <path d="M 28 45.5 C 34 52.5, 45 55, 53 52.5" fill="none" stroke="#2A2521" stroke-width="2.6" stroke-linecap="round"/>
+    </g>
+    <!-- the toes, big to small, in an arc over the ball -->
+    <g fill="#A86A63">
+      <ellipse cx="35" cy="14" rx="7.5" ry="8.5"/>
+      <ellipse cx="48.5" cy="9" rx="5.5" ry="6"/>
+      <ellipse cx="60.5" cy="11" rx="5" ry="5.5"/>
+      <ellipse cx="69.5" cy="17" rx="4.6" ry="5"/>
+      <ellipse cx="75.5" cy="25.5" rx="4.5" ry="4.5"/>
+    </g>
+  </g>
+</svg>
