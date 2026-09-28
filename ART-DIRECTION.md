@@ -298,8 +298,11 @@ is a lesser joke.
    everything that can hold one, and every face is mildly pleased, content or
    faintly worried — nobody snarls, nobody menaces (law 9). The mortgage
    smiles at you.
-4. **One glint per mass.** Exactly one flat light spot, upper-left, at most a
-   tenth of the mass across. This is law 2's one exception: flat fills still,
+4. **One glint per mass large enough for one.** Exactly one flat light spot,
+   upper-left, at most a tenth of the mass across — and none on a mass whose
+   tenth is under a pixel at the authored size (a button, a tie, a key), where
+   it would only read as a speck; none on a mass already drawn in the glint's
+   colour (a shadow crescent lower-right stands in). This is law 2's one exception: flat fills still,
    no gradients, no shading beyond one shadow tone; the glint is the whole
    gloss. Its colour follows law 10: **paper on the player**; **bone on
    everything else in the field** — enemies, bosses, and the weapons' icons,
