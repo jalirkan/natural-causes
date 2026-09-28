@@ -129,16 +129,6 @@ describe('law 10 — a field-riding icon wears nothing reserved on the field', (
       },
     ],
     [
-      'icon-pierce',
-      {
-        colours: ['conception-light', 'paper', 'threat-ranged'],
-        reason:
-          "Stubbornness's dart (motility), the shot: ranged gold over the whole body " +
-          '(1721 of 2645 px), conception-light (27 px), paper (5 px). Gold is what ' +
-          'hostile projectiles wear (G-031).',
-      },
-    ],
-    [
       'icon-trail',
       {
         colours: ['conception-light', 'threat-contact'],
