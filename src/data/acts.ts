@@ -441,7 +441,7 @@ export const OFFICE: ActDef = {
   age: { from: 22, to: 34 },
   // No race: nobody else wants the job.
   provisional:
-    "Every rate, time and enemy number here, reply-all's split (`split`: 2 children, 3 generations, at 0.75 scale), the ping's cost to cadence (`attach.cooldownMultiplier`, 1.06 a stack), the meeting's hold (`hold`: from 260px to 120px over 30s, held 12s, at 0.6 speed), the review's cut of the level bar (`ranged.xpLoss`, 0.15), and all of The Reorg's numbers (`boss.thresholds` at two thirds and one third, `lateralMove` 220, `memoShots` 5, `memoSpacing` 36, the 300px it relocates beyond, and the Egg's telegraph, idle, shot and BOSS_HP it borrows) were written as placeholders before anyone played the act (OFFICE-ROSTER §3.6 and §4, G-048); a person playing it at the link is what moves them (D-022).",
+    "Every rate, time and enemy number here, reply-all's split (`split`: 2 children, 3 generations, at 0.75 scale), the ping's cost to cadence (`attach.cooldownMultiplier`, 1.06 a stack), the meeting's hold (`hold`: from 260px to 120px over 30s, held 12s, at 0.6 speed), the review's cut of the level bar (`ranged.xpLoss`, 0.15), and all of The Reorg's numbers (`boss.thresholds` at two thirds and one third, `lateralMove` 220, `memoShots` 5, `memoSpacing` 64, the 300px it relocates beyond, and the Egg's telegraph, idle, shot and BOSS_HP it borrows) were written as placeholders before anyone played the act (OFFICE-ROSTER §3.6 and §4, G-048); a person playing it at the link is what moves them (D-022).",
   // OFFICE-ROSTER.md §3.6, transcribed. The ORDER is the design and is under
   // test (office-act.test.ts): age runs 22 to 34, a year every 15 seconds.
   // Reply-all from 0s, the first day; pings at 15s; the meeting's stream at
@@ -487,8 +487,10 @@ export const ALL_ACTS: ActDef[] = [CONCEPTION, SCHOOL, ADOLESCENCE, COLLEGE, OFF
  * atlas, a player frame and a boss frame registered in `act-visuals.ts`.
  * School joined when its authored SVG sprites landed (G-038); its boss is the
  * Gym Teacher, picture and behaviour (SCHOOL-ROSTER §9). College joined when
- * its seven drawings were packed (G-045), so the browser's life now ends at
- * twenty-two. A test asserts this list and `ACT_VISUALS` agree, so moving an
- * act in is a one-line change that fails loudly if the art is not there.
+ * its seven drawings were packed (G-045); The Office joined when its seven
+ * were (G-048), so the browser's life now ends at thirty-four, and every act
+ * in `ALL_ACTS` is startable. A test asserts this list and `ACT_VISUALS`
+ * agree, so moving an act in is a one-line change that fails loudly if the
+ * art is not there.
  */
-export const ACTS: ActDef[] = [CONCEPTION, SCHOOL, ADOLESCENCE, COLLEGE];
+export const ACTS: ActDef[] = [CONCEPTION, SCHOOL, ADOLESCENCE, COLLEGE, OFFICE];

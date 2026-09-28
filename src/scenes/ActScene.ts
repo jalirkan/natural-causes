@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { ACTS, type ActDef } from '../data/acts';
-import { actVisuals, type ActVisuals } from '../data/act-visuals';
+import { ACT_VISUALS, actVisuals, type ActVisuals } from '../data/act-visuals';
 import { ENEMIES } from '../data/enemies';
 import { ITEMS, isActive, itemDef, type ItemIcon } from '../data/items';
 import { neutralDevState, type DevState } from '../dev/state';
@@ -74,16 +74,40 @@ const GEM_SIZE = 9;
 const MAX_ATTACHED_SPRITES = 16;
 /**
  * Enemies whose aimed shot is drawn as a word in the ranged gold instead of the
- * gold dot: the substitute's (the player's name, misspelled) and the
- * registrar's (HOLD). Keyed on the id because the word is the drawing.
+ * gold dot: the substitute's (the player's name, misspelled), the registrar's
+ * (HOLD) and the performance review's rating (MEETS, OFFICE-ROSTER §3.5).
+ * Keyed on the id because the word is the drawing; `SHOT_WORDS` holds the
+ * fixed ones, and the substitute's is the name.
  */
-const WORDED_SHOTS: ReadonlySet<string> = new Set(['substitute-teacher', 'registrar']);
+const SHOT_WORDS: Readonly<Record<string, string>> = { registrar: 'HOLD', 'performance-review': 'MEETS' };
+const WORDED_SHOTS: ReadonlySet<string> = new Set(['substitute-teacher', ...Object.keys(SHOT_WORDS)]);
 /**
  * The Loan's tape jerking on its interest tick: how long the jolt rings, in
  * world seconds, and how far it stretches the frame at its peak.
  */
 const LOAN_JERK_SECONDS = 0.45;
 const LOAN_JERK = 0.07;
+/**
+ * The Reorg's restructure (OFFICE-ROSTER §4): the chart lands somewhere new
+ * and settles, a quick squash (wider and shorter first) ringing down the way
+ * the Loan's jerk does. PLACEHOLDER, watched by nobody yet.
+ */
+const REORG_SWAP_SECONDS = 0.4;
+const REORG_SWAP = 0.12;
+/**
+ * The chart greys from the bottom (G-004: damaged boxes go grey and stay in
+ * the chart). Where each of its three faced rows begins, top to bottom, as a
+ * share of the frame's height, read from boss-reorg.svg's note for the
+ * renderer (rows 2–4 at y 132, 236 and 340 of 384, each with 8 of ink above,
+ * cut 2 higher so the ink goes with it). The top box is empty and never
+ * greys. PLACEHOLDER as a picture: one frame exists, so the grey is the same
+ * frame cropped to the rows below the cut and laid over the chart in the
+ * shadow tone at `REORG_GREY` — a render tint (G-032 retired those for
+ * sprites; this marks a state, not a corrected colour) until a grey chart is
+ * drawn and packed, when the overlay wears that frame and drops the tint.
+ */
+const REORG_ROW_TOPS = [122 / 384, 226 / 384, 330 / 384];
+const REORG_GREY = 2 / 3;
 /**
  * The boss's entrance (AUDIT 37). Every boss stands 420px above the player
  * and the view reaches 360, so on the boss's first frame the camera goes to
@@ -104,6 +128,17 @@ const STICK_RADIUS_CSS = 56;
 const RESTART_GRACE_MS = 700;
 /** The last clean run's held headings (src/meta/input-log.ts), beside `nc-ancestors`. One run, overwritten. */
 const INPUT_LOG_KEY = 'nc-input-log';
+/**
+ * Every stack the player wears, whatever it costs (`World.wornBy`): the
+ * antibody's drag, tuition's tax, the ping's attention. Acts one to four
+ * attach only things that drag, so there it equals `dragStacks`; in The
+ * Office a ping adds to it and not to the drag.
+ */
+function wornCount(w: World): number {
+  let n = 0;
+  for (const k of w.wornBy.values()) n += k;
+  return n;
+}
 /** Arrival toasts stay below the HUD's top band (plate, boss bar, race bar) and this far off the edges. */
 const TOAST_TOP = 104;
 const TOAST_EDGE = 16;
@@ -179,7 +214,8 @@ export class ActScene extends Phaser.Scene {
   private projectileSprites: Phaser.GameObjects.Image[] = [];
   /**
    * Shots drawn as words (`WORDED_SHOTS`): the substitute's, the player's name
-   * spelled wrong (SCHOOL-ROSTER §3.5), and the registrar's HOLD (COLLEGE §3.5).
+   * spelled wrong (SCHOOL-ROSTER §3.5), the registrar's HOLD (COLLEGE §3.5)
+   * and the review's MEETS (OFFICE §3.5).
    */
   private nameShotTexts: Phaser.GameObjects.Text[] = [];
   /** The name on the form, read once per life; the sim never knows it. */
@@ -214,6 +250,14 @@ export class ActScene extends Phaser.Scene {
   private bossInterestIn = 0;
   /** World time of the Loan's last tick, which the tape's jerk rings down from. */
   private bossJerkAt = -Infinity;
+  /**
+   * The Reorg's restructures seen last frame, and the world time of the last
+   * one, which the swap's squash rings down from (OFFICE-ROSTER §4).
+   */
+  private bossRestructures = 0;
+  private bossSwapAt = -Infinity;
+  /** The Reorg's greyed rows: the chart's own frame, cropped from a row down (`REORG_ROW_TOPS`). */
+  private bossGrey?: Phaser.GameObjects.Image;
   /**
    * The boss's entrance (AUDIT 37): owed from the frame its sprite is made
    * until the camera goes to look, and the look while it runs. One per
@@ -274,7 +318,7 @@ export class ActScene extends Phaser.Scene {
   /**
    * The certificate's words: `certificateLines`, typed on the receipt under
    * the form (showCertificate). The smoke reads this object's text for
-   * "Natural causes." and "Age 22." (tools/smoke/run.ts), so those lines live
+   * "Natural causes." and "Age 34." (tools/smoke/run.ts), so those lines live
    * here and nowhere else on the sheet decides them.
    */
   private overlay!: Phaser.GameObjects.Text;
@@ -358,6 +402,7 @@ export class ActScene extends Phaser.Scene {
     this.sweepIcons = [];
     this.attachedSprites = [];
     delete this.bossSprite;
+    delete this.bossGrey;
     delete this.floorRing;
     // The old scene's look went with its tweens, and startFollow below sets
     // the follow offset back to nothing; a new world has no boss to owe one.
@@ -503,6 +548,8 @@ export class ActScene extends Phaser.Scene {
     this.attachedSprites = [];
     this.bossSprite?.destroy();
     delete this.bossSprite;
+    this.bossGrey?.destroy();
+    delete this.bossGrey;
     this.endBossEntrance();
     this.floorRing?.destroy();
     delete this.floorRing;
@@ -976,7 +1023,9 @@ export class ActScene extends Phaser.Scene {
       // Three pixels for ninety milliseconds. Feedback, not an earthquake.
       this.cameras.main.shake(90, 0.0035);
     }
-    if (w.dragStacks > h.stacks) {
+    // Every stack worn, not only the ones that drag: a ping lands with the
+    // same sound and puff as an antibody, or it lands in silence.
+    if (wornCount(w) > h.stacks) {
       sfx.attach();
       this.spawnPuff(w.x, w.y);
     }
@@ -1100,7 +1149,7 @@ export class ActScene extends Phaser.Scene {
     this.heard = {
       kills: w.kills,
       hp: w.hp,
-      stacks: w.dragStacks,
+      stacks: wornCount(w),
       offers: !!w.offers,
       boss: !!w.boss,
       dead: w.dead,
@@ -1256,7 +1305,8 @@ export class ActScene extends Phaser.Scene {
           break;
         }
         case 'drivers-ed':
-        case 'deadline': {
+        case 'deadline':
+        case 'commute': {
           // A vehicle has a front (AUDIT part five): the car is drawn side-on
           // facing right, so it turns to its `cross` heading, and one driving
           // left flips and rotates by the remainder so the roof stays up.
@@ -1266,7 +1316,9 @@ export class ActScene extends Phaser.Scene {
           // monitor and substitute are people, who would walk left on their
           // heads. The deadline (COLLEGE-ROSTER §3.2) is driver's ed without
           // the wheels, a leaf in flight, so it leads with its edge the same
-          // way and its curl stays up. A third is the moment for a flag.
+          // way and its curl stays up. The commute (OFFICE-ROSTER §3.2) is
+          // the carriage drawn side-on facing right, its face in the front
+          // window looking along the track: a third, and still no flag.
           const a = Math.atan2(e.vy, e.vx);
           const left = Math.abs(a) > Math.PI / 2;
           s.setFlipX(left).setRotation(left ? a - Math.PI : a);
@@ -1294,6 +1346,9 @@ export class ActScene extends Phaser.Scene {
     //
     // The registrar's form is the one word HOLD (COLLEGE-ROSTER §3.5), in the
     // same hand and the same pool: the aimed thing is not a hit but a hold.
+    // The review's rating is the one word MEETS (OFFICE-ROSTER §3.5): the
+    // number about the player, and the level bar slipping when it lands.
+    // The Reorg's memo has no owner, so it is the Egg's hostile dot.
     this.fit(this.projectileSprites, list.length, () => this.add.image(0, 0, 'nc-shot').setDepth(8));
     let named = 0;
     for (const p of list) if (p.hostile && WORDED_SHOTS.has(p.owner?.id ?? '')) named++;
@@ -1316,7 +1371,7 @@ export class ActScene extends Phaser.Scene {
       const heading = Math.atan2(p.vy, p.vx);
       if (p.hostile && WORDED_SHOTS.has(p.owner?.id ?? '')) {
         this.nameShotTexts[named++]!
-          .setText(p.owner!.id === 'registrar' ? 'HOLD' : misspell(this.playerName, p.serial))
+          .setText(SHOT_WORDS[p.owner!.id] ?? misspell(this.playerName, p.serial))
           .setPosition(p.x, p.y)
           .setVisible(true);
         s.setVisible(false);
@@ -1714,6 +1769,8 @@ export class ActScene extends Phaser.Scene {
       this.bossScale = this.bossBaseScale;
       this.bossInterestIn = b.interestIn;
       this.bossJerkAt = -Infinity;
+      this.bossRestructures = b.restructures;
+      this.bossSwapAt = -Infinity;
       this.bossEntranceOwed = true;
       // Prom's floor (ADOLESCENCE-ROSTER §4): the HUD says get on it, so it is
       // drawn — a thin paper ring at floorRadius, chrome not threat (law 10),
@@ -1755,18 +1812,71 @@ export class ActScene extends Phaser.Scene {
     if (b.interestIn > this.bossInterestIn) this.bossJerkAt = this.world.time;
     this.bossInterestIn = b.interestIn;
     const since = this.world.time - this.bossJerkAt;
+    // The Reorg's restructure, found the same way (OFFICE-ROSTER §4): the
+    // count rising between two frames is the chart having moved. The squash
+    // is the Loan's ring with the sign turned, wider first, so the swap reads
+    // as the chart landing rather than being yanked. Zero for the other kinds,
+    // whose count never leaves 0.
+    if (b.restructures > this.bossRestructures) this.bossSwapAt = this.world.time;
+    this.bossRestructures = b.restructures;
+    const swapped = this.world.time - this.bossSwapAt;
     const jerk =
-      since >= 0 && since < LOAN_JERK_SECONDS ? LOAN_JERK * Math.exp(-since * 9) * Math.cos(since * 28) : 0;
+      (since >= 0 && since < LOAN_JERK_SECONDS ? LOAN_JERK * Math.exp(-since * 9) * Math.cos(since * 28) : 0) -
+      (swapped >= 0 && swapped < REORG_SWAP_SECONDS
+        ? REORG_SWAP * Math.exp(-swapped * 10) * Math.cos(swapped * 30)
+        : 0);
     this.bossScale = Phaser.Math.Linear(this.bossScale, target, 0.14);
+    const alpha = b.phase === 'absorbing' ? Math.max(0, b.timer / 1.8) : telegraph ? 0.72 : 1;
+    // Every frame at the sim's point: the Reorg relocates at a restructure,
+    // and the sprite is wherever the chart is now, never where it spawned.
     this.bossSprite
       .setPosition(b.x, b.y)
       // Taller and thinner first (the tape yanked up), then a squash, ringing
       // down: about the body's anchor, so the machine stays on the floor.
       .setScale(this.bossScale * (1 - jerk), this.bossScale * (1 + jerk))
       // Value, not tint (G-032, law 10).
-      .setAlpha(b.phase === 'absorbing' ? Math.max(0, b.timer / 1.8) : telegraph ? 0.72 : 1);
+      .setAlpha(alpha);
+    if (this.world.act.boss.kind === 'reorg') this.syncChartGrey(b, alpha);
     // Behind a card nobody would see the look, so it waits for the choice.
     if (this.bossEntranceOwed && !this.world.offers) this.lookAtBoss(b.phase === 'absorbing');
+  }
+
+  /**
+   * The Reorg's grey rows (G-004, OFFICE-ROSTER §4): one of the three faced
+   * rows per share of its health gone, from the bottom — a share is what lies
+   * between two of `thresholds`, so each restructure greys the next row up,
+   * and the absorb greys them all (the dev panel's kill skips the
+   * restructures and lands there too). It reads the restructures, not the
+   * health, so a row greys when the chart moves and stays grey (the chart
+   * stays).
+   * Drawn as the chart's own frame cropped from the cut down, laid exactly
+   * over the chart (same point, origin, scale and alpha) and filled with the
+   * shadow tone at REORG_GREY: the rows above the cut are untouched.
+   */
+  private syncChartGrey(b: NonNullable<World['boss']>, alpha: number): void {
+    const s = this.bossSprite!;
+    const boss = this.world.act.boss;
+    const shares = (boss.kind === 'reorg' ? boss.thresholds.length : 0) + 1;
+    const gone = b.phase === 'absorbing' ? shares : b.restructures;
+    const rows = Math.min(REORG_ROW_TOPS.length, Math.round((REORG_ROW_TOPS.length * gone) / shares));
+    if (rows === 0) {
+      this.bossGrey?.setVisible(false);
+      return;
+    }
+    if (!this.bossGrey) {
+      this.bossGrey = this.add
+        .image(s.x, s.y, s.texture.key, s.frame.name)
+        .setDepth(s.depth)
+        .setTintFill(SHADOW);
+    }
+    const cut = Math.round(s.frame.height * REORG_ROW_TOPS[REORG_ROW_TOPS.length - rows]!);
+    this.bossGrey
+      .setCrop(0, cut, s.frame.width, s.frame.height - cut)
+      .setOrigin(s.originX, s.originY)
+      .setPosition(s.x, s.y)
+      .setScale(s.scaleX, s.scaleY)
+      .setAlpha(alpha * REORG_GREY)
+      .setVisible(true);
   }
 
   /**
@@ -1821,12 +1931,35 @@ export class ActScene extends Phaser.Scene {
     this.cameras.main.followOffset.set(0, 0);
   }
 
+  /**
+   * The worn stacks on the player, one sprite per stack up to
+   * MAX_ATTACHED_SPRITES, each in the frame of the def that attached it from
+   * that def's act's atlas (AUDIT six, 38; OFFICE-ROSTER §5): tuition carried
+   * out of College still draws as an invoice in The Office, and a ping as a
+   * ping. Every act in the life has its atlas loaded (`preload`), and a stack
+   * can only come from an act in the life. The act's `attachFrame` is the
+   * fallback for a def with no frame the scene can find. In `wornBy`'s
+   * order, which is the order first worn (the persisting ones first after a
+   * crossing), so a slot keeps its drawing as more are worn.
+   */
   private syncAttached(): void {
-    const want = Math.min(this.world.dragStacks, MAX_ATTACHED_SPRITES);
+    const w = this.world;
+    const frames: [string, string][] = [];
+    for (const [id, n] of w.wornBy) {
+      const def = ENEMIES[id];
+      const own = def ? ACT_VISUALS[def.act] : undefined;
+      const found = !!own && this.textures.exists(own.atlas.key) && this.textures.get(own.atlas.key).has(def!.frame);
+      const drawn: [string, string] = found
+        ? [own!.atlas.key, def!.frame]
+        : [this.visuals.atlas.key, this.visuals.attachFrame ?? 'antibody.png'];
+      for (let i = 0; i < n && frames.length < MAX_ATTACHED_SPRITES; i++) frames.push(drawn);
+    }
+    const want = frames.length;
     while (this.attachedSprites.length < want) {
       const angle = Math.random() * Math.PI * 2;
+      const [key, frame] = frames[this.attachedSprites.length]!;
       const s = this.add
-        .image(0, 0, this.visuals.atlas.key, this.visuals.attachFrame ?? 'antibody.png')
+        .image(0, 0, key, frame)
         .setDisplaySize(22, 22)
         .setDepth(11)
         .setRotation(Math.random() * Math.PI * 2);
@@ -1843,12 +1976,13 @@ export class ActScene extends Phaser.Scene {
         s.setVisible(false);
         continue;
       }
-      const angle = (s.getData('angle') as number) + this.world.time * 0.18;
+      // Retextured only when the slot's stack changed kind; a new frame may be
+      // a different size, so the display size goes back on with it.
+      const [key, frame] = frames[i]!;
+      if (s.texture.key !== key || s.frame.name !== frame) s.setTexture(key, frame).setDisplaySize(22, 22);
+      const angle = (s.getData('angle') as number) + w.time * 0.18;
       const dist = s.getData('dist') as number;
-      s.setVisible(true).setPosition(
-        this.world.x + Math.cos(angle) * dist,
-        this.world.y + Math.sin(angle) * dist,
-      );
+      s.setVisible(true).setPosition(w.x + Math.cos(angle) * dist, w.y + Math.sin(angle) * dist);
     }
   }
 
@@ -2035,9 +2169,21 @@ export class ActScene extends Phaser.Scene {
     // every gem is worth now, derived from the sim's own factor so the HUD
     // cannot drift from the tax it reports.
     const tax = Math.round((1 - w.xpTax) * 100);
+    // The ping's cost is on the cadence (OFFICE-ROSTER §3.3): every cooldown
+    // is multiplied by `attentionFactor`, so the share of attack speed lost is
+    // 1 − 1/factor (two pings, 1.06², read −11%). Derived, as the tax is. The
+    // count is every stack worn, and the speed term is there only when one of
+    // them drags: pings alone read `2 attached · attention −11%`.
+    const attention = Math.round((1 - 1 / w.attentionFactor) * 100);
+    const worn = wornCount(w);
     this.hudDrag.setText(
-      (w.dragStacks > 0 ? `${w.dragStacks} attached  −${drag}% speed` : '') +
-        (w.taxStacks > 0 ? `${w.dragStacks > 0 ? ' · ' : ''}xp −${tax}%` : ''),
+      [
+        worn > 0 ? `${worn} attached${w.dragStacks > 0 ? `  −${drag}% speed` : ''}` : '',
+        w.taxStacks > 0 ? `xp −${tax}%` : '',
+        w.pingStacks > 0 ? `attention −${attention}%` : '',
+      ]
+        .filter((t) => t !== '')
+        .join(' · '),
     );
 
     this.bars.clear();

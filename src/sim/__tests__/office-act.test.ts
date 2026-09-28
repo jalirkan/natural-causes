@@ -46,13 +46,14 @@ describe('The Office has a schedule, and it is provisional', () => {
     }
   });
 
-  it('is the fifth act of the life, and the browser cannot start it yet', () => {
+  it('is the fifth act of the life, and the browser plays it', () => {
     // In ALL_ACTS after College (G-048), so the bots and the content rules
-    // run it; not in ACTS until its atlas, player frame and boss frame exist
-    // (content.test.ts ties ACTS to ACT_VISUALS).
+    // run it; and in ACTS after College too, now its atlas, its player frame
+    // and The Reorg's frame exist (content.test.ts ties ACTS to ACT_VISUALS
+    // and checks every frame it draws is in the atlas).
     expect(ALL_ACTS.indexOf(OFFICE)).toBe(ALL_ACTS.indexOf(COLLEGE) + 1);
     expect(ALL_ACTS[ALL_ACTS.length - 1]).toBe(OFFICE);
-    expect(ACTS).not.toContain(OFFICE);
+    expect(ACTS.indexOf(OFFICE)).toBe(ACTS.indexOf(COLLEGE) + 1);
   });
 
   it('runs 180 seconds from twenty-two to thirty-four and ends on SYNERGY', () => {

@@ -789,7 +789,10 @@ export function runOnce(
   while (!world.dead && !world.won && steps < maxSteps) {
     if (!reached300 && world.actIndex === 0 && world.time >= act.durationSeconds) {
       reached300 = true;
-      stacksAt300 = world.dragStacks;
+      // Every stack worn, not only the drag (`wornBy`): a ping costs cadence,
+      // not speed, and counts here as the drag's stacks do. Equal to
+      // `dragStacks` in every act before The Office, whose attaches all drag.
+      stacksAt300 = [...world.wornBy.values()].reduce((n, k) => n + k, 0);
       itemSpeedAt300 = world.itemSpeed;
       hpAt300 = world.hp;
       hpFractionAt300 = world.hp / world.maxHp;

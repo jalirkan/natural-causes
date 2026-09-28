@@ -6,6 +6,8 @@ import adolescenceAtlasPng from '../../assets/atlas/adolescence.png';
 import adolescenceAtlasJson from '../../assets/atlas/adolescence.json';
 import collegeAtlasPng from '../../assets/atlas/college.png';
 import collegeAtlasJson from '../../assets/atlas/college.json';
+import officeAtlasPng from '../../assets/atlas/office.png';
+import officeAtlasJson from '../../assets/atlas/office.json';
 
 export interface AtlasJson {
   frames: Record<string, unknown>;
@@ -39,13 +41,15 @@ export interface ActVisuals {
    */
   bossBody?: { cy: number; r: number };
   /**
-   * What an attach stack is drawn as on the player (`World.dragStacks`):
-   * the antibody in Conception, acne in Adolescence (ADOLESCENCE-ROSTER §5),
-   * the invoice in College (COLLEGE-ROSTER §3.3). Absent for an act with no
-   * attaching enemy; the scene never draws one there because the stacks come
-   * off at the crossing. Tuition's do not (`attach.persists`): the act after
-   * College inherits them, and the scene redraws every worn stack in THAT
-   * act's frame, so it needs an `attachFrame` (an invoice) of its own.
+   * What an attach stack is drawn as on the player when the def that attached
+   * it has no frame the scene can find: the antibody in Conception, acne in
+   * Adolescence (ADOLESCENCE-ROSTER §5), the invoice in College
+   * (COLLEGE-ROSTER §3.3), the ping in The Office (OFFICE-ROSTER §3.3).
+   * A FALLBACK since AUDIT six's 38: the scene draws each worn stack
+   * (`World.wornBy`) in its own def's frame from its own act's atlas, so
+   * tuition's invoices, which persist through the crossing, still draw as
+   * invoices in The Office and not as pings. Absent for an act with no
+   * attaching enemy.
    */
   attachFrame?: string;
   /**
@@ -113,6 +117,23 @@ export const ACT_VISUALS: Record<string, ActVisuals> = {
     attachFrame: 'tuition.png',
     // college-light: old gold, pickups only.
     pickup: 0xe6c98f,
+  },
+  office: {
+    // office-deep: the carpet (OFFICE-ROSTER §1).
+    background: 0x3a4a5c,
+    atlas: { key: 'office', png: officeAtlasPng, json: officeAtlasJson },
+    playerFrame: 'player-office.png',
+    // The org chart, standing (OFFICE-ROSTER §4, G-004).
+    bossFrame: 'boss-reorg.png',
+    // MEASURED, as the Loan's is: the chart is four rows of boxes, not a
+    // circle, so boss-reorg.svg has none to read. This is the drawer's
+    // recommended circle over the chart's boxes, as fractions of the frame.
+    bossBody: { cy: 0.526, r: 0.3 },
+    // The worn ping (§3.3); a fallback only (see `attachFrame`): tuition
+    // carried in from College draws as tuition.
+    attachFrame: 'ping.png',
+    // office-light: the strip light, pickups only.
+    pickup: 0xa8b7c4,
   },
 };
 
