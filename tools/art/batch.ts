@@ -158,6 +158,7 @@ const ACT_DEFAULT_GEOMETRY: Record<ActId, Geometry> = {
   college: 'hand-cut',
   service: 'hand-cut',
   office: 'hand-cut',
+  family: 'hand-cut',
 };
 
 export function styleSuffix(
@@ -1456,6 +1457,162 @@ export const OFFICE_ROSTER: AssetSpec[] = [
   },
 ];
 
+/**
+ * FAMILY-ROSTER.md §1–§4, lifted. Post, packaging and plumbing (law 9: the
+ * one person in the act is drawn as what it is wearing); no enemy wears the
+ * act's butter (law 10); the tape is the act's only red, the bib its only
+ * purple, the house its only teal, and gold rides the phone's call alone
+ * (G-031). Every sprite is drawn (`source: 'svg'`).
+ */
+export const FAMILY_ROSTER: AssetSpec[] = [
+  {
+    id: 'bill',
+    name: 'Bill',
+    act: 'family',
+    role: 'swarm',
+    tests: 'the windowed envelope — the only envelope and the only window in the act; a late fee is the same drawing',
+    targetSize: 48,
+    seed: 40040,
+    source: 'svg',
+    whyThisStage: 'Family is the first stage where leaving a thing alone is precisely what makes more of it.',
+    subject: [
+      'a landscape envelope seen flat on, a flap line across its top, a clear address window low on its face',
+      'muted tan (#D2C6AC) paper, the flap line and the window frame in warm near-black (#2A2521)',
+      'two small dark dots for eyes and one short flat line for a mouth inside the window where the address would be, looking straight out',
+      'no text, no stamp, no red, no purple, no gold, no yellow anywhere',
+    ].join(', '),
+  },
+  {
+    id: 'flat-pack',
+    name: 'Flat-pack',
+    act: 'family',
+    role: 'swarm',
+    tests: 'the flat box — the only box, the only tape and the widest thing, read side-on crossing fast',
+    targetSize: 104,
+    seed: 41041,
+    source: 'svg',
+    whyThisStage: 'Family is the first stage where the heaviest thing in the room is something the player carried in.',
+    subject: [
+      'a long flat closed carton seen exactly side-on, twice as wide as it is tall, one strip of tape down its middle',
+      'muted tan (#D2C6AC) carton with warm near-black (#2A2521) edges, the tape in flat muted red (#C4472E), the contact threat colour, the only red on it',
+      'a face printed on the box as an assembly diagram would be: two small bolt-head dots for eyes looking along the box, not at the viewer, and one short dashed line for a mouth',
+      'no lettering, no arrows, no numbers, no purple, no gold, no yellow anywhere',
+    ].join(', '),
+  },
+  {
+    id: 'hoa-letter',
+    name: 'HOA letter',
+    act: 'family',
+    role: 'swarm',
+    tests: 'the sealed letter — the only seal and the only fold in the act, read by the round seal',
+    targetSize: 40,
+    seed: 42042,
+    source: 'svg',
+    whyThisStage:
+      'Family is the first stage where the rules of the place the player lives arrive by post, and every one makes the place smaller.',
+    subject: [
+      'a sheet of paper folded in thirds and standing open like a small tent, seen from slightly above, a round seal on its top panel',
+      'muted tan (#D2C6AC) paper, the fold lines in warm near-black (#2A2521), the seal an ink ring',
+      'the seal is the face: two small dark dots for eyes and one short flat line for a mouth inside the ring, looking straight out',
+      'no text, no red, no purple, no gold, no yellow anywhere',
+    ].join(', '),
+  },
+  {
+    id: 'toddler',
+    name: 'Toddler',
+    act: 'family',
+    role: 'swarm',
+    tests: 'the bib with arms — the only thing in the act reaching up, and the smallest mover; the elite purple on the bib',
+    targetSize: 44,
+    seed: 43043,
+    source: 'svg',
+    // FAMILY-ROSTER §3.4: seen from the height of the leg it is about to hold;
+    // the face is printed on the bib (law 9), nothing above it, no skin.
+    whyThisStage: 'Family is the first stage where the thing slowing the player down is thrilled to see them.',
+    subject: [
+      'a round bib seen straight on with two short sleeves raised up and out beside it, nothing above the bib',
+      'flat muted purple (#7C5C8A), the elite threat colour, on the whole bib, one solid tone, the sleeves in muted tan (#D2C6AC) with warm near-black (#2A2521) edges',
+      'a face printed on the bib: two small dark dots for eyes and one wide flat line for a mouth, the only smile in the game, looking straight out',
+      'no head, no hands, no hair, no skin, no text, no red, no gold, no yellow anywhere',
+    ].join(', '),
+  },
+  {
+    id: 'phone-call',
+    name: 'Phone call',
+    act: 'family',
+    role: 'swarm',
+    tests: 'the wall phone — the only cord and the only coil in the act; no gold on it',
+    targetSize: 80,
+    seed: 44044,
+    source: 'svg',
+    whyThisStage:
+      'Family is the first stage where the aimed thing wants nothing from the player but the player, somewhere else.',
+    subject: [
+      'an upright wall telephone seen from the front, a tall rounded body with a handset laid across its top and a cord in three loose coils hanging down its right side',
+      'muted tan (#D2C6AC) body, the handset and the cord in warm near-black (#2A2521)',
+      'two small dark dots for eyes on the body under the handset looking up at it and one short flat line for a mouth, not at the viewer',
+      'no buttons with numbers, no text, no gold, no yellow, no red, no purple anywhere',
+    ].join(', '),
+  },
+  {
+    id: 'room',
+    name: 'Room',
+    act: 'family',
+    role: 'swarm',
+    tests: 'the room — the only square in the act and the only outline with a gap; wallpaper, never a threat colour',
+    targetSize: 96,
+    seed: 45045,
+    source: 'svg',
+    // FAMILY-ROSTER §4: the Mortgage's, static, solid and merging. It does not
+    // hurt, so it wears the act's mid tone and no threat colour (law 10).
+    whyThisStage: 'Family is the first stage where the place the player lives is built around them while they are standing in it.',
+    subject: [
+      'a square room seen from above as a floor plan, thick outlined walls with one door gap in the middle of its bottom side',
+      'the floor in flat muted mustard (#A3812F), the walls in warm near-black (#2A2521)',
+      'two small dark dots for eyes and one short flat line for a mouth on the floor near the far wall, looking at the door gap',
+      'no furniture, no text, no red, no purple, no gold, no yellow, no teal anywhere',
+    ].join(', '),
+  },
+  {
+    id: 'boss-mortgage',
+    name: 'The Mortgage',
+    act: 'family',
+    role: 'boss',
+    tests: 'the house with a face — boss teal at boss scale, a gable, a door and two windows, the only roof in the act',
+    targetSize: 384,
+    seed: 46046,
+    source: 'svg',
+    // FAMILY-ROSTER §4: paid on a schedule, not in a hurry. Law 5 wants a
+    // face and the house has had one since children drew houses.
+    whyThisStage: 'Family is the first stage that ends on a thing the player will be paying for after the act is long over.',
+    subject: [
+      'a house front seen straight on at boss scale, a wide rectangular wall under a plain gabled roof, a door in the middle of the ground floor and two square windows above it',
+      'flat muted deep teal (#2F7370), the boss colour, on the walls and the roof, one solid tone with warm near-black (#2A2521) edges',
+      'the windows are the eyes: two open dark dots on muted tan (#D2C6AC) panes; the door is the mouth: one short flat line, closed, patient',
+      'no chimney smoke, no path, no fence, no lettering, no number on the door',
+      'no red, no purple, no gold, no yellow anywhere',
+    ].join(', '),
+  },
+  {
+    id: 'player-family',
+    name: 'The player — thirty-four',
+    act: 'family',
+    role: 'player',
+    tests: 'G-003 at thirty-four: the same face and cowlick, one frame, a tote bag and a set of keys',
+    source: 'svg',
+    targetSize: 112,
+    seed: 47047,
+    subject: [
+      'the player at thirty-four: the same small round-headed figure as every act, standing, no taller',
+      'the same face as every act: two flat eyes and one short flat line for a mouth',
+      'the same single asymmetric cowlick sticking up above the left eye, one tuft and no other hair',
+      'a flat tote bag hanging from one shoulder and a small ring of keys held in the other hand',
+      'paper coloured (#EFE7D6) head and body, warm grey-brown (#6E6353) as the only second tone',
+      'no threat colour anywhere, no tie, no mug, no lettering',
+    ].join(', '),
+  },
+];
+
 export const ALL_ASSETS: AssetSpec[] = [
   ...TEST_BATCH,
   ...CONCEPTION_ROSTER,
@@ -1463,5 +1620,6 @@ export const ALL_ASSETS: AssetSpec[] = [
   ...ADOLESCENCE_ROSTER,
   ...COLLEGE_ROSTER,
   ...OFFICE_ROSTER,
+  ...FAMILY_ROSTER,
   ...ITEM_ICONS,
 ];

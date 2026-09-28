@@ -100,6 +100,16 @@ const ACT_TONES = {
     c('office-mid', '#6B8299'),
     c('office-light', '#A8B7C4'),
   ],
+  // FAMILY-ROSTER.md §1, lifted. Post, packaging and plumbing on a kitchen
+  // floor: umber, mustard, butter. Measured in Oklab, each tone's nearest
+  // neighbour in the catalogue is 0.058 or more away (the light is 0.058 from
+  // paper, the player's, so no enemy wears it; law 10, G-030). The catalogue
+  // is 29 of D-028's 32.
+  family: [
+    c('family-deep', '#4D3A1F'), // umber; the carpet, the act background
+    c('family-mid', '#A3812F'), // mustard; the wallpaper, and the rooms
+    c('family-light', '#F3E3A6'), // butter; the fridge light, pickups only (law 10, G-030)
+  ],
 } as const;
 
 export type ActId = keyof typeof ACT_TONES;
