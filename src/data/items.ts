@@ -38,7 +38,9 @@ export type ItemIcon =
   | 'clock'
   | 'orbit'
   | 'chain'
-  | 'magnet';
+  | 'magnet'
+  | 'grow'
+  | 'slow';
 
 interface ItemBase {
   id: string;
@@ -75,6 +77,13 @@ interface ItemBase {
    */
   blurb: string;
   maxLevel: number;
+  /**
+   * The act whose arrival puts this item in the pool, by act id. Absent means
+   * the pool has had it since conception. An item born in a later act is
+   * offered from that act on (ALL_ACTS order) for the rest of the life, and
+   * never before it: nobody is taller at conception.
+   */
+  from?: string;
 }
 
 /**
@@ -117,10 +126,10 @@ export interface ActiveItem extends ItemBase {
   /** Damage per hit at level 1. Zero for control items. */
   damage: number;
   /** How the effect is delivered. The sim switches on this. */
-  mode: 'seeking' | 'line' | 'burst' | 'trail' | 'attractor' | 'orbit';
+  mode: 'seeking' | 'line' | 'burst' | 'trail' | 'attractor' | 'orbit' | 'field';
   /**
    * Pixels. Meaning depends on mode: travel range, burst radius, pull radius,
-   * orbit distance. Seconds for `trail`.
+   * orbit distance. Seconds for `trail` and `field`.
    */
   range: number;
   /** Pixels per second. For `orbit`, the orbiters' speed along the circle. */
@@ -131,6 +140,12 @@ export interface ActiveItem extends ItemBase {
   levels: ItemLevel[];
   /** Pixels a hit pushes a non-boss enemy away from the player. */
   knockback?: number;
+  /**
+   * `field` only: the attractor's area with a hold instead of a pull. Inside
+   * it enemies, every projectile and the player move at this fraction of
+   * their speed; overlapping fields take the slowest, they do not multiply.
+   */
+  slow?: number;
   /**
    * Present on an evolution. It is never in the normal offer pool: when
    * `weapon` is at its max level and `with` is owned, the next level-up is
@@ -152,6 +167,18 @@ export interface PassiveItem extends ItemBase {
   cooldownMultiplier: number;
   /** Multiplier on the radius at which gems come to the player. */
   pickupMultiplier: number;
+  /**
+   * Multiplier on every active item's reach: a shot's range, a burst's,
+   * pull's or field's radius, an orbit's distance. A trail has none; it is
+   * laid under the player.
+   */
+  reachMultiplier: number;
+  /**
+   * Multiplier on the player's collision radius (World.playerRadius): contact,
+   * shots, rings, piles and pickup all read it. The one stat a passive may
+   * raise as a cost, because it is a shape (Growth Spurt's).
+   */
+  sizeMultiplier: number;
   /**
    * Damage multiplier at the START of the act, ramping to `rampTo` by the end
    * of it. 1 and 1 means no ramp.
@@ -472,6 +499,8 @@ export const ITEMS: Record<string, ItemDef> = {
     damageTakenMultiplier: 1,
     cooldownMultiplier: 0.93,
     pickupMultiplier: 1,
+    reachMultiplier: 1,
+    sizeMultiplier: 1,
     damageMultiplier: 1,
     rampTo: 1,
     maxLevel: 5,
@@ -493,6 +522,8 @@ export const ITEMS: Record<string, ItemDef> = {
     damageTakenMultiplier: 0.85,
     cooldownMultiplier: 1,
     pickupMultiplier: 1,
+    reachMultiplier: 1,
+    sizeMultiplier: 1,
     damageMultiplier: 1,
     rampTo: 1,
     maxLevel: 5,
@@ -516,6 +547,8 @@ export const ITEMS: Record<string, ItemDef> = {
     damageTakenMultiplier: 1,
     cooldownMultiplier: 1,
     pickupMultiplier: 1,
+    reachMultiplier: 1,
+    sizeMultiplier: 1,
     // Starts strictly worse than doing nothing and ends well ahead of it.
     damageMultiplier: 0.7,
     rampTo: 1.85,
@@ -538,6 +571,8 @@ export const ITEMS: Record<string, ItemDef> = {
     cooldownMultiplier: 1,
     // PLACEHOLDER, like every level table.
     pickupMultiplier: 1.3,
+    reachMultiplier: 1,
+    sizeMultiplier: 1,
     damageMultiplier: 1,
     rampTo: 1,
     maxLevel: 5,
@@ -547,6 +582,79 @@ export const ITEMS: Record<string, ItemDef> = {
       'A levelling build: gems come from further away, so a run reaches its max levels and its evolution sooner without walking into the crowd to collect them.',
     tradesAway:
       'Any effect on the fight itself. It kills nothing and blocks nothing, so a run that is losing now loses with more options on the table.',
+  },
+
+  // --- 4.4 Born at thirteen (ADOLESCENCE-ROSTER §6) ------------------------
+  //
+  // In the pool from Adolescence on, never before (`from`). One name each for
+  // the life (G-039): they arrive at thirteen, so they never had another.
+  // PLACEHOLDER NUMBERS under ADOLESCENCE's `provisional`, not Conception's:
+  // every multiplier, the cooldown, radius, slow and duration were written to
+  // make the two playable, from the direction panel's sketches, and nobody
+  // has played either.
+
+  'growth-spurt': {
+    id: 'growth-spurt',
+    name: 'Growth Spurt',
+    kind: 'passive',
+    from: 'adolescence',
+    speedMultiplier: 1,
+    healthMultiplier: 1,
+    damageTakenMultiplier: 1,
+    cooldownMultiplier: 1,
+    pickupMultiplier: 1.1,
+    reachMultiplier: 1.1,
+    sizeMultiplier: 1.08,
+    damageMultiplier: 1,
+    rampTo: 1,
+    maxLevel: 5,
+    icon: 'grow',
+    iconPending:
+      'No drawing yet: an SVG in tools/art/svg/conception/icon-grow.svg, conformed and packed into the icon atlas, retires the lettered ring.',
+    blurb: 'Taller. Longer reach. Everyone can see you.',
+    enables:
+      'Reach: every weapon touches things from further away — shots fly further, bursts and fields are wider, the orbit swings wider — and gems come from further too, so a build that was one step short of the crowd is not.',
+    tradesAway:
+      'Threading gaps. The player is bigger in every sense the sim has: a wider body touches more of the crowd, catches more shots and rings, and no longer fits the space between two things it used to slip through.',
+  },
+
+  snooze: {
+    id: 'snooze',
+    name: 'Snooze',
+    kind: 'control',
+    from: 'adolescence',
+    mode: 'field',
+    // Seconds between fields at level 1; the generic per-level cooldown
+    // scaling (World.activeCooldown) is what "levels come sooner" means.
+    cooldown: 15,
+    damage: 0,
+    // Seconds the field lasts: nine more minutes, at one second a minute.
+    range: 9,
+    projectileSpeed: 0,
+    radius: 170,
+    pierce: 0,
+    slow: 0.5,
+    maxLevel: 6,
+    icon: 'slow',
+    iconPending:
+      'No drawing yet: an SVG in tools/art/svg/conception/icon-slow.svg, conformed and packed into the icon atlas, retires the lettered ring.',
+    blurb: 'Nine more minutes. Everything nearby also waits.',
+    levels: table(
+      [
+        'Nine more minutes. Everything nearby also waits.',
+        'Wider, and sooner. The alarm is across the room.',
+        'Sooner again. You set it to go off early on purpose.',
+        'Wider. The whole house is running late.',
+        'Sooner. You no longer hear the first alarm.',
+        'As wide as it goes. Nobody is getting up.',
+      ],
+      {},
+      each(2, 6, { area: 1.08 }),
+    ),
+    enables:
+      'Builds that want the crowd held where it is: Baggage lays more trail over a crowd that crosses it at half speed, Temper and Grudge get twice as long with everything inside, and an aimed shot through the field arrives late enough to step round.',
+    tradesAway:
+      'Escaping. The field is dropped where the player stands and holds the player too, so the one thing it cannot do is get anyone out of a crowd; a player caught inside it walks out at half speed with everything else.',
   },
 };
 
