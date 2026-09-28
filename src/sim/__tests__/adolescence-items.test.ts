@@ -278,9 +278,13 @@ describe('born at thirteen: neither is offered before Adolescence', () => {
     }
   });
 
-  it('every other item is in the pool from conception', () => {
+  it('every other item is in the pool from conception, or born in an act after this one', () => {
+    // Items born later (College's Highlighter and on) are their own act's
+    // tests; what this one holds is that nothing before thirteen is gated.
+    const later = ALL_ACTS.slice(ALL_ACTS.indexOf(ADOLESCENCE) + 1).map((a) => a.id);
     for (const def of Object.values(ITEMS)) {
       if (born.includes(def.id)) continue;
+      if (def.from !== undefined && later.includes(def.from)) continue;
       expect(def.from, def.id).toBeUndefined();
     }
     // A sanity line: the field mode is Snooze's alone today.

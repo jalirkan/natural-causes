@@ -1008,6 +1008,28 @@ export const ITEM_ICONS: AssetSpec[] = [
       'no feet in them, no floor, no laces, no text',
     ].join(', '),
   },
+  // College: the Highlighter, the first item born at eighteen, is drawn.
+  // Its icon is also the stroke it fires (a seeking shot wears its card's
+  // icon, ActScene syncProjectiles, 30px turned to its heading), so it keeps
+  // to rose, bone and ink like Reflex's manicule — never the highlighter
+  // yellow people expect, which is the ranged threat's gold (G-031).
+  {
+    id: 'icon-highlight',
+    name: 'Highlighter icon',
+    act: 'conception',
+    role: 'icon',
+    fieldRiding: true,
+    source: 'svg',
+    targetSize: 96,
+    seed: 61041,
+    tests: 'a chisel-tip marker laying one broad stroke, read at 52px on a card and 30px in flight, never a pencil, a crayon or a syringe',
+    subject: [
+      'a fat chisel-tip highlighter marker seen from the side, the cap off, tilted down to the right as if writing, a short clip along the top of the barrel',
+      'its slanted chisel tip pressed onto the right-hand end of one broad flat stroke it has just laid, a level band with square ends running back to the left, as if drawn under a line of text',
+      'flat muted dusty rose barrel and felt tip, pale warm back plug, clip, collar and stroke, dark interior lines either side of the collar, under the clip and along the chisel face',
+      'no yellow, no paper, no text, no hand, no page',
+    ].join(', '),
+  },
 ];
 
 /**

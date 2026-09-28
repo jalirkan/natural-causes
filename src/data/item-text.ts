@@ -165,10 +165,35 @@ function cadenceTerm(def: ActiveItem, rateRatio: number): string | null {
   return def.kind === 'control' ? labelled('cooldown', 1 / rateRatio - 1) : labelled('attack speed', rateRatio - 1);
 }
 
+// --- College (the Highlighter): the mark ----------------------------------
+
+/** A multiplier, two decimals at most, trimmed: `×1.5`, `×1.65`, `×2`. */
+function times(n: number): string {
+  return `×${Math.round(n * 100) / 100}`;
+}
+
+/**
+ * What a marking weapon's mark is with `b` folded in, as the sim folds it
+ * (`duration` on the seconds, `mark` on the multiplier): `marks ×1.5 for 3s`.
+ * Null for a weapon with no `marks`.
+ */
+function marksTerm(def: ActiveItem, b: Required<LevelBonus>): string | null {
+  if (!def.marks) return null;
+  const k = def.marks.multiplier * b.mark;
+  const s = def.marks.seconds * b.duration;
+  return finite(k, s) && k > 0 && s > 0 ? `marks ${times(k)} for ${secs(s)}` : null;
+}
+
+/** A level's `mark` (Underline's): how much the mark's multiplier grows, `mark +10%`. */
+function markTerm(def: ActiveItem, l: LevelBonus): string | null {
+  return def.marks && l.mark !== undefined ? labelled('mark', l.mark - 1) : null;
+}
+
 /**
  * The fields a level (or a path level) carries of its own, in card order:
- * projectiles, pierce, area, duration, echo, chain, speed, knockback. Damage
- * and cooldown are not here: a caller folds them into its figures.
+ * projectiles, pierce, area, duration, echo, chain, speed, knockback, mark.
+ * Damage and cooldown are not here: a caller folds them into its figures.
+ * On a marking weapon `duration` is the mark's (`mark lasts +20%`).
  */
 function fieldTerms(def: ActiveItem, l: LevelBonus | undefined): Array<string | null> {
   if (!l) return [];
@@ -180,11 +205,12 @@ function fieldTerms(def: ActiveItem, l: LevelBonus | undefined): Array<string | 
     projectileTerm(mode, l.projectiles ?? 0),
     pierce === null ? null : `${pierce} pierce`,
     l.area === undefined ? null : areaTerm(mode, l.area),
-    l.duration === undefined ? null : labelled('lasts', l.duration - 1),
+    l.duration === undefined ? null : labelled(def.marks ? 'mark lasts' : 'lasts', l.duration - 1),
     l.echo ? 'fires twice' : null,
     chain === null ? null : `${chain} ${Math.abs(Math.round(l.chain ?? 0)) === 1 ? 'jump' : 'jumps'}`,
     l.speed === undefined ? null : speedTerm(mode, l.speed),
     knock === null ? null : `pushes ${knock}px`,
+    markTerm(def, l),
   ];
 }
 
@@ -276,6 +302,8 @@ function activeTerms(def: ActiveItem, level: number, b: Required<LevelBonus>): A
     b.echo ? 'fires twice' : null,
     finite(knockback) && Math.round(knockback) > 0 ? `pushes ${px(knockback)}px` : null,
   );
+  // College: what the mark is, whatever the mode that leaves it.
+  terms.push(marksTerm(def, b));
   return terms;
 }
 

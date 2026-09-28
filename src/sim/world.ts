@@ -403,6 +403,21 @@ export interface EnemyState {
    */
   accrued?: number;
   fee?: boolean;
+  /**
+   * College (the Highlighter's `marks`): the life clock (`World.time`) at
+   * which this enemy's mark runs out, and what the mark multiplies every hit
+   * by until then. Set by a marking shot's hit (`markFrom`), paid in
+   * `damageEnemy`; a mark past its time is simply not read. Absent on
+   * anything never marked; optional so hand-built states need not carry them.
+   */
+  markedUntil?: number;
+  markMultiplier?: number;
+}
+
+/** What a mark is written on: an enemy or the boss (College, `markFrom`). */
+interface Markable {
+  markedUntil?: number;
+  markMultiplier?: number;
 }
 
 export interface ProjectileState {
@@ -443,6 +458,13 @@ export interface ProjectileState {
   shooter?: EnemyState;
   fromX?: number;
   fromY?: number;
+  /**
+   * College: a shot from a def with `marks` (the Highlighter) carries the
+   * mark it leaves, levels and paths already folded in: seconds (`duration`
+   * applied) and multiplier (`mark` applied). Absent on every other shot.
+   */
+  markSeconds?: number;
+  markMultiplier?: number;
 }
 
 /**
@@ -701,6 +723,14 @@ export interface BossState {
    * every other kind.
    */
   accepted: number;
+  /**
+   * College: a Highlighter stroke marks the boss as it marks an enemy (the
+   * same fields, `EnemyState.markedUntil`), and `bossTakes` pays the mark on
+   * every kind — a marked Loan pays down faster; a marked Mortgage still takes
+   * no more than its instalment. Absent until the first mark.
+   */
+  markedUntil?: number;
+  markMultiplier?: number;
 }
 
 export interface Input {
@@ -2033,7 +2063,7 @@ export class World {
         const speed = def.projectileSpeed * bonus.speed;
         for (const target of targets) {
           const d = Math.hypot(target.x - this.x, target.y - this.y) || 1;
-          this.projectiles.push({
+          const shot: ProjectileState = {
             x: this.x,
             y: this.y,
             vx: ((target.x - this.x) / d) * speed,
@@ -2046,7 +2076,14 @@ export class World {
             source: def.id,
             serial: this.nextSerial++,
             chain: bonus.chain,
-          });
+          };
+          // College (the Highlighter): the stroke carries its mark, with
+          // `duration` on the seconds and `mark` on the multiplier.
+          if (def.marks) {
+            shot.markSeconds = def.marks.seconds * bonus.duration;
+            shot.markMultiplier = def.marks.multiplier * bonus.mark;
+          }
+          this.projectiles.push(shot);
         }
         return true;
       }
@@ -2173,7 +2210,7 @@ export class World {
             this.swept.add(e.uid);
             // A sweep lands on the side the player swung from (§3.4).
             if (!hitsWeakPoint(e, this.x, this.y)) continue;
-            e.hp -= damage;
+            this.damageEnemy(e, damage);
             e.hitFlash = 0.08;
             if (knockback > 0) this.knockBack(e, knockback);
           }
@@ -2308,7 +2345,7 @@ export class World {
       const r = a.radius + e.radius;
       if ((e.x - a.x) ** 2 + (e.y - a.y) ** 2 > r * r) continue;
       if (!hitsWeakPoint(e, a.x, a.y, a.radius)) continue;
-      e.hp -= a.damage;
+      this.damageEnemy(e, a.damage);
       e.hitFlash = 0.08;
     }
     const b = this.boss;
@@ -2366,7 +2403,7 @@ export class World {
         // Off the weak point it does nothing, the re-hit clock included (§3.4).
         if (!hitsWeakPoint(e, this.x, this.y, radius)) continue;
         hits.set(e.uid, this.nextAuraHit(next, cooldown, dt));
-        e.hp -= damage;
+        this.damageEnemy(e, damage);
         e.hitFlash = 0.08;
       }
 
@@ -2413,6 +2450,40 @@ export class World {
   }
 
   /**
+   * The one gate every damage path to an enemy goes through: shots, a boss
+   * shot on a racer, orbiters, auras, sweeps, landing strikes, bursts and
+   * ticking areas. Its callers have already decided the enemy is hit (in
+   * reach, on its weak point, not already hit by this serial); this decides
+   * what the hit is worth. The flash, the knockback and the reap stay with
+   * the callers.
+   *
+   * College (the Highlighter): while an enemy is marked, every hit is worth
+   * its mark's multiplier. One multiplication, here and in `bossTakes`, so no
+   * weapon can be written that forgets it; a damage path that subtracts hp
+   * any other way is a path the mark does not reach.
+   */
+  private damageEnemy(e: EnemyState, amount: number): void {
+    e.hp -= amount * this.markOn(e);
+  }
+
+  /** What a mark multiplies a hit on `t` by now: its multiplier while it runs, else 1. */
+  private markOn(t: Markable): number {
+    return t.markedUntil !== undefined && this._time < t.markedUntil ? (t.markMultiplier ?? 1) : 1;
+  }
+
+  /**
+   * A marking shot (`ProjectileState.markSeconds`) has landed on `t`: it is
+   * marked from now for the shot's seconds at the shot's multiplier. A mark on
+   * a marked target replaces it — the clock restarts, the multiplier is the
+   * newer one, and nothing multiplies twice. No dice.
+   */
+  private markFrom(p: ProjectileState, t: Markable): void {
+    if (p.markSeconds === undefined) return;
+    t.markedUntil = this._time + p.markSeconds;
+    t.markMultiplier = p.markMultiplier ?? 1;
+  }
+
+  /**
    * Damage to the boss from anything but the two older paths in updateBoss.
    * The shield is read live, not off `b.shielded`: orbiters run before
    * `updateBoss` refreshes it, and a ball this step killed has stopped
@@ -2446,6 +2517,10 @@ export class World {
    * at the window's end — so the fight lasts every window of the schedule.
    */
   private bossTakes(b: BossState, amount: number): boolean {
+    // College: the mark is paid here for every path to the boss, as
+    // `damageEnemy` pays it for the crowd — before the Mortgage's cap below,
+    // so a marked Mortgage still takes no more than the window owes.
+    amount *= this.markOn(b);
     const boss = this.act.boss;
     if (boss.kind === 'mortgage') {
       const instalment = b.maxHp / boss.instalments;
@@ -2512,7 +2587,7 @@ export class World {
           // By where it is; off the weak point the touch spends nothing (§3.4).
           if (!hitsWeakPoint(e, o.x, o.y)) continue;
           hits.set(key, this._time);
-          e.hp -= damage;
+          this.damageEnemy(e, damage);
           e.hitFlash = 0.08;
           // Vendetta (G-046): a fist that shoves. Grudge carries no knockback and never pushes.
           if (def.knockback) this.knockBack(e, def.knockback + bonus.knockback);
@@ -2585,11 +2660,11 @@ export class World {
         // misses here keeps its one hit, and lands if the centre comes under it.
         if (!hitsWeakPoint(e, a.x, a.y, a.radius)) continue;
         if (a.tick) {
-          e.hp -= a.damage * dt * 6;
+          this.damageEnemy(e, a.damage * dt * 6);
         } else {
           if (e.hitByAreaSerial === a.serial) continue;
           e.hitByAreaSerial = a.serial;
-          e.hp -= a.damage;
+          this.damageEnemy(e, a.damage);
           if (a.knockback) this.knockBack(e, a.knockback);
         }
         e.hitFlash = 0.08;
@@ -2764,8 +2839,10 @@ export class World {
         // hit, so a seeking shot does not pass through and take it from the
         // far side on the same flight.
         if (hitsWeakPoint(e, p.x, p.y)) {
-          e.hp -= p.damage;
+          this.damageEnemy(e, p.damage);
           e.hitFlash = 0.08;
+          // Paid first, then written: the stroke that marks is not itself marked.
+          this.markFrom(p, e);
           if (p.chain && p.chain > 0) this.chainFrom(p, e);
         }
         if (--p.pierce <= 0) {
@@ -2795,7 +2872,7 @@ export class World {
       if (e.hp <= 0 || e.def.invulnerable || !this.isRacing(e)) continue;
       const r = e.radius + p.radius;
       if ((e.x - p.x) ** 2 + (e.y - p.y) ** 2 > r * r) continue;
-      e.hp -= p.damage;
+      this.damageEnemy(e, p.damage);
       e.hitFlash = 0.08;
       swapRemove(this.projectiles, pi);
       return;
@@ -3659,7 +3736,11 @@ export class World {
       // Spent either way: a shot into a window already met is the overflow,
       // and it is lost, not held for the next one (FAMILY-ROSTER §4).
       swapRemove(this.projectiles, i);
-      if (this.bossTakes(b, p.damage)) return;
+      const ended = this.bossTakes(b, p.damage);
+      // A Highlighter stroke marks him as it marks the crowd; shielded, above,
+      // it reached him and did nothing, the mark included.
+      this.markFrom(p, b);
+      if (ended) return;
     }
     for (const a of this.areas) {
       // A strike deals its one hit on the boss where it lands (landStrike).

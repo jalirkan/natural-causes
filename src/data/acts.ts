@@ -416,7 +416,7 @@ export const COLLEGE: ActDef = {
   age: { from: 18, to: 22 },
   // No race: nobody else wants the balance.
   provisional:
-    "Every rate, time and enemy number here, tuition's tax on each gem (`attach.tax`, 0.08 a stack), the registrar's stop (`ranged.stun`, 0.5s), the group project's weak point (one quadrant of four, rolled at spawn, and what counts as landing there), and all four of The Loan's numbers (`boss.interestSeconds` 5, `interestRate` 0.06, `cap` 3, `invoices` 3) were written as placeholders before anyone played the act (COLLEGE-ROSTER §3.6 and §4, G-045), as was the tenth of its health each worn invoice adds to its opening balance; a person playing it at the link is what moves them (D-022).",
+    "Every rate, time and enemy number here, tuition's tax on each gem (`attach.tax`, 0.08 a stack), the registrar's stop (`ranged.stun`, 0.5s), the group project's weak point (one quadrant of four, rolled at spawn, and what counts as landing there), and all four of The Loan's numbers (`boss.interestSeconds` 5, `interestRate` 0.06, `cap` 3, `invoices` 3) were written as placeholders before anyone played the act (COLLEGE-ROSTER §3.6 and §4, G-045), as was the tenth of its health each worn invoice adds to its opening balance, and the item born here, the Highlighter, carries numbers nobody has played (its mark's seconds and multiplier, `marks` 3 and 1.5, its cooldown, damage, levels table and paths in items.ts); a person playing it at the link is what moves them (D-022).",
   // COLLEGE-ROSTER.md §3.6, transcribed. The ORDER is the design and is under
   // test (college-act.test.ts): age runs 18 to 22, a year every 52.5 seconds.
   // Reading from 0s (18), the first week; tuition at 20s, the first bill; the
