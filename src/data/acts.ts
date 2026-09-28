@@ -132,8 +132,27 @@ export interface LoanBoss {
   shieldHint?: never;
 }
 
+/**
+ * The Reorg (OFFICE-ROSTER §4, G-004): same health throughout; at each of
+ * `thresholds` of its health it relocates (the world's dice, at least 300 px
+ * from the player), moves the player's box sideways by `lateralMove` px and
+ * never up, and closes a meeting (`meetingId`, the act's hold) around them.
+ * Its attack is the memo: `memoShots` shots in a column `memoSpacing` px
+ * apart, moving together at the player, on the Egg's timings. Never shields,
+ * never raced for. Every number is a placeholder.
+ */
+export interface ReorgBoss {
+  kind: 'reorg';
+  thresholds: number[];
+  lateralMove: number;
+  meetingId: string;
+  memoShots: number;
+  memoSpacing: number;
+  shieldHint?: never;
+}
+
 /** Which boss an act fights. world.ts branches on `kind`. */
-export type BossDef = EggBoss | GymTeacherBoss | PromBoss | LoanBoss;
+export type BossDef = EggBoss | GymTeacherBoss | PromBoss | LoanBoss | ReorgBoss;
 
 /**
  * Seconds between the Gym Teacher's whistles at this share of his health: the

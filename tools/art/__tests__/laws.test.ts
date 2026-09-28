@@ -208,7 +208,7 @@ describe('law 11 — each act reserves its silhouettes, before generation', () =
     // one must fail closed, or the rule is advisory. Service and Office have
     // no roster yet, so they are the live cases.
     expect(() => assertReserved('service', ['anything'])).toThrow(ReservationError);
-    expect(() => assertReserved('office', [])).toThrow(/before any asset/);
+    expect(() => assertReserved('service', [])).toThrow(/before any asset/);
   });
 
   it('School is lifted and accepts its five swarm shapes and its boss, and refuses the undeclared', () => {
@@ -350,10 +350,10 @@ describe('law 11 is enforced on the path that spends money, not only in tests', 
         .filter(refuses)
         .map((v) => v.act),
     );
-    // Service and Office are the live cases and they are Cowork's open item,
-    // not something to work around here. If either gains a list, this test is
-    // where that shows up.
-    expect([...refusedActs].sort()).toEqual(['office', 'service']);
+    // Service is the live case (G-045 parks it until a person has played);
+    // The Office gained its list with OFFICE-ROSTER (G-048). If Service gains
+    // one, this test is where that shows up.
+    expect([...refusedActs].sort()).toEqual(['service']);
   });
 });
 

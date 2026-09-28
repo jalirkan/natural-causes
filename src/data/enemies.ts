@@ -93,9 +93,11 @@ export interface EnemyDef {
    * `tax` (COLLEGE-ROSTER §3.3): the share of every gem's value each worn
    * stack takes, compounding. `persists`: the stacks stay on through the
    * crossing instead of coming off with the act, so the next act inherits
-   * them. Both absent everywhere but tuition.
+   * them. Both absent everywhere but tuition. `cooldownMultiplier`
+   * (OFFICE-ROSTER §3.3): each worn stack multiplies every active item's
+   * cooldown — the ping costs cadence, never speed (its `drag` is 0).
    */
-  attach?: { drag: number; tax?: number; persists?: boolean };
+  attach?: { drag: number; tax?: number; persists?: boolean; cooldownMultiplier?: number };
   /**
    * COLLEGE-ROSTER §3.4: all the hp sits in one of four quadrants about the
    * centre, rolled at spawn from the world's dice. A hit counts only when it
@@ -104,6 +106,21 @@ export interface EnemyDef {
    * nor flashes. The drawing does not say which.
    */
   weakPoint?: boolean;
+  /**
+   * OFFICE-ROSTER §3.1: when it dies it spawns `children` of itself at `scale`
+   * of its hp, radius and size, each of which splits again, `generations`
+   * deep; only the last generation drops the XP. The same def with a
+   * generation on the state, never a second entry.
+   */
+  split?: { children: number; generations: number; scale: number };
+  /**
+   * OFFICE-ROSTER §3.4: a hold, not a mover. Spawned centred on the player
+   * (`spawnAt: 'player'`), it contracts from `from` px to `to` over `seconds`,
+   * holds at `to` for `holdSeconds`, then ends. Inside it everything moves at
+   * `slow` (through `slowAt`); its edge is a wall for enemies both ways and
+   * never for the player. No damage, no drop.
+   */
+  hold?: { from: number; to: number; seconds: number; holdSeconds: number; slow: number };
   /**
    * Weapons do not affect it (G-018). Shots pass through, areas ignore it, it
    * is never a kill and drops nothing.
@@ -120,7 +137,7 @@ export interface EnemyDef {
    * player was `TRAIL_SECONDS` ago (world.ts), read off a short record of
    * where they have been. Defaults to `edge`.
    */
-  spawnAt?: 'edge' | 'lead' | 'trail';
+  spawnAt?: 'edge' | 'lead' | 'trail' | 'player';
   /** Zone hazards. Bursts on a timer, never on proximity. */
   burst?: { fuseSeconds: number; ringRadius: number; ringSeconds: number; ringDamage: number };
   /**
@@ -174,6 +191,11 @@ export interface EnemyDef {
      * from the end of the stop, as `contactStun`'s do.
      */
     stun?: number;
+    /**
+     * OFFICE-ROSTER §3.5: the share of the player's progress toward the next
+     * level a landing shot takes back — never a level already reached.
+     */
+    xpLoss?: number;
   };
   /**
    * Seconds the player's input is ignored after this enemy's contact damage

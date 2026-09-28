@@ -268,6 +268,58 @@ export const RESERVATIONS: Partial<Record<ActId, ActReservations>> = {
       boss: 'boss-loan',
     },
   },
+
+  // Lifted from OFFICE-ROSTER.md §1, consequences verbatim. The test batch's
+  // org chart (G-013's ruled geometry) is the boss; the sheet is clipped
+  // because the envelope is College's, and the meeting is chairs because the
+  // meeting is not the people (law 9).
+  office: {
+    silhouettes: [
+      {
+        silhouette: 'clipped sheet',
+        heldBy: 'reply-all',
+        consequence:
+          'The only sheet in the act, and the only clip. Its children are the same sheet smaller, never a different shape.',
+      },
+      {
+        silhouette: 'carriage',
+        heldBy: 'commute',
+        consequence: 'The only thing in the act with wheels, and the widest.',
+      },
+      {
+        silhouette: 'bell with a dot',
+        heldBy: 'ping',
+        consequence: 'The only bell, and the smallest thing in the act.',
+      },
+      {
+        silhouette: 'ring of chairs',
+        heldBy: 'meeting',
+        consequence: 'The only ring in the act, and the only thing drawn around an empty middle.',
+      },
+      {
+        silhouette: 'row of stars',
+        heldBy: 'performance-review',
+        consequence: 'The only stars. Nothing else in the act has points.',
+      },
+      {
+        silhouette: 'tree of boxes',
+        heldBy: 'boss-reorg',
+        consequence:
+          'The only ruled geometry in the act (G-013), and the only thing with an empty top box.',
+      },
+    ],
+    reservedThreat: {
+      // The act's heaviest hit is its only red thing.
+      contact: 'commute',
+      // The test's and the project's colour on the slow heavy thing: the chairs.
+      elite: 'meeting',
+      // G-031: the review's gold is on the rating it fires, never its body,
+      // and it is the act's only gold.
+      ranged: PROJECTILE_HOLDER,
+      // The chart's boxes and connectors.
+      boss: 'boss-reorg',
+    },
+  },
 };
 
 /**

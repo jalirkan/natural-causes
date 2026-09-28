@@ -325,6 +325,9 @@ export const TEST_BATCH: AssetSpec[] = [
     role: 'boss',
     tests: 'can the style render an abstraction as a monster — THE REAL TEST',
     targetSize: 384,
+    // OFFICE-ROSTER §4: redrawn as SVG under this id (the test batch's own
+    // description stands; the drawing is authored).
+    source: 'svg',
     seed: 6006,
     // G-013: ruled geometry is this object's characterisation, not the Office
     // act's style. Everything else in that building was made by people and
@@ -1335,11 +1338,130 @@ export const COLLEGE_ROSTER: AssetSpec[] = [
   },
 ];
 
+/**
+ * The Office roster (OFFICE-ROSTER.md §1, §3, §5). Five swarm-tier enemies
+ * (one elite, the meeting) and the player at twenty-two, all authored SVG and
+ * none drawn yet; the boss is the test batch's `boss-reorg`, redrawn as SVG
+ * under its own id. whyThisStage strings lift the roster's verbatim.
+ */
+export const OFFICE_ROSTER: AssetSpec[] = [
+  {
+    id: 'reply-all',
+    name: 'Reply-all',
+    act: 'office',
+    role: 'swarm',
+    tests: 'the clipped sheet — the only sheet and the only clip in the act; its children are the same sheet smaller',
+    targetSize: 48,
+    seed: 30030,
+    source: 'svg',
+    whyThisStage: 'The Office is the first stage where dealing with a thing is precisely what makes more of it.',
+    subject: [
+      'a portrait sheet of paper seen flat on with a paperclip over its top-left corner, three short ruled lines across it',
+      'muted tan (#D2C6AC) paper, the clip and the rules in warm near-black (#2A2521)',
+      'two small dark dots for eyes low on the sheet looking straight out and one short flat line for a mouth',
+      'no text, no letters, no envelope, no red anywhere',
+      'no purple, no gold, no yellow, no pale blue-grey anywhere',
+    ].join(', '),
+  },
+  {
+    id: 'commute',
+    name: 'Commute',
+    act: 'office',
+    role: 'swarm',
+    tests: 'the carriage — the only wheels in the act, and the widest thing, read side-on crossing fast',
+    targetSize: 104,
+    seed: 31031,
+    source: 'svg',
+    whyThisStage:
+      'The Office is the first stage where the same thing crosses the room twice a day at a speed set by nobody in it.',
+    subject: [
+      'a long low commuter rail carriage seen exactly side-on, a rounded box on two small wheel-sets, three square windows along its side',
+      'flat muted red (#C4472E), the contact threat colour, one solid tone',
+      'the windows in muted tan (#D2C6AC) with nothing in them, the wheels in warm near-black (#2A2521)',
+      'the front window is the face: two small dark dots looking forward along the track and one short flat line for a mouth, not at the viewer',
+      'nobody inside, no driver, no lettering, no number',
+      'no purple, no gold, no yellow, no pale blue-grey anywhere',
+    ].join(', '),
+  },
+  {
+    id: 'ping',
+    name: 'Ping',
+    act: 'office',
+    role: 'swarm',
+    tests: 'the bell with a dot — the smallest thing in the act, read by its one dot',
+    targetSize: 40,
+    seed: 32032,
+    source: 'svg',
+    whyThisStage:
+      'The Office is the first stage where every small thing that wants a second of the player gets it, and the seconds add up to the day.',
+    subject: [
+      'a small hand bell seen from the side, a rounded dome on a short handle, with one round dot floating just above its right shoulder',
+      'muted tan (#D2C6AC) bell, the handle, rim and the dot in warm near-black (#2A2521)',
+      'no face: a ping has no face, it has a count, and the count is the dot',
+      'no text, no numbers, no red, no gold, no yellow, no pale blue-grey anywhere',
+    ].join(', '),
+  },
+  {
+    id: 'meeting',
+    name: 'Meeting',
+    act: 'office',
+    role: 'swarm',
+    tests: 'the ring of chairs — eight chair-backs on a circle around nothing, read as a ring at any size',
+    targetSize: 96,
+    seed: 33033,
+    source: 'svg',
+    whyThisStage: 'The Office is the first stage that takes the player’s time without touching them.',
+    subject: [
+      'eight small chair-backs seen from above and behind, spaced evenly on one circle, facing the empty middle',
+      'flat muted purple (#7C5C8A), the elite threat colour, on every chair-back, one solid tone, the legs in warm near-black (#2A2521)',
+      'nothing in the middle of the circle and nobody in any chair',
+      'no table, no faces, no text, no red, no gold, no yellow, no pale blue-grey anywhere',
+    ].join(', '),
+  },
+  {
+    id: 'performance-review',
+    name: 'Performance review',
+    act: 'office',
+    role: 'swarm',
+    tests: 'the row of stars — five stars, one filled, the only points in the act; no gold on it',
+    targetSize: 88,
+    seed: 34034,
+    source: 'svg',
+    whyThisStage:
+      'The Office is the first stage where the aimed thing is a number about the player, and the number takes something back.',
+    subject: [
+      'a short flat strip with five flat five-pointed star outlines in a row across it, the second star filled in',
+      'the strip in muted tan (#D2C6AC), the star outlines in warm grey-brown (#6E6353), the filled star in muted tan',
+      'two small dark dots for eyes on the strip below the stars looking up at them and one short flat line for a mouth',
+      'no text, no numbers, no gold, no yellow, no red, no purple, no pale blue-grey anywhere',
+    ].join(', '),
+  },
+  {
+    id: 'player-office',
+    name: 'The player — twenty-two',
+    act: 'office',
+    role: 'player',
+    tests: 'G-003 at twenty-two: the same face and cowlick, one frame, a tie and a mug',
+    source: 'svg',
+    targetSize: 112,
+    seed: 35035,
+    subject: [
+      'the player at twenty-two: the same small round-headed figure as every act, standing, no taller',
+      'the same face as every act: two flat eyes and one short flat line for a mouth',
+      'the same single asymmetric cowlick sticking up above the left eye, one tuft and no other hair',
+      'a short flat tie down the front and a small mug held in one hand',
+      'paper coloured (#EFE7D6) head and body, warm grey-brown (#6E6353) as the only second tone',
+      'no threat colour anywhere, no lanyard, no phone, no lettering',
+    ].join(', '),
+  },
+];
+
 export const ALL_ASSETS: AssetSpec[] = [
   ...TEST_BATCH,
   ...CONCEPTION_ROSTER,
   ...SCHOOL_ROSTER,
   ...ADOLESCENCE_ROSTER,
   ...COLLEGE_ROSTER,
+  ...OFFICE_ROSTER,
   ...ITEM_ICONS,
 ];
