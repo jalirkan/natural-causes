@@ -431,6 +431,99 @@ class Sfx {
     this.noise({ gain: 0.024, attack: 0.008, decay: 0.05, cutoff: 2900, delay: 0.07, band: { q: 1.4, glideTo: 2200 } });
   }
 
+  // --- Family ------------------------------------------------------------
+
+  /**
+   * A bill arriving (FAMILY-ROSTER §3.1, §6), a late fee included: the
+   * doorbell. Two sine chimes a major third apart, falling — ding, dong —
+   * each with a faint octave for the bar; ~600ms. Bills arrive all act, more
+   * than one a second by the end, so it is quiet, texture before it is news,
+   * and floored at a second: a room of fees is the bell rung again, never a
+   * carillon. It falls where the offer's two notes rise.
+   */
+  doorbell(): void {
+    if (!this.due('doorbell', 1000)) return;
+    this.tone(784, { gain: 0.02, attack: 0.004, decay: 0.26 });
+    this.tone(1568, { gain: 0.004, attack: 0.003, decay: 0.1 });
+    this.tone(622, { gain: 0.02, attack: 0.004, decay: 0.38, delay: 0.2 });
+    this.tone(1244, { gain: 0.004, attack: 0.003, decay: 0.12, delay: 0.2 });
+  }
+
+  /**
+   * The phone consulting (§3.5): it rings. An electric bell is a hammer
+   * striking two gongs twenty-odd times a second, so each burr is five
+   * struck sine notes 42ms apart, alternating a minor third and dying before
+   * the next; two burrs, ~460ms. The strikes are the burr, where the
+   * whistle's trill is a pitch wobble. Its HELLO? lands silent: the ring
+   * said it.
+   */
+  ring(): void {
+    if (!this.due('ring', 500)) return;
+    for (const burr of [0, 0.25]) {
+      for (let i = 0; i < 5; i++) {
+        this.tone(i % 2 === 0 ? 1175 : 1397, { gain: 0.016, attack: 0.002, decay: 0.04, delay: burr + i * 0.042 });
+      }
+    }
+  }
+
+  /**
+   * The toddler taking hold (§3.4): a squeaky toy squeezed. A sine bent up
+   * most of an octave as the air goes through the reed, a quick waver on it,
+   * then the breath the toy lets out after, a soft band of noise falling
+   * away; ~220ms. The only pleased sound in the life.
+   */
+  squeak(): void {
+    if (!this.due('squeak', 300)) return;
+    this.tone(980, { gain: 0.024, attack: 0.015, hold: 0.05, decay: 0.07, bend: 1660, glideTo: 1480, wobble: { rate: 30, depth: 25 } });
+    this.noise({ gain: 0.012, attack: 0.02, decay: 0.12, cutoff: 2300, delay: 0.07, band: { q: 1.2, glideTo: 1400 } });
+  }
+
+  /**
+   * A flat-pack arriving (§3.2): the tape torn off the box. A band of noise
+   * rising as the strip comes away faster, six stick-slip ticks rattling
+   * through it at uneven intervals; ~250ms, dry. It rises where the chairs
+   * drag downward and the memo flutters down.
+   */
+  tape(): void {
+    if (!this.due('tape', 400)) return;
+    this.noise({ gain: 0.024, attack: 0.03, decay: 0.2, cutoff: 1500, band: { q: 1.8, glideTo: 3200 } });
+    for (let i = 0; i < 6; i++) {
+      const cutoff = 2200 + i * 180 + Math.random() * 400;
+      const delay = 0.015 + i * 0.032 + Math.random() * 0.01;
+      this.noise({ gain: 0.018, decay: 0.007, cutoff, delay, band: { q: 3, glideTo: cutoff * 1.1 } });
+    }
+  }
+
+  /**
+   * The Mortgage's statement drafted (§4), its telegraph: the letterbox in
+   * its door — the door is its mouth — lifting and snapping shut. A light
+   * brass tick, then 90ms on the snap: a firmer band of noise over a short
+   * metal ring and a low body for the door; ~200ms. The DUE it announces
+   * fires on `bossShot`.
+   */
+  statement(): void {
+    if (!this.due('statement', 600)) return;
+    this.noise({ gain: 0.018, decay: 0.012, cutoff: 2400, band: { q: 3, glideTo: 2100 } });
+    this.tone(880, { wave: 'triangle', gain: 0.008, attack: 0.001, decay: 0.03, glideTo: 830 });
+    this.noise({ gain: 0.022, decay: 0.025, cutoff: 1400, delay: 0.09, band: { q: 2, glideTo: 1100 } });
+    this.tone(520, { wave: 'triangle', gain: 0.012, attack: 0.001, decay: 0.08, glideTo: 490, delay: 0.09 });
+    this.tone(130, { wave: 'triangle', gain: 0.024, attack: 0.002, decay: 0.07, glideTo: 95, delay: 0.09 });
+  }
+
+  /**
+   * A Mortgage window paid (§4): the till. A soft cash-register ding — a
+   * dull clack for the drawer, then one bright bell with a quick inharmonic
+   * shimmer, left to ring out; ~470ms. At most once a window; a missed
+   * window is a bill at the door, and the doorbell has it.
+   */
+  ding(): void {
+    if (!this.due('ding', 1000)) return;
+    this.noise({ gain: 0.02, decay: 0.02, cutoff: 1200 });
+    this.tone(170, { wave: 'triangle', gain: 0.025, attack: 0.002, decay: 0.035, glideTo: 130 });
+    this.tone(2217, { gain: 0.022, attack: 0.002, decay: 0.42, delay: 0.04 });
+    this.tone(5320, { gain: 0.005, attack: 0.001, decay: 0.08, delay: 0.04 });
+  }
+
   // --- G-044's weapons ---------------------------------------------------
 
   /**

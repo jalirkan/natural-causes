@@ -42,7 +42,17 @@ import {
   type Input,
   type ProjectileState,
 } from '../sim/world';
-import { meetingCloses, memoDrafted, vehiclesEntered, wornGained } from './edges';
+import {
+  consulting,
+  holdTaken,
+  instalmentPaid,
+  meetingCloses,
+  memoDrafted,
+  newestAbove,
+  statementDrafted,
+  vehiclesEntered,
+  wornGained,
+} from './edges';
 import {
   BONE,
   INK,
@@ -358,7 +368,7 @@ export class ActScene extends Phaser.Scene {
    * way it notices everything else: by reading state and diffing. `worn` and
    * `holds` are copies, never the world's live map and array.
    */
-  private heard = { kills: 0, hp: 0, worn: new Map() as ReadonlyMap<string, number>, offers: false, boss: false, dead: false, won: false, xp: 0, level: 1, raced: 0, shot: 0, homework: 0, stun: 0, bossPhase: '', typing: 0, car: 0, bell: 0, interestIn: 0, time: 0, auraAt: -Infinity, holds: [] as readonly HoldState[], restructures: 0 };
+  private heard = { kills: 0, hp: 0, worn: new Map() as ReadonlyMap<string, number>, offers: false, boss: false, dead: false, won: false, xp: 0, level: 1, raced: 0, shot: 0, homework: 0, stun: 0, bossPhase: '', typing: 0, car: 0, bell: 0, interestIn: 0, time: 0, auraAt: -Infinity, holds: [] as readonly HoldState[], restructures: 0, bill: 0, ringing: 0, engulf: 0, paid: 0 };
 
   /**
    * How long this run held each heading (§12.4's sixth question). Fed the
@@ -575,7 +585,7 @@ export class ActScene extends Phaser.Scene {
     this.resetArrivals();
 
     this.dev = neutralDevState();
-    this.heard = { kills: 0, hp: this.world.hp, worn: new Map(this.world.wornBy), offers: false, boss: false, dead: false, won: false, xp: 0, level: 1, raced: 0, shot: 0, homework: 0, stun: 0, bossPhase: '', typing: 0, car: 0, bell: 0, interestIn: 0, time: this.world.time, auraAt: -Infinity, holds: this.world.holds.slice(), restructures: 0 };
+    this.heard = { kills: 0, hp: this.world.hp, worn: new Map(this.world.wornBy), offers: false, boss: false, dead: false, won: false, xp: 0, level: 1, raced: 0, shot: 0, homework: 0, stun: 0, bossPhase: '', typing: 0, car: 0, bell: 0, interestIn: 0, time: this.world.time, auraAt: -Infinity, holds: this.world.holds.slice(), restructures: 0, bill: 0, ringing: 0, engulf: 0, paid: 0 };
     this.inputLog = new InputLog();
     if (import.meta.env.DEV) {
       this.detachDev?.();
@@ -1291,8 +1301,10 @@ export class ActScene extends Phaser.Scene {
     if (firedBy.has('group-chat')) sfx.notification();
     if (firedBy.has('substitute-teacher')) sfx.substituteShot();
     // Any ranged enemy nobody has given a voice yet borrows the substitute's.
-    // The registrar has one (its stamp, under the gate with College's below).
-    for (const id of firedBy) if (id !== 'group-chat' && id !== 'substitute-teacher' && id !== 'registrar') sfx.substituteShot();
+    // The registrar has one (its stamp, under the gate with College's below);
+    // the phone's is its ring on the consult (Family, below), and its HELLO?
+    // lands without an ah-hem after it.
+    for (const id of firedBy) if (id !== 'group-chat' && id !== 'substitute-teacher' && id !== 'registrar' && id !== 'phone-call') sfx.substituteShot();
     // The Gym Teacher's whistle (SCHOOL-ROSTER §9): rising on the telegraph,
     // one long blow on the exit. Read off the phase edge like everything else;
     // the Egg's phases make no sound of their own.
@@ -1311,6 +1323,13 @@ export class ActScene extends Phaser.Scene {
     // on one frame, and at the spawn cap a restructure seats no hold at all.
     if (memoDrafted(w.boss, h.bossPhase)) sfx.memo();
     if (meetingCloses(w.holds, w.boss, h)) sfx.chairs();
+    // The Mortgage (FAMILY-ROSTER §4): the statement drafted is its telegraph,
+    // the letterbox in its door, on the edge (DUE fires on `bossShot`); a
+    // window paid is `paid` rising, the till, once a window at most. A missed
+    // window sends a bill from the door, and the doorbell below hears that.
+    if (statementDrafted(w.boss, h.bossPhase)) sfx.statement();
+    const paid = w.boss?.paid ?? 0;
+    if (instalmentPaid(w.boss, h.paid)) sfx.ding();
     // The hall monitor's stop, on its leading edge. A touch during a running
     // stun refreshes it without an edge, and stays silent.
     if (w.stunTimer > 0 && h.stun <= 0) sfx.stun();
@@ -1339,6 +1358,20 @@ export class ActScene extends Phaser.Scene {
     const car = vehicles.highest;
     if (vehicles.sounds.has('carPass')) sfx.carPass();
     if (vehicles.sounds.has('carriage')) sfx.carriage();
+    // Family (§3.2): the flat-pack crosses on that engine as well and shares
+    // the counter; its arrival is the tape torn off the box, never a car.
+    if (vehicles.sounds.has('tape')) sfx.tape();
+    // Family (§6): a bill arriving is the doorbell — a bill uid above the
+    // highest heard, a late fee's included, one ring a frame. The phone
+    // consulting is the ring, the number consulting rising as the group
+    // chat's typing is. The toddler taking hold is the squeak: the hold's
+    // clock rising, and the one holding is a toddler — a white cell's or a
+    // standardised test's hold rises the same clock and stays silent.
+    const bill = newestAbove(w.enemies, 'bill', h.bill);
+    if (bill > h.bill) sfx.doorbell();
+    const ringing = consulting(w.enemies, 'phone-call');
+    if (ringing > h.ringing) sfx.ring();
+    if (holdTaken(w, h.engulf) === 'toddler') sfx.squeak();
     // G-044's three weapons. Unlike the counters above, their state sits still
     // while the world does (a card up, the run over), so an arc or a landed
     // bolt read off a held world would sound every frame. They hear only the
@@ -1419,6 +1452,11 @@ export class ActScene extends Phaser.Scene {
       auraAt,
       holds: w.holds.slice(),
       restructures: w.boss?.restructures ?? 0,
+      bill,
+      ringing,
+      // Copied every frame, the countdown included, so only a new hold rises.
+      engulf: w.engulfTimer,
+      paid,
     };
   }
 
