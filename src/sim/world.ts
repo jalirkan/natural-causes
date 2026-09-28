@@ -984,6 +984,18 @@ export class World {
   }
 
   /**
+   * Every worn stack off, and the tax with them. DEV ONLY: nothing in the
+   * rules calls it. The dev panel's "no drag" (AUDIT 42) must take the tax
+   * off with the drag, and the tax is private. The persisting part is left
+   * alone, so the next crossing restores it as it would have.
+   */
+  shedWornStacks(): void {
+    this.dragStacks = 0;
+    this.taxedStacks = 0;
+    this.xpTaxFactor = 1;
+  }
+
+  /**
    * Speed from items alone — no antibody drag, no engulf.
    *
    * The exogenous half of the player's speed: what the build chose, rather

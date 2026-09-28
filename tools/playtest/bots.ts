@@ -148,7 +148,11 @@ export interface RunResult {
   enemiesAt300: number;
   /** Realised mean speed across the crowd phase. Endogenous: stacks lower it. */
   meanSpeed: number;
-  /** How much of the boss was left when the run ended. Null if it never spawned. */
+  /**
+   * How much of the boss was left when the run ended. Null if it never spawned.
+   * For The Loan it is the balance, which opens at 1/cap and fills (AUDIT 41);
+   * the report names the column for it.
+   */
   bossHpLeft: number | null;
   bossHpFraction: number | null;
   /** Item levels when the run ended — over the whole life, every act's picks. */

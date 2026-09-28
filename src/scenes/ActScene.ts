@@ -83,6 +83,16 @@ const WORDED_SHOTS: ReadonlySet<string> = new Set(['substitute-teacher', 'regist
 const LOAN_JERK_SECONDS = 0.45;
 const LOAN_JERK = 0.07;
 /**
+ * The boss's entrance (AUDIT 37). Every boss stands 420px above the player
+ * and the view reaches 360, so on the boss's first frame the camera goes to
+ * look: out to where the whole drawing is in view, a hold, and back to the
+ * player. Presentation only; the sim steps on and the bots never see it.
+ * PLACEHOLDER timings, watched by nobody yet: 450ms out, 800ms held, 600ms back.
+ */
+const ENTRANCE_OUT_MS = 450;
+const ENTRANCE_HOLD_MS = 800;
+const ENTRANCE_BACK_MS = 600;
+/**
  * How far a finger travels for full stick, in CSS pixels rather than game
  * pixels: the canvas is FIT-scaled, and a radius in game units would be a
  * third of the size on a portrait phone that it is on a desktop.
@@ -107,6 +117,18 @@ interface Arrival {
   uid: number;
   x: number;
   y: number;
+}
+
+/**
+ * How far a view spanning [viewLo, viewHi] must move, on one axis, to hold
+ * [lo, hi]: zero when it already does. When the span cannot all fit, its
+ * low edge (the top, the left) wins, so a tall drawing shows its head. The
+ * boss's entrance (AUDIT 37) asks it once per axis.
+ */
+function shiftToShow(lo: number, hi: number, viewLo: number, viewHi: number): number {
+  if (lo < viewLo) return lo - viewLo;
+  if (hi > viewHi) return Math.min(hi - viewHi, lo - viewLo);
+  return 0;
 }
 
 /**
@@ -187,6 +209,13 @@ export class ActScene extends Phaser.Scene {
   private bossInterestIn = 0;
   /** World time of the Loan's last tick, which the tape's jerk rings down from. */
   private bossJerkAt = -Infinity;
+  /**
+   * The boss's entrance (AUDIT 37): owed from the frame its sprite is made
+   * until the camera goes to look, and the look while it runs. One per
+   * sprite, so one per spawn; a restart or a crossing drops both.
+   */
+  private bossEntranceOwed = false;
+  private bossEntrance?: Phaser.Tweens.TweenChain;
 
   /** Set by P or Escape. Distinct from the offer freeze, which is the rules. */
   private paused = false;
@@ -323,6 +352,10 @@ export class ActScene extends Phaser.Scene {
     this.attachedSprites = [];
     delete this.bossSprite;
     delete this.floorRing;
+    // The old scene's look went with its tweens, and startFollow below sets
+    // the follow offset back to nothing; a new world has no boss to owe one.
+    this.bossEntranceOwed = false;
+    delete this.bossEntrance;
 
     this.puffs = [];
     this.areaIcons = [];
@@ -463,6 +496,7 @@ export class ActScene extends Phaser.Scene {
     this.attachedSprites = [];
     this.bossSprite?.destroy();
     delete this.bossSprite;
+    this.endBossEntrance();
     this.floorRing?.destroy();
     delete this.floorRing;
     this.absorbZoomed = false;
@@ -1075,7 +1109,9 @@ export class ActScene extends Phaser.Scene {
       w.engulfTimer = 0;
       w.dead = false;
     }
-    if (this.dev.noDrag) w.dragStacks = 0;
+    // The tax comes off with the drag (AUDIT 42): zeroing `dragStacks` alone
+    // left the HUD reading `xp −8%` with nothing worn.
+    if (this.dev.noDrag) w.shedWornStacks();
     if (this.dev.emptyField) w.enemies.length = 0;
   }
 
@@ -1617,6 +1653,7 @@ export class ActScene extends Phaser.Scene {
       this.bossScale = this.bossBaseScale;
       this.bossInterestIn = b.interestIn;
       this.bossJerkAt = -Infinity;
+      this.bossEntranceOwed = true;
       // Prom's floor (ADOLESCENCE-ROSTER §4): the HUD says get on it, so it is
       // drawn — a thin paper ring at floorRadius, chrome not threat (law 10),
       // under everything that moves. Destroyed with the boss sprite.
@@ -1667,6 +1704,60 @@ export class ActScene extends Phaser.Scene {
       .setScale(this.bossScale * (1 - jerk), this.bossScale * (1 + jerk))
       // Value, not tint (G-032, law 10).
       .setAlpha(b.phase === 'absorbing' ? Math.max(0, b.timer / 1.8) : telegraph ? 0.72 : 1);
+    // Behind a card nobody would see the look, so it waits for the choice.
+    if (this.bossEntranceOwed && !this.world.offers) this.lookAtBoss(b.phase === 'absorbing');
+  }
+
+  /**
+   * The boss's entrance (AUDIT 37): the camera eases from the player to the
+   * nearest point that has the whole drawing in view below the HUD band,
+   * holds, and eases back. It moves the follow OFFSET, never the follow, so
+   * the camera is following the player the whole time and nothing has to
+   * remember to turn it back on; the lerp smooths both legs. Measured from
+   * the sprite as drawn (its display size about its origin, not the body
+   * circle): the Loan's tape stands well above its anchor.
+   */
+  private lookAtBoss(over: boolean): void {
+    this.bossEntranceOwed = false;
+    const s = this.bossSprite;
+    // Killed before the card was answered: the absorb is the moment now.
+    if (!s || over) return;
+    const cam = this.cameras.main;
+    const zoom = cam.zoom;
+    const halfW = cam.width / zoom / 2;
+    const halfH = cam.height / zoom / 2;
+    const left = s.x - s.displayWidth * s.originX;
+    const top = s.y - s.displayHeight * s.originY;
+    const dx = shiftToShow(
+      left,
+      left + s.displayWidth,
+      this.player.x - halfW + TOAST_EDGE / zoom,
+      this.player.x + halfW - TOAST_EDGE / zoom,
+    );
+    const dy = shiftToShow(
+      top,
+      top + s.displayHeight,
+      this.player.y - halfH + TOAST_TOP / zoom,
+      this.player.y + halfH - TOAST_EDGE / zoom,
+    );
+    if (dx === 0 && dy === 0) return;
+    // The camera looks at the target minus the offset (Camera.preRender).
+    this.bossEntrance = this.tweens.chain({
+      targets: cam.followOffset,
+      tweens: [
+        { x: -dx, y: -dy, duration: ENTRANCE_OUT_MS, ease: 'Sine.easeInOut' },
+        { x: 0, y: 0, delay: ENTRANCE_HOLD_MS, duration: ENTRANCE_BACK_MS, ease: 'Sine.easeInOut' },
+      ],
+      onComplete: () => delete this.bossEntrance,
+    });
+  }
+
+  /** Drops a look owed or running and puts the camera back on the player. */
+  private endBossEntrance(): void {
+    this.bossEntranceOwed = false;
+    this.bossEntrance?.stop();
+    delete this.bossEntrance;
+    this.cameras.main.followOffset.set(0, 0);
   }
 
   private syncAttached(): void {
