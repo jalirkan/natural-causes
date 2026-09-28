@@ -833,6 +833,24 @@ export const ITEM_ICONS: AssetSpec[] = [
       'flat muted dusty rose case, pale warm face, bar and z',
     ].join(', '),
   },
+  // Personal Space (G-044) is drawn. Its icon also rides the aura ring on the
+  // field (about 32px), so it keeps to rose, bone and ink as Grudge does.
+  {
+    id: 'icon-aura',
+    name: 'Personal Space icon',
+    act: 'conception',
+    role: 'icon',
+    source: 'svg',
+    targetSize: 96,
+    seed: 61025,
+    tests: 'a rope barrier that says keep your distance, read at 52px on a card and 32px riding the ring',
+    subject: [
+      'a velvet rope barrier seen straight on: two short stanchion posts, each with a round ball finial on a cap and a flat round base',
+      'one thick rope hooked to the inner face of each post just under the cap, drooping between them in a single sag',
+      'pale warm posts, finials, bases and rope ends, flat muted dusty rose rope, dark interior lines under the finials and caps, at the bases and where the rope meets each post',
+      'nothing else: no sign, no carpet, no queue, no figure, no text',
+    ].join(', '),
+  },
 ];
 
 /**
