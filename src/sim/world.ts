@@ -1,4 +1,4 @@
-import type { ActDef, BossDef, GymTeacherBoss, LoanBoss, PromBoss, ReorgBoss, SpawnWave } from '../data/acts';
+import type { ActDef, BossDef, GymTeacherBoss, LoanBoss, MortgageBoss, PromBoss, ReorgBoss, SpawnWave } from '../data/acts';
 import { ALL_ACTS, rateAt, spawnStreams, whistleInterval } from '../data/acts';
 import { ENEMIES, enemyDef, type EnemyDef } from '../data/enemies';
 import {
@@ -217,6 +217,17 @@ export const LOAN_INVOICE_SPREAD = 0.16;
 export const REORG_MIN_DISTANCE = 300;
 export const REORG_MARGIN = BOSS_RADIUS + 40;
 export const REORG_RELOCATE_TRIES = 8;
+
+/**
+ * The Mortgage's door (FAMILY-ROSTER §4), px below the boss point: where a
+ * missed window's late fee (`MortgageBoss.feeId`) is set down. Measured, not
+ * chosen: boss-mortgage.svg draws the door (its mouth) centred on 0.80 of the
+ * sprite's height and the body circle the sim's point stands for on 0.68, r
+ * 0.30 (its own comment), so at BOSS_RADIUS the sprite is BOSS_RADIUS / 0.30
+ * tall and the door is 0.12 of that below the point. Straight below, so it
+ * needs no dice and no heading. If the drawing's door moves, this follows it.
+ */
+export const MORTGAGE_DOOR_BELOW = ((0.8 - 0.68) * BOSS_RADIUS) / 0.3;
 
 /**
  * How long ago "recently" is, for an enemy that lands where the player has
@@ -626,7 +637,9 @@ export interface BossState {
    * for Prom it is the lights going down and `attack` begins on the ring;
    * for the Loan it is the tape jerking and `attack` begins on the statement;
    * for the Reorg it is the memo drafted and `attack` begins on the memo, and
-   * a restructure sets it back to `idle`.
+   * a restructure sets it back to `idle`; for the Mortgage it is the
+   * statement drafted and `attack` begins on its one shot (DUE). The
+   * Mortgage's window clock (`windowTimer`) runs beside it, not in it.
    * The exit, for every kind, is `absorbing`: the word is the Egg's, and it
    * means the outcome has latched (G-033) and `finishAct` follows the timer —
    * the Gym Teacher's stopwatch click and `ActDef.endWord` play in it.
@@ -666,6 +679,28 @@ export interface BossState {
    * restructure.
    */
   restructures: number;
+  /**
+   * The Mortgage's windows paid (FAMILY-ROSTER §4), 0 to `instalments`: the
+   * bar's notches. Set at each window's end from the health left, so between
+   * windows hp is exactly maxHp × (instalments − paid) / instalments and
+   * hp/maxHp reads paid twelfths. At `instalments` it is paid off: the exit.
+   * Zero for every other kind.
+   */
+  paid: number;
+  /**
+   * The Mortgage's window clock: seconds left in the current window, counting
+   * down from `instalmentSeconds`, set at spawn and carried at each window's
+   * end as the Loan's interest clock is. Zero for every other kind.
+   */
+  windowTimer: number;
+  /**
+   * Damage the Mortgage has accepted this window, 0 to one instalment
+   * (maxHp / instalments): what the gate (`bossTakes`) let through. Equal to
+   * one instalment once the window is met; everything after it is lost. Back
+   * to 0 at each window's end, when a short window is refunded to hp. Zero for
+   * every other kind.
+   */
+  accepted: number;
 }
 
 export interface Input {
@@ -2386,12 +2421,47 @@ export class World {
   private damageBoss(amount: number): void {
     const b = this.boss;
     if (!b || b.phase === 'absorbing' || this.shieldUp()) return;
-    b.hp -= amount;
-    if (b.hp <= 0) {
-      b.hp = 0;
-      b.phase = 'absorbing';
-      b.timer = 1.8;
+    this.bossTakes(b, amount);
+  }
+
+  /**
+   * The one gate every damage path to the boss goes through: the shots and
+   * the areas in `updateBoss`, and `damageBoss` (sweeps, landing strikes,
+   * auras, orbiters). Its callers have already decided the boss is hit (in
+   * reach, not shielded, not absorbing); this decides what the hit is worth.
+   * True when the blow ended the fight, so a damage pass stops there.
+   *
+   * Every kind but the Mortgage: the health falls by the whole amount, and at
+   * zero the outcome latches — `absorbing`, the Egg's exit, which every boss
+   * uses. It does not die. The eyes close, the corona parts, and the player
+   * wins by being permitted to stop existing separately from it.
+   *
+   * The Mortgage (FAMILY-ROSTER §4): the window's instalment is the most it
+   * accepts. What is still owed this window (one instalment less `accepted`)
+   * and what is left of the balance bound the take; the rest of the blow is
+   * lost. The last take that meets the instalment sets `accepted` to it
+   * exactly, so "met" is an equality and no sum of float slivers can fall a
+   * hair short of it. It never latches here, even at zero: whether the
+   * window was paid, and whether that was the last, is `mortgagePhase`'s,
+   * at the window's end — so the fight lasts every window of the schedule.
+   */
+  private bossTakes(b: BossState, amount: number): boolean {
+    const boss = this.act.boss;
+    if (boss.kind === 'mortgage') {
+      const instalment = b.maxHp / boss.instalments;
+      const owed = instalment - b.accepted;
+      const take = Math.min(amount, owed, b.hp);
+      if (!(take > 0)) return false;
+      b.hp -= take;
+      b.accepted = take === owed ? instalment : b.accepted + take;
+      return false;
     }
+    b.hp -= amount;
+    if (!(b.hp <= 0)) return false;
+    b.hp = 0;
+    b.phase = 'absorbing';
+    b.timer = 1.8;
+    return true;
   }
 
   /**
@@ -3484,6 +3554,9 @@ export class World {
       rings: 0,
       interestIn: 0,
       restructures: 0,
+      paid: 0,
+      windowTimer: 0,
+      accepted: 0,
     };
     // The Loan opens at what the player carried in (COLLEGE-ROSTER §4): a
     // tenth more per invoice worn, and its cap is `cap` times that, so the bar
@@ -3496,6 +3569,10 @@ export class World {
       this.boss.maxHp = opening * loan.cap;
       this.boss.interestIn = loan.interestSeconds;
     }
+    // The Mortgage's first window opens as it stands (FAMILY-ROSTER §4), and
+    // from here every one is `instalmentSeconds` long.
+    const mortgage = this.act.boss;
+    if (mortgage.kind === 'mortgage') this.boss.windowTimer = mortgage.instalmentSeconds;
     // Read once it stands: Prom's shield is the player's distance from it.
     this.boss.shielded = this.shieldUp();
     this.partRace(this.boss);
@@ -3553,6 +3630,10 @@ export class World {
     if (!b) return;
 
     if (b.phase === 'absorbing') {
+      // The exit is the last payment however it came: a window's end, or a
+      // write that set `absorbing` directly (the dev panel's kill, the tests'
+      // crossings) with hp at zero, which derives every window paid.
+      if (this.act.boss.kind === 'mortgage') b.paid = this.paidFrom(b, this.act.boss);
       b.timer -= dt;
       if (b.timer <= 0) this.finishAct();
       return;
@@ -3575,16 +3656,10 @@ export class World {
         swapRemove(this.projectiles, i);
         continue;
       }
-      b.hp -= p.damage;
+      // Spent either way: a shot into a window already met is the overflow,
+      // and it is lost, not held for the next one (FAMILY-ROSTER §4).
       swapRemove(this.projectiles, i);
-      if (b.hp <= 0) {
-        // It does not die. The eyes close, the corona parts, and the player
-        // wins by being permitted to stop existing separately from it.
-        b.hp = 0;
-        b.phase = 'absorbing';
-        b.timer = 1.8;
-        return;
-      }
+      if (this.bossTakes(b, p.damage)) return;
     }
     for (const a of this.areas) {
       // A strike deals its one hit on the boss where it lands (landStrike).
@@ -3593,23 +3668,21 @@ export class World {
       // shield drops inside its lifetime, it lands then.
       if (a.pull || a.damage <= 0 || b.shielded) continue;
       if (Math.hypot(a.x - b.x, a.y - b.y) > a.radius + BOSS_RADIUS) continue;
-      if (a.tick) b.hp -= a.damage * dt * 6;
+      let amount: number;
+      if (a.tick) amount = a.damage * dt * 6;
       else if (a.serial !== this.bossHitSerial) {
         this.bossHitSerial = a.serial;
-        b.hp -= a.damage;
+        amount = a.damage;
       } else continue;
-      if (b.hp <= 0) {
-        b.hp = 0;
-        b.phase = 'absorbing';
-        b.timer = 1.8;
-        return;
-      }
+      if (this.bossTakes(b, amount)) return;
     }
 
     // Above the phase timer: interest runs every step, not on phase changes.
     if (this.act.boss.kind === 'loan') return this.loanPhase(b, this.act.boss, dt);
     // Above it too: a threshold is read off the health every step, not on a timer.
     if (this.act.boss.kind === 'reorg') return this.reorgPhase(b, this.act.boss, dt);
+    // And the window clock: it runs every step, beside the statement.
+    if (this.act.boss.kind === 'mortgage') return this.mortgagePhase(b, this.act.boss, dt);
 
     // It does not move from where it is. It has already decided.
     b.timer -= dt;
@@ -3625,12 +3698,7 @@ export class World {
       return;
     }
 
-    // The Egg's machine, and The Mortgage's for now (FAMILY-ROSTER §4): its
-    // kind runs as the Egg — this fan, these timings, BOSS_HP — as the Reorg
-    // did before its phase existed, so the act plays to EQUITY headless and
-    // in the bots. Its instalments (the window clock and the one-instalment
-    // cap on damage), its rooms at the lead and its fees from the door are
-    // the next agent's, in a `mortgagePhase` beside `reorgPhase` above.
+    // The Egg's machine.
     if (b.phase === 'idle') {
       b.phase = 'telegraph';
       b.timer = EGG_TELEGRAPH_SECONDS;
@@ -3991,5 +4059,171 @@ export class World {
 
     b.phase = 'idle';
     b.timer = EGG_IDLE_SECONDS;
+  }
+
+  /**
+   * The Mortgage's step (FAMILY-ROSTER §4), called every step it is not
+   * absorbing, after the damage passes have run through `bossTakes`.
+   *
+   * The window clock: `windowTimer` counts down from `instalmentSeconds`,
+   * one window closing a step at most, the overshoot carried (AUDIT 16) as
+   * the Loan's interest clock is, so the schedule is the same at every frame
+   * rate and no `instalmentSeconds` can hang the step. At the close
+   * (`closeWindow`) the window is paid or missed, the balance is set from
+   * what was paid, and the house grows.
+   *
+   * The statement is the Egg's machine at the Egg's timings, carried as the
+   * Loan's is: idle; the statement drafted (telegraph); DUE (attack), one
+   * shot. It never moves, never shields (`shieldUp` has no branch for it)
+   * and is never raced for (`race` reads only the Egg and Prom).
+   *
+   * Nothing of it runs once the player has died this step (resolveHits comes
+   * first): a window closing then would build a room round the body, or pay
+   * the house off over it.
+   */
+  private mortgagePhase(b: BossState, boss: MortgageBoss, dt: number): void {
+    if (this.dead) return;
+    b.windowTimer -= dt;
+    if (b.windowTimer <= 0) {
+      b.windowTimer += boss.instalmentSeconds;
+      this.closeWindow(b, boss);
+      if (b.phase === 'absorbing') return;
+    }
+
+    b.timer -= dt;
+    if (b.timer > 0) return;
+    if (b.phase === 'idle') {
+      b.phase = 'telegraph';
+      b.timer += EGG_TELEGRAPH_SECONDS;
+    } else if (b.phase === 'telegraph') {
+      b.phase = 'attack';
+      b.timer += EGG_ATTACK_SECONDS;
+      this.due(b);
+    } else {
+      b.phase = 'idle';
+      b.timer += EGG_IDLE_SECONDS;
+    }
+  }
+
+  /**
+   * One window's end (§4), in this order:
+   *   1. Paid or missed. Paid is `accepted` equal to one instalment (the gate
+   *      sets it exactly on the take that meets it). Missed, the balance does
+   *      not move: what the window accepted goes back on the health.
+   *   2. The balance. `paid` is read off the health, round((maxHp − hp) /
+   *      instalment), held to 0..instalments, and the health set back to
+   *      maxHp × (instalments − paid) / instalments, so between windows the
+   *      bar reads paid twelfths exactly. Untouched, that is the last `paid`
+   *      plus one for a paid window and plus none for a missed one. Read off
+   *      the health rather than counted so a write to it from outside the
+   *      sim (the dev panel's −50% and kill) stays consistent: half the
+   *      health gone is six instalments paid, and none left is all of them.
+   *   3. Paid off, the exit: `absorbing`, as every boss falls (`bossTakes`),
+   *      and nothing is built on the way out — the door opens instead.
+   *   4. Otherwise the house grows: one room at the player's lead, paid or
+   *      missed, and a missed window sends one late fee from the door.
+   *      Each capped by MAX_ACTIVE_ENEMIES like any spawn.
+   */
+  private closeWindow(b: BossState, boss: MortgageBoss): void {
+    const instalment = b.maxHp / boss.instalments;
+    const met = b.accepted >= instalment;
+    if (!met) b.hp += b.accepted;
+    b.accepted = 0;
+    b.paid = this.paidFrom(b, boss);
+    b.hp = (b.maxHp * (boss.instalments - b.paid)) / boss.instalments;
+    if (b.paid >= boss.instalments) {
+      b.hp = 0;
+      b.phase = 'absorbing';
+      b.timer = 1.8;
+      return;
+    }
+    this.buildRoom(boss);
+    if (!met) this.lateFee(b, boss);
+  }
+
+  /** Windows paid, read off the health (`closeWindow`, step 2). */
+  private paidFrom(b: BossState, boss: MortgageBoss): number {
+    const instalment = b.maxHp / boss.instalments;
+    const paid = Math.round((b.maxHp - b.hp) / instalment);
+    return Math.min(boss.instalments, Math.max(0, paid));
+  }
+
+  /**
+   * A room at the player's lead, through `spawnEnemy`: the act's own arrival
+   * (§3.6's room is `spawnAt: 'lead'`, static, merging), so where it lands,
+   * the clamp that holds a static inside the arena and the merge onto a room
+   * already there are all written once, there. The lead is ANTIBODY_LEAD
+   * ahead, farther than a room's radius, so it never lands on the player —
+   * except at a wall they face, where the clamp pulls it back onto them: then
+   * it lands at the lead behind them instead, the heading turned for the call
+   * and put back after, as the Loan's statement turns it. The turn is read
+   * off where the player stands, never rolled. A lead placement draws no
+   * dice; under a `spawnOverride` of 'edge' the room draws its angle, as
+   * every arrival does there.
+   */
+  private buildRoom(boss: MortgageBoss): void {
+    if (this.enemies.length >= MAX_ACTIVE_ENEMIES) return;
+    const def = enemyDef(boss.roomId);
+    const fx = this.facingX;
+    const fy = this.facingY;
+    if ((this.spawnOverride ?? def.spawnAt) === 'lead' && this.leadLandsOnPlayer(def, fx, fy)) {
+      this.facingX = -fx;
+      this.facingY = -fy;
+    }
+    this.spawnEnemy(boss.roomId);
+    this.facingX = fx;
+    this.facingY = fy;
+  }
+
+  /** True when `def` set at the lead along (fx, fy), as `spawnEnemy` would, overlaps the player. */
+  private leadLandsOnPlayer(def: EnemyDef, fx: number, fy: number): boolean {
+    let x = this.x + fx * ANTIBODY_LEAD;
+    let y = this.y + fy * ANTIBODY_LEAD;
+    if (def.movement === 'static') {
+      x = clamp(x, def.radius, ARENA_WIDTH - def.radius);
+      y = clamp(y, def.radius, ARENA_HEIGHT - def.radius);
+    }
+    return Math.hypot(x - this.x, y - this.y) < def.radius + this.playerRadius;
+  }
+
+  /**
+   * The late fee: one `feeId` (the act's bill) at the door, MORTGAGE_DOOR_BELOW
+   * straight below the boss point and held inside the arena, standing still
+   * until its own movement takes it (a bill chases). Through `addEnemy`, as
+   * the Gym Teacher's throw is, because the door is the placement: the bill's
+   * own arrival is the edge, which would roll an angle. A whole bill, not a
+   * `fee`: it accrues fees of its own, left alone (§3.1). No dice.
+   */
+  private lateFee(b: BossState, boss: MortgageBoss): void {
+    if (this.enemies.length >= MAX_ACTIVE_ENEMIES) return;
+    const def = enemyDef(boss.feeId);
+    const x = clamp(b.x, def.radius, ARENA_WIDTH - def.radius);
+    const y = clamp(b.y + MORTGAGE_DOOR_BELOW, def.radius, ARENA_HEIGHT - def.radius);
+    this.addEnemy(def, x, y, 0, 0);
+  }
+
+  /**
+   * The statement: one of the Egg's shot at where the player is now, at the
+   * Egg's speed, damage, life and radius — the fan's middle shot, alone. The
+   * bearing is the Egg's (atan2, so a player on the boss point is fired at
+   * along +x). No owner, so a death to it names the boss (`bossName`) and it
+   * carries none of a ranged enemy's stun, rating or pull. The renderer draws
+   * it as the word DUE.
+   */
+  private due(b: BossState): void {
+    const bearing = Math.atan2(this.y - b.y, this.x - b.x);
+    this.projectiles.push({
+      x: b.x,
+      y: b.y,
+      vx: Math.cos(bearing) * EGG_SHOT.speed,
+      vy: Math.sin(bearing) * EGG_SHOT.speed,
+      life: EGG_SHOT.life,
+      damage: EGG_SHOT.damage,
+      pierce: 1,
+      radius: EGG_SHOT.radius,
+      hostile: true,
+      source: 'boss',
+      serial: this.nextSerial++,
+    });
   }
 }

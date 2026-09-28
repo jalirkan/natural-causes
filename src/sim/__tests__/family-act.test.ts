@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ACTS, ALL_ACTS, FAMILY, OFFICE, spawnStreams } from '../../data/acts';
 import { ENEMIES } from '../../data/enemies';
 import { FAMILY_ROSTER } from '../../../tools/art/batch';
-import { BOSS_HP, EGG_SHOT, World } from '../world';
+import { BOSS_HP, World } from '../world';
 
 /**
  * Family as an ACT (FAMILY-ROSTER.md §3.6 and §4), in the image of
@@ -44,7 +44,7 @@ describe('Family has a schedule, and it is provisional', () => {
     for (const field of ['attach.pickup', 'engulf.cooldownMultiplier', 'ranged.pull', 'instalmentSeconds', 'BOSS_HP']) {
       expect(label, field).toContain(field);
     }
-    // And that the boss it names is, for now, the Egg's machine.
+    // And the Egg's machine its statement borrows (timings, shot, damage).
     expect(label).toMatch(/Egg/);
   });
 
@@ -321,32 +321,36 @@ describe('the life is six acts long now', () => {
     play(w, 1 / 60);
   }
 
-  it('The Reorg falling crosses into Family; The Mortgage, fought as the Egg for now, falls to a hit and it is natural causes at fifty-five', () => {
+  it('The Reorg falling crosses into Family; The Mortgage, paid off, falls at its last window and it is natural causes at fifty-five', () => {
     const w = new World({ acts: ALL_ACTS, seed: 5, startingItems: [] });
     for (let i = 0; i < ALL_ACTS.indexOf(FAMILY); i++) cross(w);
     expect(w.act).toBe(FAMILY);
     expect(w.won).toBe(false);
     expect(w.age).toBe(34);
 
-    // The clock runs out and The Mortgage stands, with the Egg's health.
+    // The clock runs out and The Mortgage stands, owing BOSS_HP, nothing paid.
     w.actTime = FAMILY.durationSeconds;
     play(w, 1 / 60);
     const b = w.boss!;
     expect(b).not.toBeNull();
     expect(b.kind).toBe('mortgage');
     expect(b.maxHp).toBe(BOSS_HP);
+    expect(b.paid).toBe(0);
     expect(b.shielded).toBe(false);
     expect(w.raceTarget).toBe(0);
 
-    // It runs today as the Egg: idle, telegraph, then the Egg's fan of five.
+    // Its statement is the Egg's machine with one shot, not the fan (§4).
     let fired = 0;
-    play(w, 5, (world) => {
+    play(w, 4, (world) => {
       fired = Math.max(fired, world.projectiles.filter((p) => p.hostile && p.source === 'boss').length);
     });
-    expect(fired, 'The Mortgage never fired the Egg’s fan').toBe(5);
+    expect(fired, 'The Mortgage never fired its statement').toBe(1);
 
-    // A real hit empties it: the outcome latches, the act's word is EQUITY.
-    b.hp = 1;
+    // Eleven paid (the panel's kind of write: paid is read off the health at
+    // the window's end), and a real hit meets the twelfth. It does not fall
+    // on the hit: the window has to close (mortgage.test.ts has the schedule).
+    if (FAMILY.boss.kind !== 'mortgage') throw new Error('not the Mortgage');
+    b.hp = b.maxHp / FAMILY.boss.instalments;
     w.projectiles.length = 0;
     w.projectiles.push({
       x: b.x,
@@ -354,14 +358,18 @@ describe('the life is six acts long now', () => {
       vx: 0,
       vy: 0,
       life: 1,
-      damage: EGG_SHOT.damage,
+      damage: BOSS_HP,
       pierce: 1,
       radius: 4,
       hostile: false,
       serial: 1e9,
     });
     play(w, 1 / 60);
+    expect(b.hp).toBe(0);
+    expect(b.phase).not.toBe('absorbing');
+    play(w, FAMILY.boss.instalmentSeconds);
     expect(b.phase).toBe('absorbing');
+    expect(b.paid).toBe(FAMILY.boss.instalments);
     expect(w.act.endWord).toBe('EQUITY');
     play(w, 3);
     expect(w.won).toBe(true);
