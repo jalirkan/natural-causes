@@ -298,10 +298,13 @@ is a lesser joke.
    everything that can hold one, and every face is mildly pleased, content or
    faintly worried — nobody snarls, nobody menaces (law 9). The mortgage
    smiles at you.
-4. **One glint per mass.** Exactly one flat paper-coloured spot, upper-left, at
-   most a tenth of the mass across. This is law 2's one exception: flat fills
-   still, no gradients, no shading beyond one shadow tone; the glint is the
-   whole gloss.
+4. **One glint per mass.** Exactly one flat light spot, upper-left, at most a
+   tenth of the mass across. This is law 2's one exception: flat fills still,
+   no gradients, no shading beyond one shadow tone; the glint is the whole
+   gloss. Its colour follows law 10: **paper on the player**; **bone on
+   everything else in the field** — enemies, bosses, and the weapons' icons,
+   which ride the field as the weapons themselves (G-036; AUDIT 150) — and a
+   part already drawn in bone has none.
 5. **Palette and threat as before.** The act's tones, the universals, blush;
    threat colours by laws 6, 10 and 11, unchanged. Cute does not mean safe:
    the thing that hurts you is still the thing wearing red.
