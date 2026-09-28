@@ -351,6 +351,49 @@ export const ADOLESCENCE: ActDef = {
   ],
 };
 
+export const COLLEGE: ActDef = {
+  id: 'college',
+  name: 'College',
+  // The clock shrinks as the life goes on (the roster's header).
+  durationSeconds: 210,
+  bossName: 'The Loan',
+  // COLLEGE-ROSTER §4. It never attacks, moves or shields: its health
+  // compounds every `interestSeconds` by `interestRate` up to `cap` times its
+  // start, and its statement drops `invoices` tuition at the player's lead.
+  // All four are PLACEHOLDERS under `provisional`; its health is BOSS_HP.
+  boss: { kind: 'loan', enemyId: 'tuition', interestSeconds: 5, interestRate: 0.06, cap: 3, invoices: 3 },
+  // The tape stops, and the act ends on one word.
+  endWord: 'CONGRATULATIONS',
+  age: { from: 18, to: 22 },
+  // No race: nobody else wants the balance.
+  provisional:
+    "Every rate, time and enemy number here, tuition's tax on each gem (`attach.tax`, 0.08 a stack), the registrar's stop (`ranged.stun`, 0.5s), the group project's weak point (one quadrant of four, rolled at spawn, and what counts as landing there), and all four of The Loan's numbers (`boss.interestSeconds` 5, `interestRate` 0.06, `cap` 3, `invoices` 3) were written as placeholders before anyone played the act (COLLEGE-ROSTER §3.6 and §4, G-045), as was the tenth of its health each worn invoice adds to its opening balance; a person playing it at the link is what moves them (D-022).",
+  // COLLEGE-ROSTER.md §3.6, transcribed. The ORDER is the design and is under
+  // test (college-act.test.ts): age runs 18 to 22, a year every 52.5 seconds.
+  // Reading from 0s (18), the first week; tuition at 20s, the first bill; the
+  // registrar at 45s, the first hold; the group project at 80s (19); the
+  // deadline at 100s, then about every 30s. Nothing new after 130s; the last
+  // 80 seconds are escalation, then The Loan.
+  //
+  // The rates are placeholders. Nothing in this act is ever culled (two
+  // chasers, two statics, a patrol), so every rate is a count, and reading is
+  // the density, as the rivals and the hormones were.
+  waves: [
+    { fromSeconds: 0, enemyId: 'reading', rate: 1.4 },
+    { fromSeconds: 20, enemyId: 'tuition', rate: 0.12 },
+    { fromSeconds: 45, enemyId: 'registrar', rate: 0.05 },
+    { fromSeconds: 45, enemyId: 'reading', rate: 2.4 },
+    { fromSeconds: 80, enemyId: 'group-project', rate: 0.04 },
+    { fromSeconds: 100, enemyId: 'deadline', rate: 0.034 },
+    { fromSeconds: 100, enemyId: 'tuition', rate: 0.2 },
+    { fromSeconds: 130, enemyId: 'reading', rate: 4 },
+    { fromSeconds: 130, enemyId: 'registrar', rate: 0.1 },
+    { fromSeconds: 160, enemyId: 'group-project', rate: 0.08 },
+    { fromSeconds: 160, enemyId: 'reading', rate: 6 },
+    { fromSeconds: 160, enemyId: 'tuition', rate: 0.3 },
+  ],
+};
+
 /**
  * Every act with a schedule, in life order. The content rules iterate THIS
  * list, so an act cannot escape them by not being startable yet (the
@@ -362,14 +405,14 @@ export const ADOLESCENCE: ActDef = {
  * `ACTS`, the prefix whose art exists, so the life gets longer as acts become
  * startable and nothing about the sim changes when one does.
  */
-export const ALL_ACTS: ActDef[] = [CONCEPTION, SCHOOL, ADOLESCENCE];
+export const ALL_ACTS: ActDef[] = [CONCEPTION, SCHOOL, ADOLESCENCE, COLLEGE];
 
 /**
  * The life the browser plays, in order: the prefix of `ALL_ACTS` with an
  * atlas, a player frame and a boss frame registered in `act-visuals.ts`.
  * School joined when its authored SVG sprites landed (G-038); its boss is the
- * Gym Teacher, picture and behaviour (SCHOOL-ROSTER §9). Adolescence waits on
- * its drawings: it has a schedule and no atlas. A test asserts this list and
+ * Gym Teacher, picture and behaviour (SCHOOL-ROSTER §9). College waits on its
+ * drawings (G-045): it has a schedule and no atlas. A test asserts this list and
  * `ACT_VISUALS` agree, so moving an act in is a one-line change that fails
  * loudly if the art is not there.
  */

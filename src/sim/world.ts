@@ -314,6 +314,14 @@ export interface EnemyState {
    */
   consult: number;
   reload: number;
+  /**
+   * `def.weakPoint` only (the group project, COLLEGE-ROSTER §3.4): which of
+   * the four quadrants about its centre holds all its hp, 0–3, rolled at
+   * spawn from the world's dice (`addEnemy`). Quadrant k covers bearings
+   * [k·π/2, (k+1)·π/2) from the centre, by `Math.atan2`. Absent on every
+   * other enemy, which every hit reads as "anywhere counts" (`hitsWeakPoint`).
+   */
+  weakQuadrant?: number;
 }
 
 export interface ProjectileState {
@@ -602,6 +610,28 @@ function swapRemove<T>(arr: T[], i: number): void {
   if (i < arr.length) arr[i] = last;
 }
 
+/**
+ * Whether a hit at (x, y) on `e` counts (COLLEGE-ROSTER §3.4, the group
+ * project). Always, for an enemy with no weak point. Otherwise only when the
+ * bearing from its centre to (x, y) falls in `e.weakQuadrant` — a shot by
+ * where it strikes, an orbiter by where it is, a sweep by where the player
+ * swung from — or, for an area, when (x, y) is within `cover` of its centre:
+ * an area over the centre covers all four, and one that only reaches the rim
+ * lands on the side facing its own centre. A hit that does not count does
+ * nothing and does not flash; the callers skip it whole.
+ */
+export function hitsWeakPoint(e: EnemyState, x: number, y: number, cover = 0): boolean {
+  const q = e.weakQuadrant;
+  if (q === undefined) return true;
+  const dx = x - e.x;
+  const dy = y - e.y;
+  if (cover > 0 && dx * dx + dy * dy <= cover * cover) return true;
+  let bearing = Math.atan2(dy, dx);
+  if (bearing < 0) bearing += Math.PI * 2;
+  // `& 3`: a bearing a hair under zero wraps to exactly 2π, which is quadrant 0.
+  return (Math.floor(bearing / (Math.PI / 2)) & 3) === q;
+}
+
 export class World {
   /** The acts this life passes through, in order. */
   readonly life: readonly ActDef[];
@@ -718,6 +748,21 @@ export class World {
   engulfSlow = 1;
   engulfDps = 0;
   dragStacks = 0;
+  /**
+   * Worn stacks whose attach carries a `tax` (tuition, COLLEGE-ROSTER §3.3),
+   * and what they leave of every gem: the product of (1 − tax) over each one,
+   * multiplied in as it is worn. Read through `taxStacks` and `xpTax`.
+   */
+  private taxedStacks = 0;
+  private xpTaxFactor = 1;
+  /**
+   * The part of `dragStacks`, `taxedStacks` and `xpTaxFactor` that crosses
+   * (`attach.persists`): restored at every crossing instead of zero. Per
+   * life; nothing takes it off.
+   */
+  private persistentStacks = 0;
+  private persistentTaxedStacks = 0;
+  private persistentTaxFactor = 1;
   /**
    * Seconds left of a `contactStun` (the hall monitor, §3.4). While it runs
    * `movePlayer` ignores input. Refreshed by a touch, never extended past it.
@@ -872,6 +917,21 @@ export class World {
    */
   get antibodyDrag(): number {
     return antibodyDragFor(this.dragStacks);
+  }
+
+  /**
+   * What a gem is worth to the player, as a share of its value: 1 until an
+   * invoice is worn, then (1 − tax) per taxed stack, compounding (§3.3; two
+   * tuition leave 0.92²). Applied where XP is collected (`updateGems`,
+   * `beginAct`), never to the gem's own `value`.
+   */
+  get xpTax(): number {
+    return this.xpTaxFactor;
+  }
+
+  /** Worn stacks that carry a tax, for the HUD and the Loan's opening balance. */
+  get taxStacks(): number {
+    return this.taxedStacks;
   }
 
   /**
@@ -1241,6 +1301,9 @@ export class World {
       consult: 0,
       reload: 0,
     };
+    // Rolled for a weak point and for nothing else, so no other enemy draws
+    // from the dice and every seed without one replays exactly as it did.
+    if (def.weakPoint) e.weakQuadrant = Math.floor(this.rng() * 4);
     this.enemies.push(e);
     return e;
   }
@@ -1703,6 +1766,8 @@ export class World {
             if (e.def.invulnerable || e.hp <= 0 || this.swept.has(e.uid)) continue;
             if (!this.inArc(e.x, e.y, e.radius, angle, width, sweepReach)) continue;
             this.swept.add(e.uid);
+            // A sweep lands on the side the player swung from (§3.4).
+            if (!hitsWeakPoint(e, this.x, this.y)) continue;
             e.hp -= damage;
             e.hitFlash = 0.08;
             if (knockback > 0) this.knockBack(e, knockback);
@@ -1823,6 +1888,7 @@ export class World {
       if (e.def.invulnerable || e.hp <= 0) continue;
       const r = a.radius + e.radius;
       if ((e.x - a.x) ** 2 + (e.y - a.y) ** 2 > r * r) continue;
+      if (!hitsWeakPoint(e, a.x, a.y, a.radius)) continue;
       e.hp -= a.damage;
       e.hitFlash = 0.08;
     }
@@ -1878,6 +1944,8 @@ export class World {
         if ((e.x - this.x) ** 2 + (e.y - this.y) ** 2 > r * r) continue;
         const next = hits.get(e.uid);
         if (next !== undefined && this._time < next) continue;
+        // Off the weak point it does nothing, the re-hit clock included (§3.4).
+        if (!hitsWeakPoint(e, this.x, this.y, radius)) continue;
         hits.set(e.uid, this.nextAuraHit(next, cooldown, dt));
         e.hp -= damage;
         e.hitFlash = 0.08;
@@ -1987,6 +2055,8 @@ export class World {
           const key = e.uid * 64 + i;
           const last = hits.get(key);
           if (last !== undefined && this._time - last < cooldown) continue;
+          // By where it is; off the weak point the touch spends nothing (§3.4).
+          if (!hitsWeakPoint(e, o.x, o.y)) continue;
           hits.set(key, this._time);
           e.hp -= damage;
           e.hitFlash = 0.08;
@@ -2055,6 +2125,9 @@ export class World {
       for (const e of this.near) {
         if (e.def.invulnerable || e.hp <= 0) continue;
         if (Math.hypot(e.x - a.x, e.y - a.y) > a.radius + e.radius) continue;
+        // Covering the centre covers all four quadrants (§3.4). A burst that
+        // misses here keeps its one hit, and lands if the centre comes under it.
+        if (!hitsWeakPoint(e, a.x, a.y, a.radius)) continue;
         if (a.tick) {
           e.hp -= a.damage * dt * 6;
         } else {
@@ -2111,7 +2184,11 @@ export class World {
         g.y += ((this.y - g.y) / (d || 1)) * GEM_SPEED * dt;
       }
       if (d < body) {
-        this.gainXp(g.value);
+        // Less every invoice worn (§3.3). Unrounded: a 1-XP gem is the act's
+        // commonest, and rounding it would leave it untaxed to the ninth
+        // invoice and worthless from there — a cliff, which G-025 refused the
+        // drag for the same reason.
+        this.gainXp(g.value * this.xpTaxFactor);
         swapRemove(this.gems, i);
       }
     }
@@ -2133,9 +2210,15 @@ export class World {
         if ((e.x - p.x) ** 2 + (e.y - p.y) ** 2 > r * r) continue;
 
         e.hitBySerial = p.serial;
-        e.hp -= p.damage;
-        e.hitFlash = 0.08;
-        if (p.chain && p.chain > 0) this.chainFrom(p, e);
+        // By where it strikes (COLLEGE-ROSTER §3.4). Off the weak point it
+        // does nothing — no hp, no flash, no chain — and is still spent as a
+        // hit, so a seeking shot does not pass through and take it from the
+        // far side on the same flight.
+        if (hitsWeakPoint(e, p.x, p.y)) {
+          e.hp -= p.damage;
+          e.hitFlash = 0.08;
+          if (p.chain && p.chain > 0) this.chainFrom(p, e);
+        }
         if (--p.pierce <= 0) {
           swapRemove(this.projectiles, pi);
           break;
@@ -2254,7 +2337,7 @@ export class World {
       if (e.def.contact === 'none') continue;
 
       if (e.def.contact === 'attach') {
-        this.dragStacks++;
+        this.wear(e.def);
         swapRemove(this.enemies, i);
         this.hp -= e.def.contactDamage * this.damageTaken;
         if (this.hp <= 0) return this.die(e.def);
@@ -2297,7 +2380,16 @@ export class World {
       const r = p.radius + body;
       if ((p.x - this.x) ** 2 + (p.y - this.y) ** 2 > r * r) continue;
       swapRemove(this.projectiles, i);
-      if (this.invulnerable <= 0) this.hurt(p.damage, p.owner ?? 'boss');
+      if (this.invulnerable > 0) continue;
+      this.hurt(p.damage, p.owner ?? 'boss');
+      // The registrar's hold (COLLEGE-ROSTER §3.5): the monitor's stop, by
+      // post, and its i-frames run from the END of the stop for the reason the
+      // contact branch above gives (AUDIT part three, 18).
+      const stun = p.owner?.ranged?.stun;
+      if (stun !== undefined) {
+        this.stun(stun);
+        this.invulnerable = Math.max(this.invulnerable, stun + IFRAMES);
+      }
     }
   }
 
@@ -2309,6 +2401,27 @@ export class World {
    */
   private get outcomeDecided(): boolean {
     return this.dead || this.won || this.boss?.phase === 'absorbing';
+  }
+
+  /**
+   * One attach stack on the player: a drag stack, always; for tuition, a
+   * share of every gem from now on (`attach.tax`) and a stack that stays on
+   * through the crossing (`attach.persists`, COLLEGE-ROSTER §3.3).
+   */
+  private wear(def: EnemyDef): void {
+    this.dragStacks++;
+    const tax = def.attach?.tax ?? 0;
+    const persists = def.attach?.persists === true;
+    if (tax > 0) {
+      this.taxedStacks++;
+      this.xpTaxFactor *= 1 - tax;
+    }
+    if (!persists) return;
+    this.persistentStacks++;
+    if (tax > 0) {
+      this.persistentTaxedStacks++;
+      this.persistentTaxFactor *= 1 - tax;
+    }
   }
 
   private hurt(amount: number, cause: Cause): void {
@@ -2458,8 +2571,9 @@ export class World {
   /**
    * The threshold between acts. What crosses it is the player: items, level,
    * the XP still on the ground (collected now rather than lost — you leave
-   * with what you earned). What does not is the act: its crowd, its
-   * projectiles and fields, the antibodies' drag, and the boss. Health is
+   * with what you earned), and tuition's invoices (`attach.persists`). What
+   * does not is the act: its crowd, its projectiles and fields, every other
+   * attach's drag, and the boss. Health is
    * restored, because arriving at School on three hit points after the Egg is
    * a death with extra steps. PLACEHOLDER: full heal is the simplest rule
    * with no number in it; a person playing the crossing decides otherwise.
@@ -2468,7 +2582,8 @@ export class World {
    * the heal reaches its ceiling; every crossing takes its unasked levels.
    */
   private beginAct(index: number): void {
-    for (const g of this.gems) this.xp += g.value;
+    // Collected as any gem is, so at whatever the invoices worn leave of it.
+    for (const g of this.gems) this.xp += g.value * this.xpTaxFactor;
     this.gems.length = 0;
 
     this.actIndex = index;
@@ -2494,7 +2609,14 @@ export class World {
     this.grid.build(this.enemies);
     this.boss = null;
     this.raceAbsorbed = 0;
-    this.dragStacks = 0;
+    // The act's attach stacks come off here, except a persisting attach's:
+    // tuition's invoices, and the share of every gem they take, cross with
+    // the player and stay for the rest of the life. That is College's whole
+    // bet (COLLEGE-ROSTER §2, G-045): every attach before it cost something
+    // for an act; this one costs the future, and the Office inherits it.
+    this.dragStacks = this.persistentStacks;
+    this.taxedStacks = this.persistentTaxedStacks;
+    this.xpTaxFactor = this.persistentTaxFactor;
     this.engulfTimer = 0;
     this.engulfSlow = 1;
     this.engulfDps = 0;
