@@ -642,3 +642,24 @@ land. Each says what was done or who it waits on.
 | 86 | **The bots' shot log never credits a phone hit.** `pullToward` moves the player up to 180px inside the hit step, and `ShotLog.settle` looks for the vanished shot near the player's new position, so health falls to calls and no hit is logged: "phone-call 0/N" in the aimed-shots section, blind control included, is the instrument | The section prints | Open, **INSTRUMENT**: remember the player's position before the step in `ShotLog` (HANDOFF) |
 | 87 | **The player starts Family under the HUD in the smoke**: the Office's steering leaves them at the arena's top edge, so the `family` screenshot shows them under "age 34"; the same was true at The Office's end | Smoke only | Noted; cosmetic |
 | 88 | **The window clock's empty track is nearly invisible on umber**; only its fill reads | The fill is the information | Open, cosmetic |
+
+# Part nine — 2026-09-28, the seventh act and the act-born items, as the builders flagged them
+
+Not a read: the agents that built Decline's data (DECLINE-ROSTER, G-051),
+its drawings and the first act-born items each reported what looked like the
+game working but might not. Collected at the round's integration branch; the
+hand's, the wiring's and the other items' flags follow when they land.
+
+| # | What | Why it looks right | Status |
+|---|---|---|---|
+| 89 | **Weapons stop aiming at Time.** Seeking weapons and Judgement stop firing once only Time is left (nothing aims at what it cannot hurt, the builder's call); line shots still fire and are spent on the clock. A player watches their weapons go quiet | Time is invulnerable and the clock decides | A reaction question (README): does the quiet read as the end, or as a fault |
+| 90 | **The HUD's health bar hides a lowered maximum**: it draws hp as a share of the current maximum, so a decision's cut looks like a full bar; the pause sheet is honest | `openingMaxHp` and `maxHpFloor` are exposed for it | Open → the wiring: draw the lost maximum as an empty tail |
+| 91 | **Decline's first arrivals come later than §3.6's prose** (the stairs near 63s, the weather near 74s, the form at 80s; the prose says 30, 45, 60): streams open at t and first deliver at t + 1/r (44's class) | The order test checks openings | Open, documentation; placeholders either way |
+| 92 | **Forms rarely fire at a player who stands still**: they land on the edge ring, 780px away, beyond their 440px range, as the phone and the review do | 1–10 shots seen per four runs | Noted; the same shape as the earlier ranged enemies |
+| 93 | **Stairs can land on the player at a wall**: they land at the lead with no check, unlike the Mortgage's room, and can wall a crowd in with the player | The room's placement exists | Open → the hand's builder: place the stairs as the room is placed |
+| 94 | **Every bot policy won Decline at full health** in the act-only runs: the medication's heal outpaced the crowd at level 1 with the starting weapon | Presence, not calibration | A person's play moves the numbers |
+| 95 | **Time's win path**: the countdown sums sixtieths, so the latch lands within a step of 60s; hp written to 0 alone counts as the clock running out (the dev kill's path); the dev panel's −50% leaves hp at 1, meaningless and harmless | Both ends reach `finishAct` won at 84 | By design; noted at `timePhase` |
+| 96 | **The drawn hand marks a rest pose only.** The sim's hand is 520px long and 40 wide; the drawn one is about 104px at the body's radius, baked into the sprite. The renderer must draw the hazard as its own rotating shape from the pivot (0.499, 0.472 of the frame) | The drawing passes every check | Open → the wiring |
+| 97 | **A Calendar Block walls nothing that is placed inside it**: spawns are placed, not moved, so a toddler from the trail lands inside a block with the player, and at full size (about 326px) lead spawns land inside too | The meeting's hold has the same shape | By design (the meeting's rule); a person will say if it reads wrong |
+| 98 | **A room pile can push an enemy across a block's wall** (`resolveSolids` ignores holds), and **the boss is walled by no hold** (it is not in `enemies`) | As the meeting | Noted |
+| 99 | **"Nothing gets in or out"**, and the player walks out and a commute passes through (49) | The joke is the copy's | Open, wording; a person will say |

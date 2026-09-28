@@ -1177,8 +1177,6 @@ export const ITEMS: Record<string, ItemDef> = {
     slow: 1,
     maxLevel: 5,
     icon: 'block',
-    iconPending:
-      'Drawn at tools/art/svg/conception/icon-block.svg and through CHECK; the next `pnpm art:pack` puts its frame in the icon atlas and retires this note.',
     blurb: 'Nothing gets in or out. The only two minutes nobody can book.',
     levels: table(
       [
