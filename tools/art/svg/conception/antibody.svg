@@ -1,34 +1,36 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <title>Antibody</title>
+  <desc>A stubby capital Y in glossy ink, straight-sided with rounded corners, a round cream face at its fork: two dark eyes, pink cheeks, a small smile. It holds on to you, and it is pleased to.</desc>
   <!--
-    Antibody (CONCEPTION-ROSTER §3.3). A record opened about you before you
-    arrived (G-018, G-020): not a creature, a piece of paperwork clipped to a
-    Y. It holds the act's reserved Y (§2), so it takes the ruled clause
-    (G-013): the only straight lines among the act's enemies. Three limbs of
-    even weight (arms 13 across, 10 square to the slope; stem 10), flat ink.
-    At the junction a small bone sheet with one corner folded down in shadow,
-    two ink dots near the top where a form's header would be, and no mouth.
+    Antibody (CONCEPTION-ROSTER 3.3, G-018), in the greeting-card register
+    (G-053). The Y is the act's reserved straight line (law 11), so its sides
+    stay ruled (the ruled clause, G-013) and only its corners round: every
+    corner, convex or concave, is an arc tangent to both its edges (register
+    rule 1). Stubby: short arms and stem of even weight. Flat ink, not
+    shadow: shadow sits 0.093 Oklab L from conception-deep, under CHECK's
+    contrast floor, and a Y that vanishes into the field is no Y.
+    At the fork, the tag it always had, now a round face (law 5): a bone
+    disc, two ink eyes two by three with a bone glint at the top left of
+    each, a blush under each, a small smile, pleased to be here. Drawn on
+    the sprite's own grid, one unit to about one pixel of the 44px sprite
+    (42 units, 44 less the outline); the fit lands within a pixel, not on
+    it, so every feature but the eye glints is two pixels or more. A
+    one-pixel mouth read as a nose, and the face as a skull. One bone
+    glint on the ink mass, on the upper-left arm (paper is the player's,
+    law 10).
+    Colours are palette hex values: ink #2A2521, bone #D2C6AC, blush #EBA39C.
     CONFORM adds the outline; there is none here.
-
-    Drawn on the finished sprite's own pixel grid. The group maps one unit to
-    one pixel of the 44px sprite: the subject spans 42 units (44 less the
-    1px outline each side), rendered at 12px a unit into 504 of the 512, so
-    CONFORM's nearest-neighbour scale is an exact 12:1 and every edge lands
-    where it is written. The folded corner is stated as steps on that grid
-    rather than as a diagonal, because a diagonal through pixel centres is
-    left to the rasteriser to round. crispEdges keeps the ink/bone edge from
-    quantising to stray tones.
-    Colours are palette hex values: ink #2A2521, shadow #6E6353,
-    bone #D2C6AC.
   -->
-  <g shape-rendering="crispEdges" transform="translate(0.78125 0.78125) scale(2.34375)">
-  <!-- the Y: arms cut level at the top, stem cut level at the foot -->
-  <path d="M0,0 H13 L21,10 L29,0 H42 L26,20 V42 H16 V20 Z" fill="#2A2521"/>
-  <!-- the sheet, 8 by 10, its top-right corner cut away to the ink -->
-  <path d="M17,12 H23 V13 H24 V14 H25 V22 H17 Z" fill="#D2C6AC"/>
-  <!-- the folded-down flap -->
-  <path d="M23,12 H24 V13 H25 V14 H23 Z" fill="#6E6353"/>
-  <!-- two dots, no mouth -->
-  <rect x="19" y="15" width="1" height="2" fill="#2A2521"/>
-  <rect x="22" y="15" width="1" height="2" fill="#2A2521"/>
+  <g transform="translate(0.78125 0.78125) scale(2.34375)">
+  <path d="M1.2 0 L11.89 0 A1.5 1.5 0 0 1 13.1 0.62 L19.79 9.82 A1.5 1.5 0 0 0 22.21 9.82 L28.9 0.62 A1.5 1.5 0 0 1 30.11 0 L40.8 0 A1.2 1.2 0 0 1 42 1.2 L42 2.51 A1.5 1.5 0 0 1 41.71 3.39 L27.29 23.25 A1.5 1.5 0 0 0 27 24.13 L27 39.5 A2.5 2.5 0 0 1 24.5 42 L17.5 42 A2.5 2.5 0 0 1 15 39.5 L15 24.13 A1.5 1.5 0 0 0 14.71 23.25 L0.29 3.39 A1.5 1.5 0 0 1 0 2.51 L0 1.2 A1.2 1.2 0 0 1 1.2 0 Z" fill="#2A2521"/>
+  <rect x="4" y="3" width="2" height="2" fill="#D2C6AC"/>
+  <circle cx="21" cy="18" r="6" fill="#D2C6AC"/>
+  <rect x="17" y="16" width="2" height="3" fill="#2A2521"/>
+  <rect x="23" y="16" width="2" height="3" fill="#2A2521"/>
+  <rect x="17" y="16" width="1" height="1" fill="#D2C6AC"/>
+  <rect x="23" y="16" width="1" height="1" fill="#D2C6AC"/>
+  <rect x="16" y="19" width="2" height="1" fill="#EBA39C"/>
+  <rect x="24" y="19" width="2" height="1" fill="#EBA39C"/>
+  <path d="M18.7 20 H19.9 V21 H22.1 V20 H23.3 V21.2 Q23.3 22.2 22.3 22.2 H19.7 Q18.7 22.2 18.7 21.2 Z" fill="#2A2521"/>
   </g>
 </svg>
