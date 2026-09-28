@@ -119,15 +119,9 @@ describe('law 10 — a field-riding icon wears nothing reserved on the field', (
    * are of the 96x96 conformed sprites, measured 2026-09-28.
    */
   const KNOWN_ON_FIELD_EXCEPTIONS = new Map<string, { colours: string[]; reason: string }>([
-    [
-      'icon-strike',
-      {
-        colours: ['conception-light', 'paper', 'threat-contact'],
-        reason:
-          "Reflex's manicule (lash), the shot: paper cuff (305 px), conception-light (29 px), " +
-          'contact red (4 px). Paper on a projectile is the player.',
-      },
-    ],
+    // Empty since 2026-09-28: the five generated icons that wore reserved
+    // colours on the field (the manicule, the dart, the starburst, the
+    // footprint, the magnet) were redrawn as SVG in rose, bone and ink.
   ]);
 
   /** The reserved colours a sprite wears on the field, by colour name, sorted. */

@@ -642,13 +642,14 @@ export const ITEM_ICONS: AssetSpec[] = [
     act: 'conception',
     role: 'icon',
     fieldRiding: true,
+    source: 'svg',
     targetSize: 96,
     seed: 61011,
     tests: 'a manicule that reads at 40px on an ink card',
     subject: [
       'a vintage printed pointing-hand ornament, a manicule, one hand with the index finger extended pointing to the right',
       'a simple shirt cuff at the wrist, seen perfectly flat as printed on a page, filling most of the frame',
-      'flat muted dusty rose with one darker shadow tone, no interior texture',
+      'flat muted dusty rose hand, pale warm cuff, dark interior lines between the fingers',
     ].join(', '),
   },
   {
