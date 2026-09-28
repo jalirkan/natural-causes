@@ -71,6 +71,18 @@ const GEM_SIZE = 9;
 /** Attached Y-shapes drawn on the player. Stacks keep counting past this. */
 const MAX_ATTACHED_SPRITES = 16;
 /**
+ * Enemies whose aimed shot is drawn as a word in the ranged gold instead of the
+ * gold dot: the substitute's (the player's name, misspelled) and the
+ * registrar's (HOLD). Keyed on the id because the word is the drawing.
+ */
+const WORDED_SHOTS: ReadonlySet<string> = new Set(['substitute-teacher', 'registrar']);
+/**
+ * The Loan's tape jerking on its interest tick: how long the jolt rings, in
+ * world seconds, and how far it stretches the frame at its peak.
+ */
+const LOAN_JERK_SECONDS = 0.45;
+const LOAN_JERK = 0.07;
+/**
  * How far a finger travels for full stick, in CSS pixels rather than game
  * pixels: the canvas is FIT-scaled, and a radius in game units would be a
  * third of the size on a portrait phone that it is on a desktop.
@@ -141,7 +153,10 @@ export class ActScene extends Phaser.Scene {
 
   private enemySprites: Phaser.GameObjects.Image[] = [];
   private projectileSprites: Phaser.GameObjects.Image[] = [];
-  /** The substitute's shots: the player's name, spelled wrong (SCHOOL-ROSTER §3.5). */
+  /**
+   * Shots drawn as words (`WORDED_SHOTS`): the substitute's, the player's name
+   * spelled wrong (SCHOOL-ROSTER §3.5), and the registrar's HOLD (COLLEGE §3.5).
+   */
   private nameShotTexts: Phaser.GameObjects.Text[] = [];
   /** The name on the form, read once per life; the sim never knows it. */
   private playerName = DEFAULT_NAME;
@@ -162,6 +177,16 @@ export class ActScene extends Phaser.Scene {
   private floorRing?: Phaser.GameObjects.Graphics;
   /** Scale the boss frame sits at when idle. The telegraph pulses around it. */
   private bossBaseScale = 1;
+  /**
+   * The boss's uniform scale this frame, eased toward the pulse's target. Kept
+   * apart from the sprite so a stretch laid over it (the Loan's jerk) is never
+   * read back as the next frame's starting size.
+   */
+  private bossScale = 1;
+  /** The Loan's interest clock last frame; it wrapping upward is the tick. */
+  private bossInterestIn = 0;
+  /** World time of the Loan's last tick, which the tape's jerk rings down from. */
+  private bossJerkAt = -Infinity;
 
   /** Set by P or Escape. Distinct from the offer freeze, which is the rules. */
   private paused = false;
@@ -215,7 +240,7 @@ export class ActScene extends Phaser.Scene {
   /**
    * The certificate's words: `certificateLines`, typed on the receipt under
    * the form (showCertificate). The smoke reads this object's text for
-   * "Natural causes." and "Age 18." (tools/smoke/run.ts), so those lines live
+   * "Natural causes." and "Age 22." (tools/smoke/run.ts), so those lines live
    * here and nowhere else on the sheet decides them.
    */
   private overlay!: Phaser.GameObjects.Text;
@@ -1167,7 +1192,8 @@ export class ActScene extends Phaser.Scene {
           s.setScale(s.scaleX * (1 + pulse), s.scaleY * (1 - pulse));
           break;
         }
-        case 'drivers-ed': {
+        case 'drivers-ed':
+        case 'deadline': {
           // A vehicle has a front (AUDIT part five): the car is drawn side-on
           // facing right, so it turns to its `cross` heading, and one driving
           // left flips and rotates by the remainder so the roof stays up.
@@ -1175,7 +1201,9 @@ export class ActScene extends Phaser.Scene {
           // exists and the other crossers have no front in this game's
           // drawing: the dodgeball and white cell are round, and the hall
           // monitor and substitute are people, who would walk left on their
-          // heads. A second vehicle is the moment to add a flag instead.
+          // heads. The deadline (COLLEGE-ROSTER §3.2) is driver's ed without
+          // the wheels, a leaf in flight, so it leads with its edge the same
+          // way and its curl stays up. A third is the moment for a flag.
           const a = Math.atan2(e.vy, e.vx);
           const left = Math.abs(a) > Math.PI / 2;
           s.setFlipX(left).setRotation(left ? a - Math.PI : a);
@@ -1200,9 +1228,12 @@ export class ActScene extends Phaser.Scene {
     // §3.5): text in the HUD's hand, in the ranged gold, upright so it reads.
     // The shot's serial picks the mistake, so one shot keeps its spelling for
     // its whole flight and the next one gets it wrong differently.
+    //
+    // The registrar's form is the one word HOLD (COLLEGE-ROSTER §3.5), in the
+    // same hand and the same pool: the aimed thing is not a hit but a hold.
     this.fit(this.projectileSprites, list.length, () => this.add.image(0, 0, 'nc-shot').setDepth(8));
     let named = 0;
-    for (const p of list) if (p.hostile && p.owner?.id === 'substitute-teacher') named++;
+    for (const p of list) if (p.hostile && WORDED_SHOTS.has(p.owner?.id ?? '')) named++;
     this.fit(this.nameShotTexts, named, () =>
       this.add
         .text(0, 0, '', {
@@ -1220,9 +1251,9 @@ export class ActScene extends Phaser.Scene {
       const p = list[i]!;
       const s = this.projectileSprites[i]!;
       const heading = Math.atan2(p.vy, p.vx);
-      if (p.hostile && p.owner?.id === 'substitute-teacher') {
+      if (p.hostile && WORDED_SHOTS.has(p.owner?.id ?? '')) {
         this.nameShotTexts[named++]!
-          .setText(misspell(this.playerName, p.serial))
+          .setText(p.owner!.id === 'registrar' ? 'HOLD' : misspell(this.playerName, p.serial))
           .setPosition(p.x, p.y)
           .setVisible(true);
         s.setVisible(false);
@@ -1583,6 +1614,9 @@ export class ActScene extends Phaser.Scene {
       const body = this.visuals.bossBody ?? { cy: 0.5, r: 0.5 };
       this.bossSprite.setOrigin(0.5, body.cy).setDisplaySize(BOSS_RADIUS / body.r, BOSS_RADIUS / body.r);
       this.bossBaseScale = this.bossSprite.scaleX;
+      this.bossScale = this.bossBaseScale;
+      this.bossInterestIn = b.interestIn;
+      this.bossJerkAt = -Infinity;
       // Prom's floor (ADOLESCENCE-ROSTER §4): the HUD says get on it, so it is
       // drawn — a thin paper ring at floorRadius, chrome not threat (law 10),
       // under everything that moves. Destroyed with the boss sprite.
@@ -1613,9 +1647,24 @@ export class ActScene extends Phaser.Scene {
       // The act's one word, if it has one (ActDef.endWord: PARTICIPATION).
       if (this.world.act.endWord) this.announceWord(this.world.act.endWord);
     }
+    // The Loan's tape jerks when its balance compounds (COLLEGE-ROSTER §4):
+    // its interest clock counts down and wraps UP at the tick, so a rise
+    // between two frames is the tick (the dev panel's kill cannot fake one:
+    // the clock stops once it absorbs). Zero for the other kinds, which never
+    // compound. Same rule as the pulse: the stretch is computed from the time
+    // since the tick and laid over the eased scale, never added to it, so the
+    // size each frame is absolute and the jolt ends where it began.
+    if (b.interestIn > this.bossInterestIn) this.bossJerkAt = this.world.time;
+    this.bossInterestIn = b.interestIn;
+    const since = this.world.time - this.bossJerkAt;
+    const jerk =
+      since >= 0 && since < LOAN_JERK_SECONDS ? LOAN_JERK * Math.exp(-since * 9) * Math.cos(since * 28) : 0;
+    this.bossScale = Phaser.Math.Linear(this.bossScale, target, 0.14);
     this.bossSprite
       .setPosition(b.x, b.y)
-      .setScale(Phaser.Math.Linear(this.bossSprite.scaleX, target, 0.14))
+      // Taller and thinner first (the tape yanked up), then a squash, ringing
+      // down: about the body's anchor, so the machine stays on the floor.
+      .setScale(this.bossScale * (1 - jerk), this.bossScale * (1 + jerk))
       // Value, not tint (G-032, law 10).
       .setAlpha(b.phase === 'absorbing' ? Math.max(0, b.timer / 1.8) : telegraph ? 0.72 : 1);
   }
@@ -1830,8 +1879,13 @@ export class ActScene extends Phaser.Scene {
     this.hudRight.setText(
       `${w.kills} killed${import.meta.env.DEV ? `   ${Math.round(this.game.loop.actualFps)} fps` : ''}`,
     );
+    // Tuition's cost is on the gems, not the legs (COLLEGE-ROSTER §3.3): what
+    // every gem is worth now, derived from the sim's own factor so the HUD
+    // cannot drift from the tax it reports.
+    const tax = Math.round((1 - w.xpTax) * 100);
     this.hudDrag.setText(
-      w.dragStacks > 0 ? `${w.dragStacks} attached  −${drag}% speed` : '',
+      (w.dragStacks > 0 ? `${w.dragStacks} attached  −${drag}% speed` : '') +
+        (w.taxStacks > 0 ? `${w.dragStacks > 0 ? ' · ' : ''}xp −${tax}%` : ''),
     );
 
     this.bars.clear();
