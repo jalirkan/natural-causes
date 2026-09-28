@@ -2,9 +2,13 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { ANTIBODY_FLOOR, antibodyDragFor } from '../../src/sim/world';
 import { ALL_ACTS, CONCEPTION, spawnStreams } from '../../src/data/acts';
+import { ENEMIES } from '../../src/data/enemies';
 import {
   ITEMS,
   BOSS_PHASE_MAX_SECONDS,
+  COY_CLEARANCE_PX,
+  COY_RADIUS_PX,
+  COY_WEIGHT_PER_HELD_SECOND,
   FLOOR_HOLD_FRACTION,
   HUNT_CLEARANCE_PX,
   POLICIES,
@@ -114,10 +118,23 @@ const loanRuns = results.filter(
 ).length;
 const bossRuns = results.filter((r) => r.bossHpFraction !== null).length;
 const bossColumn = loanRuns === 0 ? 'boss left' : loanRuns === bossRuns ? 'balance' : 'boss left*';
-out.push(`policy                 runs   win rate (95% CI)      median s   kills   lvl   ${bossColumn}`);
+// FAMILY-ROSTER §4: The Mortgage is owed in instalments, and its bar is the
+// count paid, not a share of health. Where every run that reached a boss
+// ended at a Mortgage that keeps the count (`bossInstalmentsLeft`: `boss.paid`,
+// read behind an `in` check), the column is what was still owed. A sim that
+// keeps no count gives no run one, and the column is the one above, as today.
+const owedRuns = results.filter((r) => r.bossInstalmentsLeft != null).length;
+const owedColumn = owedRuns > 0 && owedRuns === bossRuns;
+const mortgage = acts.map((a) => a.boss).find((b) => b.kind === 'mortgage');
+const owedOf = mortgage?.kind === 'mortgage' ? `/${mortgage.instalments}` : '';
+const OWED_HEADER = 'instalments left';
+out.push(
+  `policy                 runs   win rate (95% CI)      median s   kills   lvl   ${owedColumn ? OWED_HEADER : bossColumn}`,
+);
 out.push('-'.repeat(84));
 for (const s of summarise(results)) {
   const [lo, hi] = s.winRateInterval;
+  const owed = s.medianInstalmentsLeft === null ? '-' : `${s.medianInstalmentsLeft}${owedOf}`;
   out.push(
     `${s.policy.padEnd(22)} ${String(s.runs).padStart(4)}   ` +
       `${pct(s.winRate).padStart(4)} [${pct(lo)}-${pct(hi)}]`.padEnd(22) +
@@ -126,11 +143,19 @@ for (const s of summarise(results)) {
       // width with it.
       `${s.medianSeconds.toFixed(1).padStart(8)}   ` +
       `${String(s.medianKills).padStart(5)}   ${String(s.medianLevel).padStart(3)}   ` +
-      `${s.medianBossLeft === null ? '     -' : pct(s.medianBossLeft).padStart(6)}`,
+      (owedColumn
+        ? owed.padStart(OWED_HEADER.length)
+        : `${s.medianBossLeft === null ? '     -' : pct(s.medianBossLeft).padStart(6)}`),
   );
 }
 if (bossColumn.endsWith('*')) {
   out.push(`* ${loanRuns} of ${bossRuns} runs ended at The Loan: theirs is its balance, which opens at 1/cap and fills`);
+}
+if (owedRuns > 0 && !owedColumn) {
+  out.push(
+    `† ${owedRuns} of ${bossRuns} runs ended at The Mortgage: this column reads its health; ` +
+      'the instalments owed are in latest.json (bossInstalmentsLeft)',
+  );
 }
 
 // Everything from here to "state on arrival" is about the antibody, and only
@@ -269,6 +294,16 @@ for (const s of summarise(results)) {
       `${String(none ? '-' : s.medianEnemiesAt300).padStart(7)} ` +
       `${String(none ? '-' : s.medianStacksAt300).padStart(8)}` +
       `${String(s.reached300).padStart(8)}`,
+  );
+}
+out.push('  stacks: every one worn, of every kind — the drag’s, tuition’s invoices, the pings, the HOA letters');
+// FAMILY-ROSTER §3.4: an act that fields a `coy` enemy says how the bots meet
+// it, because nothing else in the report does, and the steering is the bot's.
+const coyIds = [...new Set(acts.flatMap((a) => [...spawnStreams(a.waves).keys()]))].filter((id) => ENEMIES[id]?.coy);
+if (coyIds.length > 0) {
+  out.push(
+    `  ${coyIds.join(', ')} (coy): every policy walks at and round it inside ${COY_RADIUS_PX}px, away only to dodge a shot or a ring ` +
+      `(clearance ${COY_CLEARANCE_PX}px, ${COY_WEIGHT_PER_HELD_SECOND} a second held) — PLACEHOLDERS in bots.ts.`,
   );
 }
 
