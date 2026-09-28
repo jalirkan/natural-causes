@@ -45,7 +45,7 @@ function expectClean(sheet: BuildSheet): void {
   }
 }
 
-/** Grudge 4 with Company 2, Restlessness 2, Thick Skin 1, two attached; age 14 at level 12. */
+/** Mobile 4 with The Farm 2, Restlessness 2, Thick Skin 1, two attached; age 14 at level 12. */
 function built(): World {
   const w = new World({ act: ADOLESCENCE, startingItems: [] });
   w.items.set('grudge', 4);
@@ -73,14 +73,14 @@ describe('the build sheet', () => {
     const order = ITEM_IDS.filter((id) => (w.items.get(id) ?? 0) > 0).map((id) => ITEMS[id]!.name);
     expect(sheet.items.map((e) => e.title)).toEqual(order);
 
-    const g = sheet.items.find((e) => e.title === 'Grudge')!;
+    const g = sheet.items.find((e) => e.title === 'Mobile')!;
     expect(g.pips).toEqual({ owned: 4, max: grudge.maxLevel });
     const company = grudge.paths!.find((p) => p.id === 'company')!;
     expect(g.paths).toEqual([`${company.name} ${'●'.repeat(2)}${'○'.repeat(company.maxLevel - 2)}`]);
-    expect(g.paths).toEqual(['Company ●●○']);
+    expect(g.paths).toEqual(['The Farm ●●○']);
 
     // What it IS: the level's damage, and one orbiter plus every one its
-    // levels and the two Company levels add.
+    // levels and The Farm's two levels add.
     const count =
       1 +
       levelBonus(grudge, 4).projectiles +
@@ -91,7 +91,7 @@ describe('the build sheet', () => {
     expect(line).toContain(`damage ${Math.round(grudge.damage * damageScale(4) * levelBonus(grudge, 4).damage * 10) / 10}`);
     expect(line).toMatch(/re-hits every [\d.]+s/);
 
-    // And the sim pays it: one step puts that many of Grudge's orbiters round the player.
+    // And the sim pays it: one step puts that many of Mobile's orbiters round the player.
     w.step(1 / 60, STILL);
     expect(w.orbiters.filter((o) => o.source === 'grudge')).toHaveLength(count);
   });
@@ -117,7 +117,7 @@ describe('the build sheet', () => {
     expectClean(buildSheet(w));
   });
 
-  it('a fresh life holding only Reflex is one entry and no totals', () => {
+  it('a fresh life holding only Pointing is one entry and no totals', () => {
     const w = new World({ act: CONCEPTION });
     const sheet = buildSheet(w);
     expect(sheet.items).toHaveLength(1);
@@ -134,7 +134,7 @@ describe('the build sheet', () => {
     const from = tantrum.evolvesFrom!;
     const [entry] = buildSheet(w).items;
     expect(entry!.title).toBe(`${tantrum.name} (${ITEMS[from.weapon]!.name} + ${ITEMS[from.with]!.name})`);
-    expect(entry!.title).toBe('Tantrum (Temper + Restlessness)');
+    expect(entry!.title).toBe('Tantrum (Spilt Milk + Restlessness)');
     expect(entry!.pips).toEqual({ owned: 1, max: tantrum.maxLevel });
   });
 

@@ -115,7 +115,8 @@ function many(n: number, noun: string, plural = `${noun}s`): string | null {
 
 /**
  * What one landing of a strike is called: the def's own `noun` where it
- * carries one (the Letter's letters, AUDIT 104), else Judgement's bolt.
+ * carries one (Tattle's tattles, the Letter's letters, AUDIT 104), else a
+ * bolt, as Judgement's are.
  */
 function strikeNoun(def: ActiveItem): { one: string; many: string } {
   return def.noun ?? { one: 'bolt', many: 'bolts' };
@@ -156,6 +157,7 @@ function areaTerm(mode: Mode, area: number): string | null {
     case 'trail':
     case 'attractor':
     case 'field':
+    case 'cry':
       return `radius ${p}`;
     case 'orbit':
       return `orbit ${p} wider`;
@@ -181,8 +183,9 @@ function speedTerm(mode: Mode, speed: number): string | null {
 /**
  * `arrives in 4s`: a strike that telegraphs on its own `strikeDelay` (the
  * Letter), at a total `speed` bonus, by the formula the sim lands it by.
- * Judgement's wait is the sim's STRIKE_DELAY and Hindsight's is none, so
- * neither prints one; null too for a speed that is not a number.
+ * Tattle's wait is the sim's STRIKE_DELAY and Judgement's (G-046's
+ * Hindsight) is none, so neither prints one; null too for a speed that is
+ * not a number.
  */
 function arrivalTerm(def: ActiveItem, speed: number): string | null {
   if (def.mode !== 'strike' || def.strikeDelay === undefined || !(def.strikeDelay > 0)) return null;
@@ -193,7 +196,7 @@ function arrivalTerm(def: ActiveItem, speed: number): string | null {
 /**
  * A change in cadence, given as the ratio of the new rate to the old (above 1
  * is sooner). A weapon attacks, so it reads as attack speed; a control item
- * (Charisma, Snooze) does not attack, so it reads as its cooldown.
+ * (Candy, Snooze, Cry) does not attack, so it reads as its cooldown.
  */
 function cadenceTerm(def: ActiveItem, rateRatio: number): string | null {
   if (!finite(rateRatio) || rateRatio <= 0) return null;
@@ -239,15 +242,18 @@ function fieldTerms(def: ActiveItem, l: LevelBonus | undefined, speedAfter = NaN
   const pierce = signed(l.pierce ?? 0);
   const chain = signed(l.chain ?? 0);
   const knock = signed(l.knockback ?? 0);
+  // Cry (G-054): `duration` is how long its slow holds, and its push is a shove.
+  const cry = mode === 'cry';
+  const lasts = def.marks ? 'mark lasts' : cry ? 'slow lasts' : 'lasts';
   return [
     projectileTerm(def, l.projectiles ?? 0),
     pierce === null ? null : `${pierce} pierce`,
     l.area === undefined ? null : areaTerm(mode, l.area),
-    l.duration === undefined ? null : labelled(def.marks ? 'mark lasts' : 'lasts', l.duration - 1),
+    l.duration === undefined ? null : labelled(lasts, l.duration - 1),
     l.echo ? 'fires twice' : null,
     chain === null ? null : `${chain} ${Math.abs(Math.round(l.chain ?? 0)) === 1 ? 'jump' : 'jumps'}`,
     l.speed === undefined ? null : (arrivalTerm(def, speedAfter) ?? speedTerm(mode, l.speed)),
-    knock === null ? null : `pushes ${knock}px`,
+    knock === null ? null : `${cry ? 'shoves' : 'pushes'} ${knock}px`,
     markTerm(def, l),
   ];
 }
@@ -300,11 +306,22 @@ function activeTerms(def: ActiveItem, level: number, b: Required<LevelBonus>): A
     case 'line':
       terms = [hits, every, through, many(count, 'line')];
       break;
-    case 'burst':
-      terms = [hits, every, within];
+    case 'burst': {
+      // Spilt Milk and Tantrum (G-054): the puddle each burst leaves, how
+      // long it lies (its `duration`, as the sim lays it) and what it holds at.
+      const p = def.puddle;
+      const lies = p ? p.seconds * b.duration : NaN;
+      terms = [
+        hits,
+        every,
+        within,
+        p && finite(lies) && lies > 0 ? `puddle ${secs(lies)}` : null,
+        p && finite(p.slow) && p.slow < 1 ? `slows to ${Math.round(p.slow * 100)}%` : null,
+      ];
       break;
+    }
     case 'trail':
-      // Rut (G-046): a trail that also holds what crosses it.
+      // Baggage (G-046's Rut): a trail that also holds what crosses it.
       terms = [
         hits && `${hits} per tick`,
         lasts,
@@ -350,6 +367,23 @@ function activeTerms(def: ActiveItem, level: number, b: Required<LevelBonus>): A
         every,
       ];
       break;
+    case 'cry': {
+      // G-054: how wide the ring spreads (`radius`, reach not applied, as a
+      // burst's is not), how far its edge shoves, what it slows to and for
+      // how long (`slowSeconds`, times `duration`, as the sim holds it), and
+      // how often. The shove is said here, so the generic push below is not.
+      const shove = (def.knockback ?? 0) + b.knockback;
+      const held = (def.slowSeconds ?? NaN) * b.duration;
+      terms = [
+        within,
+        finite(shove) && Math.round(shove) > 0 ? `shoves ${px(shove)}px` : null,
+        def.slow !== undefined && finite(def.slow, held) && def.slow < 1 && held > 0
+          ? `slows to ${Math.round(def.slow * 100)}% for ${secs(held)}`
+          : null,
+        every,
+      ];
+      break;
+    }
     case 'nap': {
       // Decline: when it falls asleep, for how long, how much comes back
       // (the heal is not scaled by level, only by its `damage` lever), how
@@ -371,8 +405,9 @@ function activeTerms(def: ActiveItem, level: number, b: Required<LevelBonus>): A
       terms = [hits, every, within];
   }
 
-  // What level one adds beyond the shape (Gossip's jumps), and a push (Tantrum's).
-  const knockback = (def.knockback ?? 0) + b.knockback;
+  // What level one adds beyond the shape (Telephone's jumps), and a push
+  // (Tantrum's). A cry has said its shove already.
+  const knockback = mode === 'cry' ? 0 : (def.knockback ?? 0) + b.knockback;
   terms.push(
     b.chain > 0 ? `${Math.round(b.chain)} ${Math.round(b.chain) === 1 ? 'jump' : 'jumps'}` : null,
     b.echo ? 'fires twice' : null,
@@ -564,7 +599,7 @@ function heldPassive(def: PassiveItem, level: number): PassiveLine {
 /**
  * What an item IS at the level held (the pause screen's build sheet), in the
  * card's vocabulary: an active item's figures at `level` with its taken paths
- * folded in (Grudge 4 with Company 2: `damage 4.8 · 4 orbiting · re-hits
+ * folded in (Mobile 4 with The Farm 2: `damage 4.8 · 4 orbiting · re-hits
  * every 0.38s`), plus a spin or shot speed a path changed; a passive's line
  * multiplied `level` times. Like every card, the item's own figures, before
  * the player's passives — those are the sheet's totals. One line, or two

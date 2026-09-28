@@ -200,7 +200,7 @@ describe('the yearbook', () => {
   it('lists the clubs by name, highest first, at most four and never past the rule', () => {
     const acts = (items: [string, number][]) =>
       value(actDocument(world({ items: new Map(items) }), 'Justin', ADOLESCENCE, 0), 'ACTIVITIES');
-    expect(acts([['lash', 1], ['grudge', 3], ['membrane', 2]])).toBe('Grudge, Thick Skin, Reflex');
+    expect(acts([['lash', 1], ['grudge', 3], ['membrane', 2]])).toBe('Mobile, Thick Skin, Pointing');
     const all = ITEM_IDS.map((id, i): [string, number] => [id, i + 1]);
     const listed = acts(all).split(', ');
     expect(listed.length).toBeGreaterThan(0);

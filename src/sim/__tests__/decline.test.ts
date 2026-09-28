@@ -572,7 +572,7 @@ describe('Time cannot be hurt (§4)', () => {
     expect(fight(DECLINE, [], 300, 1, on).lost).toBe(0);
   });
 
-  it('a weapon does not aim at it: Lash and Judgement with nothing else on the field never fire', () => {
+  it('a weapon does not aim at it: Pointing and Tattle with nothing else on the field never fire', () => {
     const egg = fight(CONCEPTION, ['lash'], 300, 3);
     expect(egg.lost, 'Lash never reached the Egg: the control is broken').toBeGreaterThan(0);
     expect(fight(CONCEPTION, ['judgement'], 250, 3).lost, 'Judgement never reached the Egg').toBeGreaterThan(0);

@@ -86,7 +86,7 @@ describe('a control item’s paths join the pool when it opens', () => {
 });
 
 describe('a control path level is read by the sim', () => {
-  it('Charisma · Magnetism at two: the next pull’s radius is both levels’ area times the base', () => {
+  it('Candy · Wrapper (chemotaxis/magnetism) at two: the next pull’s radius is both levels’ area times the base', () => {
     const magnetism = pathOf('chemotaxis', 'magnetism');
     const base = firstArea(holding({ chemotaxis: PATH_OPENS_AT }), 'attractor');
 

@@ -6,7 +6,7 @@ import { World, xpToNextLevel, type EnemyState } from '../world';
 
 /**
  * G-038: upgrades gain. Weapon levels add shots, pierce, area and echoes;
- * new modes orbit and chain; Temper evolves into Tantrum.
+ * new modes orbit and chain; Spilt Milk evolves into Tantrum (names G-054's).
  */
 
 /** A target that stands still and does not die of one hit. */
@@ -73,15 +73,17 @@ describe('weapon levels add things', () => {
     const w = new World({ act: CONCEPTION, seed: 1, startingItems: [] });
     w.items.set('acrosome', 4);
     w.step(1 / 60, still);
-    const first = w.areas.length;
-    expect(first).toBe(1);
+    // The burst, and (G-054) the puddle it leaves, which lingers and so ticks.
+    const bursts = () => w.areas.filter((a) => !a.tick && !a.pull);
+    expect(bursts()).toHaveLength(1);
+    expect(w.areas.filter((a) => a.owner === 'player')).toHaveLength(1);
     for (let i = 0; i < 20; i++) w.step(1 / 60, still);
     // The first has expired (0.12s); the echo is the one alive now.
     expect(w.areas.filter((a) => !a.tick && !a.pull)).toHaveLength(1);
   });
 });
 
-describe('Grudge orbits', () => {
+describe('Mobile orbits (item id grudge, G-054)', () => {
   it('damages an enemy placed on its path, and exposes where it is', () => {
     const w = new World({ act: CONCEPTION, seed: 1, startingItems: ['grudge'] });
     const def = ITEMS['grudge']!;
@@ -114,7 +116,7 @@ describe('Grudge orbits', () => {
   });
 });
 
-describe('Gossip chains (item id group-chat, G-041)', () => {
+describe('Telephone chains (item id group-chat, G-041, G-054)', () => {
   it('a hit sends a shot on to a second enemy nearby', () => {
     const w = new World({ act: CONCEPTION, seed: 1, startingItems: ['group-chat'] });
     const first = place(w, 100, 0);
@@ -137,7 +139,7 @@ describe('Tantrum', () => {
     expect(Math.hypot(e.x - w.x, e.y - w.y)).toBeCloseTo(before + 70, 3);
   });
 
-  it('is offered alone once Temper is maxed beside Restlessness, and replaces it', () => {
+  it('is offered alone once Spilt Milk is maxed beside Restlessness, and replaces it', () => {
     const w = new World({ act: CONCEPTION, seed: 1, startingItems: ['lash'] });
     w.items.set('acrosome', ITEMS['acrosome']!.maxLevel);
     w.items.set('midpiece', 1);
