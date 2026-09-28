@@ -112,7 +112,6 @@ export interface PromBoss {
   shieldHint?: string;
 }
 
-/** Which boss an act fights. world.ts branches on `kind`. */
 /**
  * The Loan (COLLEGE-ROSTER §4): never attacks, never moves, never shields. Its
  * health compounds — every `interestSeconds` it grows by `interestRate` of
@@ -133,6 +132,7 @@ export interface LoanBoss {
   shieldHint?: never;
 }
 
+/** Which boss an act fights. world.ts branches on `kind`. */
 export type BossDef = EggBoss | GymTeacherBoss | PromBoss | LoanBoss;
 
 /**
