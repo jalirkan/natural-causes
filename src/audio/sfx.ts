@@ -63,7 +63,10 @@ class Sfx {
   /**
    * One enveloped oscillator. Everything below is built from these. `hold`
    * keeps the peak before the decay starts; `wobble` is a pitch LFO (rate Hz,
-   * depth Hz). Both default off, and off they change nothing.
+   * depth Hz); `bend` is the pitch at the peak — the tone glides from `freq`
+   * to it over the attack and hold, and `glideTo` then runs from the peak
+   * over the decay instead of from the start. All default off, and off they
+   * change nothing.
    */
   private tone(
     freq: number,
@@ -76,17 +79,22 @@ class Sfx {
       delay?: number;
       hold?: number;
       wobble?: { rate: number; depth: number };
+      bend?: number;
     } = {},
   ): void {
     if (!this.ctx || !this.master || this.muted) return;
-    const { wave = 'sine', gain = 0.08, attack = 0.004, decay = 0.12, glideTo, delay = 0, hold = 0, wobble } = opts;
+    const { wave = 'sine', gain = 0.08, attack = 0.004, decay = 0.12, glideTo, delay = 0, hold = 0, wobble, bend } = opts;
     const t0 = this.ctx.currentTime + delay;
     const end = t0 + attack + hold + decay + 0.05;
     const osc = this.ctx.createOscillator();
     const env = this.ctx.createGain();
     osc.type = wave;
     osc.frequency.setValueAtTime(freq, t0);
-    if (glideTo !== undefined) osc.frequency.exponentialRampToValueAtTime(Math.max(1, glideTo), t0 + decay);
+    if (bend !== undefined) {
+      const peak = t0 + attack + hold;
+      osc.frequency.exponentialRampToValueAtTime(Math.max(1, bend), peak);
+      if (glideTo !== undefined) osc.frequency.exponentialRampToValueAtTime(Math.max(1, glideTo), peak + decay);
+    } else if (glideTo !== undefined) osc.frequency.exponentialRampToValueAtTime(Math.max(1, glideTo), t0 + decay);
     if (wobble) {
       const lfo = this.ctx.createOscillator();
       const depth = this.ctx.createGain();
@@ -365,6 +373,62 @@ class Sfx {
     this.tone(1100, { wave: 'triangle', gain: 0.018, attack: 0.001, decay: 0.012 });
     this.noise({ gain: 0.035, decay: 0.014, cutoff: 1900, delay: 0.04, band: { q: 3, glideTo: 1600 } });
     this.tone(760, { wave: 'triangle', gain: 0.022, attack: 0.001, decay: 0.016, delay: 0.04 });
+  }
+
+  // --- The Office --------------------------------------------------------
+
+  /**
+   * A ping worn (OFFICE-ROSTER §3.3): the notification's small cousin. Two
+   * short high sine notes a fourth apart, rising, ~180ms, and quieter than
+   * the group chat's ding — a thing that wants a second, not a message. It
+   * plays instead of `attach`'s stamp for a ping; an invoice worn here is
+   * still a stamp.
+   */
+  ping(): void {
+    if (!this.due('ping', 200)) return;
+    this.tone(1568, { gain: 0.018, attack: 0.002, decay: 0.07 });
+    this.tone(2093, { gain: 0.016, attack: 0.002, decay: 0.1, delay: 0.075 });
+  }
+
+  /**
+   * The commute arriving (§3.2): a train passing, where driver's ed is a car.
+   * A low triangle that bends up two semitones as it nears and falls four
+   * past the peak, a slow judder on the pitch for the rails, the octave for
+   * laptop speakers, and low-passed noise swelling under it for the rumble;
+   * ~1.2s. Lower and three times longer than `carPass`, and no louder.
+   */
+  carriage(): void {
+    if (!this.due('carriage', 900)) return;
+    const env = { attack: 0.45, hold: 0.1, decay: 0.6 };
+    this.tone(73, { ...env, wave: 'triangle', gain: 0.05, bend: 82, glideTo: 65, wobble: { rate: 11, depth: 2 } });
+    this.tone(146, { ...env, gain: 0.014, bend: 164, glideTo: 130, wobble: { rate: 11, depth: 4 } });
+    this.noise({ gain: 0.025, attack: 0.45, decay: 0.7, cutoff: 320 });
+  }
+
+  /**
+   * A meeting closing round the player (§3.4, and the Reorg's restructure):
+   * chairs pulled in. A narrow band of noise dragged downward, a rough
+   * triangle juddering under it for the legs, then a second, shorter chair
+   * just behind; ~300ms. Narrower and slower than Backhand's swish, and it
+   * falls less far.
+   */
+  chairs(): void {
+    if (!this.due('chairs', 300)) return;
+    this.noise({ gain: 0.045, attack: 0.012, decay: 0.2, cutoff: 1500, band: { q: 4, glideTo: 520 } });
+    this.tone(250, { wave: 'triangle', gain: 0.014, attack: 0.012, decay: 0.2, glideTo: 160, wobble: { rate: 36, depth: 30 } });
+    this.noise({ gain: 0.032, attack: 0.01, decay: 0.13, cutoff: 1150, delay: 0.14, band: { q: 4, glideTo: 450 } });
+  }
+
+  /**
+   * The Reorg's telegraph (§4): the memo drafted and sent down the chain. A
+   * soft paper flutter — two short, wide band-passed breaths of noise high
+   * up, 70ms apart, soft-edged, nothing pitched under them; ~130ms. The
+   * column it announces fires on `bossShot`.
+   */
+  memo(): void {
+    if (!this.due('memo', 600)) return;
+    this.noise({ gain: 0.03, attack: 0.008, decay: 0.04, cutoff: 3400, band: { q: 1.4, glideTo: 2600 } });
+    this.noise({ gain: 0.024, attack: 0.008, decay: 0.05, cutoff: 2900, delay: 0.07, band: { q: 1.4, glideTo: 2200 } });
   }
 
   // --- G-044's weapons ---------------------------------------------------

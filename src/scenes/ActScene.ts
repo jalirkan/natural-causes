@@ -38,9 +38,11 @@ import {
   type Certificate,
   type EnemyState,
   type GemState,
+  type HoldState,
   type Input,
   type ProjectileState,
 } from '../sim/world';
+import { meetingCloses, memoDrafted, vehiclesEntered, wornGained } from './edges';
 import {
   BONE,
   INK,
@@ -300,9 +302,10 @@ export class ActScene extends Phaser.Scene {
   /**
    * Last frame's world counters, for sound. The simulation emits no events —
    * it must not know sound exists — so the renderer notices changes the same
-   * way it notices everything else: by reading state and diffing.
+   * way it notices everything else: by reading state and diffing. `worn` and
+   * `holds` are copies, never the world's live map and array.
    */
-  private heard = { kills: 0, hp: 0, stacks: 0, offers: false, boss: false, dead: false, won: false, xp: 0, level: 1, raced: 0, shot: 0, homework: 0, stun: 0, bossPhase: '', typing: 0, car: 0, bell: 0, interestIn: 0, time: 0, auraAt: -Infinity };
+  private heard = { kills: 0, hp: 0, worn: new Map() as ReadonlyMap<string, number>, offers: false, boss: false, dead: false, won: false, xp: 0, level: 1, raced: 0, shot: 0, homework: 0, stun: 0, bossPhase: '', typing: 0, car: 0, bell: 0, interestIn: 0, time: 0, auraAt: -Infinity, holds: [] as readonly HoldState[], restructures: 0 };
 
   /**
    * How long this run held each heading (§12.4's sixth question). Fed the
@@ -514,7 +517,7 @@ export class ActScene extends Phaser.Scene {
     this.resetArrivals();
 
     this.dev = neutralDevState();
-    this.heard = { kills: 0, hp: this.world.hp, stacks: 0, offers: false, boss: false, dead: false, won: false, xp: 0, level: 1, raced: 0, shot: 0, homework: 0, stun: 0, bossPhase: '', typing: 0, car: 0, bell: 0, interestIn: 0, time: this.world.time, auraAt: -Infinity };
+    this.heard = { kills: 0, hp: this.world.hp, worn: new Map(this.world.wornBy), offers: false, boss: false, dead: false, won: false, xp: 0, level: 1, raced: 0, shot: 0, homework: 0, stun: 0, bossPhase: '', typing: 0, car: 0, bell: 0, interestIn: 0, time: this.world.time, auraAt: -Infinity, holds: this.world.holds.slice(), restructures: 0 };
     this.inputLog = new InputLog();
     if (import.meta.env.DEV) {
       this.detachDev?.();
@@ -1193,10 +1196,14 @@ export class ActScene extends Phaser.Scene {
       // Three pixels for ninety milliseconds. Feedback, not an earthquake.
       this.cameras.main.shake(90, 0.0035);
     }
-    // Every stack worn, not only the ones that drag: a ping lands with the
-    // same sound and puff as an antibody, or it lands in silence.
-    if (wornCount(w) > h.stacks) {
-      sfx.attach();
+    // Every stack worn, not only the ones that drag, read per def off
+    // `wornBy`: a ping pings (OFFICE-ROSTER §3.3), and anything else worn —
+    // an antibody, acne, a tuition invoice carried into The Office — stamps.
+    // A frame that wore both plays both, once each; one puff either way.
+    const gained = wornGained(w.wornBy, h.worn);
+    if (gained.length > 0) {
+      if (gained.includes('ping')) sfx.ping();
+      if (gained.some((id) => id !== 'ping')) sfx.attach();
       this.spawnPuff(w.x, w.y);
     }
     if (!!w.offers && !h.offers) sfx.offer();
@@ -1237,6 +1244,13 @@ export class ActScene extends Phaser.Scene {
     // Prom's telegraph is the lights going down (ADOLESCENCE-ROSTER §4): the slow
     // song, on the edge into it. String(): typechecks before and after 'prom' joins BossDef['kind'].
     if (String(w.boss?.kind) === 'prom' && bossPhase === 'telegraph' && h.bossPhase !== 'telegraph') sfx.slowSong();
+    // The Reorg (OFFICE-ROSTER §4): the memo drafted is its telegraph, on the
+    // same edge (the column itself fires on `bossShot`). A meeting closing
+    // round the player — the schedule's, or a restructure's — is the chairs,
+    // once however it was seen: the hold arriving and the count rising land
+    // on one frame, and at the spawn cap a restructure seats no hold at all.
+    if (memoDrafted(w.boss, h.bossPhase)) sfx.memo();
+    if (meetingCloses(w.holds, w.boss, h)) sfx.chairs();
     // The hall monitor's stop, on its leading edge. A touch during a running
     // stun refreshes it without an edge, and stays silent.
     if (w.stunTimer > 0 && h.stun <= 0) sfx.stun();
@@ -1251,16 +1265,20 @@ export class ActScene extends Phaser.Scene {
     // as homework's is. One of each per frame. College's deadline (§3.2) is
     // driver's ed without the wheels and arrives on the same engine; its
     // registrars consulting are counted here and rung under the gate below.
+    // The Office's commute (§3.2) enters on that engine too and shares the
+    // counter, but it is a train: `vehiclesEntered` names each arrival's own
+    // sound, so a commute is the carriage and never also a car.
     let typing = 0;
     let bell = 0;
-    let car = h.car;
     for (const e of w.enemies) {
       if (e.def.id === 'group-chat' && e.consult > 0) typing++;
       else if (e.def.id === 'registrar' && e.consult > 0) bell++;
-      else if ((e.def.id === 'drivers-ed' || e.def.id === 'deadline') && e.uid > car) car = e.uid;
     }
     if (typing > h.typing) sfx.typing();
-    if (car > h.car) sfx.carPass();
+    const vehicles = vehiclesEntered(w.enemies, h.car);
+    const car = vehicles.highest;
+    if (vehicles.sounds.has('carPass')) sfx.carPass();
+    if (vehicles.sounds.has('carriage')) sfx.carriage();
     // G-044's three weapons. Unlike the counters above, their state sits still
     // while the world does (a card up, the run over), so an arc or a landed
     // bolt read off a held world would sound every frame. They hear only the
@@ -1319,7 +1337,9 @@ export class ActScene extends Phaser.Scene {
     this.heard = {
       kills: w.kills,
       hp: w.hp,
-      stacks: wornCount(w),
+      // Copied every frame, falls included: a crossing that takes three pings
+      // off must leave the next ping above what was heard.
+      worn: new Map(w.wornBy),
       offers: !!w.offers,
       boss: !!w.boss,
       dead: w.dead,
@@ -1337,6 +1357,8 @@ export class ActScene extends Phaser.Scene {
       interestIn: w.boss?.interestIn ?? 0,
       time: w.time,
       auraAt,
+      holds: w.holds.slice(),
+      restructures: w.boss?.restructures ?? 0,
     };
   }
 
