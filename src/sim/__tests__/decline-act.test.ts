@@ -53,14 +53,16 @@ describe('Decline has a schedule, and it is provisional', () => {
     }
   });
 
-  it('is the seventh and last act of the life, and the browser does not play it yet', () => {
-    // In ALL_ACTS after Family, so the bots and the content rules run it; not
-    // in ACTS until its atlas, `player-decline` and `boss-time` exist
-    // (DECLINE-ROSTER §5; content.test.ts ties ACTS to ACT_VISUALS).
+  it('is the seventh and last act of the life, and the browser plays it', () => {
+    // In ALL_ACTS after Family, so the bots and the content rules run it; and
+    // in ACTS after Family too, now its atlas, `player-decline` and
+    // `boss-time` exist (DECLINE-ROSTER §5; content.test.ts ties ACTS to
+    // ACT_VISUALS and checks every frame it draws is in the atlas). The
+    // browser's life ends here, at eighty-four.
     expect(ALL_ACTS.indexOf(DECLINE)).toBe(ALL_ACTS.indexOf(FAMILY) + 1);
     expect(ALL_ACTS[ALL_ACTS.length - 1]).toBe(DECLINE);
-    expect(ACTS).not.toContain(DECLINE);
-    expect(ACTS[ACTS.length - 1]).toBe(FAMILY);
+    expect(ACTS.indexOf(DECLINE)).toBe(ACTS.indexOf(FAMILY) + 1);
+    expect(ACTS[ACTS.length - 1]).toBe(DECLINE);
   });
 
   it('runs 120 seconds from fifty-five to eighty-four and ends on EVENTUALLY', () => {
