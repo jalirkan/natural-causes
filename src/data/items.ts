@@ -53,7 +53,9 @@ export type ItemIcon =
   | 'hindsight'
   | 'rut'
   // College: the Highlighter's stroke.
-  | 'highlight';
+  | 'highlight'
+  // Born in Family (G-050): the Strongly Worded Letter.
+  | 'letter';
 
 interface ItemBase {
   id: string;
@@ -125,7 +127,10 @@ export interface LevelBonus {
   damage?: number;
   /** Multiplier on the cooldown (orbit and aura: the per-enemy re-hit). Below 1 is sooner. */
   cooldown?: number;
-  /** Multiplier on projectile speed; for `orbit`, on how fast the orbiters go round. */
+  /**
+   * Multiplier on projectile speed; for `orbit`, on how fast the orbiters go round.
+   * A `strike`'s delay divides by it (`strikeDelayAt`): the Letter's Registered arrives sooner.
+   */
   speed?: number;
   /** Extra pixels a hit pushes a non-boss enemy away from the player. Adds to `knockback`. */
   knockback?: number;
@@ -204,8 +209,8 @@ export interface ActiveItem extends ItemBase {
    * activates, like `orbit`: a ring of `radius` around the player hurts what
    * stands in it, each enemy once per cooldown. `sweep` swings an arc of `arc`
    * radians and `range` reach along the facing on its cooldown. `strike` picks
-   * a random enemy within `range` and, after a telegraph, lands a one-shot
-   * area of `radius` where it was (G-044).
+   * a random enemy within `range` (the nearest, with `strikeNearest`) and,
+   * after a telegraph, lands a one-shot area of `radius` where it was (G-044).
    */
   mode: 'seeking' | 'line' | 'burst' | 'trail' | 'attractor' | 'orbit' | 'field' | 'aura' | 'sweep' | 'strike';
   /**
@@ -251,9 +256,16 @@ export interface ActiveItem extends ItemBase {
   /**
    * `strike` only: seconds from the pick to the landing. Absent means
    * `STRIKE_DELAY` (world.ts). Zero is no telegraph: the bolt lands on the
-   * step it is fired (Hindsight, G-046).
+   * step it is fired (Hindsight, G-046). Either way it is divided by the
+   * `speed` bonus (`strikeDelayAt`).
    */
   strikeDelay?: number;
+  /**
+   * `strike` only: mark the nearest enemies in range, nearest first, instead
+   * of picking at random; no dice are drawn (the Letter, G-050). The mark is
+   * where the target stood when it was picked, as every strike's is.
+   */
+  strikeNearest?: boolean;
   /**
    * Present on an evolution. It is never in the normal offer pool: when
    * `weapon` is at its max level and `with` is owned, the next level-up is
@@ -1759,6 +1771,109 @@ export const ITEMS: Record<string, ItemDef> = {
     tradesAway:
       'Baggage, which it replaces with any path taken on it, and the choosing. It holds only what follows: the player walks their own trail at full speed, and a cornered player is still holding a weapon that has stopped existing.',
   },
+
+  // --- 4.7 Born at thirty-four: Family (G-050) ----------------------------
+  //
+  // In the pool from Family on, never before (`from`), and the first item
+  // the life meets there: the direction panel's Strongly Worded Letter. A
+  // strike that marks the NEAREST problem where it stands now
+  // (`strikeNearest`, no dice) and lands on that spot long after
+  // (`strikeDelay`), whether or not the problem is still there. It holds its
+  // mark as Judgement's bolt does: a strike's area is placed at the pick and
+  // never follows the target. Its Registered path is a `speed` path because a
+  // strike's delay divides by `speed` (`strikeDelayAt`).
+  //
+  // PLACEHOLDER NUMBERS, every one, under FAMILY's `provisional` (the item
+  // born there): the cooldown, damage, range, radius and delay come from the
+  // panel's sketch (five seconds, 40, a 120px circle), and every level-table
+  // entry, path value and path maxLevel was written to make it playable, not
+  // measured. Nobody has played it; a person playing it at the link is what
+  // moves them. The copy carries no figures (G-043): the card prints them,
+  // and the blurb's "four to six" is an estimate a test holds the delay to.
+
+  'strongly-worded-letter': {
+    id: 'strongly-worded-letter',
+    name: 'Strongly Worded Letter',
+    kind: 'weapon',
+    from: 'family',
+    mode: 'strike',
+    cooldown: 6,
+    damage: 40,
+    // How far away the nearest problem may be marked, in pixels.
+    range: 360,
+    projectileSpeed: 0,
+    // What the letter hits where it lands: the mark, not the problem.
+    radius: 120,
+    pierce: 99,
+    // Seconds from the mark to the landing, before Registered divides it.
+    strikeDelay: 5,
+    strikeNearest: true,
+    maxLevel: 8,
+    icon: 'letter',
+    iconPending:
+      'Drawn at tools/art/svg/conception/icon-letter.svg and through CONFORM and CHECK; retires when `pnpm art:pack` puts icon-letter.png in the icons atlas.',
+    blurb: 'Arrives in four to six seconds. The problem has usually moved.',
+    levels: table(
+      [
+        'Arrives in four to six seconds. The problem has usually moved.',
+        'Harder. It went through several drafts.',
+        'A second letter, about the next problem along.',
+        'Wider. It raises the wider issue as well.',
+        'A third letter. You have a folder for these now.',
+        'Harder. It is printed on letterhead.',
+        'Sent sooner. You no longer sleep on it.',
+        'Wider. It lands exactly where the problem was. Usually.',
+      ],
+      { 2: { damage: 1.2 }, 3: { projectiles: 1 }, 4: { area: 1.15 }, 5: { projectiles: 1 }, 6: { damage: 1.2 }, 7: { cooldown: 0.85 }, 8: { area: 1.15 } },
+    ),
+    paths: [
+      {
+        id: 'cc',
+        name: 'Cc',
+        blurb: 'More letters at once. There is always a copy.',
+        maxLevel: 2,
+        levels: table(
+          ['A copy, to the next problem along.', 'Another copy. The file is getting thick.'],
+          {},
+          each(1, 2, { projectiles: 1 }),
+        ),
+      },
+      {
+        id: 'registered',
+        name: 'Registered',
+        blurb: 'Arrives sooner. It has to be signed for.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Sooner. It has a tracking number now.',
+            'Sooner again. Next day, before noon.',
+            'Sooner still. The problem barely had time to move.',
+          ],
+          {},
+          each(1, 3, { speed: 1.25 }),
+        ),
+      },
+      {
+        id: 'capital-letters',
+        name: 'Capital Letters',
+        blurb: 'Lands harder. Some of it is in capitals.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Harder. The subject line is in capitals.',
+            'Harder again. The whole thing is underlined.',
+            'As hard as it gets. Every word is in capitals.',
+          ],
+          {},
+          each(1, 3, { damage: 1.3 }),
+        ),
+      },
+    ],
+    enables:
+      'A build that brings the problem back to the mark: Charisma’s pull or Snooze’s hold keeps a crowd standing where the letter was aimed, and then the heaviest single landing in the life comes down on all of it at once.',
+    tradesAway:
+      'Timing, entirely. It lands where the problem stood when the letter was sent, long after, so anything that moves has usually left; it never favours what is touching the player, and nothing it marks is hurt until it arrives.',
+  },
 };
 
 export const ITEM_IDS = Object.keys(ITEMS);
@@ -1785,6 +1900,15 @@ export function damageScale(level: number): number {
 /** Below 1 is sooner. Floors at 0.4, so no weapon fires more than 2.5x its base rate. */
 export function cooldownScale(level: number): number {
   return Math.max(0.4, 1 - 0.08 * (level - 1));
+}
+
+/**
+ * A strike's seconds from mark to landing: its delay divided by the `speed`
+ * bonus its levels and paths add (the Letter's Registered). The sim lands it
+ * by this and the card prints "arrives in" from it, so the two cannot drift.
+ */
+export function strikeDelayAt(delay: number, speed: number): number {
+  return speed > 0 ? delay / speed : delay;
 }
 
 /** Every field a `Required<LevelBonus>` starts from: the identity for each. */

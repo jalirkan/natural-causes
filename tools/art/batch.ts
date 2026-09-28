@@ -1052,6 +1052,33 @@ export const ITEM_ICONS: AssetSpec[] = [
       'no yellow, no paper, no text, no hand, no page',
     ].join(', '),
   },
+  // --- Born in Family (G-050): the Strongly Worded Letter ------------------
+  // A strike (mode `strike`, `strikeNearest`): its icon comes down onto the
+  // mark during the telegraph (~36px) and sits on the landing (~40px),
+  // through the same syncAreas code as Judgement's gavel, so it keeps to
+  // rose, bone and ink. Family reserves the windowed envelope (the bill) and
+  // the sealed, folded letter (the HOA letter: "the only seal, and the only
+  // thing folded"), and this rides that field, so it is neither: one flat
+  // sheet, never an envelope, never folded, never sealed, in the player's
+  // rose where the act's post is bone.
+  {
+    id: 'icon-letter',
+    name: 'Strongly Worded Letter icon',
+    act: 'conception',
+    role: 'icon',
+    fieldRiding: true,
+    source: 'svg',
+    targetSize: 96,
+    seed: 61050,
+    tests: 'a written letter, one flat sheet, read at 52px on a card and 36px coming down on the mark, never an envelope, never folded, never sealed',
+    subject: [
+      'one flat sheet of writing paper, taller than wide, tipped a little to the left as if just sent, seen straight on',
+      'a letter laid out as a letter: one short line top left for the greeting, a block of four heavy lines of writing, one short line bottom right for the signature',
+      'the last line of the block underlined twice, hard',
+      'flat muted dusty rose sheet, pale warm lines of writing, the double underline dark',
+      'no envelope, no fold, no dog-ear, no seal, no stamp, no window, no hand, no figure, no legible text',
+    ].join(', '),
+  },
 ];
 
 /**

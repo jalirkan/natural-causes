@@ -1797,11 +1797,15 @@ export class ActScene extends Phaser.Scene {
         // from twice its radius to its honest one and the card's icon comes
         // down onto it; on landing, a flash at the radius it hurts in with
         // the icon on the point. Checked first: a landed strike is one-shot
-        // and would otherwise draw as Temper's starburst.
+        // and would otherwise draw as Temper's starburst. The fraction is of
+        // the strike's own wait (`telegraph`): read against Judgement's
+        // STRIKE_DELAY, the Letter's five seconds would open the ring at
+        // over a dozen times its radius with the icon off the top of the
+        // screen. Clamped, so a wait nobody set still draws on the mark.
         const def = a.source ? ITEMS[a.source] : undefined;
         const [key, frame] = def ? this.iconTexture(def.icon, def.name) : ['nc-shot', undefined];
         if (a.delay > 0) {
-          const t = 1 - a.delay / STRIKE_DELAY;
+          const t = Phaser.Math.Clamp(1 - a.delay / (a.telegraph ?? STRIKE_DELAY), 0, 1);
           circle
             .setPosition(a.x, a.y)
             .setRadius(a.radius * (2 - t))
@@ -2392,7 +2396,9 @@ export class ActScene extends Phaser.Scene {
       const pathLevel = path
         ? ((this.world as { pathLevels?: Map<string, number> }).pathLevels?.get(id) ?? 0)
         : 0;
-      const owned = { level, pathLevel };
+      // Every path held, so a path card can total the weapon (item-text.ts
+      // `OwnedLevels.pathLevels`: the Letter's arrival under Registered).
+      const owned = { level, pathLevel, pathLevels: this.world.pathLevels };
       const x = cam.width / 2 - total / 2 + W / 2 + i * (W + GAP);
 
       const g = this.add.graphics();

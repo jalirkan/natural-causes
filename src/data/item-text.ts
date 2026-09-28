@@ -6,10 +6,10 @@
  * throws). The ONE place a stat line is written; the card only draws it.
  *
  * Every figure comes from the same fields and the same exported formulas the
- * sim reads (`damageScale`, `cooldownScale`, `levelBonus`), so moving a
- * placeholder number in `items.ts` moves the card with it. The figures are
- * the item's own, before the player's passives, as a survivors card prints
- * them.
+ * sim reads (`damageScale`, `cooldownScale`, `levelBonus`, `strikeDelayAt`),
+ * so moving a placeholder number in `items.ts` moves the card with it. The
+ * figures are the item's own, before the player's passives, as a survivors
+ * card prints them.
  *
  * Node-safe and pure: imports only the registries' data and types.
  */
@@ -22,6 +22,7 @@ import {
   levelBonus,
   offerIdFor,
   parseOfferId,
+  strikeDelayAt,
   type ActiveItem,
   type LevelBonus,
   type PassiveItem,
@@ -41,6 +42,13 @@ export interface OwnedLevels {
   level: number;
   /** The path's level, for a path offer; 0 when the path is new. */
   pathLevel: number;
+  /**
+   * Every path level the player holds, keyed by offer id as `World.pathLevels`
+   * is. Optional: a path card reads it for a figure that totals the weapon's
+   * paths (a strike's arrival, which Registered's `speed` divides), and
+   * without it the other paths count as untaken.
+   */
+  pathLevels?: ReadonlyMap<string, number>;
 }
 
 /*
@@ -150,9 +158,25 @@ function areaTerm(mode: Mode, area: number): string | null {
   }
 }
 
-/** A multiplier on projectile speed: an orbit's is its spin. */
+/**
+ * A multiplier on projectile speed: an orbit's is its spin, and a strike's
+ * divides its delay (items.ts `strikeDelayAt`), so it reads as the delay.
+ */
 function speedTerm(mode: Mode, speed: number): string | null {
+  if (mode === 'strike') return finite(speed) && speed > 0 ? labelled('delay', 1 / speed - 1) : null;
   return labelled(mode === 'orbit' ? 'spin' : 'shot speed', speed - 1);
+}
+
+/**
+ * `arrives in 4s`: a strike that telegraphs on its own `strikeDelay` (the
+ * Letter), at a total `speed` bonus, by the formula the sim lands it by.
+ * Judgement's wait is the sim's STRIKE_DELAY and Hindsight's is none, so
+ * neither prints one; null too for a speed that is not a number.
+ */
+function arrivalTerm(def: ActiveItem, speed: number): string | null {
+  if (def.mode !== 'strike' || def.strikeDelay === undefined || !(def.strikeDelay > 0)) return null;
+  const wait = strikeDelayAt(def.strikeDelay, speed);
+  return finite(speed, wait) && wait > 0 ? `arrives in ${secs(wait)}` : null;
 }
 
 /**
@@ -193,9 +217,12 @@ function markTerm(def: ActiveItem, l: LevelBonus): string | null {
  * The fields a level (or a path level) carries of its own, in card order:
  * projectiles, pierce, area, duration, echo, chain, speed, knockback, mark.
  * Damage and cooldown are not here: a caller folds them into its figures.
- * On a marking weapon `duration` is the mark's (`mark lasts +20%`).
+ * On a marking weapon `duration` is the mark's (`mark lasts +20%`). A caller
+ * that knows the weapon's whole `speed` total once this level is taken
+ * passes it as `speedAfter`, and a strike's speed then prints as where it
+ * arrives rather than by how much sooner.
  */
-function fieldTerms(def: ActiveItem, l: LevelBonus | undefined): Array<string | null> {
+function fieldTerms(def: ActiveItem, l: LevelBonus | undefined, speedAfter = NaN): Array<string | null> {
   if (!l) return [];
   const mode: Mode = def.mode;
   const pierce = signed(l.pierce ?? 0);
@@ -208,7 +235,7 @@ function fieldTerms(def: ActiveItem, l: LevelBonus | undefined): Array<string | 
     l.duration === undefined ? null : labelled(def.marks ? 'mark lasts' : 'lasts', l.duration - 1),
     l.echo ? 'fires twice' : null,
     chain === null ? null : `${chain} ${Math.abs(Math.round(l.chain ?? 0)) === 1 ? 'jump' : 'jumps'}`,
-    l.speed === undefined ? null : speedTerm(mode, l.speed),
+    l.speed === undefined ? null : (arrivalTerm(def, speedAfter) ?? speedTerm(mode, l.speed)),
     knock === null ? null : `pushes ${knock}px`,
     markTerm(def, l),
   ];
@@ -278,7 +305,8 @@ function activeTerms(def: ActiveItem, level: number, b: Required<LevelBonus>): A
       break;
     }
     case 'strike':
-      terms = [hits, every, range, within, many(count, 'bolt')];
+      // The Letter's wait, which Registered shortens (`arrivalTerm`).
+      terms = [hits, every, range, within, many(count, 'bolt'), arrivalTerm(def, b.speed)];
       break;
     case 'attractor':
       terms = [within && `pulls within ${px(radius)}`, every];
@@ -335,14 +363,14 @@ function levelUpTerms(def: ActiveItem, level: number): Array<string | null> {
 /**
  * A path's level-up: only what that path level carries. No generic scaling —
  * a path levels apart from the weapon — unless the level itself multiplies
- * damage or cooldown.
+ * damage or cooldown. `speedAfter` is `fieldTerms`'.
  */
-function pathTerms(def: ActiveItem, l: LevelBonus | undefined): Array<string | null> {
+function pathTerms(def: ActiveItem, l: LevelBonus | undefined, speedAfter = NaN): Array<string | null> {
   if (!l) return [];
   return [
     l.damage !== undefined && def.damage > 0 ? labelled('damage', l.damage - 1) : null,
     l.cooldown !== undefined && l.cooldown > 0 ? cadenceTerm(def, 1 / l.cooldown) : null,
-    ...fieldTerms(def, l),
+    ...fieldTerms(def, l, speedAfter),
   ];
 }
 
@@ -421,7 +449,12 @@ export function statLines(offerId: string, owned: OwnedLevels): string[] {
   let terms: Array<string | null>;
   let fallback: string;
   if (path && isActive(item)) {
-    terms = pathTerms(item, path.levels[owned.pathLevel]);
+    // The weapon's whole bonus once this path level is taken, folded as the
+    // sim folds it: Registered's card prints where the letter will arrive.
+    const after = new Map(owned.pathLevels ?? []);
+    after.set(offerIdFor(item, path), owned.pathLevel + 1);
+    const speedAfter = heldBonus(item, Math.max(1, owned.level), after).speed;
+    terms = pathTerms(item, path.levels[owned.pathLevel], speedAfter);
     fallback = `level ${owned.pathLevel + 1} of ${path.maxLevel}`;
   } else if (!isActive(item)) {
     terms = passiveTerms(item);
@@ -498,8 +531,10 @@ export function heldLines(itemId: string, level: number, pathLevels: ReadonlyMap
   if (isActive(def)) {
     const b = heldBonus(def, at, pathLevels);
     // The one field `activeTerms` does not print, measured from level one so
-    // a new item never claims a change and Spiralling's spin still shows.
-    terms = [...activeTerms(def, at, b), speedTerm(def.mode, b.speed / levelBonus(def, 1).speed)];
+    // a new item never claims a change and Spiralling's spin still shows. A
+    // strike that printed its arrival has said it already (Registered).
+    const speed = arrivalTerm(def, b.speed) === null ? speedTerm(def.mode, b.speed / levelBonus(def, 1).speed) : null;
+    terms = [...activeTerms(def, at, b), speed];
   } else {
     terms = passiveTerms(heldPassive(def, at));
   }
