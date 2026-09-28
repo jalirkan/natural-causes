@@ -191,22 +191,26 @@ export interface MortgageBoss {
  * the life ends WON — the act's `endWord` first, then natural causes at the
  * act's `age.to`. Surviving it is the win, and you die anyway.
  *
- * Its minute hand is a sweep `sweepLength` px from its centre and
- * `sweepWidth` wide, turning clockwise once every `sweepSeconds` from its
- * arrival, touching for the Egg's shot damage; at every quarter turn one of
- * the act's knees lands at the player's lead. NOT BUILT YET: the hand and
- * the knees are the next pass's, and until then the sim reads `seconds`
- * alone. Every number is a placeholder.
+ * Its long (minute) hand is a rectangle `sweepLength` px from its centre
+ * and `sweepWidth` wide, on one side of the pivot only, turning clockwise
+ * once every `sweepSeconds` from its arrival, never faster, from the drawn
+ * rest pose (TIME_HAND_REST in world.ts, pointing at two); its angle is
+ * `BossState.hand`. Touching it is the Egg's shot damage with the usual
+ * i-frames. At every quarter turn (TIME_FILES_PER_TURN in world.ts) one of
+ * the act's knees (TIME_FILE_ID) lands at the player's lead, or behind them
+ * at a wall, as the Mortgage's room lands; `BossState.filed` counts them.
+ * The short hand is drawn and harmless. When `seconds` run out the hands
+ * stop. Every number is a placeholder (`DECLINE.provisional`).
  */
 export interface TimeBoss {
   kind: 'time';
   /** Seconds from its arrival until the life ends, won. */
   seconds: number;
-  /** Seconds for one turn of the minute hand. Not read yet. */
+  /** Seconds for one turn of the long hand, clockwise; the file is read at each quarter of it. */
   sweepSeconds: number;
-  /** Pixels from the boss's centre to the hand's tip. Not read yet. */
+  /** Pixels from the boss's centre to the long hand's tip. */
   sweepLength: number;
-  /** Pixels across the hand. Not read yet. */
+  /** Pixels across the long hand. */
   sweepWidth: number;
   shieldHint?: never;
 }
@@ -590,16 +594,16 @@ export const DECLINE: ActDef = {
   durationSeconds: 120,
   bossName: 'Time',
   // DECLINE-ROSTER §4: no health, only `seconds`; the life ends won when they
-  // run out. The hand (`sweepSeconds`, `sweepLength`, `sweepWidth`) and the
-  // knee at each quarter turn are declared and not built yet. Every number is
-  // a PLACEHOLDER under `provisional`.
+  // run out. The long hand (`sweepSeconds`, `sweepLength`, `sweepWidth`) turns
+  // and touches, and a knee is filed at each quarter turn (world.ts,
+  // `turnHand`). Every number is a PLACEHOLDER under `provisional`.
   boss: { kind: 'time', seconds: 60, sweepSeconds: 12, sweepLength: 520, sweepWidth: 40 },
   // The hands stop, and the life ends on one word.
   endWord: 'EVENTUALLY',
   age: { from: 55, to: 84 },
   // No race: nobody else wants the time.
   provisional:
-    "Every rate, time and enemy number here, the medication's heal on a kill (`killHeal`, 2 health, never past the maximum), the form's decision (`ranged.maxHpLoss`, 0.05 of the current maximum a landing shot, for the rest of the act, never below MAX_HP_FLOOR, a fifth of the act's opening maximum, in world.ts), the knees' drag (`attach.drag` 0.03, the antibody's, persisting), the stairs' hold that never adjourns (`hold`: 130px, `seconds` 0, held 600s, at 0.45 speed), and all of Time's numbers (`boss.seconds` 60 to survive it, `sweepSeconds` 12 a turn, `sweepLength` 520, `sweepWidth` 40, a knee each quarter turn, the Egg's shot damage on the hand) were written as placeholders before anyone played the act (DECLINE-ROSTER §3.6 and §4), and Time's hand and its knee spawns are not built yet, so today it only counts down; a person playing it at the link is what moves them (D-022).",
+    "Every rate, time and enemy number here, the medication's heal on a kill (`killHeal`, 2 health, never past the maximum), the form's decision (`ranged.maxHpLoss`, 0.05 of the current maximum a landing shot, for the rest of the act, never below MAX_HP_FLOOR, a fifth of the act's opening maximum, in world.ts), the knees' drag (`attach.drag` 0.03, the antibody's, persisting), the stairs' hold that never adjourns (`hold`: 130px, `seconds` 0, held 600s, at 0.45 speed, landing ANTIBODY_LEAD ahead or behind the player at a wall), and all of Time's numbers (`boss.seconds` 60 to survive it, `sweepSeconds` 12 a turn of the long hand, `sweepLength` 520, `sweepWidth` 40, a knee filed each quarter turn, TIME_FILES_PER_TURN 4 in world.ts, and the Egg's shot damage, 12, on a touch of the hand with the usual i-frames) were written as placeholders before anyone played the act (DECLINE-ROSTER §3.6 and §4); the hand's rest pose (TIME_HAND_REST, 60.6 degrees) is the drawing's measurement, not a placeholder; a person playing it at the link is what moves them (D-022).",
   // DECLINE-ROSTER.md §3.6, transcribed. The ORDER is the design and is under
   // test (decline-act.test.ts): age runs 55 to 84, a year about every four
   // seconds. Medications from 0s, the first prescription; the knees' stream

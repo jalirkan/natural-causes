@@ -1,4 +1,14 @@
-import type { ActDef, BossDef, GymTeacherBoss, LoanBoss, MortgageBoss, PromBoss, ReorgBoss, SpawnWave } from '../data/acts';
+import type {
+  ActDef,
+  BossDef,
+  GymTeacherBoss,
+  LoanBoss,
+  MortgageBoss,
+  PromBoss,
+  ReorgBoss,
+  SpawnWave,
+  TimeBoss,
+} from '../data/acts';
 import { ALL_ACTS, rateAt, spawnStreams, whistleInterval } from '../data/acts';
 import { ENEMIES, enemyDef, type EnemyDef } from '../data/enemies';
 import {
@@ -244,6 +254,30 @@ export const MORTGAGE_DOOR_BELOW = ((0.8 - 0.68) * BOSS_RADIUS) / 0.3;
  * who feels the ceiling come down at the link is what moves it.
  */
 export const MAX_HP_FLOOR = 1 / 5;
+
+/**
+ * Time's long hand at rest (DECLINE-ROSTER §4, AUDIT 96), in radians: 60.6°
+ * clockwise from twelve, pointing at two. Measured, not chosen: the drawer
+ * measured it on `boss-time` (tools/art/svg/decline/boss-time.svg, "ten past
+ * ten"), where the pose is baked into the sprite. `BossState.hand` is this at
+ * Time's arrival, so the drawn pose and the sim's hazard agree on the first
+ * frame. If the drawing's rest pose moves, this follows it.
+ */
+export const TIME_HAND_REST = (60.6 * Math.PI) / 180;
+
+/**
+ * The file (DECLINE-ROSTER §4): one of `TIME_FILE_ID` at the player's lead
+ * at every 1/TIME_FILES_PER_TURN of a turn of Time's long hand, counted from
+ * its arrival, so the first lands a quarter turn in (`World.turnHand`). The
+ * id is the roster's knee (§3.3), and a test pins it to a Decline enemy:
+ * `TimeBoss` carries no id of its own (the Mortgage's `roomId` is the shape
+ * that would), so it lives here, beside its cadence.
+ *
+ * PLACEHOLDER, 4 — §4's "a knee a quarter turn", under `DECLINE.provisional`.
+ * Nobody has played it.
+ */
+export const TIME_FILES_PER_TURN = 4;
+export const TIME_FILE_ID = 'your-knees';
 
 /**
  * How long ago "recently" is, for an enemy that lands where the player has
@@ -771,6 +805,27 @@ export interface BossState {
    */
   secondsLeft: number;
   /**
+   * Time's long hand (DECLINE-ROSTER §4): its angle in radians, clockwise
+   * from twelve, wrapped to [0, 2π). World axes are the screen's, +x right
+   * and +y down, so 0 points up the screen (twelve), π/2 at three, π at six,
+   * and the hand points along (sin hand, −cos hand); increasing is clockwise
+   * as the player sees it, the sense of Phaser's `rotation`. TIME_HAND_REST
+   * (pointing at two, the drawn pose) at Time's arrival, then 2π every
+   * `TimeBoss.sweepSeconds` while its clock runs — never faster, never reset
+   * — and where it is when the clock runs out: the hands stop. The hazard is
+   * `sweepLength` × `sweepWidth` from the boss point along it (`fromHand`);
+   * the short hand is drawing only. Zero for every other kind.
+   */
+  hand: number;
+  /**
+   * Time's file (DECLINE-ROSTER §4): how many times it has been read since
+   * Time's arrival, one at every 1/TIME_FILES_PER_TURN of the long hand's
+   * turn (a quarter turn), each a knee at the player's lead — or none, at
+   * MAX_ACTIVE_ENEMIES, and still counted. A whole count. Zero for every
+   * other kind.
+   */
+  filed: number;
+  /**
    * College: a Highlighter stroke marks the boss as it marks an enemy (the
    * same fields, `EnemyState.markedUntil`), and `bossTakes` pays the mark on
    * every kind — a marked Loan pays down faster; a marked Mortgage still takes
@@ -854,6 +909,44 @@ function clamp(v: number, lo: number, hi: number): number {
   return v < lo ? lo : v > hi ? hi : v;
 }
 
+/** An angle in radians, wrapped to [0, 2π). */
+function turnOf(angle: number): number {
+  const TAU = Math.PI * 2;
+  const a = angle % TAU;
+  return a < 0 ? a + TAU : a;
+}
+
+/**
+ * How far the point (x, y) is from Time's long hand (DECLINE-ROSTER §4): a
+ * rectangle `length` px long and `width` px across, from the pivot (px, py)
+ * along `angle` — radians clockwise from twelve in world axes, where +x is
+ * right and +y is down, so the hand points along (sin angle, −cos angle).
+ * One side of the pivot only: the long hand, and nothing behind it (the
+ * short hand is drawn and harmless). 0 on or inside the rectangle. A body of
+ * radius r touches the hand when this is at most r. The sim's contact
+ * (`World.turnHand`) and the bots' reading of it both call this, so they
+ * read one shape.
+ */
+export function fromHand(
+  px: number,
+  py: number,
+  angle: number,
+  length: number,
+  width: number,
+  x: number,
+  y: number,
+): number {
+  const ux = Math.sin(angle);
+  const uy = -Math.cos(angle);
+  const dx = x - px;
+  const dy = y - py;
+  const along = dx * ux + dy * uy;
+  const across = Math.abs(dx * uy - dy * ux);
+  const a = along < 0 ? -along : along > length ? along - length : 0;
+  const c = Math.max(0, across - width / 2);
+  return Math.hypot(a, c);
+}
+
 /** Removes index `i` in O(1). Reorders the array — walk backwards. */
 function swapRemove<T>(arr: T[], i: number): void {
   const last = arr.pop()!;
@@ -917,6 +1010,13 @@ export class World {
   private nextUid = 1;
   private nextSerial = 1;
   private bossHitSerial = 0;
+  /**
+   * Seconds Time's long hand has run since its arrival (`turnHand`): the
+   * hand's angle and the file's count are both read off this one sum, so
+   * neither drifts from the other. Set at every boss's arrival; only Time
+   * reads it.
+   */
+  private handSeconds = 0;
   /** A second query buffer, for a lookup made while `near` is being walked. */
   private readonly near2: EnemyState[] = [];
   /** Snooze fields this pass, so 1500 movers do not each walk every area. */
@@ -1650,8 +1750,19 @@ export class World {
       // react — the player's own forward motion does all the closing, which is
       // the most law-8-compliant behaviour available. It is also whyThisStage
       // made literal: the record was opened before they arrived.
-      x = this.x + this.facingX * ANTIBODY_LEAD;
-      y = this.y + this.facingY * ANTIBODY_LEAD;
+      let fx = this.facingX;
+      let fy = this.facingY;
+      // A hold that would land with the player inside it — the stairs at a
+      // wall the player faces, pulled back onto them by the clamp below
+      // (AUDIT 93) — lands at the lead behind them instead, as the Mortgage's
+      // room does (`landOffPlayer`): a refuge set down over the player walls
+      // the crowd in with them. Read off where they stand; no dice.
+      if (def.hold && this.leadLandsOnPlayer(def, fx, fy)) {
+        fx = -fx;
+        fy = -fy;
+      }
+      x = this.x + fx * ANTIBODY_LEAD;
+      y = this.y + fy * ANTIBODY_LEAD;
       // What stays where it lands is held inside the arena (AUDIT 31): acne
       // spawned past a wall the player faced was never reachable again.
       if (def.movement === 'static') {
@@ -3827,7 +3938,10 @@ export class World {
       windowTimer: 0,
       accepted: 0,
       secondsLeft: 0,
+      hand: 0,
+      filed: 0,
     };
+    this.handSeconds = 0;
     // The Loan opens at what the player carried in (COLLEGE-ROSTER §4): a
     // tenth more per invoice worn, and its cap is `cap` times that, so the bar
     // opens 1/cap full. The act's only attach is tuition, so every stack
@@ -3844,9 +3958,13 @@ export class World {
     const mortgage = this.act.boss;
     if (mortgage.kind === 'mortgage') this.boss.windowTimer = mortgage.instalmentSeconds;
     // Time's clock starts as it stands (DECLINE-ROSTER §4). Its health stays
-    // BOSS_HP and nothing ever moves it: its bar is `secondsLeft`.
+    // BOSS_HP and nothing ever moves it: its bar is `secondsLeft`. Its long
+    // hand starts at the drawn rest pose and turns from here.
     const time = this.act.boss;
-    if (time.kind === 'time') this.boss.secondsLeft = time.seconds;
+    if (time.kind === 'time') {
+      this.boss.secondsLeft = time.seconds;
+      this.boss.hand = TIME_HAND_REST;
+    }
     // Read once it stands: Prom's shield is the player's distance from it.
     this.boss.shielded = this.shieldUp();
     this.partRace(this.boss);
@@ -3961,8 +4079,8 @@ export class World {
     if (this.act.boss.kind === 'reorg') return this.reorgPhase(b, this.act.boss, dt);
     // And the window clock: it runs every step, beside the statement.
     if (this.act.boss.kind === 'mortgage') return this.mortgagePhase(b, this.act.boss, dt);
-    // And Time's: it is all Time does yet.
-    if (this.act.boss.kind === 'time') return this.timePhase(b, dt);
+    // And Time's: its clock, its hand and its file run every step.
+    if (this.act.boss.kind === 'time') return this.timePhase(b, this.act.boss, dt);
 
     // It does not move from where it is. It has already decided.
     b.timer -= dt;
@@ -4428,34 +4546,47 @@ export class World {
     return Math.min(boss.instalments, Math.max(0, paid));
   }
 
-  /**
-   * A room at the player's lead, through `spawnEnemy`: the act's own arrival
-   * (§3.6's room is `spawnAt: 'lead'`, static, merging), so where it lands,
-   * the clamp that holds a static inside the arena and the merge onto a room
-   * already there are all written once, there. The lead is ANTIBODY_LEAD
-   * ahead, farther than a room's radius, so it never lands on the player —
-   * except at a wall they face, where the clamp pulls it back onto them: then
-   * it lands at the lead behind them instead, the heading turned for the call
-   * and put back after, as the Loan's statement turns it. The turn is read
-   * off where the player stands, never rolled. A lead placement draws no
-   * dice; under a `spawnOverride` of 'edge' the room draws its angle, as
-   * every arrival does there.
-   */
+  /** A room at the player's lead, or behind them at a wall (`landOffPlayer`). */
   private buildRoom(boss: MortgageBoss): void {
+    this.landOffPlayer(boss.roomId);
+  }
+
+  /**
+   * One `id` at the player's lead, through `spawnEnemy`: the act's own
+   * arrival (the Mortgage's room is `spawnAt: 'lead'`, static, merging; Time's
+   * knee is `spawnAt: 'lead'`, static, attaching), so where it lands, the
+   * clamp that holds a static inside the arena and the merge onto a room
+   * already there are all written once, there. The lead is ANTIBODY_LEAD
+   * ahead, farther than a room's or a knee's radius, so it never lands on
+   * the player — except at a wall they face, where the clamp pulls it back
+   * onto them: then it lands at the lead behind them instead, the heading
+   * turned for the call and put back after, as the Loan's statement turns it.
+   * The turn is read off where the player stands, never rolled. A lead
+   * placement draws no dice; under a `spawnOverride` of 'edge' it draws its
+   * angle, as every arrival does there. Capped by MAX_ACTIVE_ENEMIES like any
+   * spawn. The Mortgage's rooms and Time's file land here.
+   */
+  private landOffPlayer(id: string): void {
     if (this.enemies.length >= MAX_ACTIVE_ENEMIES) return;
-    const def = enemyDef(boss.roomId);
+    const def = enemyDef(id);
     const fx = this.facingX;
     const fy = this.facingY;
     if ((this.spawnOverride ?? def.spawnAt) === 'lead' && this.leadLandsOnPlayer(def, fx, fy)) {
       this.facingX = -fx;
       this.facingY = -fy;
     }
-    this.spawnEnemy(boss.roomId);
+    this.spawnEnemy(id);
     this.facingX = fx;
     this.facingY = fy;
   }
 
-  /** True when `def` set at the lead along (fx, fy), as `spawnEnemy` would, overlaps the player. */
+  /**
+   * True when `def` set at the lead along (fx, fy), as `spawnEnemy` would,
+   * overlaps the player: its body, or for a hold (the stairs) the hold as it
+   * lands — `to` for one that never contracts, `from` otherwise — so a hold
+   * turned by this never lands with the player inside it, which is more than
+   * never on its centre (AUDIT 93).
+   */
   private leadLandsOnPlayer(def: EnemyDef, fx: number, fy: number): boolean {
     let x = this.x + fx * ANTIBODY_LEAD;
     let y = this.y + fy * ANTIBODY_LEAD;
@@ -4463,7 +4594,9 @@ export class World {
       x = clamp(x, def.radius, ARENA_WIDTH - def.radius);
       y = clamp(y, def.radius, ARENA_HEIGHT - def.radius);
     }
-    return Math.hypot(x - this.x, y - this.y) < def.radius + this.playerRadius;
+    const hold = def.hold;
+    const r = hold ? (hold.seconds > 0 ? hold.from : hold.to) : def.radius;
+    return Math.hypot(x - this.x, y - this.y) < r + this.playerRadius;
   }
 
   /**
@@ -4508,32 +4641,71 @@ export class World {
   }
 
   /**
-   * Time (DECLINE-ROSTER §4): its clock runs down from `seconds`, and when it
-   * reaches zero the hands stop and the outcome latches exactly as a boss
-   * falling latches it (`bossTakes`): `absorbing` for the exit every boss
-   * takes (1.8s, the act's `endWord` shown in it), then `finishAct`, which
-   * after the last act is the win — natural causes at the act's `age.to`.
-   * A Time before the last act would be a crossing, as any boss is.
+   * Time (DECLINE-ROSTER §4): its clock runs down from `seconds`, and while it
+   * runs the long hand turns and the file is read (`turnHand`). When it
+   * reaches zero the hands stop — the step the clock runs out does not turn
+   * them — and the outcome latches exactly as a boss falling latches it
+   * (`bossTakes`): `absorbing` for the exit every boss takes (1.8s, the act's
+   * `endWord` shown in it), then `finishAct`, which after the last act is the
+   * win — natural causes at the act's `age.to`. A Time before the last act
+   * would be a crossing, as any boss is.
    *
    * Nothing hurts it, so the only other way its fight ends is a write from
    * outside the sim: the dev panel's kill sets `absorbing` itself (handled
    * above, in `updateBoss`), and health written to zero alone is read as the
    * clock run out, so no boss stands at zero forever. Nothing of it runs
    * once the player has died this step: a death on the last step is a death.
-   *
-   * NOT BUILT YET, and the next pass's (§4, TimeBoss): the minute hand — a
-   * sweep `sweepLength` × `sweepWidth` anchored on the boss, turning once
-   * every `sweepSeconds` clockwise from its arrival, the Egg's shot damage on
-   * touch with the usual i-frames — and the file, one of the act's knees at
-   * the player's lead at every quarter turn. Time does nothing else yet.
-   * No dice.
+   * No shots, no fan, no phases. No dice.
    */
-  private timePhase(b: BossState, dt: number): void {
+  private timePhase(b: BossState, time: TimeBoss, dt: number): void {
     if (this.dead) return;
     b.secondsLeft = Math.max(0, b.secondsLeft - dt);
-    if (b.secondsLeft > 0 && b.hp > 0) return;
+    if (b.secondsLeft > 0 && b.hp > 0) {
+      this.turnHand(b, time, dt);
+      return;
+    }
     b.secondsLeft = 0;
     b.phase = 'absorbing';
     b.timer = 1.8;
+  }
+
+  /**
+   * Time's long hand and its file (DECLINE-ROSTER §4), one step of each.
+   *
+   *   1. The hand turns: `hand` is TIME_HAND_REST plus a full turn for every
+   *      `sweepSeconds` it has run (`handSeconds`), clockwise, wrapped to
+   *      [0, 2π). Read off the sum each step, never added to itself, so it
+   *      neither drifts nor runs faster at a longer step.
+   *   2. The hand touches: a player whose body reaches the rectangle
+   *      `sweepLength` × `sweepWidth` from the boss point along it
+   *      (`fromHand`) takes the Egg's shot damage (EGG_SHOT.damage) through
+   *      `hurt`, which gives the usual IFRAMES, unless i-frames are already
+   *      running. A death to it names the act's `bossName`, Time. The hand
+   *      passes over everything else: it walls nothing and nothing walls it,
+   *      a hold included.
+   *   3. The file: at every 1/TIME_FILES_PER_TURN of a turn since its
+   *      arrival (`filed` counts them), one TIME_FILE_ID at the player's lead
+   *      through the Mortgage's room placement (`landOffPlayer`): at the
+   *      lead, or behind the player at a wall — never on them — and none at
+   *      MAX_ACTIVE_ENEMIES. Not on a body the hand has just killed.
+   *
+   * Every number it reads is a PLACEHOLDER under `DECLINE.provisional` but
+   * TIME_HAND_REST, which is the drawing's. No dice.
+   */
+  private turnHand(b: BossState, time: TimeBoss, dt: number): void {
+    this.handSeconds += dt;
+    b.hand = turnOf(TIME_HAND_REST + (Math.PI * 2 * this.handSeconds) / time.sweepSeconds);
+    if (
+      this.invulnerable <= 0 &&
+      fromHand(b.x, b.y, b.hand, time.sweepLength, time.sweepWidth, this.x, this.y) <= this.playerRadius
+    ) {
+      this.hurt(EGG_SHOT.damage, 'boss');
+      if (this.dead) return;
+    }
+    const due = Math.floor((this.handSeconds * TIME_FILES_PER_TURN) / time.sweepSeconds);
+    while (b.filed < due) {
+      b.filed++;
+      this.landOffPlayer(TIME_FILE_ID);
+    }
   }
 }
