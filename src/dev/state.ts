@@ -2,8 +2,8 @@
  * Dev-mode state, with no DOM in it.
  *
  * Separate from `panel.ts` so `ActScene` can hold the state statically while
- * the panel itself stays behind a dynamic `import.meta.env.DEV` branch and out
- * of production bundles.
+ * the panel itself stays behind a dynamic import under `reviewMode()`, in a
+ * chunk of its own that a page without `?review` never loads (D-030).
  */
 
 export interface DevState {

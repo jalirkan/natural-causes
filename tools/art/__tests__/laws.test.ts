@@ -12,7 +12,7 @@ import {
   reservedColourViolations,
   threatColourViolations,
 } from '../check';
-import { thresholdsFor } from '../pipeline';
+import { heldThreats, thresholdsFor } from '../pipeline';
 import {
   FIELD_RESERVED_COLOURS,
   PICKUP_SILHOUETTE,
@@ -26,7 +26,7 @@ import {
 import type { AssetSpec } from '../types';
 import { UI_FILL } from '../../../src/config';
 import { ITEMS, isActive } from '../../../src/data/items';
-import { ACT_IDS, FULL_PALETTE, PAPER, actLight, rgbToOklab } from '../palette';
+import { ACT_IDS, FULL_PALETTE, PAPER, actLight, rgbToOklab, type ActId } from '../palette';
 import { THREAT } from '../palette';
 
 /**
@@ -88,13 +88,8 @@ describe('G-032 — the sprite arrives dark; nothing is corrected on the GPU', (
 
       // Reserved colours: paper is the player's, the act light tone is the
       // pickups', and a threat colour belongs only to an asset that holds it.
-      const held = RESERVATIONS[spec.act];
-      const holds = held
-        ? (Object.entries(held.reservedThreat)
-            .filter(([, who]) => who === spec.id)
-            .map(([cls]) => cls) as Parameters<typeof reservedColourViolations>[2])
-        : [];
-      expect(reservedColourViolations(bmp, spec.act, holds)).toEqual([]);
+      // The same list CONFORM quantised against, a D-029 variant's holder's.
+      expect(reservedColourViolations(bmp, spec.act, heldThreats(spec))).toEqual([]);
     });
   }
 });
@@ -256,6 +251,62 @@ describe('law 11 — each act reserves its silhouettes, before generation', () =
     // moved to the thing that does the reaching.
     expect(RESERVATIONS['conception']!.reservedThreat.ranged).toBe(PROJECTILE_HOLDER);
     expect(RESERVATIONS['conception']!.reservedThreat.boss).toBe('boss-egg');
+  });
+
+  it('D-029: a variant frame wears every threat colour its holder wears', async () => {
+    // The guard the variant frames taught: CONFORM once quantised a boss's
+    // teal away on a variant and every CHECK row still passed. A holder may
+    // choose not to wear its colour (the dodgeball is grey-brown by its
+    // spec); a variant of a holder that does wear it may not lose it.
+    const count = (bmp: Bitmap, [r, g, b]: readonly [number, number, number]) => {
+      let n = 0;
+      for (let i = 0; i < bmp.data.length; i += 4) {
+        if (bmp.data[i] === r && bmp.data[i + 1] === g && bmp.data[i + 2] === b && bmp.data[i + 3]! > 0) n++;
+      }
+      return n;
+    };
+    let checked = 0;
+    for (const [act, reserved] of Object.entries(RESERVATIONS)) {
+      for (const [holder, ids] of Object.entries(reserved!.variants ?? {})) {
+        const holderFile = resolve(process.cwd(), `assets/sprites/${act}/${holder}.png`);
+        if (!existsSync(holderFile)) continue;
+        const holderBmp = await fromPng(readFileSync(holderFile));
+        for (const id of ids) {
+          const file = resolve(process.cwd(), `assets/sprites/${act}/${id}.png`);
+          if (!existsSync(file)) continue;
+          const bmp = await fromPng(readFileSync(file));
+          for (const cls of heldThreats({ act: act as ActId, id })) {
+            const worn = count(holderBmp, THREAT[cls].rgb);
+            if (worn === 0) continue;
+            expect(count(bmp, THREAT[cls].rgb), `${id} lost its holder's ${cls} (${holder} wears ${worn} px)`).toBeGreaterThan(0);
+          }
+          checked++;
+        }
+      }
+    }
+    expect(checked).toBeGreaterThan(0);
+  });
+
+  it('D-029: every variant frame is a boss-role spec in its act and holds its holder\'s reservation', () => {
+    let variants = 0;
+    for (const [act, reserved] of Object.entries(RESERVATIONS)) {
+      for (const [holder, ids] of Object.entries(reserved!.variants ?? {})) {
+        for (const id of ids) {
+          variants++;
+          const spec = ALL_ASSETS.find((a) => a.id === id);
+          expect(spec, `${act}: variant "${id}" of "${holder}" has no spec`).toBeDefined();
+          expect(spec!.act, id).toBe(act);
+          expect(spec!.role, id).toBe('boss');
+          const v = reservationVerdict(act as ActId, id, 'boss');
+          expect(v.status === 'holds' || v.status === 'holds-threat', `${id}: ${v.status}`).toBe(true);
+          expect((v as { variantOf?: string }).variantOf, id).toBe(holder);
+          expect(() => assertReserved(act as ActId, [id], 'boss')).not.toThrow();
+        }
+        // The holder itself is not its own variant.
+        expect(ids, holder).not.toContain(holder);
+      }
+    }
+    expect(variants).toBeGreaterThanOrEqual(7);
   });
 
   it('no two assets in an act share a silhouette', () => {

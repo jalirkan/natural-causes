@@ -17,27 +17,30 @@ import { createServer, type ViteDevServer } from 'vite';
  * reads NaN.
  *
  * It starts the Vite dev server, drives headless Chromium through one whole
- * life with the dev panel — god, 4x, skip to boss, kill, once an act; in
- * College it also walks the player into a tuition and a registrar's HOLD, the
- * act's own drawings (AUDIT 39), and in The Office it asks that the tuition
- * still draws as tuition (AUDIT 38), walks into a ping and within range of a
- * performance review's MEETS, waits for a commute on screen, and at The Reorg
- * takes half its health from the panel and waits for the restructure to be
- * drawn before the kill (AUDIT 54); at the crossing into Family it asks that
- * The Office's paper, the performance review, was drawn, and in Family walks
- * into an HOA letter (the HUD's `reach` term with it) and within range of a
- * phone's HELLO?, waits for a toddler on screen, sees The Mortgage's DUE, and
- * sees its door open on the kill (FAMILY-ROSTER §3–§5); at the crossing
- * into Decline it asks that Family's paper, the mortgage statement, was
- * drawn, and in Decline walks into your knees (the HUD's speed term with
- * them), sees the stairs' ring, and lets an insurance form's DENIED land with
- * god off so the health bar's lost maximum is drawn (AUDIT 90); at Time it
- * asks for the hand drawn on the face and the bar in seconds (AUDIT 96), and
- * then waits Time out, which is the win (DECLINE-ROSTER §3–§5) — and at every
- * milestone asserts: no console error, no page error, no failed request, no
- * Phaser texture warning, nothing visible drawn from `__MISSING`, no
- * NaN/undefined in any text on screen, and after the crossing the screen
- * dressed for the act the world is in, with the camera back at zoom 1.
+ * life with the dev panel — god, 4x, skip to boss, kill, once an act; at the
+ * Egg it sees the ending drawn, its eyes closing or its corona parted
+ * (G-006, D-029), through the absorb; in College it also walks the player
+ * into a tuition and a registrar's HOLD, the act's own drawings (AUDIT 39),
+ * and in The Office it asks that the tuition still draws as tuition (AUDIT
+ * 38), walks into a ping and within range of a performance review's MEETS,
+ * waits for a commute on screen, and at The Reorg takes half its health from
+ * the panel and waits for the restructure to be drawn, the chart in its
+ * first grey frame, before the kill (AUDIT 54); at the crossing into Family
+ * it asks that The Office's paper, the performance review, was drawn, and in
+ * Family walks into an HOA letter (the HUD's `reach` term with it) and
+ * within range of a phone's HELLO?, waits for a toddler on screen, sees The
+ * Mortgage's DUE, and sees its door open on the kill, the open frame
+ * (FAMILY-ROSTER §3–§5); at the crossing into Decline it asks that Family's
+ * paper, the mortgage statement, was drawn, and in Decline walks into your
+ * knees (the HUD's speed term with them), sees the stairs' ring, and lets an
+ * insurance form's DENIED land with god off so the health bar's lost maximum
+ * is drawn (AUDIT 90); at Time it asks for the face frame, the hand drawn on
+ * it and the bar in seconds (AUDIT 96, 121), and then waits Time out, which
+ * is the win (DECLINE-ROSTER §3–§5) — and at every milestone asserts: no
+ * console error, no page error, no failed request, no Phaser texture
+ * warning, nothing visible drawn from `__MISSING`, no NaN/undefined in any
+ * text on screen, and after the crossing the screen dressed for the act the
+ * world is in, with the camera back at zoom 1.
  * Screenshots go to tools/smoke/out/ (gitignored).
  *
  * Each kill is played at 1x. The absorb and the crossing are what a player
@@ -135,8 +138,9 @@ interface Probe {
     /**
      * `restructures` is the world's count (The Reorg's thresholds passed);
      * `drawnRestructures` is the scene's own record of it (`bossRestructures`,
-     * caught up in syncBoss), and `grey` whether the chart's greyed rows are
-     * drawn. Zero, zero and false for every boss that never restructures.
+     * caught up in syncBoss), and `grey` whether the chart is drawn in one of
+     * its greyed frames (`bossFrames.grey`, D-029). Zero, zero and false for
+     * every boss that never restructures.
      */
     boss: {
       phase: string;
@@ -144,7 +148,7 @@ interface Probe {
       restructures: number;
       drawnRestructures: number;
       grey: boolean;
-      /** The Mortgage's door drawn open (`bossDoor`, visible): false for every other boss, and before its absorb. */
+      /** The Mortgage drawn in its open frame (`bossFrames.open`): false for every other boss, and before its absorb. */
       door: boolean;
     } | null;
     /**
@@ -155,6 +159,8 @@ interface Probe {
     /** The camera's look at the boss on its entrance (AUDIT 37) is owed or running. */
     bossLook: boolean;
     bossFrame: string;
+    /** The act's boss variants (`ActVisuals.bossFrames`, D-029), `{}` for a boss with none. */
+    bossFrames: { closing?: string; parted?: string; grey?: string[]; open?: string; face?: string };
     offers: string[] | null;
     won: boolean;
     dead: boolean;
@@ -173,13 +179,13 @@ interface Probe {
     /** The HUD's worn line (`hudDrag`): `2 attached · reach −14%`. */
     wornLine: string;
     /**
-     * The health bar's empty tail in HUD px (`hpTail`): the share of the act's
-     * opening maximum the insurance form's decisions took (AUDIT 90). Zero
-     * with nothing taken. With the world's two maxima it was drawn from.
+     * The health bar's empty tail in HUD px (`hpTail`): the share of the
+     * items' maximum the insurance form's decisions took (AUDIT 90, 122).
+     * Zero with nothing taken. With the world's two maxima it was drawn from.
      */
     hpTail: number;
     maxHp: number;
-    openingMaxHp: number;
+    itemsMaxHp: number;
     /** The label over the boss's bar (`hudBossLabel`), while it shows: Time's reads its seconds. */
     bossLabel: string | null;
     /**
@@ -262,8 +268,8 @@ const PROBE = String.raw`(() => {
             hp: w.boss.hp,
             restructures: w.boss.restructures,
             drawnRestructures: s.bossRestructures,
-            grey: !!s.bossGrey && s.bossGrey.visible,
-            door: !!s.bossDoor && s.bossDoor.visible,
+            grey: !!s.bossSprite && (s.visuals.bossFrames?.grey || []).includes(s.bossSprite.frame.name),
+            door: !!s.bossSprite && !!s.visuals.bossFrames?.open && s.bossSprite.frame.name === s.visuals.bossFrames.open,
           }
         : null,
       bossSprite: s.bossSprite
@@ -277,6 +283,7 @@ const PROBE = String.raw`(() => {
         : null,
       bossLook: !!s.bossEntranceOwed || !!s.bossEntrance,
       bossFrame: s.visuals.bossFrame,
+      bossFrames: s.visuals.bossFrames || {},
       offers: w.offers ? [...w.offers] : null,
       won: w.won,
       dead: w.dead,
@@ -292,7 +299,7 @@ const PROBE = String.raw`(() => {
       wornLine: s.hudDrag.text,
       hpTail: s.hpTail,
       maxHp: w.maxHp,
-      openingMaxHp: w.openingMaxHp,
+      itemsMaxHp: w.itemsMaxHp,
       bossLabel: s.hudBossLabel.visible ? s.hudBossLabel.text : null,
       hand:
         s.bossHand && s.bossHand.visible
@@ -580,13 +587,37 @@ async function main(): Promise<void> {
   p = await waitFor('conception', (q) => !!q.act && q.act.god && q.act.timeScale === 4 && populated(q));
   await milestone('conception', p, actLine(p));
 
+  // The Egg stands in its own frame, and then does not die (G-006): through
+  // the absorb its eyes close and its corona parts, each a drawn frame
+  // (D-029) swapped in at the absorb's start and its halfway. The panel's
+  // kill goes straight to the absorb, which runs 1.8s at 1x, so each frame is
+  // up for 0.9s; either is latched drawn at any poll through the exit, and the
+  // milestone's picture is taken on the parted one, or on the crossing if no
+  // poll landed on it.
   await press('conception-boss', 'skip to boss');
   p = await waitFor('conception-boss', (q) => !!q.act?.boss && q.act.bossSprite?.frame === q.act.bossFrame);
-  await milestone('conception-boss', p, actLine(p));
-
   // The absorb and the crossing at player speed (see the header), then 4x again.
+  const egg = { closing: false, parted: false };
+  const readEgg = (q: Probe) => {
+    const frame = q.act?.bossSprite?.frame;
+    if (!frame || !q.act) return;
+    egg.closing ||= frame === q.act.bossFrames.closing;
+    egg.parted ||= frame === q.act.bossFrames.parted;
+  };
   await press('conception-boss', '1x');
   await press('conception-boss', 'kill');
+  p = await waitFor('conception-boss', (q) => {
+    readEgg(q);
+    return egg.parted || (q.act?.index ?? 0) > 0;
+  });
+  if (!egg.closing && !egg.parted) {
+    throw new SmokeFailure('conception-boss', 'The Egg absorbed and was never drawn with its eyes closed or its corona parted', p);
+  }
+  await milestone(
+    'conception-boss',
+    p,
+    `${actLine(p)}  eyes closed ${egg.closing ? 'seen' : 'not polled'}, corona parted ${egg.parted ? 'seen' : 'not polled'}`,
+  );
   p = await waitFor('school', (q) => q.act?.index === 1 && q.act.shown === 1 && q.act.zoom === 1 && hudAge(q));
   await press('school', '4x');
   p = await waitFor('school', (q) => q.act?.index === 1 && q.act.timeScale === 4 && populated(q));
@@ -726,12 +757,14 @@ async function main(): Promise<void> {
   // The panel's kill goes straight to the absorb and passes no threshold, so
   // first its "−50%" takes half the chart's health (it cannot reach zero) and
   // the smoke waits for the restructure to be DRAWN, not only counted: the
-  // world's count up, the scene's own count caught up to it, the greyed row
-  // on the chart, and the chart's sprite somewhere else — the Reorg never
-  // moves but at a restructure. Half from full passes two thirds and not one
-  // third, so this is one restructure; the line prints the count seen, and a
-  // second one (the build's own fire taking it under a third first) would
-  // show there. Not while absorbing: the kill greys every row.
+  // world's count up, the scene's own count caught up to it, the chart in the
+  // grey frame that count names (`bossFrames.grey`, D-029: the first, one row
+  // greyed, for one restructure), and the chart's sprite somewhere else — the
+  // Reorg never moves but at a restructure. Half from full passes two thirds
+  // and not one third, so this is one restructure and boss-reorg-grey-1; the
+  // line prints the count and the frame seen, and a second one (the build's
+  // own fire taking it under a third first) would show there, in the second
+  // grey frame. Not while absorbing: the kill greys every row.
   // It waits out the entrance's look first, so the camera is back on the
   // player when the chart moves and the picture is framed as a player sees
   // it. Whether the chart then landed in view is printed, not asserted: it
@@ -743,6 +776,11 @@ async function main(): Promise<void> {
   await press('office-reorg', '1x');
   await waitFor('office-reorg', (q) => !!q.act && !q.act.bossLook);
   await press('office-reorg', '−50%');
+  const greyFor = (q: Probe) => {
+    const grey = q.act?.bossFrames.grey ?? [];
+    const n = Math.min(q.act?.boss?.restructures ?? 0, grey.length);
+    return n >= 1 ? grey[n - 1] : undefined;
+  };
   p = await waitFor(
     'office-reorg',
     (q) =>
@@ -751,8 +789,13 @@ async function main(): Promise<void> {
       q.act.boss.restructures >= 1 &&
       q.act.boss.drawnRestructures === q.act.boss.restructures &&
       q.act.boss.grey &&
+      !!greyFor(q) &&
+      q.act.bossSprite?.frame === greyFor(q) &&
       chartMoved(q) > 1,
   );
+  if (p.act!.boss!.restructures === 1 && p.act!.bossSprite!.frame !== 'boss-reorg-grey-1.png') {
+    throw new SmokeFailure('office-reorg', `one restructure drew the chart as ${p.act!.bossSprite!.frame}, not boss-reorg-grey-1.png`, p);
+  }
   await milestone(
     'office-reorg',
     p,
@@ -852,8 +895,10 @@ async function main(): Promise<void> {
   });
   await milestone('family-boss', p, `${actLine(p)}  DUE drawn`);
 
-  // The door opens on the payoff (§4): drawn from the frame the house begins
-  // to absorb, latched at any poll through the absorb, which runs 1.8s at 1x.
+  // The door opens on the payoff (§4): the house drawn in its open frame
+  // (`bossFrames.open`, D-029) from the frame it begins to absorb, and shut
+  // before (family-boss above saw it in its own frame), latched at any poll
+  // through the absorb, which runs 1.8s at 1x.
   // The Mortgage paid off crosses into Decline (DECLINE-ROSTER §5), and
   // Family's paper, the mortgage statement, is drawn for the first time: a
   // life that ended at The Mortgage never crossed with it. Latched as the
@@ -867,7 +912,7 @@ async function main(): Promise<void> {
     readStatement(q);
     return q.act?.index === 6 && q.act.shown === 6 && q.act.zoom === 1 && hudAge(q);
   });
-  if (!family.door) throw new SmokeFailure('decline', 'The Mortgage fell and its door was never drawn open', p);
+  if (!family.door) throw new SmokeFailure('decline', 'The Mortgage fell and was never drawn in its open frame', p);
   await press('decline', '4x');
   p = await waitFor('decline', (q) => {
     readStatement(q);
@@ -876,7 +921,7 @@ async function main(): Promise<void> {
   if (!decline.paper) {
     throw new SmokeFailure('decline', "the crossing into Decline never drew Family's paper, MORTGAGE STATEMENT", p);
   }
-  await milestone('decline', p, `${actLine(p)}  door opened  paper MORTGAGE STATEMENT`);
+  await milestone('decline', p, `${actLine(p)}  door opened (open frame seen)  paper MORTGAGE STATEMENT`);
 
   // Decline's own drawings (DECLINE-ROSTER §3), as Family's above and at the
   // same 4x: your knees worn on the player with the HUD's speed term that
@@ -959,13 +1004,14 @@ async function main(): Promise<void> {
     'decline-play',
     p,
     `${actLine(p)}  worn knees ${decline.worn}  "${p.act!.wornLine}"  stairs seen  DENIED landed  ` +
-      `max ${Math.round(p.act!.maxHp)}/${Math.round(p.act!.openingMaxHp)}, tail ${decline.tail}px`,
+      `max ${Math.round(p.act!.maxHp)}/${Math.round(p.act!.itemsMaxHp)}, tail ${decline.tail}px`,
   );
 
-  // Time (§4): its sprite in its frame, and its minute hand drawn as its own
-  // shape, pivoted on the clock's face (the pivot is within a pixel of the
-  // sprite's anchor, bossBody's cy; 4px is the tolerance), with the bar over
-  // it labelled in seconds, never health.
+  // Time (§4): its sprite in its face frame, the clock without its long hand
+  // (`bossFrames.face`, D-029), and its minute hand drawn as its own shape,
+  // pivoted on the clock's face (the pivot is within a pixel of the sprite's
+  // anchor, bossBody's cy; 4px is the tolerance), with the bar over it
+  // labelled in seconds, never health.
   await press('decline-boss', 'skip to boss');
   const handOnFace = (q: Probe) =>
     !!q.act?.hand &&
@@ -975,7 +1021,8 @@ async function main(): Promise<void> {
     'decline-boss',
     (q) =>
       !!q.act?.boss &&
-      q.act.bossSprite?.frame === q.act.bossFrame &&
+      !!q.act.bossFrames.face &&
+      q.act.bossSprite?.frame === q.act.bossFrames.face &&
       handOnFace(q) &&
       /\bseconds?\b/.test(q.act.bossLabel ?? ''),
   );

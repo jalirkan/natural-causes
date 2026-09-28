@@ -259,9 +259,11 @@ export const MAX_HP_FLOOR = 1 / 5;
  * Time's long hand at rest (DECLINE-ROSTER §4, AUDIT 96), in radians: 60.6°
  * clockwise from twelve, pointing at two. Measured, not chosen: the drawer
  * measured it on `boss-time` (tools/art/svg/decline/boss-time.svg, "ten past
- * ten"), where the pose is baked into the sprite. `BossState.hand` is this at
- * Time's arrival, so the drawn pose and the sim's hazard agree on the first
- * frame. If the drawing's rest pose moves, this follows it.
+ * ten"), the holder frame, where the pose is baked in. In play Time is drawn
+ * in its face frame without the long hand (D-029, AUDIT 148) and the
+ * renderer draws the hand from `BossState.hand`, which is this at Time's
+ * arrival, so the first frame's hand stands where the drawing's would. If
+ * the drawing's rest pose moves, this follows it.
  */
 export const TIME_HAND_REST = (60.6 * Math.PI) / 180;
 
@@ -1334,6 +1336,18 @@ export class World {
   }
 
   /**
+   * The maximum health the items give now, with no decision applied: the
+   * base times every passive's `healthMultiplier` and the inheritance's, with
+   * no `maxHpLoss` taken. What `maxHp` would be if nothing had decided, so a
+   * HUD drawing the maximum against it shows a decision's loss even after a
+   * later Thick Skin (AUDIT 122). Moves with the items; never with a
+   * decision. Read-only.
+   */
+  get itemsMaxHp(): number {
+    return this.itemMaxHp;
+  }
+
+  /**
    * The maximum health this act began with, before any decision: the length a
    * HUD can draw the maximum's bar against, so a shrinking maximum shows as a
    * shrinking bar rather than as a full one (DECLINE-ROSTER §5). Read-only.
@@ -1543,6 +1557,19 @@ export class World {
    */
   get engulfCooldownFactor(): number {
     return this.engulfTimer > 0 ? this.engulfCooldown : 1;
+  }
+
+  /**
+   * The body holding the player while a hold's window runs (an engulf: the
+   * white cell's, the toddler's), else null. The one the sim chose at the
+   * touch, not whichever engulfer is touching now, so a renderer or a sound
+   * need not guess between two (AUDIT 81, 112); its `def` is what holds.
+   * Null once the window is over, or zeroed from outside (dev god mode). A
+   * body killed mid-hold is still the holder until the window ends, and is
+   * no longer in `enemies`. Read-only.
+   */
+  get heldBy(): Readonly<EnemyState> | null {
+    return this.engulfTimer > 0 ? this.engulfer : null;
   }
 
   /**

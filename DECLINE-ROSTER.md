@@ -312,6 +312,7 @@ left" where they read "boss left" (they cannot hurt it; their job is to live).
 - **Service**, the other branch at eighteen; **the choice at Prom's crossing**.
 - **Sounds:** the pills rattling, the rain, the stairs' creak, the tick.
 - *2026-09-28:* **Nap exists** (G-052, `nap`, `from: 'decline'`): under a third of health the player falls asleep in the chair for a moment, untouchable but not unshootable, and heals; Time's hand still hits a sleeper (the clock keeps running). Paths Power Nap, Habit, Deep Sleep; an armchair on the card, never on the field.
+- *2026-09-28, later:* **The sounds exist** (`edges.ts`): the rattle for a medication arriving, the rain for the weather entering, the creak for a flight of stairs landing, a rubber stamp for the form consulting (its DENIED lands silent, as HELLO? does), and Time's tick at each quarter turn and each of its last five seconds, nothing at zero. The rattle is floored at a second and plays about that often all act: a reaction question, background or nag.
 
 ## 7 · Open question
 

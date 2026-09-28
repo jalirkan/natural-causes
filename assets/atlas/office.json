@@ -20,10 +20,70 @@
         "h": 384
       }
     },
-    "player-office.png": {
+    "boss-reorg-grey-1.png": {
       "frame": {
         "x": 388,
         "y": 2,
+        "w": 384,
+        "h": 384
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 384,
+        "h": 384
+      },
+      "sourceSize": {
+        "w": 384,
+        "h": 384
+      }
+    },
+    "boss-reorg-grey-2.png": {
+      "frame": {
+        "x": 2,
+        "y": 388,
+        "w": 384,
+        "h": 384
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 384,
+        "h": 384
+      },
+      "sourceSize": {
+        "w": 384,
+        "h": 384
+      }
+    },
+    "boss-reorg-grey-3.png": {
+      "frame": {
+        "x": 388,
+        "y": 388,
+        "w": 384,
+        "h": 384
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 384,
+        "h": 384
+      },
+      "sourceSize": {
+        "w": 384,
+        "h": 384
+      }
+    },
+    "player-office.png": {
+      "frame": {
+        "x": 774,
+        "y": 388,
         "w": 112,
         "h": 112
       },
@@ -42,7 +102,7 @@
     },
     "commute.png": {
       "frame": {
-        "x": 2,
+        "x": 888,
         "y": 388,
         "w": 104,
         "h": 104
@@ -62,8 +122,8 @@
     },
     "meeting.png": {
       "frame": {
-        "x": 108,
-        "y": 388,
+        "x": 2,
+        "y": 774,
         "w": 96,
         "h": 96
       },
@@ -82,8 +142,8 @@
     },
     "performance-review.png": {
       "frame": {
-        "x": 206,
-        "y": 388,
+        "x": 100,
+        "y": 774,
         "w": 88,
         "h": 88
       },
@@ -102,8 +162,8 @@
     },
     "reply-all.png": {
       "frame": {
-        "x": 296,
-        "y": 388,
+        "x": 190,
+        "y": 774,
         "w": 48,
         "h": 48
       },
@@ -122,8 +182,8 @@
     },
     "ping.png": {
       "frame": {
-        "x": 346,
-        "y": 388,
+        "x": 240,
+        "y": 774,
         "w": 40,
         "h": 40
       },
@@ -147,8 +207,8 @@
     "image": "office.png",
     "format": "RGBA8888",
     "size": {
-      "w": 512,
-      "h": 512
+      "w": 1024,
+      "h": 1024
     },
     "scale": "1"
   }

@@ -2,6 +2,7 @@ import { CONCEPTION, type ActDef, type BossDef } from '../../src/data/acts';
 import { ITEMS, OFFER_PATH_SEPARATOR, isActive } from '../../src/data/items';
 import type { EnemyDef } from '../../src/data/enemies';
 import {
+  RING_BAND,
   World,
   fromHand,
   type EnemyState,
@@ -27,8 +28,10 @@ import {
  * is, never the game: the decision cadence (`cadenceSeconds`, 0.2s), the
  * aimed-shot sidestep (`SHOT_LOOKAHEAD_SECONDS` 0.6s, `SHOT_SIDESTEP_WEIGHT`
  * 0.8, `SHOT_MARGIN_PX` 8px) and Time's hand in it (`HAND_CLEARANCE_PX`
- * 24px), the shield reading (`SHIELD_PULL_WEIGHT` 0.7,
- * `HUNT_CLEARANCE_PX` 40px, `FLOOR_HOLD_FRACTION` 0.8) and the toddler
+ * 24px), the standoff from a boss that cannot be hurt
+ * (`OUT_OF_REACH_MARGIN_PX` 48px past its hazard), the shield reading
+ * (`SHIELD_PULL_WEIGHT` 0.7, `HUNT_CLEARANCE_PX` 40px,
+ * `FLOOR_HOLD_FRACTION` 0.8) and the toddler
  * (`COY_WEIGHT_PER_HELD_SECOND` 0.25, `COY_RADIUS_PX` 150px,
  * `COY_CLEARANCE_PX` 24px). What retires them is a human input log (§11.5),
  * not a bot run.
@@ -207,6 +210,17 @@ export interface RunResult {
   bossFightSeconds: number;
   /** Of `bossFightSeconds`, the seconds `World.boss.shielded` was up. */
   bossShieldedSeconds: number;
+  /**
+   * Seconds of fight against Time with its hand turning (`HandLog`), from its
+   * arrival until its clock latched or the run ended; zero for a run that
+   * never met it. Optional so a result written before the field existed
+   * still reads.
+   */
+  timeFightSeconds?: number;
+  /** Contacts with Time's hand (`HandLog`): once per i-frame window, never a shot's. */
+  handContacts?: number;
+  /** 1 when the run died on a step the hand touched it (`HandLog`), else 0. */
+  handDeaths?: number;
 }
 
 /**
@@ -620,6 +634,62 @@ export function bossHasShield(boss: BossDef): boolean {
   return boss.kind === 'gym-teacher' || boss.kind === 'prom';
 }
 
+// --- a boss that cannot be hurt ----------------------------------------------
+//
+// DECLINE-ROSTER §4: Time is survived, not fought. The standoff below is the
+// build's weapon reach, which puts the bot 175–300px from the pivot, inside
+// the 520px hand's disc, where every meeting with the hand is a crossing
+// (AUDIT nine, 119). A boss nothing hurts gives the bot no reason to stand in
+// weapon reach, so it stands where the boss cannot reach it. The number is
+// the bot's, not the game's.
+
+/**
+ * PLACEHOLDER, 48px. How far past a boss's hazard the bot stands off a boss
+ * it cannot hurt: outside Time's hand by more than the ~30px one cadence of
+ * the standoff's in-and-out carries a bot at the base speed, so the hand's
+ * tip passes it by. Awaiting a human input log (§11.5), like the cadence.
+ */
+export const OUT_OF_REACH_MARGIN_PX = 48;
+
+/**
+ * A boss nothing hurts: Time, whose damage `World.bossTakes` refuses by its
+ * kind. The sim exposes no flag for it, so this reads the kind, as
+ * `bossHasShield` does; the Loan, the Mortgage and the rest are fought.
+ */
+export function bossCannotBeHurt(boss: BossDef): boolean {
+  return boss.kind === 'time';
+}
+
+/**
+ * How far from its point a boss's own hazard can touch a body of radius
+ * `playerRadius`: Time's long hand, the rectangle `sweepLength` ×
+ * `sweepWidth` turning about the pivot (`fromHand`), reaches its tip's outer
+ * corner plus the body. Null for a boss whose reach the bot does not read.
+ */
+export function bossHazardReach(boss: BossDef, playerRadius: number): number | null {
+  if (boss.kind !== 'time') return null;
+  return Math.hypot(boss.sweepLength, boss.sweepWidth / 2) + playerRadius;
+}
+
+/**
+ * Where the bot stands off the boss, from its point. A boss that can be hurt:
+ * the build's shortest weapon reach × 0.7, held between BOSS_STANDOFF_MIN
+ * and 300 (`shortestReach`), unchanged. A boss that cannot (`bossCannotBeHurt`):
+ * beyond its hazard by OUT_OF_REACH_MARGIN_PX, never nearer than the fought
+ * standoff. The orbit beside it is unchanged too: counterclockwise, against
+ * the hand, which is the way to cross it where a wall forces the bot inside.
+ * Where a wall cuts the circle the orbit and the standoff cancel along the
+ * wall and the bot parks there, as it does at any boss whose circle meets a
+ * wall; at Time's radius that is any boss point within it of a wall.
+ */
+export function bossStandoff(w: World): number {
+  const fought = Math.max(BOSS_STANDOFF_MIN, Math.min(shortestReach(w) * 0.7, 300));
+  const def = w.act.boss;
+  if (!bossCannotBeHurt(def)) return fought;
+  const hazard = bossHazardReach(def, w.playerRadius);
+  return hazard === null ? fought : Math.max(fought, hazard + OUT_OF_REACH_MARGIN_PX);
+}
+
 /**
  * The Gym Teacher's shield, as the bot sees it: while he is shielded, the
  * nearest living `enemyId` on the field; otherwise null. The same predicate
@@ -761,7 +831,9 @@ function decideMove(w: World, rng: () => number, state: BotState): Input {
         ay += ((ball.y - w.y) / d) * SHIELD_PULL_WEIGHT;
       }
     } else {
-      const standoff = Math.max(BOSS_STANDOFF_MIN, Math.min(reach * 0.7, 300));
+      // Beyond the hand at Time, which cannot be hurt (`bossStandoff`); the
+      // build's reach at every other boss, as it always was.
+      const standoff = bossStandoff(w);
       const d = Math.hypot(w.boss.x - w.x, w.boss.y - w.y) || 1;
       const toX = (w.boss.x - w.x) / d;
       const toY = (w.boss.y - w.y) / d;
@@ -905,10 +977,30 @@ export function stacksWorn(w: Pick<World, 'wornBy'>): number {
  * because the first shot to hurt grants i-frames and the rest are consumed
  * harmlessly.
  *
- * Known limits, both rare: a shot fired AND consumed inside one step (a
+ * Within reach of WHERE the player was when it landed. The sim consumes a
+ * shot where the player stands at contact, and the phone's call then moves
+ * them up to its `pull` (180px) toward the phone inside the same step
+ * (`pullToward`), so the position after the step is not the one the shot
+ * met: read against it alone, no call that landed was ever credited (AUDIT
+ * eight, 86: "phone-call 0/N", the blind control included). So a vanished
+ * shot is read against both: the position after the step, as before, and the
+ * one before it widened by one step's walk (`speed` × dt), which is all the
+ * player moves between `look` and contact on its own. The shot's own
+ * position is where it vanished: the sim moves it, then consumes it, and
+ * never touches it again.
+ *
+ * And only a shot that did not run out: `moveProjectiles` spends a shot's
+ * life and drops it at zero, before contact, so a shot gone with its life
+ * spent expired and hurt nobody — the one that would otherwise be credited
+ * for a fall beside it (a hand hit at Time beside a DENIED running out,
+ * AUDIT nine, 119).
+ *
+ * Known limits, all rare: a shot fired AND consumed inside one step (a
  * substitute firing from touching distance) is never in view and is missed;
  * a contact or ring hurting for at least a shot's damage on the very step a
- * racer ate a shot beside the player is counted as that shot.
+ * racer ate a shot beside the player is counted as that shot; a call landing
+ * on the step a pile or a room pushed the player further than a step's walk
+ * (`resolveSolids`, before contact) is missed.
  */
 export class ShotLog {
   seen = 0;
@@ -919,10 +1011,16 @@ export class ShotLog {
   private readonly alive = new Set<ProjectileState>();
   private hpBefore = 0;
   private iframesBefore = 0;
+  private xBefore = 0;
+  private yBefore = 0;
+  private speedBefore = 0;
 
   look(w: World): void {
     this.hpBefore = w.hp;
     this.iframesBefore = w.invulnerable;
+    this.xBefore = w.x;
+    this.yBefore = w.y;
+    this.speedBefore = w.speed;
     this.inView.length = 0;
     for (const p of w.projectiles) {
       if (!p.hostile) continue;
@@ -931,26 +1029,31 @@ export class ShotLog {
     }
   }
 
-  settle(w: World, dt: number): void {
+  /** True when a shot was credited on this step. */
+  settle(w: World, dt: number): boolean {
     const fell = this.hpBefore - w.hp;
     // `step` ticks the i-frames down before anything can hurt; this is its
     // arithmetic exactly, so a shot is never credited through i-frames.
-    if (fell <= 0 || Math.max(0, this.iframesBefore - dt) > 0) return;
+    if (fell <= 0 || Math.max(0, this.iframesBefore - dt) > 0) return false;
     this.alive.clear();
     for (const p of w.projectiles) if (p.hostile) this.alive.add(p);
+    const walk = this.speedBefore * dt;
     // Backwards, as `resolveContact` walks them, so the shot credited is the
     // one the world most likely let through when two arrive together.
     for (let i = this.inView.length - 1; i >= 0; i--) {
       const p = this.inView[i]!;
-      if (this.alive.has(p)) continue;
+      if (this.alive.has(p) || p.life <= 0) continue;
       const reach = w.playerRadius + p.radius;
-      if ((p.x - w.x) ** 2 + (p.y - w.y) ** 2 > reach * reach) continue;
+      const after = (p.x - w.x) ** 2 + (p.y - w.y) ** 2 <= reach * reach;
+      const before = (p.x - this.xBefore) ** 2 + (p.y - this.yBefore) ** 2 <= (reach + walk) ** 2;
+      if (!after && !before) continue;
       if (w.hp > 0 && fell < p.damage * w.damageTaken - 1e-9) continue;
       if (!this.counted.has(p)) this.see(p);
       this.hit++;
       this.tally(p).hit++;
-      return;
+      return true;
     }
+    return false;
   }
 
   private see(p: ProjectileState): void {
@@ -963,6 +1066,75 @@ export class ShotLog {
     const id = p.owner?.id ?? 'boss';
     return (this.by[id] ??= { seen: 0, hit: 0 });
   }
+}
+
+/**
+ * Time's hand, tallied (DECLINE-ROSTER §4; AUDIT nine, 119). `look` before
+ * each `world.step`, `settle` after, beside the shot log. The hand is not a
+ * shot, so the aimed-shot table never sees it, and a death to it reads only
+ * "Time" on the certificate.
+ *
+ * A contact is the sim's own predicate read from outside: `turnHand` hurts a
+ * player whose body reaches the hand's rectangle (`fromHand`, at most the
+ * player's radius) when the i-frames are down, after every other hurt in the
+ * step and after the phone's pull, and nothing moves the player or the hand
+ * after it. So a step counts when the hand was turning before it and still is
+ * (not `absorbing`), the i-frames had run out as `step` ticks them, health
+ * fell, the i-frames are up again (the `hurt` edge, set even on a kill), the
+ * player stands on the rectangle now — and nothing earlier in the step took
+ * the i-frames first: no shot credited by the shot log (`shotHit`), no ring's
+ * band on the player, and no damaging body touching them awake (a ring and
+ * the crowd's touch hurt earlier in the step, and the hand is then blocked;
+ * nothing moves the player between them and the hand at Time, which fields
+ * no phone). Once per i-frame window, by construction: the hurt it counts
+ * raises them. A death on a counted step is a death to the hand. No dice.
+ */
+export class HandLog {
+  contacts = 0;
+  deaths = 0;
+  private hpBefore = 0;
+  private iframesBefore = 0;
+  private asleepBefore = false;
+  private turningBefore = false;
+
+  look(w: World): void {
+    this.hpBefore = w.hp;
+    this.iframesBefore = w.invulnerable;
+    this.asleepBefore = w.napTimer > 0;
+    this.turningBefore = handTurning(w);
+  }
+
+  /** True when a contact with the hand was counted on this step. */
+  settle(w: World, dt: number, shotHit = false): boolean {
+    if (shotHit || !this.turningBefore || !handTurning(w)) return false;
+    if (this.hpBefore - w.hp <= 0 || Math.max(0, this.iframesBefore - dt) > 0) return false;
+    // `hurt` raises them before it kills; a death by an engulf's tick or an
+    // attach's damage does not, and is not the hand's.
+    if (w.invulnerable <= 0) return false;
+    const b = w.boss!;
+    const def = w.act.boss;
+    if (def.kind !== 'time') return false;
+    if (fromHand(b.x, b.y, b.hand, def.sweepLength, def.sweepWidth, w.x, w.y) > w.playerRadius) return false;
+    for (const r of w.rings) {
+      const radius = r.maxRadius * (r.age / r.seconds);
+      if (Math.abs(Math.hypot(w.x - r.x, w.y - r.y) - radius) <= RING_BAND + w.playerRadius) return false;
+    }
+    if (!this.asleepBefore) {
+      for (const e of w.enemies) {
+        if (e.def.contact !== 'damage' || e.def.contactDamage <= 0) continue;
+        const r = e.radius + w.playerRadius;
+        if ((e.x - w.x) ** 2 + (e.y - w.y) ** 2 <= r * r) return false;
+      }
+    }
+    this.contacts++;
+    if (w.dead) this.deaths++;
+    return true;
+  }
+}
+
+/** Time is standing and its hand turning: the boss is Time and its fight has not latched. */
+function handTurning(w: Pick<World, 'boss' | 'act'>): boolean {
+  return w.boss !== null && w.act.boss.kind === 'time' && w.boss.phase !== 'absorbing';
 }
 
 /**
@@ -1077,6 +1249,8 @@ export function runOnce(
 
   const state = freshState(policy, world);
   const shots = new ShotLog();
+  const hand = new HandLog();
+  let timeFightSeconds = 0;
   let steps = 0;
   let stacksAt300 = 0;
   let reached300 = false;
@@ -1126,13 +1300,16 @@ export function runOnce(
     const inCrowdPhase = world.actIndex === 0 && world.time < act.durationSeconds;
     const input = decideWithCadence(world, rng, state, DT);
     shots.look(world);
+    hand.look(world);
     // Held from before the step: the crossing step also deals Precocity's
     // unasked level (G-042), which is School's, not the first act's.
     const itemsBeforeStep = stacksAtFirstActEnd === null ? Object.fromEntries(world.items) : null;
     world.step(DT, input);
-    shots.settle(world, DT);
+    const shotHit = shots.settle(world, DT);
+    hand.settle(world, DT, shotHit);
     steps++;
 
+    if (handTurning(world)) timeFightSeconds += DT;
     if (world.boss && world.boss.phase !== 'absorbing' && bossHasShield(world.act.boss)) {
       bossFightSeconds += DT;
       if (world.boss.shielded) bossShieldedSeconds += DT;
@@ -1197,6 +1374,9 @@ export function runOnce(
     inheritance: world.inheritance?.id ?? null,
     bossFightSeconds: +bossFightSeconds.toFixed(1),
     bossShieldedSeconds: +bossShieldedSeconds.toFixed(1),
+    timeFightSeconds: +timeFightSeconds.toFixed(1),
+    handContacts: hand.contacts,
+    handDeaths: hand.deaths,
   };
 }
 
@@ -1341,6 +1521,14 @@ export interface PolicySummary {
   bossFightSeconds: number;
   bossShieldedSeconds: number;
   medianBossFightSeconds: number | null;
+  /**
+   * Time's hand (`HandLog`): how many runs met Time, and over them the hand's
+   * contacts and the deaths on a contact. Totals, as the shots are: counts,
+   * not rates.
+   */
+  timeFights: number;
+  handContacts: number;
+  handDeaths: number;
   /** Runs that hit the step cap alive — in one act, the 120s past the boss. */
   runsAtCap: number;
 }
@@ -1425,6 +1613,9 @@ export function summarise(results: RunResult[]): PolicySummary[] {
         const fought = runs.filter((r) => r.bossFightSeconds > 0);
         return fought.length ? median(fought.map((r) => r.bossFightSeconds)) : null;
       })(),
+      timeFights: runs.filter((r) => (r.timeFightSeconds ?? 0) > 0).length,
+      handContacts: runs.reduce((n, r) => n + (r.handContacts ?? 0), 0),
+      handDeaths: runs.reduce((n, r) => n + (r.handDeaths ?? 0), 0),
       runsAtCap: runs.filter((r) => r.outcome === 'alive').length,
     };
   });

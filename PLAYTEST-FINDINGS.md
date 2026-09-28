@@ -49,6 +49,10 @@ The habits are taken as the pool offers them — the Highlighter in one life in 
 never, the Nap never — so their presence is established and nothing about them is measured. Nothing
 here is calibration; the questions for a person are DECLINE-ROSTER §7's and README's 17 to 20.
 
+*Amended 2026-09-28, later:* Time's three kills were the **INSTRUMENT** (AUDIT 119): the bots stood
+off Time at weapon reach, inside its disc. Standing past the hand's reach (H2's `bossStandoff`) reads
+Time 0 of 96 on the same seeds, and the phone's call, never credited before (AUDIT 86), now is.
+
 ---
 
 # 2026-09-28 · After Family — the six-act life. Presence only.

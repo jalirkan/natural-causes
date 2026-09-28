@@ -4,15 +4,19 @@ import {
   ALL_ACTS,
   COLLEGE,
   CONCEPTION,
+  DECLINE,
   FAMILY,
   OFFICE,
   type ActDef,
   type MortgageBoss,
   type ReorgBoss,
+  type TimeBoss,
 } from '../../data/acts';
 import { enemyDef, type EnemyDef } from '../../data/enemies';
-import { MAX_ACTIVE_ENEMIES, World, type EnemyState, type HoldState } from '../../sim/world';
+import { MAX_ACTIVE_ENEMIES, TIME_FILES_PER_TURN, World, type EnemyState, type HoldState } from '../../sim/world';
 import {
+  TIME_COUNTDOWN,
+  borrowsAhem,
   consulting,
   holdArrived,
   holdTaken,
@@ -21,6 +25,7 @@ import {
   memoDrafted,
   newestAbove,
   statementDrafted,
+  timeTicks,
   vehiclesEntered,
   wornGained,
 } from '../edges';
@@ -32,8 +37,11 @@ import {
  * drafted. Family's (FAMILY-ROSTER §6) are read the same way: a bill arriving
  * (the doorbell), the phone consulting (the ring), the toddler taking hold
  * (the squeak), the flat-pack entering (the tape), the Mortgage's statement
- * drafted and a window of it paid (the till). Each is gated on a def id or
- * the boss kind, never on the act.
+ * drafted and a window of it paid (the till). Decline's (DECLINE-ROSTER §6)
+ * too: a medication arriving (the rattle), the weather entering (the rain),
+ * a flight of stairs landing (the creak), the insurance form consulting
+ * (DENIED's stamp, its shot silent), and Time's tick. Each is gated on a def
+ * id or the boss kind, never on the act.
  *
  * `Ear` keeps what hearWorld keeps for these edges and counts what it would
  * play, a step standing for a frame (the scene takes one step a frame).
@@ -50,6 +58,11 @@ class Ear {
   ringing = 0;
   engulf: number;
   paid = 0;
+  shot = 0;
+  medication = 0;
+  denying = 0;
+  secondsLeft = 0;
+  filed = 0;
   played = {
     ping: 0,
     attach: 0,
@@ -63,6 +76,12 @@ class Ear {
     doorbell: 0,
     ring: 0,
     squeak: 0,
+    ahem: 0,
+    rattle: 0,
+    rain: 0,
+    creak: 0,
+    denied: 0,
+    tick: 0,
   };
 
   constructor(private readonly w: World) {
@@ -90,6 +109,22 @@ class Ear {
     const ringing = consulting(w.enemies, 'phone-call');
     if (ringing > this.ringing) this.played.ring++;
     if (holdTaken(w, this.engulf) === 'toddler') this.played.squeak++;
+    // A shot from a ranged enemy with no voice of its own borrows the ah-hem.
+    let shot = this.shot;
+    let ahem = false;
+    for (const p of w.projectiles) {
+      if (!p.hostile || p.serial <= this.shot) continue;
+      if (p.owner && borrowsAhem(p.owner.id)) ahem = true;
+      shot = Math.max(shot, p.serial);
+    }
+    if (ahem) this.played.ahem++;
+    const medication = newestAbove(w.enemies, 'medication', this.medication);
+    if (medication > this.medication) this.played.rattle++;
+    if (vehicles.sounds.has('rain')) this.played.rain++;
+    if (holdArrived(w.holds, this.holds, 'stairs')) this.played.creak++;
+    const denying = consulting(w.enemies, 'insurance-form');
+    if (denying > this.denying) this.played.denied++;
+    if (timeTicks(w.boss, this)) this.played.tick++;
     this.worn = new Map(w.wornBy);
     this.holds = w.holds.slice();
     this.restructures = w.boss?.restructures ?? 0;
@@ -99,6 +134,11 @@ class Ear {
     this.ringing = ringing;
     this.engulf = w.engulfTimer;
     this.paid = w.boss?.paid ?? 0;
+    this.shot = shot;
+    this.medication = medication;
+    this.denying = denying;
+    this.secondsLeft = w.boss?.secondsLeft ?? 0;
+    this.filed = w.boss?.filed ?? 0;
   }
 }
 
@@ -614,42 +654,42 @@ describe("the statement: the Mortgage's telegraph, on the edge", () => {
   });
 });
 
-describe('the till: a Mortgage window paid, once a window', () => {
-  /**
-   * One window, paid first if asked as `bossTakes` pays one (the balance down
-   * an instalment, `accepted` at it), then stepped to its close. What the
-   * closing window sounded like; the bills are then swept up, so a late fee's
-   * own fees never ring in a later window.
-   */
-  function window(w: World, ear: Ear, pay: boolean): { ding: number; doorbell: number } {
-    const b = w.boss!;
-    if (pay) {
-      const instalment = b.maxHp / MORTGAGE.instalments;
-      b.hp -= instalment;
-      b.accepted = instalment;
-    }
-    const before = { ding: ear.played.ding, doorbell: ear.played.doorbell };
-    let last = b.windowTimer;
-    for (let i = 0; i < 2 * 60 * MORTGAGE.instalmentSeconds; i++) {
-      run(w, ear, DT);
-      if (b.windowTimer > last || b.phase === 'absorbing') break;
-      last = b.windowTimer;
-    }
-    for (let i = w.enemies.length - 1; i >= 0; i--) if (w.enemies[i]!.def.id === 'bill') w.enemies.splice(i, 1);
-    return { ding: ear.played.ding - before.ding, doorbell: ear.played.doorbell - before.doorbell };
+/**
+ * One Mortgage window, paid first if asked as `bossTakes` pays one (the
+ * balance down an instalment, `accepted` at it), then stepped to its close.
+ * What the closing window sounded like; the bills are then swept up, so a
+ * late fee's own fees never ring in a later window.
+ */
+function mortgageWindow(w: World, ear: Ear, pay: boolean): { ding: number; doorbell: number } {
+  const b = w.boss!;
+  if (pay) {
+    const instalment = b.maxHp / MORTGAGE.instalments;
+    b.hp -= instalment;
+    b.accepted = instalment;
   }
+  const before = { ding: ear.played.ding, doorbell: ear.played.doorbell };
+  let last = b.windowTimer;
+  for (let i = 0; i < 2 * 60 * MORTGAGE.instalmentSeconds; i++) {
+    run(w, ear, DT);
+    if (b.windowTimer > last || b.phase === 'absorbing') break;
+    last = b.windowTimer;
+  }
+  for (let i = w.enemies.length - 1; i >= 0; i--) if (w.enemies[i]!.def.id === 'bill') w.enemies.splice(i, 1);
+  return { ding: ear.played.ding - before.ding, doorbell: ear.played.doorbell - before.doorbell };
+}
 
+describe('the till: a Mortgage window paid, once a window', () => {
   it('a paid window is one ding; a missed one is its late fee at the door, the doorbell, and no ding', () => {
     const { w, ear } = atBoss(FAMILY_QUIET, 44);
     for (const pay of [true, false, true, true, false]) {
-      expect(window(w, ear, pay), `${pay}`).toEqual(pay ? { ding: 1, doorbell: 0 } : { ding: 0, doorbell: 1 });
+      expect(mortgageWindow(w, ear, pay), `${pay}`).toEqual(pay ? { ding: 1, doorbell: 0 } : { ding: 0, doorbell: 1 });
     }
     expect(w.boss!.paid).toBe(3);
   });
 
   it('paid off: twelve dings, the last on the window the door opens, and no bill', () => {
     const { w, ear } = atBoss(FAMILY_QUIET, 45);
-    for (let k = 0; k < MORTGAGE.instalments; k++) expect(window(w, ear, true), `window ${k + 1}`).toEqual({ ding: 1, doorbell: 0 });
+    for (let k = 0; k < MORTGAGE.instalments; k++) expect(mortgageWindow(w, ear, true), `window ${k + 1}`).toEqual({ ding: 1, doorbell: 0 });
     expect(w.boss!.phase).toBe('absorbing');
     expect(ear.played.ding).toBe(MORTGAGE.instalments);
   });
@@ -659,6 +699,242 @@ describe('the till: a Mortgage window paid, once a window', () => {
     expect(instalmentPaid({ kind: 'mortgage', paid: 1 }, 1)).toBe(false);
     expect(instalmentPaid({ kind: 'loan', paid: 1 }, 0)).toBe(false);
     expect(instalmentPaid(null, 0)).toBe(false);
+  });
+});
+
+// --- Decline ------------------------------------------------------------------
+
+if (DECLINE.boss.kind !== 'time') throw new Error('Decline does not end on Time');
+const TIME: TimeBoss = DECLINE.boss;
+/** Decline with nothing scheduled: only a test's own arrivals and Time's file reach the field. */
+const DECLINE_QUIET: ActDef = { ...DECLINE, waves: [] };
+const FORM = enemyDef('insurance-form');
+
+describe('the rattle: a medication arriving', () => {
+  it('reads the newest medication above the mark, and nothing but a medication moves it', () => {
+    const w = new World({ act: DECLINE_QUIET, seed: 61, startingItems: [] });
+    w.spawnEnemy('medication');
+    const first = w.enemies.find((e) => e.def.id === 'medication')!;
+    expect(newestAbove(w.enemies, 'medication', 0)).toBe(first.uid);
+    expect(newestAbove(w.enemies, 'medication', first.uid)).toBe(first.uid);
+    for (const id of ['weather', 'your-knees', 'insurance-form', 'bill']) w.spawnEnemy(id);
+    expect(newestAbove(w.enemies, 'medication', first.uid)).toBe(first.uid);
+    w.spawnEnemy('medication');
+    w.spawnEnemy('medication');
+    const top = Math.max(...w.enemies.filter((e) => e.def.id === 'medication').map((e) => e.uid));
+    expect(newestAbove(w.enemies, 'medication', first.uid)).toBe(top);
+  });
+
+  it('rattles once a frame however many arrive, not while they chase, and again for the next', () => {
+    const w = new World({ act: DECLINE_QUIET, seed: 62, startingItems: [] });
+    const ear = new Ear(w);
+    for (let i = 0; i < 3; i++) w.spawnEnemy('medication');
+    run(w, ear, DT);
+    expect(ear.played.rattle).toBe(1);
+    run(w, ear, 3);
+    expect(count(w, 'medication')).toBe(3);
+    expect(ear.played.rattle).toBe(1);
+    w.spawnEnemy('medication');
+    run(w, ear, DT);
+    expect(ear.played.rattle).toBe(2);
+    // A bill is the doorbell's, never a dose.
+    w.spawnEnemy('bill');
+    run(w, ear, DT);
+    expect(ear.played).toMatchObject({ rattle: 2, doorbell: 1 });
+  });
+});
+
+describe('the rain: the weather entering, on the car counter', () => {
+  it('names the weather the rain, never a car, a train or the tape', () => {
+    const w = new World({ act: DECLINE_QUIET, seed: 63, startingItems: [] });
+    w.spawnEnemy('weather');
+    const heard = vehiclesEntered(w.enemies, 0);
+    expect([...heard.sounds]).toEqual(['rain']);
+    // A front and a flat-pack on one frame: one of each.
+    w.spawnEnemy('weather');
+    w.spawnEnemy('flat-pack');
+    expect([...vehiclesEntered(w.enemies, heard.highest).sounds].sort()).toEqual(['rain', 'tape']);
+    // A dose above the mark is not a vehicle and does not move it.
+    const after = vehiclesEntered(w.enemies, 0).highest;
+    w.spawnEnemy('medication');
+    expect(vehiclesEntered(w.enemies, after).sounds.size).toBe(0);
+    expect(vehiclesEntered(w.enemies, after).highest).toBe(after);
+  });
+
+  it('a front crossing the field is heard once, when it enters, and not when it leaves', () => {
+    const w = new World({ act: DECLINE_QUIET, seed: 64, startingItems: [] });
+    const ear = new Ear(w);
+    w.spawnEnemy('weather');
+    let left = false;
+    run(w, ear, 12, () => {
+      left ||= count(w, 'weather') === 0;
+    });
+    expect(left, 'the weather never left').toBe(true);
+    expect(ear.played).toMatchObject({ rain: 1, carPass: 0, carriage: 0, tape: 0, rattle: 0 });
+  });
+});
+
+describe('the creak: a flight of stairs landing, and no other hold', () => {
+  it('creaks once as a flight lands and never again while it stands, which is the act', () => {
+    const w = new World({ act: DECLINE_QUIET, seed: 65, startingItems: [] });
+    const ear = new Ear(w);
+    w.spawnEnemy('stairs');
+    run(w, ear, DT);
+    expect(w.holds.filter((h) => h.source === 'stairs')).toHaveLength(1);
+    expect(ear.played).toMatchObject({ creak: 1, chairs: 0 });
+    run(w, ear, 20);
+    expect(w.holds.filter((h) => h.source === 'stairs')).toHaveLength(1);
+    expect(ear.played.creak).toBe(1);
+    // The next flight creaks; two landing on one frame creak once.
+    w.spawnEnemy('stairs');
+    run(w, ear, DT);
+    expect(ear.played.creak).toBe(2);
+    w.spawnEnemy('stairs');
+    w.spawnEnemy('stairs');
+    run(w, ear, DT);
+    expect(w.holds.filter((h) => h.source === 'stairs')).toHaveLength(4);
+    expect(ear.played).toMatchObject({ creak: 3, chairs: 0 });
+  });
+
+  it("a meeting's hold is the chairs and never creaks, the schedule's or a restructure's", () => {
+    const w = new World({ act: { ...OFFICE, waves: [] }, seed: 66, startingItems: [] });
+    const ear = new Ear(w);
+    w.spawnEnemy('meeting');
+    const { seconds, holdSeconds } = enemyDef('meeting').hold!;
+    run(w, ear, seconds + holdSeconds + 1);
+    expect(ear.played).toMatchObject({ chairs: 1, creak: 0 });
+    const { w: office, ear: officeEar } = atBoss(OFFICE, 67);
+    const b = office.boss!;
+    b.hp = b.maxHp * REORG.thresholds[0]! - 1;
+    run(office, officeEar, DT);
+    expect(office.holds.filter((h) => h.source === 'meeting')).toHaveLength(1);
+    expect(officeEar.played).toMatchObject({ chairs: 1, creak: 0 });
+  });
+});
+
+describe('DENIED: the insurance form consulting, its decision silent', () => {
+  it('stamps once for each decision, on the consult, and the decision lands without an ah-hem', () => {
+    const w = new World({ act: DECLINE_QUIET, seed: 68, startingItems: [] });
+    const opening = w.maxHp;
+    const ear = new Ear(w);
+    const form = place(w, FORM, 200, 0);
+    // A decision taken is the form's cooldown starting (the phone's reading).
+    let decisions = 0;
+    let reload = form.reload;
+    let stampsAtFirst = -1;
+    let flying = 0;
+    run(w, ear, 20, () => {
+      if (form.reload > reload) {
+        if (decisions === 0) stampsAtFirst = ear.played.denied;
+        decisions++;
+      }
+      reload = form.reload;
+      flying = Math.max(flying, w.projectiles.filter((p) => p.owner?.id === FORM.id).length);
+    });
+    expect(decisions).toBeGreaterThanOrEqual(2);
+    // The decisions were on the field between frames, and landed: the silence is heard, not assumed.
+    expect(flying).toBeGreaterThan(0);
+    expect(w.maxHp, 'no decision landed').toBeLessThan(opening);
+    // The stamp came with the consult, before the decision went; the decision adds none.
+    expect(stampsAtFirst).toBe(1);
+    expect(ear.played.denied - decisions).toBeGreaterThanOrEqual(0);
+    expect(ear.played.denied - decisions).toBeLessThanOrEqual(1);
+    expect(ear.played).toMatchObject({ ahem: 0, ring: 0 });
+  });
+
+  it('two forms consulting on one frame stamp once', () => {
+    const w = new World({ act: DECLINE_QUIET, seed: 69, startingItems: [] });
+    const ear = new Ear(w);
+    place(w, FORM, 200, 0);
+    place(w, FORM, -200, 0);
+    run(w, ear, DT);
+    expect(consulting(w.enemies, 'insurance-form')).toBe(2);
+    expect(ear.played.denied).toBe(1);
+  });
+
+  it('the voiced shots keep their voices, and one with none borrows the ah-hem', () => {
+    for (const id of ['group-chat', 'substitute-teacher', 'registrar', 'phone-call', 'insurance-form']) expect(borrowsAhem(id), id).toBe(false);
+    expect(borrowsAhem('edges-aimed')).toBe(true);
+  });
+});
+
+describe("the tick: Time's quarter turns, then its last seconds, and nothing at zero", () => {
+  it('ticks each quarter turn until the countdown, then each whole second, and not as the clock runs out', () => {
+    const { w, ear } = atBoss(DECLINE_QUIET, 70);
+    expect(w.boss!.kind).toBe('time');
+    // `secondsLeft` on each frame that ticked, and whether the frame the clock ran out ticked.
+    const ticked: number[] = [];
+    let atZero: boolean | null = null;
+    let heard = ear.played.tick;
+    let was = w.boss!.secondsLeft;
+    run(w, ear, TIME.seconds + 3, () => {
+      const b = w.boss;
+      if (!b) return;
+      const tick = ear.played.tick > heard;
+      if (tick) ticked.push(b.secondsLeft);
+      if (b.secondsLeft === 0 && was > 0) atZero = tick;
+      heard = ear.played.tick;
+      was = b.secondsLeft;
+    });
+    expect(w.won, 'Time never ran out').toBe(true);
+    expect(atZero, 'the run-out ticked, or was never seen').toBe(false);
+    const quarter = TIME.sweepSeconds / TIME_FILES_PER_TURN;
+    const quarters = Math.floor((TIME.seconds - TIME_COUNTDOWN) / quarter);
+    expect(ticked).toHaveLength(quarters + TIME_COUNTDOWN);
+    // A quarter turn each, as the file is read.
+    ticked.slice(0, quarters).forEach((left, k) => expect(left, `quarter ${k + 1}`).toBeCloseTo(TIME.seconds - (k + 1) * quarter, 1));
+    // Then 5, 4, 3, 2, 1 falling to the next whole second: one a second, the
+    // quarter inside the countdown heard as its second's tick, never beside it.
+    ticked.slice(quarters).forEach((left, i) => {
+      expect(Math.floor(left), `countdown ${i}`).toBe(TIME_COUNTDOWN - 1 - i);
+      expect(TIME_COUNTDOWN - i - left, `countdown ${i}`).toBeLessThan(0.05);
+    });
+    expect(w.boss!.filed).toBeGreaterThan(quarters);
+  });
+
+  it("the Mortgage's windows paid never tick", () => {
+    const { w, ear } = atBoss(FAMILY_QUIET, 71);
+    for (let k = 0; k < 3; k++) mortgageWindow(w, ear, true);
+    expect(w.boss!.paid).toBe(3);
+    expect(ear.played).toMatchObject({ ding: 3, tick: 0 });
+  });
+
+  it("the Egg's phases never tick, in Conception or standing where Time stands", () => {
+    for (const act of [CONCEPTION, { ...DECLINE_QUIET, boss: { kind: 'egg' } } as ActDef]) {
+      const { w, ear } = atBoss(act, 72);
+      expect(w.boss!.kind).toBe('egg');
+      let phases = 0;
+      let was = w.boss!.phase;
+      run(w, ear, 12, () => {
+        const phase = w.boss?.phase ?? 'idle';
+        if (phase !== was) phases++;
+        was = phase;
+      });
+      expect(phases, act.id).toBeGreaterThanOrEqual(6);
+      expect(ear.played.tick, act.id).toBe(0);
+    }
+  });
+
+  it('is two edges read as one, on Time alone', () => {
+    const time = (filed: number, secondsLeft: number) => ({ kind: 'time' as const, filed, secondsLeft });
+    // A quarter turn, before the countdown; a frame without one.
+    expect(timeTicks(time(4, 47.99), { filed: 3, secondsLeft: 48.01 })).toBe(true);
+    expect(timeTicks(time(4, 47.5), { filed: 4, secondsLeft: 47.52 })).toBe(false);
+    // Time arriving: sixty against the nothing heard before it.
+    expect(timeTicks(time(0, 60), { filed: 0, secondsLeft: 0 })).toBe(false);
+    // The countdown: each whole second falling, from five left to one.
+    expect(timeTicks(time(18, 4.99), { filed: 18, secondsLeft: 5.01 })).toBe(true);
+    expect(timeTicks(time(18, 4.5), { filed: 18, secondsLeft: 4.52 })).toBe(false);
+    expect(timeTicks(time(19, 0.99), { filed: 19, secondsLeft: 1.01 })).toBe(true);
+    // Inside it, a quarter turn alone is not a tick; with its second, one.
+    expect(timeTicks(time(19, 3.0), { filed: 18, secondsLeft: 3.02 })).toBe(false);
+    expect(timeTicks(time(19, 2.98), { filed: 18, secondsLeft: 3.01 })).toBe(true);
+    // The run-out: a fraction to zero is no whole second falling.
+    expect(timeTicks(time(19, 0), { filed: 19, secondsLeft: 0.01 })).toBe(false);
+    // Any other kind, whatever its counters read.
+    expect(timeTicks({ kind: 'mortgage', filed: 1, secondsLeft: 2.5 }, { filed: 0, secondsLeft: 3.5 })).toBe(false);
+    expect(timeTicks({ kind: 'egg', filed: 1, secondsLeft: 0 }, { filed: 0, secondsLeft: 0 })).toBe(false);
+    expect(timeTicks(null, { filed: 0, secondsLeft: 3.5 })).toBe(false);
   });
 });
 
@@ -675,24 +951,45 @@ describe('each schedule hears its own things', () => {
   // on a quiet box, several times that on a busy CI runner.
   const WHOLE_MS = 60_000;
 
+  const OFFICE_SOUNDS = { ping: 0, carriage: 0, chairs: 0, memo: 0 };
+  const FAMILY_SOUNDS = { doorbell: 0, tape: 0, ring: 0, squeak: 0, statement: 0, ding: 0 };
+  const DECLINE_SOUNDS = { rattle: 0, rain: 0, creak: 0, denied: 0, tick: 0 };
+
   it(
-    "Family's schedule rings the doorbell, tears the tape and squeaks, and plays none of The Office's",
+    "Family's schedule rings the doorbell, tears the tape and squeaks, and plays none of The Office's or Decline's",
     () => {
       const { played } = whole(FAMILY, 46);
       expect(played.doorbell).toBeGreaterThan(0);
       expect(played.tape).toBeGreaterThan(0);
       expect(played.squeak).toBeGreaterThan(0);
       expect(played.statement).toBeGreaterThan(0);
-      expect(played).toMatchObject({ ping: 0, carPass: 0, carriage: 0, chairs: 0, memo: 0 });
+      expect(played).toMatchObject({ ...OFFICE_SOUNDS, carPass: 0, ...DECLINE_SOUNDS });
     },
     WHOLE_MS,
   );
 
-  it.each(ALL_ACTS.filter((act) => act !== FAMILY).map((act, i) => [act.id, act, 47 + i] as const))(
-    "%s's schedule plays no sound of Family's",
+  it(
+    "Decline's schedule rattles, rains, creaks and ticks, and plays none of The Office's or Family's",
+    () => {
+      const { played } = whole(DECLINE, 60);
+      expect(played.rattle).toBeGreaterThan(0);
+      expect(played.rain).toBeGreaterThan(0);
+      expect(played.creak).toBeGreaterThan(0);
+      // Fifteen seconds of Time: a tick a quarter turn.
+      expect(played.tick).toBeGreaterThan(0);
+      // The forms land beyond their range of a player who never moves
+      // (decline-act.test.ts), so DENIED is its own test's, above; whatever
+      // they do, nothing here borrows the ah-hem.
+      expect(played).toMatchObject({ ...OFFICE_SOUNDS, carPass: 0, ...FAMILY_SOUNDS, ahem: 0 });
+    },
+    WHOLE_MS,
+  );
+
+  it.each(ALL_ACTS.filter((act) => act !== FAMILY && act !== DECLINE).map((act, i) => [act.id, act, 47 + i] as const))(
+    "%s's schedule plays no sound of Family's or Decline's",
     (_id, act, seed) => {
       const { played } = whole(act, seed);
-      expect(played).toMatchObject({ doorbell: 0, tape: 0, ring: 0, squeak: 0, statement: 0, ding: 0 });
+      expect(played).toMatchObject({ ...FAMILY_SOUNDS, ...DECLINE_SOUNDS });
     },
     WHOLE_MS,
   );

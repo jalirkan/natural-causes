@@ -124,8 +124,9 @@ per machine. Never add it to CI.
   content rules iterate `ALL_ACTS`. A test ties `ACTS` to `ACT_VISUALS`; an
   act moves in when its atlas, player frame and boss frame exist.
 - **Dev cheats never live in `World`.** `src/dev/` applies them from outside
-  the sim, any cheat taints the run (HUD says so), and none of it ships in
-  production builds — including the Pages build.
+  the sim, any cheat taints the run (HUD says so), and a tainted life is never
+  recorded. The panel reaches the Pages build only behind `?review` (D-030:
+  a lazily loaded chunk, mounted only with the flag).
 - **The art pipeline rejects, it never corrects** (G-032). Consistency is
   imposed by CONFORM/CHECK, not asked of the generator. Every asset commits
   its provenance (`assets/prompts/` records it; `tools/art/svg/` is the source of drawn art,

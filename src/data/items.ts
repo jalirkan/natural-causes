@@ -280,6 +280,13 @@ export interface ActiveItem extends ItemBase {
    */
   strikeNearest?: boolean;
   /**
+   * `strike` only: what the card calls one landing, and more than one
+   * (item-text.ts `strikeNoun`): the Letter's `letter`/`letters`, where the
+   * card would otherwise print Judgement's `bolt`/`bolts` (AUDIT 104). Words
+   * on the card only; the sim never reads it.
+   */
+  noun?: { one: string; many: string };
+  /**
    * Present on an evolution. It is never in the normal offer pool: when
    * `weapon` is at its max level and `with` is owned, the next level-up is
    * this one card, and taking it replaces `weapon`.
@@ -1828,6 +1835,8 @@ export const ITEMS: Record<string, ItemDef> = {
     // Seconds from the mark to the landing, before Registered divides it.
     strikeDelay: 5,
     strikeNearest: true,
+    // The card's "+1 letter", "3 letters": it is post, not a bolt.
+    noun: { one: 'letter', many: 'letters' },
     maxLevel: 8,
     icon: 'letter',
     blurb: 'Arrives in four to six seconds. The problem has usually moved.',

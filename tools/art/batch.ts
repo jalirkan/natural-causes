@@ -447,6 +447,50 @@ export const CONCEPTION_ROSTER: AssetSpec[] = [
       'not a fork, not cutlery, not a utensil, not a tree, not a branch, not a slingshot',
     ].join(', '),
   },
+  {
+    id: 'boss-egg-closing',
+    name: 'The Egg, eyes closing',
+    act: 'conception',
+    role: 'boss',
+    tests: 'the Egg exactly as boss-egg with its eyes closed: two flat lines where the half-lidded eyes were, the same smile, the same corona',
+    targetSize: 384,
+    seed: 3103,
+    source: 'svg',
+    // D-029: a variant frame of its holder — the same drawing in another
+    // state, swapped in by the renderer where a render overlay stood.
+    whyThisStage: 'It is the only boss in the game that is beaten by being taken in rather than brought down.',
+    subject: [
+      'an enormous smooth round egg cell filling the frame, flat muted deep teal',
+      'a thick irregular fringe of blunt stubby finger-like protrusions all the way around it like a lumpy crown or a bad haircut',
+      'no two protrusions the same length',
+      'one small calm face placed off-centre and low on the huge smooth mass',
+      'the eyes closed: two short flat dark lines where the half-lidded eyes were, and the same small closed-mouth knowing smile',
+      'everything else identical to boss-egg: the same mass, the same fringe, the same face position',
+      'one flat darker tone across the lower third as the only shadow',
+    ].join(', '),
+  },
+  {
+    id: 'boss-egg-parted',
+    name: 'The Egg, corona parting',
+    act: 'conception',
+    role: 'boss',
+    tests: 'the Egg exactly as boss-egg-closing with the corona parted: the fringe opened in one gap on the side the face looks toward, the eyes closed',
+    targetSize: 384,
+    seed: 3203,
+    source: 'svg',
+    // D-029: a variant frame of its holder — the same drawing in another
+    // state, swapped in by the renderer where a render overlay stood.
+    whyThisStage: 'It is the only boss in the game that is beaten by being taken in rather than brought down.',
+    subject: [
+      'an enormous smooth round egg cell filling the frame, flat muted deep teal',
+      'a thick irregular fringe of blunt stubby finger-like protrusions all the way around it like a lumpy crown or a bad haircut',
+      'no two protrusions the same length',
+      'the fringe of protrusions parted in one clear gap on the side the face looks toward, the protrusions either side of the gap leaning away from it',
+      'one small calm face placed off-centre and low on the huge smooth mass, the eyes closed as two short flat dark lines, the same knowing smile',
+      'everything else identical to boss-egg',
+      'one flat darker tone across the lower third as the only shadow',
+    ].join(', '),
+  },
 ];
 
 /**
@@ -1551,6 +1595,66 @@ export const OFFICE_ROSTER: AssetSpec[] = [
       'no threat colour anywhere, no lanyard, no phone, no lettering',
     ].join(', '),
   },
+  {
+    id: 'boss-reorg-grey-1',
+    name: 'The Reorg, one row greyed',
+    act: 'office',
+    role: 'boss',
+    tests: 'the org chart exactly as boss-reorg with the bottom row of boxes greyed: those boxes and their faces in warm grey-brown, their connectors still attached, the empty top box never greyed',
+    targetSize: 384,
+    seed: 33101,
+    source: 'svg',
+    // D-029: a variant frame of its holder — the same drawing in another
+    // state, swapped in by the renderer where a render overlay stood.
+    whyThisStage: 'The Office is the first stage where the structure outranks everyone in it, and damage to it goes grey and stays in the chart.',
+    subject: [
+      'a corporate organisational chart drawn as a flat printed diagram, standing upright as if it were a creature, a branching hierarchy tree of separate plain rectangular outlined boxes, four rows deep, widening toward the bottom, exactly as boss-reorg',
+      'the bottom row of boxes filled in flat warm grey-brown (#6E6353) instead of teal, their small faces in muted tan (#D2C6AC) and their label bars kept in muted tan, the connectors to them still drawn in teal and still attached',
+      'every other box in flat muted deep teal (#2F7370), the boss colour, as in boss-reorg, and the empty top box exactly as it is there, never greyed',
+      'the connector lines ruled straight, thin, in flat muted deep teal (#2F7370) as in boss-reorg, the only ruled geometry in the act',
+      'strictly flat and two-dimensional like a printed chart on a page, no 3D boxes, no text',
+    ].join(', '),
+  },
+  {
+    id: 'boss-reorg-grey-2',
+    name: 'The Reorg, two rows greyed',
+    act: 'office',
+    role: 'boss',
+    tests: 'the org chart exactly as boss-reorg with the bottom two rows of boxes greyed: those boxes and their faces in warm grey-brown, their connectors still attached, the empty top box never greyed',
+    targetSize: 384,
+    seed: 33102,
+    source: 'svg',
+    // D-029: a variant frame of its holder — the same drawing in another
+    // state, swapped in by the renderer where a render overlay stood.
+    whyThisStage: 'The Office is the first stage where the structure outranks everyone in it, and damage to it goes grey and stays in the chart.',
+    subject: [
+      'a corporate organisational chart drawn as a flat printed diagram, standing upright as if it were a creature, a branching hierarchy tree of separate plain rectangular outlined boxes, four rows deep, widening toward the bottom, exactly as boss-reorg',
+      'the bottom two rows of boxes filled in flat warm grey-brown (#6E6353) instead of teal, their small faces in muted tan (#D2C6AC) and their label bars kept in muted tan, the connectors to them still drawn in teal and still attached',
+      'every other box in flat muted deep teal (#2F7370), the boss colour, as in boss-reorg, and the empty top box exactly as it is there, never greyed',
+      'the connector lines ruled straight, thin, in flat muted deep teal (#2F7370) as in boss-reorg, the only ruled geometry in the act',
+      'strictly flat and two-dimensional like a printed chart on a page, no 3D boxes, no text',
+    ].join(', '),
+  },
+  {
+    id: 'boss-reorg-grey-3',
+    name: 'The Reorg, three rows greyed',
+    act: 'office',
+    role: 'boss',
+    tests: 'the org chart exactly as boss-reorg with the bottom three rows of boxes greyed: those boxes and their faces in warm grey-brown, their connectors still attached, the empty top box never greyed',
+    targetSize: 384,
+    seed: 33103,
+    source: 'svg',
+    // D-029: a variant frame of its holder — the same drawing in another
+    // state, swapped in by the renderer where a render overlay stood.
+    whyThisStage: 'The Office is the first stage where the structure outranks everyone in it, and damage to it goes grey and stays in the chart.',
+    subject: [
+      'a corporate organisational chart drawn as a flat printed diagram, standing upright as if it were a creature, a branching hierarchy tree of separate plain rectangular outlined boxes, four rows deep, widening toward the bottom, exactly as boss-reorg',
+      'the bottom three rows of boxes filled in flat warm grey-brown (#6E6353) instead of teal, their small faces in muted tan (#D2C6AC) and their label bars kept in muted tan, the connectors to them still drawn in teal and still attached',
+      'every other box in flat muted deep teal (#2F7370), the boss colour, as in boss-reorg, and the empty top box exactly as it is there, never greyed',
+      'the connector lines ruled straight, thin, in flat muted deep teal (#2F7370) as in boss-reorg, the only ruled geometry in the act',
+      'strictly flat and two-dimensional like a printed chart on a page, no 3D boxes, no text',
+    ].join(', '),
+  },
 ];
 
 /**
@@ -1707,6 +1811,25 @@ export const FAMILY_ROSTER: AssetSpec[] = [
       'no threat colour anywhere, no tie, no mug, no lettering',
     ].join(', '),
   },
+  {
+    id: 'boss-mortgage-open',
+    name: 'The Mortgage, door open',
+    act: 'family',
+    role: 'boss',
+    tests: 'the house exactly as boss-mortgage with its door open: the doorway a dark opening in the act deep tone with the door leaf swung inward, the windows and roof identical',
+    targetSize: 384,
+    seed: 46146,
+    source: 'svg',
+    // D-029: a variant frame of its holder — the same drawing in another
+    // state, swapped in by the renderer where a render overlay stood.
+    whyThisStage: 'Family is the first stage that ends on a thing the player will be paying for after the act is long over.',
+    subject: [
+      'a house front seen straight on at boss scale, a wide rectangular wall under a plain gabled roof with a small chimney, two square windows above the door, exactly as boss-mortgage',
+      'the door OPEN: the doorway a dark opening in flat umber (#4D3A1F), the act deep tone, with the door leaf swung inward and seen edge-on as a thin warm grey-brown (#6E6353) sliver at one jamb',
+      'flat muted deep teal (#2F7370), the boss colour, on the walls and the roof, one solid tone with warm near-black (#2A2521) edges, the window panes in muted tan (#D2C6AC) with the same two open dark dots for eyes',
+      'no red, no purple, no gold, no yellow anywhere, no text',
+    ].join(', '),
+  },
 ];
 
 /**
@@ -1841,6 +1964,26 @@ export const DECLINE_ROSTER: AssetSpec[] = [
       'a buttoned cardigan down the front and a plain cane held in one hand, its tip on the floor',
       'paper coloured (#EFE7D6) head and body, warm grey-brown (#6E6353) as the only second tone',
       'no threat colour anywhere, no tote bag, no keys, no glasses, no lettering',
+    ].join(', '),
+  },
+  {
+    id: 'boss-time-face',
+    name: 'Time, without its long hand',
+    act: 'decline',
+    role: 'boss',
+    tests: 'the clock exactly as boss-time with only the short hand: the same rim, dial, face at the pivot and feet; the long hand absent',
+    targetSize: 384,
+    seed: 55155,
+    source: 'svg',
+    // D-029: a variant frame of its holder — the same drawing in another
+    // state, swapped in by the renderer where a render overlay stood.
+    whyThisStage: 'Decline is the last stage, and the thing that ends it was there the whole time.',
+    subject: [
+      'a round clock face seen straight on at boss scale, a wide rim, a plain dial with no numbers and no marks, exactly as boss-time',
+      'only the SHORT hand drawn, pointing at ten as in boss-time; the long hand entirely absent, the dial bare where it was',
+      'flat muted deep teal (#2F7370), the boss colour, on the rim, the short hand and the feet, one solid tone with warm near-black (#2A2521) edges, the dial in muted tan (#D2C6AC)',
+      'the same small calm face at the centre on its bone cap: two open dark dots for eyes and one short flat line for a mouth',
+      'no numbers, no ticks, no text, no red, no purple, no gold, no yellow anywhere',
     ].join(', '),
   },
 ];
