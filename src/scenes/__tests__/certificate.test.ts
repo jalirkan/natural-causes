@@ -12,6 +12,12 @@ import {
   NARROW_WIDTH,
   narrowCanvas,
   narrowRows,
+  effectsColumn,
+  WIDE_FLOOR,
+  WIDE_SHEET,
+  WIDE_TYPE,
+  wideLayout,
+  wideType,
 } from '../certificate';
 import { CONCEPTION, SCHOOL } from '../../data/acts';
 import { World, type Certificate } from '../../sim/world';
@@ -164,5 +170,85 @@ describe('the narrow certificate', () => {
     expect(rows.find((r) => r.key === 'age')!.size).toBe(NARROW_TYPE.value);
     expect(bottom).toBe(rows[4]!.rule);
     expect(narrowRows([], 50)).toEqual({ rows: [], bottom: 50 });
+  });
+});
+
+describe('the wide certificate', () => {
+  const fields = certificateFields(base, { name: 'Justin', lived: 252.9 });
+  // FIT on an 844×390 landscape phone: the 16:9 canvas at the screen's height.
+  const landscape = (390 * 16) / 9 / 1280;
+  const room = WIDE_SHEET.width - 2 * WIDE_SHEET.margin;
+
+  it('is the 1280 form, unmoved, on a canvas shown 1280 CSS px across or more', () => {
+    for (const r of [1, 1.5]) {
+      const lay = wideLayout(fields, r);
+      expect(wideType(r)).toEqual(WIDE_TYPE);
+      expect(lay.type).toEqual(WIDE_TYPE);
+      expect(lay.compact).toBe(false);
+      // The numbers showCertificate had before it scaled: the smoke's certificate.png.
+      expect(lay.rows.map(({ key, x, w, label, value, rule, size }) => [key, x, w, label, value, rule, size])).toEqual([
+        ['name', 0, 1024, 166, 188, 236, 38],
+        ['age', 0, 220, 258, 280, 328, 38],
+        ['act', 256, 372, 258, 280, 328, 38],
+        ['time', 664, 360, 258, 280, 328, 38],
+        ['cause', 0, 1024, 350, 372, 435, 50],
+      ]);
+      expect([lay.top, lay.office, lay.stamp, lay.perf, lay.receipt, lay.content]).toEqual([30, 66, 396, 470, 500, 524]);
+      expect([lay.spacing.prose, lay.spacing.effects, lay.foot, lay.hint]).toEqual([6, 5, 26, 36]);
+    }
+    expect(effectsColumn(378, WIDE_TYPE)).toEqual({ x: 472, chars: 58 });
+  });
+
+  it('reads on an 844×390 phone held sideways: print at 11 CSS px or more, values at 16', () => {
+    const { type } = wideLayout(fields, landscape);
+    for (const k of ['office', 'label', 'head', 'receipt', 'effects', 'hint'] as const)
+      expect(type[k] * landscape).toBeGreaterThanOrEqual(WIDE_FLOOR.print);
+    for (const k of ['value', 'cause'] as const) expect(type[k] * landscape).toBeGreaterThanOrEqual(WIDE_FLOOR.value);
+    for (const k of Object.keys(WIDE_TYPE) as (keyof typeof WIDE_TYPE)[]) expect(type[k]).toBeGreaterThanOrEqual(WIDE_TYPE[k]);
+  });
+
+  it('sets two fields a row when the 1280 middle row cannot hold the raised labels, none overlapping', () => {
+    for (const r of [landscape, 0.5]) {
+      const lay = wideLayout(fields, r);
+      expect(lay.compact).toBe(true);
+      expect(lay.rows.map((x) => x.key)).toEqual(['name', 'age', 'act', 'time', 'cause']);
+      const mono = (s: string, px: number, spacing: number) => s.length * (0.6 * px + spacing);
+      lay.rows.forEach((row, i) => {
+        const f = fields[i]!;
+        // The label on its rule's box; the box inside the margins.
+        expect(mono(`${i + 1}. ${f.label}`, lay.type.label, 1)).toBeLessThanOrEqual(row.w + 1);
+        expect(row.x).toBeGreaterThanOrEqual(0);
+        expect(row.x + row.w).toBeLessThanOrEqual(room);
+        expect(row.value - row.label).toBeGreaterThanOrEqual(lay.type.label);
+        expect(row.rule - row.value).toBeGreaterThanOrEqual(row.size);
+      });
+      // Fields sharing a line do not share its width.
+      const byLine = new Map<number, typeof lay.rows>();
+      for (const row of lay.rows) byLine.set(row.label, [...(byLine.get(row.label) ?? []), row]);
+      expect([...byLine.values()].map((l) => l.map((x) => x.key))).toEqual([['name', 'age'], ['act', 'time'], ['cause']]);
+      for (const l of byLine.values()) for (let j = 1; j < l.length; j++) expect(l[j - 1]!.x + l[j - 1]!.w).toBeLessThan(l[j]!.x);
+      // The stamp beside the cause, the tear under it, the receipt under the tear.
+      const cause = lay.rows[4]!;
+      expect(lay.stamp).toBeGreaterThan(cause.value);
+      expect(lay.perf).toBeGreaterThan(cause.rule);
+      expect(lay.content).toBeGreaterThanOrEqual(lay.receipt + lay.type.head);
+    }
+  });
+
+  it('fits a whole build on the 720 canvas beside the receipt, the hint under the sheet', () => {
+    const lay = wideLayout(fields, landscape);
+    const col = effectsColumn(0.6 * lay.type.receipt * 'Cause of death: Substitute teacher.'.length, lay.type);
+    expect(col.chars).toBeGreaterThanOrEqual(36);
+    // Every item at its top level: the longest build there is.
+    const build = ['Reflex', 'Stubbornness', 'Temper', 'Baggage', 'Tantrum', 'Grudge', 'Gossip', 'Charisma', 'Restlessness',
+      'Thick Skin', 'Late Bloomer', 'Appetite', 'Growth Spurt', 'Snooze'].map((n) => `${n} 8`);
+    const lines = effectLines(build, col.chars);
+    for (const l of lines) expect(0.6 * lay.type.effects * l.length).toBeLessThanOrEqual(room - col.x);
+    // A canvas text line is 1.3 em tall with its leading (27px at 21 in headless Chromium).
+    const line = (px: number, spacing: number) => 1.3 * px + spacing;
+    const effectsBottom = lay.content + lines.length * line(lay.type.effects, lay.spacing.effects);
+    const proseBottom = lay.content + 3 * line(lay.type.receipt, lay.spacing.prose);
+    const sheetBottom = Math.max(effectsBottom, proseBottom) + lay.foot;
+    expect(sheetBottom + lay.hint + lay.type.hint / 2).toBeLessThanOrEqual(720);
   });
 });

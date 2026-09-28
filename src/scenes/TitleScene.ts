@@ -4,6 +4,7 @@ import { actVisuals } from '../data/act-visuals';
 import { sfx } from '../audio/sfx';
 import { INK, VIEW_HEIGHT, VIEW_WIDTH } from '../config';
 import { addVignette, ensureFieldTile } from './dressing';
+import { oncePerEvent } from './keys';
 import { obituary, recentLives } from '../meta/ancestors';
 import { NAME_MAX, isNameChar, readPlayerName, writePlayerName } from '../meta/name';
 
@@ -158,13 +159,9 @@ export class TitleScene extends Phaser.Scene {
       this.scene.start('act', { acts: ACTS });
     };
     // Phaser 3.90 replays its whole key queue on every DOM key event until the
-    // frame ends, and only drops a replay that matches the event just before
-    // it — so two keys typed inside one frame arrive as "MMa". Harmless for
-    // "press any key"; for typing, each event is taken once, by identity.
-    const taken = new WeakSet<KeyboardEvent>();
-    this.input.keyboard?.on('keydown', (e: KeyboardEvent) => {
-      if (taken.has(e)) return;
-      taken.add(e);
+    // frame ends, so two keys typed inside one frame would arrive as "MMa";
+    // each event is taken once (see `./keys`).
+    this.input.keyboard?.on('keydown', oncePerEvent((e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       if (e.key === 'Enter') {
         begin();
@@ -183,7 +180,7 @@ export class TitleScene extends Phaser.Scene {
       e.preventDefault();
       caretOn = true;
       showName();
-    });
+    }));
     this.input.on('pointerdown', begin);
   }
 }

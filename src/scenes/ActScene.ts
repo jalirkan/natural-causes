@@ -7,6 +7,7 @@ import { addVignette, ensureFieldTile, ensureGemTexture, ensureShotTextures } fr
 import { ITEM_ICON_ATLAS, itemIconFrame } from '../data/item-visuals';
 import { sfx } from '../audio/sfx';
 import { combineMoves, stickVector, type Move } from './touch';
+import { oncePerEvent } from './keys';
 import {
   certificateFields,
   certificateLines,
@@ -17,7 +18,9 @@ import {
   NARROW_WIDTH,
   narrowCanvas,
   narrowRows,
-  type CertificateField,
+  effectsColumn,
+  WIDE_SHEET,
+  wideLayout,
 } from './certificate';
 import { recordLife } from '../meta/ancestors';
 import { InputLog } from '../meta/input-log';
@@ -314,25 +317,34 @@ export class ActScene extends Phaser.Scene {
       // A thumb held through the pause must not resume the walk on unpause.
       this.releaseStick();
     };
-    keyboard.on('keydown-P', togglePause);
-    keyboard.on('keydown-M', () => sfx.toggleMute());
+    // Every key handler takes each event once: Phaser replays a frame's key
+    // queue on each new key event, and a replayed P unpauses, a replayed 1
+    // chooses the next offer's card unseen (see `./keys`).
+    keyboard.on('keydown-P', oncePerEvent(togglePause));
+    keyboard.on('keydown-M', oncePerEvent(() => sfx.toggleMute()));
     // In case the title screen's unlock was missed (hot reload lands here).
-    keyboard.on('keydown', () => sfx.unlock());
-    keyboard.on('keydown-ESC', togglePause);
-    keyboard.on('keydown-R', () => {
-      // Mid-run restarts are a dev affordance. In a clean run R still only
-      // works once the run is over, so it cannot be a panic button.
-      const anytime = import.meta.env.DEV && this.dev.tainted;
-      if (this.world.dead || this.world.won || anytime) this.scene.restart({ acts: this.life });
-    });
+    keyboard.on('keydown', oncePerEvent(() => sfx.unlock()));
+    keyboard.on('keydown-ESC', oncePerEvent(togglePause));
+    keyboard.on(
+      'keydown-R',
+      oncePerEvent(() => {
+        // Mid-run restarts are a dev affordance. In a clean run R still only
+        // works once the run is over, so it cannot be a panic button.
+        const anytime = import.meta.env.DEV && this.dev.tainted;
+        if (this.world.dead || this.world.won || anytime) this.scene.restart({ acts: this.life });
+      }),
+    );
     for (const [i, key] of ['ONE', 'TWO', 'THREE'].entries()) {
-      keyboard.on(`keydown-${key}`, () => {
-        const offers = this.world.offers;
-        if (offers && offers[i]) {
-          this.world.choose(offers[i]!);
-          sfx.choose();
-        }
-      });
+      keyboard.on(
+        `keydown-${key}`,
+        oncePerEvent(() => {
+          const offers = this.world.offers;
+          if (offers && offers[i]) {
+            this.world.choose(offers[i]!);
+            sfx.choose();
+          }
+        }),
+      );
     }
     this.createTouch(togglePause);
 
@@ -1698,9 +1710,12 @@ export class ActScene extends Phaser.Scene {
    * the input to "what would I do differently", which is what makes a
    * survivors run repeatable.
    *
-   * One screen at 1280×720. The sheet takes most of the width because FIT
-   * shrinks the whole canvas to 0.3 on a portrait phone: the typed values are
-   * set large enough to survive that; the printed labels are not, and need not.
+   * One screen at 1280×720. A portrait phone gets `showNarrowCertificate`.
+   * FIT shows the canvas smaller than 1280 CSS px on anything narrower — a
+   * landscape phone at 0.54 — so `wideLayout` raises every size to its floor
+   * in CSS px at the ratio it is shown at (11 for print, 16 for a value), and
+   * where the 1280 form's middle row cannot hold the raised labels it sets two
+   * fields a row. At 1280 and over, nothing moves.
    * Colours: paper and ink, shadow for print, the act's deep tone as the
    * stamp's ink. No threat colour — law 10 keeps them off chrome.
    */
@@ -1711,12 +1726,16 @@ export class ActScene extends Phaser.Scene {
     }
     const w = this.world;
     const cam = this.cameras.main;
-    const W = 1120;
+    const fields = certificateFields(c, { name: this.playerName, lived: w.time });
+    // CSS px per game px: under 1 when FIT shows the canvas narrower than 1280.
+    const lay = wideLayout(fields, this.scale.displaySize.width / this.scale.width);
+    const type = lay.type;
+    const W = WIDE_SHEET.width;
     const L = Math.round((cam.width - W) / 2);
-    const T = 30;
+    const T = lay.top;
     /** Inner margin, and the tear line between the certificate and its receipt. */
-    const M = 48;
-    const PERF = T + 440;
+    const M = WIDE_SHEET.margin;
+    const PERF = lay.perf;
     // The last boss's absorb leans the camera in to 1.1 (syncBoss), and a
     // scroll-factor-0 object still takes the zoom: the sheet would be set at
     // 1232px and its hint pushed to the bottom edge. The field is dimmed from
@@ -1738,42 +1757,38 @@ export class ActScene extends Phaser.Scene {
     const rules = this.add.graphics();
 
     // The header: the office that issues it, then the title in small caps.
-    text(cam.width / 2, T + 36, 'OFFICE OF VITAL STATISTICS', 13, CERT_PRINT, 5).setOrigin(0.5, 0);
+    text(cam.width / 2, lay.office, 'OFFICE OF VITAL STATISTICS', type.office, CERT_PRINT, 5).setOrigin(0.5, 0);
     parts.push(...this.smallCaps('Certificate of Death', cam.width / 2, T + 94, 36, CERT_INK, 4));
     rules.lineStyle(2, INK, 1).lineBetween(L + M, T + 112, L + W - M, T + 112);
     rules.lineStyle(1, INK, 1).lineBetween(L + M, T + 117, L + W - M, T + 117);
 
     // The fields. Numbered, as a form's are; the value sits on its rule.
-    const at: Record<CertificateField['key'], { x: number; w: number; top: number; size: number }> = {
-      name: { x: 0, w: W - 2 * M, top: T + 136, size: 38 },
-      age: { x: 0, w: 220, top: T + 228, size: 38 },
-      act: { x: 256, w: 372, top: T + 228, size: 38 },
-      time: { x: 664, w: W - 2 * M - 664, top: T + 228, size: 38 },
-      cause: { x: 0, w: W - 2 * M, top: T + 320, size: 50 },
-    };
-    certificateFields(c, { name: this.playerName, lived: w.time }).forEach((f, i) => {
-      const box = at[f.key];
-      const x = L + M + box.x;
-      text(x, box.top, `${i + 1}. ${f.label}`, 14, CERT_PRINT, 1);
-      text(x + 6, box.top + 22, f.value, box.size, CERT_INK);
-      const ruleY = box.top + 22 + Math.round(box.size * 1.25);
-      rules.lineStyle(1.5, INK, 1).lineBetween(x, ruleY, x + box.w, ruleY);
+    lay.rows.forEach((row, i) => {
+      const f = fields[i]!;
+      const x = L + M + row.x;
+      text(x, row.label, `${i + 1}. ${f.label}`, type.label, CERT_PRINT, 1);
+      text(x + 6, row.value, f.value, row.size, CERT_INK);
+      rules.lineStyle(1.5, INK, 1).lineBetween(x, row.rule, x + row.w, row.rule);
     });
 
-    // The receipt, below the tear.
-    const R = PERF + 30;
-    text(L + M, R, 'RECEIPT · DETACH AND RETAIN', 12, CERT_PRINT, 3);
+    // The receipt, below the tear: the prose, and the effects in a column clear of it.
+    const R = lay.receipt;
+    text(L + M, R, 'RECEIPT · DETACH AND RETAIN', type.head, CERT_PRINT, 3);
     this.overlay
-      .setPosition(L + M, R + 24)
+      .setFontSize(type.receipt)
+      .setLineSpacing(lay.spacing.prose)
+      .setPosition(L + M, lay.content)
       .setText([...certificateLines(c), `${w.kills} killed, level ${w.level}.`].join('\n'))
       .setVisible(true);
-    const effectsX = L + 520;
-    text(effectsX, R, 'PERSONAL EFFECTS', 12, CERT_PRINT, 3);
+    const column = effectsColumn(this.overlay.width, type);
+    const effectsX = L + M + column.x;
+    text(effectsX, R, 'PERSONAL EFFECTS', type.head, CERT_PRINT, 3);
     const build = [...w.items.entries()].map(([id, lv]) => `${itemDef(id).name} ${lv}`);
-    const effects = text(effectsX, R + 24, effectLines(build, 58).join('\n') || 'None', 15, CERT_INK).setLineSpacing(5);
+    const effects = text(effectsX, lay.content, effectLines(build, column.chars).join('\n') || 'None', type.effects, CERT_INK);
+    effects.setLineSpacing(lay.spacing.effects);
     // Grows for a long build rather than spilling; the hint still fits under it.
-    const bottom = Math.max(this.overlay.y + this.overlay.height, effects.y + effects.height) + 26;
-    const H = Math.min(Math.max(600, bottom - T), cam.height - T - 70);
+    const bottom = Math.max(this.overlay.y + this.overlay.height, effects.y + effects.height) + lay.foot;
+    const H = lay.compact ? bottom - T : Math.min(Math.max(600, bottom - T), cam.height - T - 70);
 
     // The sheet, under one flat tone for its shadow (law 2), double-ruled
     // above the tear and single-ruled below it; the perforation between.
@@ -1787,20 +1802,24 @@ export class ActScene extends Phaser.Scene {
 
     // The stamp, bottom right, in the act's deep tone: a spot ink, not a threat.
     const stamp = this.inkStamp(c, 30, 44);
-    stamp.setPosition(L + W - M - 40 - stamp.width / 2, T + 366);
+    stamp.setPosition(L + W - M - 40 - stamp.width / 2, lay.stamp);
 
     // The restart, under the form as it always was.
     const hint = this.add
-      .text(cam.width / 2, T + H + 36, this.touch ? 'tap to live again' : 'R to live again', {
+      .text(cam.width / 2, T + H + lay.hint, this.touch ? 'tap to live again' : 'R to live again', {
         fontFamily: 'monospace',
-        fontSize: '20px',
+        fontSize: `${type.hint}px`,
         color: css(PAPER),
       })
       .setOrigin(0.5);
 
+    // The compact form is centred on the canvas, sheet and hint together; the
+    // prose moves with the sheet it is typed on.
+    const dy = lay.compact ? Math.max(4 - T, Math.floor((cam.height - 2 * T - H - lay.hint - type.hint / 2) / 2)) : 0;
+    this.overlay.y += dy;
     this.endScrim.setFillStyle(INK, 0.62).setVisible(true);
     this.form = this.add
-      .container(0, 0, [sheet, rules, ...parts, stamp, hint])
+      .container(0, dy, [sheet, rules, ...parts, stamp, hint])
       .setScrollFactor(0)
       .setDepth(200);
   }
