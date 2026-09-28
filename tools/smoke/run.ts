@@ -42,8 +42,14 @@ import { createServer, type ViteDevServer } from 'vite';
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const OUT = resolve(ROOT, 'tools/smoke/out');
-const MILESTONE_MS = 20_000;
-const BUDGET_MS = 90_000;
+// A CI runner draws this game at 7–9 fps under software WebGL (measured on
+// GitHub's ubuntu image), so a milestone that takes 8s here takes 25s there:
+// at 4x dev speed the sim advances four steps a frame, and a School crowd
+// spawned on the arena rim needs about ten seconds of act time to walk on
+// screen. The budgets are sized for that machine, not this one; a milestone
+// still fails loudly, only later.
+const MILESTONE_MS = 60_000;
+const BUDGET_MS = 240_000;
 const VIEW = { width: 1280, height: 720 };
 
 /**
