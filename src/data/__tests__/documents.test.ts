@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ACTS, ADOLESCENCE, COLLEGE, CONCEPTION, SCHOOL } from '../acts';
+import { ACTS, ADOLESCENCE, ALL_ACTS, COLLEGE, CONCEPTION, FAMILY, OFFICE, SCHOOL } from '../acts';
 import {
   DOCUMENTS,
   PAPER_NARROW_TITLE,
@@ -11,6 +11,7 @@ import {
   type ActDocument,
   type DocumentWorld,
 } from '../documents';
+import { ENEMIES } from '../enemies';
 import { INHERITANCES } from '../inheritances';
 import { ITEM_IDS, ITEMS, isActive, offerIdFor } from '../items';
 import { DEFAULT_NAME, NAME_MAX, misspell } from '../../meta/name';
@@ -31,6 +32,7 @@ function world(over: Partial<DocumentWorld> = {}): DocumentWorld {
     items: new Map([['lash', 1]]),
     pathLevels: new Map(),
     taxStacks: 0,
+    wornBy: new Map(),
     inheritance: null,
     ...over,
   };
@@ -60,6 +62,8 @@ describe('actDocument', () => {
       [SCHOOL, 'report-card', 'REPORT CARD', 'SEE ME'],
       [ADOLESCENCE, 'yearbook', 'YEARBOOK', 'SIGNED'],
       [COLLEGE, 'diploma', 'DIPLOMA', 'PAID IN PART'],
+      [OFFICE, 'performance-review', 'PERFORMANCE REVIEW', 'MEETS'],
+      [FAMILY, 'mortgage-statement', 'MORTGAGE STATEMENT', 'SETTLED'],
     ] as const;
     for (const [act, kind, title, stamp] of kinds) {
       const d = actDocument(world(), 'Justin', act, 300);
@@ -72,13 +76,14 @@ describe('actDocument', () => {
   });
 
   it('issues nothing for an act it has no paper for', () => {
-    expect(actDocument(world(), 'Justin', { id: 'family' }, 300)).toBeNull();
+    expect(actDocument(world(), 'Justin', { id: 'decline' }, 300)).toBeNull();
     expect(actDocument(world(), 'Justin', { id: '' }, 300)).toBeNull();
     expect(actDocument(world(), 'Justin', { id: 'toString' }, 300)).toBeNull();
   });
 
   it('has an entry for every act in the life, and only for acts that exist', () => {
-    const ids = ACTS.map((a) => a.id);
+    // Every act with a schedule: an act's paper can be written before the browser starts the act.
+    const ids = ALL_ACTS.map((a) => a.id);
     for (const id of Object.keys(DOCUMENTS)) expect(ids).toContain(id);
     for (const act of ACTS) expect(actDocument(world(), 'Justin', act, 0), act.id).not.toBeNull();
   });
@@ -229,24 +234,96 @@ describe('the diploma', () => {
   });
 });
 
+describe('the mortgage statement', () => {
+  const statement = DOCUMENTS.family.copy;
+  const mortgage = (over: Partial<DocumentWorld>, name = 'Justin') => actDocument(world(over), name, FAMILY, 150);
+
+  it('is made out to the borrower, for a term of the level in years, with the notices and a remark', () => {
+    const d = mortgage({ level: 48, kills: 0, wornBy: new Map([['hoa-letter', 19]]) });
+    expect(d!.line).toBe('THE LENDER');
+    expect(d!.fields).toEqual([
+      ['NAME OF BORROWER', 'Justin'],
+      ['TERM', '48 years'],
+      ['NOTICES ON FILE', '19 notices'],
+      ['REMARKS', statement.standing[statement.standing.length - 1]![1]],
+    ]);
+    // Spelled right: the substitute's joke is the report card's, once.
+    expect(value(mortgage({ seed: 1234 }), 'NAME OF BORROWER')).toBe('Justin');
+    expect(value(mortgage({}, ' '), 'NAME OF BORROWER')).toBe(DEFAULT_NAME);
+  });
+
+  it('writes the level as the term, a whole number of years', () => {
+    const term = (level: number) => value(mortgage({ level }), 'TERM');
+    expect(term(48)).toBe(`48 ${statement.years}`);
+    expect(term(1)).toBe(`1 ${statement.year}`);
+    expect(term(0)).toBe(`0 ${statement.years}`);
+    expect(term(-3)).toBe(`0 ${statement.years}`);
+    expect(term(Number.NaN)).toBe(`0 ${statement.years}`);
+  });
+
+  it('counts the worn HOA letters as notices on file: singular, plural, or none in words', () => {
+    const file = (wornBy: [string, number][]) => value(mortgage({ wornBy: new Map(wornBy) }), 'NOTICES ON FILE');
+    expect(file([])).toBe(statement.none);
+    expect(file([['hoa-letter', 0]])).toBe(statement.none);
+    expect(file([['hoa-letter', 1]])).toBe(`1 ${statement.notice}`);
+    expect(file([['hoa-letter', 7]])).toBe(`7 ${statement.notices}`);
+    // Only the letters: an invoice or a ping worn beside them is not a notice.
+    expect(file([['tuition', 4], ['ping', 2]])).toBe(statement.none);
+    expect(file([['tuition', 4], ['hoa-letter', 2], ['ping', 2]])).toBe(`2 ${statement.notices}`);
+    expect(file([['hoa-letter', -1]])).toBe(statement.none);
+    expect(file([['hoa-letter', Number.NaN]])).toBe(statement.none);
+  });
+
+  it('reads the notices off the def the World counts them by, which persists to the crossing', () => {
+    // A renamed letter would file nothing, forever, and nothing would throw.
+    const letter = ENEMIES[statement.letter];
+    expect(letter, statement.letter).toBeDefined();
+    expect(letter!.contact).toBe('attach');
+    expect(letter!.attach?.pickup).toBeDefined();
+    expect(letter!.attach?.persists).toBe(true);
+  });
+
+  it('remarks by the kills, one line a band, highest first', () => {
+    const remark = (kills: number) => value(mortgage({ kills }), 'REMARKS');
+    const said = statement.standing.map(([floor]) => remark(floor));
+    expect(said).toEqual(statement.standing.map(([, line]) => line));
+    expect(new Set(said).size).toBe(statement.standing.length);
+    // Below each floor is the next line down.
+    for (let i = 0; i < statement.standing.length - 1; i++)
+      expect(remark(statement.standing[i]![0] - 1)).toBe(said[i + 1]);
+    expect(remark(0)).toBe(said[said.length - 1]);
+    expect(remark(99999999)).toBe(said[0]);
+    expect(remark(Number.NaN)).toBe(said[said.length - 1]);
+  });
+});
+
 describe('every document fits its form', () => {
   it('no value is blank, NaN or over the rule, for any item held highest, any path, any name', () => {
     const names = ['', 'A', 'Justin', 'X'.repeat(NAME_MAX), 'Mary-Jane O’Neil'.slice(0, NAME_MAX)];
     const paths = Object.values(ITEMS).flatMap((d) => (isActive(d) ? (d.paths ?? []).map((p) => offerIdFor(d, p)) : []));
     const worlds: DocumentWorld[] = [
       world(),
-      world({ items: new Map(), kills: -3, level: 0, taxStacks: -1 }),
-      world({ kills: 99999999, level: 999, taxStacks: 999, inheritance: INHERITANCES['constitution']! }),
+      world({ items: new Map(), kills: -3, level: 0, taxStacks: -1, wornBy: new Map([['hoa-letter', -2]]) }),
+      world({
+        kills: 99999999,
+        level: 999,
+        taxStacks: 999,
+        wornBy: new Map([['hoa-letter', 99999999], ['tuition', 999]]),
+        inheritance: INHERITANCES['constitution']!,
+      }),
       // Every item held, each highest in turn, every path taken.
       ...ITEM_IDS.map((top) =>
         world({
           items: new Map([[top, 99], ...ITEM_IDS.filter((id) => id !== top).map((id): [string, number] => [id, 8])]),
           pathLevels: new Map(paths.map((p) => [p, 3])),
+          wornBy: new Map([['hoa-letter', 1]]),
           inheritance: INHERITANCES['sensitivity']!,
         }),
       ),
     ];
-    for (const act of ACTS)
+    // The life the browser plays, and every act with a schedule: a paper can be
+    // written before its act is startable, and is held to the rule from then.
+    for (const act of new Set([...ACTS, ...ALL_ACTS]))
       for (const w of worlds) for (const name of names) for (const clock of [0, 305.2, 5999]) expectClean(actDocument(w, name, act, clock));
   });
 });
