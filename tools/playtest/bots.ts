@@ -86,6 +86,11 @@ export const POLICIES: BotPolicy[] = [
   { name: 'personal-space+membrane', priorities: ['personal-space', 'personal-space/boundaries', 'membrane', 'lash'] },
   { name: 'backhand+midpiece', priorities: ['backhand', 'backhand/wingspan', 'midpiece', 'lash'] },
   { name: 'judgement+appetite', priorities: ['judgement', 'judgement/docket', 'appetite', 'lash'] },
+  // G-046: two of the five new evolutions. Grudge maxed beside Thick Skin is
+  // Vendetta; Backhand beside Growth Spurt is Reach, and Growth Spurt is born
+  // in Adolescence, so that arm evolves late in a life or not at all.
+  { name: 'grudge+membrane', priorities: ['grudge', 'membrane', 'grudge/company', 'lash'] },
+  { name: 'backhand+growth-spurt', priorities: ['backhand', 'growth-spurt', 'backhand/wingspan', 'midpiece', 'lash'] },
 ];
 
 export interface RunResult {

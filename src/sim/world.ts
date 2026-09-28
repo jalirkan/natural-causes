@@ -1631,7 +1631,7 @@ export class World {
           last.x = this.x;
           last.y = this.y;
         } else this.trailDrops.set(def.id, { x: this.x, y: this.y });
-        this.areas.push({
+        const trail: AreaState = {
           x: this.x,
           y: this.y,
           age: 0,
@@ -1641,7 +1641,12 @@ export class World {
           pull: false,
           tick: true,
           serial: this.nextSerial++,
-        });
+        };
+        // Rut (G-046): a trail that holds as well as hurts. `slowAt` reads any
+        // area with a `slow`, so whatever crosses a footprint is held, and so
+        // is the player, since each one is laid where the player stands.
+        if (def.slow !== undefined) trail.slow = def.slow;
+        this.areas.push(trail);
         return true;
       }
       case 'attractor': {
@@ -1746,6 +1751,8 @@ export class World {
           const pick = Math.floor(this.rng() * pool.length);
           const e = pool[pick]!;
           swapRemove(pool, pick);
+          // A bolt with no delay (Hindsight) has already landed: not at what it killed.
+          if (e.hp <= 0) continue;
           this.strikeAt(def, e.x, e.y, radius, damage);
           aimed++;
         }
@@ -1775,15 +1782,25 @@ export class World {
     if (d2 > (reach + r) * (reach + r)) return false;
     const d = Math.sqrt(d2);
     if (d <= r) return true;
+    // A full circle (Reach, G-046) takes every bearing. The wrapped test below
+    // already would, |off| <= π with a body's width to spare; this says so
+    // without leaning on the float at exactly π.
+    if (width >= Math.PI * 2) return true;
     // Wrapped to [-π, π]: a bearing of 179° and an arc at -179° are 2° apart.
     let off = Math.atan2(dy, dx) - angle;
     off -= Math.PI * 2 * Math.floor((off + Math.PI) / (Math.PI * 2));
     return Math.abs(off) <= width / 2 + Math.asin(r / d);
   }
 
-  /** One strike, telegraphed: it lands after STRIKE_DELAY (updateAreas → landStrike). */
+  /**
+   * One strike, telegraphed: it lands after its item's `strikeDelay`, or
+   * STRIKE_DELAY (updateAreas → landStrike). A delay of zero (Hindsight,
+   * G-046) lands here, on the fire step. `fireItems` runs before
+   * `updateAreas`, but `updateStrike` reads a delay of zero as already landed
+   * and only ages the flash, so waiting for it would never land at all.
+   */
   private strikeAt(def: ActiveItem, x: number, y: number, radius: number, damage: number): void {
-    this.areas.push({
+    const a: AreaState = {
       x,
       y,
       age: 0,
@@ -1793,9 +1810,11 @@ export class World {
       pull: false,
       tick: false,
       serial: this.nextSerial++,
-      delay: STRIKE_DELAY,
+      delay: Math.max(0, def.strikeDelay ?? STRIKE_DELAY),
       source: def.id,
-    });
+    };
+    this.areas.push(a);
+    if (a.delay === 0) this.landStrike(a);
   }
 
   /**
@@ -1990,6 +2009,8 @@ export class World {
           hits.set(key, this._time);
           e.hp -= damage;
           e.hitFlash = 0.08;
+          // Vendetta (G-046): a fist that shoves. Grudge carries no knockback and never pushes.
+          if (def.knockback) this.knockBack(e, def.knockback + bonus.knockback);
         }
 
         const b = this.boss;

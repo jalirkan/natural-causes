@@ -1330,10 +1330,11 @@ export class ActScene extends Phaser.Scene {
             .setAlpha(fade)
             .setVisible(true);
         }
-      } else if (a.slow !== undefined) {
+      } else if (a.slow !== undefined && a.damage === 0) {
         // Snooze: the field it holds, drawn at its honest radius, with the
         // card's icon where it was dropped. Checked first: it ticks and does
-        // not pull, which would otherwise draw it as Wake's footprints.
+        // not pull, which would otherwise draw it as Wake's footprints. Rut's
+        // footprints hold too but hurt, so they fall through and draw as Wake's.
         const [key, frame] = this.iconTexture('slow', 'Snooze');
         circle
           .setPosition(a.x, a.y)
