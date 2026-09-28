@@ -135,6 +135,11 @@ const REORG_GREY = 2 / 3;
  */
 const MORTGAGE_DOOR = { x0: 160 / 384, x1: 223 / 384, y0: 266 / 384, y1: 351 / 384 };
 /**
+ * The door ajar: the share of its width open between the last instalment
+ * being met and the window closing on it (`syncDoor`). PLACEHOLDER.
+ */
+const MORTGAGE_AJAR = 0.35;
+/**
  * A hold taking the player (an engulf: the white cell's, the toddler's,
  * FAMILY-ROSTER §3.4): the grab is a squash, wider first, ringing down as the
  * Reorg's landing does, and for as long as the hold runs the swim's wiggle
@@ -300,7 +305,7 @@ export class ActScene extends Phaser.Scene {
   private bossSwapAt = -Infinity;
   /** The Reorg's greyed rows: the chart's own frame, cropped from a row down (`REORG_ROW_TOPS`). */
   private bossGrey?: Phaser.GameObjects.Image;
-  /** The Mortgage's open door (`MORTGAGE_DOOR`), laid over the house while it absorbs. */
+  /** The Mortgage's open door (`MORTGAGE_DOOR`), laid over the house from the last payment on. */
   private bossDoor?: Phaser.GameObjects.Rectangle;
   /**
    * The hold's cues (`HOLD_GRAB`): last frame's `engulfTimer`, which rising is
@@ -2178,15 +2183,20 @@ export class ActScene extends Phaser.Scene {
   }
 
   /**
-   * The Mortgage's door opening on the win (FAMILY-ROSTER §4): from the frame
-   * it begins to absorb, the door's rectangle (`MORTGAGE_DOOR`) is laid over
-   * the house in the act's deep tone, at the house's own place, size and
-   * alpha, so the mouth opens on the carpet behind it and fades with the
-   * house. Hidden before. A render overlay, PLACEHOLDER as the Reorg's grey
-   * rows are.
+   * The Mortgage's door opening on the twelfth payment (FAMILY-ROSTER §4):
+   * the door's rectangle (`MORTGAGE_DOOR`) laid over the house in the act's
+   * deep tone, at the house's own place, size and alpha, so the mouth opens
+   * on the carpet behind it and fades with the house. The last instalment can
+   * be met with up to a window left to run (the sim pays at the window's
+   * close, and the outcome latches only then), so the house would stand at
+   * nothing owed for seconds looking stuck: from the take that meets it the
+   * door stands ajar (`MORTGAGE_AJAR` of its width, the latch side), and it
+   * opens whole when the house absorbs. Hidden before. A render overlay,
+   * PLACEHOLDER as the Reorg's grey rows are.
    */
   private syncDoor(b: NonNullable<World['boss']>, alpha: number): void {
-    if (b.phase !== 'absorbing') {
+    const open = b.phase === 'absorbing';
+    if (!open && !(b.hp <= 0)) {
       this.bossDoor?.setVisible(false);
       return;
     }
@@ -2194,9 +2204,10 @@ export class ActScene extends Phaser.Scene {
     if (!this.bossDoor) this.bossDoor = this.add.rectangle(0, 0, 1, 1).setOrigin(0, 0).setDepth(s.depth);
     const left = s.x - s.displayWidth * s.originX;
     const top = s.y - s.displayHeight * s.originY;
+    const width = s.displayWidth * (MORTGAGE_DOOR.x1 - MORTGAGE_DOOR.x0) * (open ? 1 : MORTGAGE_AJAR);
     this.bossDoor
       .setPosition(left + s.displayWidth * MORTGAGE_DOOR.x0, top + s.displayHeight * MORTGAGE_DOOR.y0)
-      .setSize(s.displayWidth * (MORTGAGE_DOOR.x1 - MORTGAGE_DOOR.x0), s.displayHeight * (MORTGAGE_DOOR.y1 - MORTGAGE_DOOR.y0))
+      .setSize(width, s.displayHeight * (MORTGAGE_DOOR.y1 - MORTGAGE_DOOR.y0))
       .setFillStyle(this.visuals.background, 1)
       .setAlpha(alpha)
       .setVisible(true);
@@ -2551,15 +2562,28 @@ export class ActScene extends Phaser.Scene {
       }
       // The Mortgage is paid on a schedule (FAMILY-ROSTER §4): its bar is cut
       // into `instalments` cells by an ink notch at every instalment, over the
-      // fill, so the health reads as a schedule and each payment empties one
-      // cell (the sim steps its health by an instalment). The fill is still
-      // hp/maxHp. PLACEHOLDER as a picture: the smooth bar stays under the
-      // notches until a person has read them, as §4 says.
+      // fill, so the health reads as a schedule. The fill is still hp/maxHp:
+      // between windows the sim holds it at whole instalments (`paid`), so a
+      // paid window leaves one more cell empty; inside a window the cell being
+      // paid drains as the gate accepts damage, stops draining once it is met
+      // (the overflow is lost), and fills back up if the window closes short
+      // (a missed window is refunded — the one bar in the life that rises).
+      // Under that cell, where the race bar sits for the acts that race, the
+      // window's clock (`windowTimer`, counting down) runs left to right: the
+      // time left to pay it, and after the last one is met, the time until
+      // the house lets go. PLACEHOLDER as a picture: the smooth bar stays
+      // under the notches until a person has read them, as §4 says.
       const owed = w.act.boss;
       if (w.boss.kind === 'mortgage' && owed.kind === 'mortgage' && owed.instalments > 1) {
+        const n = owed.instalments;
         this.bars.fillStyle(INK, 0.9);
-        for (let k = 1; k < owed.instalments; k++) {
-          this.bars.fillRect(Math.round(240 + (width * k) / owed.instalments) - 1, 66, 2, 12);
+        for (let k = 1; k < n; k++) this.bars.fillRect(Math.round(240 + (width * k) / n) - 1, 66, 2, 12);
+        const due = n - 1 - w.boss.paid;
+        if (w.boss.phase !== 'absorbing' && due >= 0 && owed.instalmentSeconds > 0) {
+          const cell = width / n;
+          const gone = Phaser.Math.Clamp(1 - w.boss.windowTimer / owed.instalmentSeconds, 0, 1);
+          this.bars.fillStyle(INK, 0.6).fillRect(240 + cell * due + 2, 80, cell - 4, 3);
+          this.bars.fillStyle(PAPER, 0.85).fillRect(240 + cell * due + 2, 80, (cell - 4) * gone, 3);
         }
       }
     }

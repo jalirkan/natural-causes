@@ -80,8 +80,9 @@ const OUT = resolve(ROOT, 'tools/smoke/out');
 // the runs ended at 118.5s and 151.5s where they would have at about 99s and
 // 119s: +20% and +28%. At +28% the slowest CI run seen becomes about 218s,
 // and 420s is 1.9 times it; the shared box's ~310s becomes about 400s, and
-// 420s is 1.05 times it. Kept, because neither run here came near it; thin
-// on that box, so if it runs out there again, raise this before skipping an
+// 420s is 1.05 times it. Kept, because no run here came near it (two more,
+// once The Mortgage's own sim landed, ended at 106.0s and 102.6s); thin on
+// that box, so if it runs out there again, raise this before skipping an
 // act's milestones.
 const MILESTONE_MS = 60_000;
 const BUDGET_MS = 420_000;
