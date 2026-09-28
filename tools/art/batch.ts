@@ -896,6 +896,85 @@ export const ITEM_ICONS: AssetSpec[] = [
       'flat muted dusty rose hand, pale warm cuff and motion arcs, dark interior lines between the fingers',
     ].join(', '),
   },
+  // G-046's five evolutions, each an object from the life that the weapon
+  // becomes, drawn so the field sprite reads too (the orbit's gloves, the
+  // shots' cups, the sweep's edge, the bolt's target, the trail's stamps).
+  // All keep to rose, bone and ink like the other field-riding icons.
+  {
+    id: 'icon-vendetta',
+    name: 'Vendetta icon',
+    act: 'conception',
+    role: 'icon',
+    source: 'svg',
+    targetSize: 96,
+    seed: 61028,
+    tests: 'a boxing glove — the grudge with thick skin on — read at 52px on a card and 36px circling the player, never the bare fist',
+    subject: [
+      'a boxing glove seen from the side, thumb up, a fat rounded mitt with a short laced cuff, no forearm',
+      'flat muted dusty rose glove, pale warm cuff and laces, dark interior line where the thumb meets the mitt',
+      'nothing else: no ring, no ropes, no figure, no text',
+    ].join(', '),
+  },
+  {
+    id: 'icon-jump',
+    name: 'Jumpiness icon',
+    act: 'conception',
+    role: 'icon',
+    source: 'svg',
+    targetSize: 96,
+    seed: 61029,
+    tests: 'a small espresso cup with three steam lines, read at 52px on a card and 30px in flight',
+    subject: [
+      'a small espresso cup on a saucer seen from the side, one round handle on the right, three short wavy steam lines rising from it',
+      'flat muted dusty rose cup, pale warm saucer and steam, a dark interior line at the rim',
+      'no spoon, no table, no text, no face',
+    ].join(', '),
+  },
+  {
+    id: 'icon-reach',
+    name: 'Reach icon',
+    act: 'conception',
+    role: 'icon',
+    source: 'svg',
+    targetSize: 96,
+    seed: 61030,
+    tests: 'a grabber tool — a long rod with a trigger handle and a two-finger claw — read at 52px on a card and 36px at the edge of a sweep',
+    subject: [
+      'a long-handled grabber tool seen from the side, a pistol-grip trigger handle at the left, a straight rod, a two-finger open claw at the right',
+      'flat muted dusty rose handle and claw, pale warm rod, dark interior lines at the trigger and the claw hinge',
+      'no hand holding it, no figure, no text',
+    ].join(', '),
+  },
+  {
+    id: 'icon-hindsight',
+    name: 'Hindsight icon',
+    act: 'conception',
+    role: 'icon',
+    source: 'svg',
+    targetSize: 96,
+    seed: 61031,
+    tests: 'a rear-view mirror on its stalk, read at 52px on a card and 36px dropping onto the field, never a hand mirror',
+    subject: [
+      'a wide flat rear-view mirror seen straight on, a rounded landscape rectangle on a short stalk rising from below',
+      'flat muted dusty rose frame and stalk, pale warm mirror face with one darker flat band across it as the reflection',
+      'no car, no road, no figure, no text',
+    ].join(', '),
+  },
+  {
+    id: 'icon-rut',
+    name: 'Rut icon',
+    act: 'conception',
+    role: 'icon',
+    source: 'svg',
+    targetSize: 96,
+    seed: 61032,
+    tests: 'a pair of worn slippers seen from above, read at 52px on a card and 26px stamped along a trail, never a pair of shoes',
+    subject: [
+      'a pair of soft house slippers seen from directly above, toes up, side by side and slightly splayed, each a rounded sole with a low toe pocket',
+      'flat muted dusty rose slippers, pale warm inner soles showing at the heels, a dark interior line along each toe pocket edge',
+      'no feet in them, no floor, no laces, no text',
+    ].join(', '),
+  },
 ];
 
 /**

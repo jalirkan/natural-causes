@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <title>Jumpiness icon</title>
+  <desc>A small espresso cup on its saucer seen from the side, one round handle on the right, the dark coffee showing at the rim, and three short wavy lines of steam rising off it.</desc>
+  <!--
+    Jumpiness (items.ts; G-046, Reflex evolved beside Restlessness: fires at
+    everything, immediately, all the time). A card icon, and also every shot
+    the weapon fires, rotated to its heading (~30px), so it keeps off the
+    field's reserved colours: no threat colour, no paper, no conception-light.
+    The weapon it evolves from fires the manicule; this is nothing like a
+    hand. It is the third espresso: an object from the life, and the reason.
+    Fat and squat on purpose: a tall cup is a mug, a mug on a plate is
+    breakfast, and a long plume of steam is a tail that rotation turns into
+    a comet. The cup is about as wide as it is tall, the saucer not quite
+    twice its width, the steam short. The round handle is what stops it
+    being a bowl; there is no spout and no lid, so it is never a teapot.
+    The coffee at the rim is the dark interior line. The saucer's near rim
+    is drawn in ink so bone on bone reads as a dish with a thickness.
+    Steam is three separate flat strokes, not a letter or a cloud.
+    CONFORM adds the outer outline; interior lines are drawn here.
+    Colours: conception-mid #A86A63, bone #D2C6AC, ink #2A2521.
+  -->
+  <g shape-rendering="crispEdges">
+    <!-- the saucer: its top face, then the thin underside curving to the foot -->
+    <g fill="#D2C6AC">
+      <path d="M 8 74 C 12 80, 26 84, 44 84 C 62 84, 76 80, 80 74 Z"/>
+      <ellipse cx="44" cy="74" rx="36" ry="5"/>
+    </g>
+    <!-- the saucer's near rim -->
+    <path d="M 8 74 A 36 5 0 0 0 80 74" fill="none" stroke="#2A2521" stroke-width="2.2"/>
+
+    <!-- the handle: one round loop off the right wall, its hole left open -->
+    <circle cx="71" cy="50" r="8.5" fill="none" stroke="#A86A63" stroke-width="5"/>
+
+    <!-- the cup: near-straight walls, a rounded bottom sitting in the saucer -->
+    <g fill="#A86A63">
+      <path d="M 24 38 L 25.4 54 C 26.4 66, 34 75, 44 75 C 54 75, 61.6 66, 62.6 54 L 64 38 Z"/>
+      <ellipse cx="44" cy="38" rx="20" ry="4.5"/>
+    </g>
+    <!-- the coffee showing inside the rim: the dark interior line -->
+    <ellipse cx="44" cy="38.8" rx="16.5" ry="2.8" fill="#2A2521"/>
+
+    <!-- three short wavy lines of steam, the middle one a little taller -->
+    <g fill="none" stroke="#D2C6AC" stroke-width="5" stroke-linecap="round">
+      <path d="M 32 29 C 27.5 26.5, 27.5 23.5, 32 21 C 36.5 18.5, 36.5 15.5, 32 13"/>
+      <path d="M 44 29 C 39.5 26, 39.5 22.5, 44 19.5 C 48.5 16.5, 48.5 13, 44 10"/>
+      <path d="M 56 29 C 51.5 26.5, 51.5 23.5, 56 21 C 60.5 18.5, 60.5 15.5, 56 13"/>
+    </g>
+  </g>
+</svg>
