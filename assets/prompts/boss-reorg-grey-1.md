@@ -7,7 +7,7 @@
 - **SVG sha256:** `78a75a15766f4766ba3de578d3977ca135bc380bb09955ee51f6dcec1fe94213`
 - **Rasteriser:** sharp 0.34.5 (libvips 8.17.3, librsvg 2.61.2)
 - **Render:** 288.000 dpi, 4× supersampled and area-averaged
-- **Rendered:** 2026-09-28T18:57:36.085Z
+- **Rendered:** 2026-09-28T19:11:03.378Z
 - **Sprite size:** 384px
 - **Tests:** the org chart exactly as boss-reorg with the bottom row of boxes greyed: those boxes and their faces in warm grey-brown, their connectors still attached, the empty top box never greyed
 
@@ -15,7 +15,7 @@
 
 ## Description
 
-a corporate organisational chart drawn as a flat printed diagram, standing upright as if it were a creature, a branching hierarchy tree of separate plain rectangular outlined boxes, four rows deep, widening toward the bottom, exactly as boss-reorg, the bottom row of boxes filled in flat warm grey-brown (#6E6353) instead of teal, their small faces and label bars kept but in the same grey-brown, the connectors to them still drawn and still attached, every other box in flat muted deep teal (#2F7370), the boss colour, as in boss-reorg, and the empty top box exactly as it is there, never greyed, the connector lines ruled straight, thin, in warm near-black (#2A2521), the only ruled geometry in the act, strictly flat and two-dimensional like a printed chart on a page, no 3D boxes, no text
+a corporate organisational chart drawn as a flat printed diagram, standing upright as if it were a creature, a branching hierarchy tree of separate plain rectangular outlined boxes, four rows deep, widening toward the bottom, exactly as boss-reorg, the bottom row of boxes filled in flat warm grey-brown (#6E6353) instead of teal, their small faces in muted tan (#D2C6AC) and their label bars kept in muted tan, the connectors to them still drawn in teal and still attached, every other box in flat muted deep teal (#2F7370), the boss colour, as in boss-reorg, and the empty top box exactly as it is there, never greyed, the connector lines ruled straight, thin, in flat muted deep teal (#2F7370) as in boss-reorg, the only ruled geometry in the act, strictly flat and two-dimensional like a printed chart on a page, no 3D boxes, no text
 
 ## Mechanical checks
 
