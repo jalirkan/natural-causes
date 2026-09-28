@@ -672,12 +672,13 @@ export const ITEM_ICONS: AssetSpec[] = [
     act: 'conception',
     role: 'icon',
     fieldRiding: true,
+    source: 'svg',
     targetSize: 96,
     seed: 61013,
     tests: 'a starburst that stays a badge and never becomes a sun',
     subject: [
       'a retail price-tag starburst badge with about twelve irregular points, seen perfectly flat, filling most of the frame',
-      'flat muted brick red with a smaller flat rose starburst inset inside it, no text, no numbers, no face',
+      'flat muted dusty rose outer starburst with a smaller flat pale warm starburst inset inside it, a dark interior edge round the inset, no text, no numbers, no face',
     ].join(', '),
   },
   {

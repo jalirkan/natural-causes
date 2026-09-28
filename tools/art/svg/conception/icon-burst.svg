@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <title>Acrosome icon</title>
+  <desc>A retail price-tag starburst badge seen flat: twelve irregular points around a smaller eight-pointed starburst inset at its centre. No text.</desc>
+  <!--
+    Temper (items.ts, icon "burst"; Tantrum shares it). A card icon, and also
+    what pops at the burst on the field (ActScene syncAreas, drawn at 1.7x
+    the burst radius at 0.75 alpha, so 150-350px), so it keeps off the
+    field's reserved colours: no threat colour, no paper, no conception-light.
+    The fal-generated badge it replaces (G-035) wore contact red on the outer
+    star, so the player's own burst read as the act's heaviest contact enemy.
+    The outer star is rose and the inset bone: pale core, darker rim, which
+    is what a pop looks like when it is large and see-through. The points
+    are fat (valley radius about 0.72 of the tip) so none turns to a hairline
+    at 52px on the card; the irregularity is in tip length and spacing only.
+    CONFORM adds the outer outline; the ink edge round the inset is drawn here.
+    Colours: conception-mid #A86A63, bone #D2C6AC, ink #2A2521.
+  -->
+  <g shape-rendering="crispEdges">
+    <!-- the badge: twelve irregular points -->
+    <polygon fill="#A86A63" points="50.0,1.5 59.7,17.4 74.8,11.8 73.5,26.9 90.3,24.8 83.8,40.9 94.5,51.6 82.4,58.4 92.8,71.8 74.8,74.0 72.3,90.2 58.3,81.9 50.0,97.5 41.8,83.0 28.9,89.7 25.0,74.5 6.8,72.0 17.5,58.1 4.0,50.8 17.2,40.9 10.1,25.1 26.5,26.9 25.8,12.7 40.1,16.4"/>
+
+    <!-- the inset: a smaller eight-pointed starburst, edged in ink -->
+    <polygon fill="#D2C6AC" stroke="#2A2521" stroke-width="2.4" stroke-linejoin="round" points="50.0,24.0 56.1,35.8 68.1,32.8 63.9,44.3 76.5,49.5 64.8,56.1 67.4,68.0 55.6,63.9 50.0,76.0 44.3,64.4 32.4,68.5 36.2,55.8 23.5,49.5 35.2,43.9 32.0,32.6 43.9,35.7"/>
+  </g>
+</svg>
