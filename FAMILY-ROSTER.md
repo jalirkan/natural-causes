@@ -24,7 +24,7 @@ Six shapes and the boss's. The consequence strings lift verbatim.
 | **Sealed letter** — a tri-fold sheet standing open like a tent, a round seal on its top panel | `hoa-letter` | The only seal, and the only thing folded. |
 | **Bib with arms** — a round bib, two short sleeves raised beside it, nothing above | `toddler` | The only thing in the act reaching up, and the smallest mover. |
 | **Wall phone** — an upright body with a handset laid across its top and a coiled cord looping down one side | `phone-call` | The only cord, and the only coil. |
-| **Room** — a square outlined block with a door gap in one side | `room` | The only square in the act, and the only outline with a gap. Solid. |
+| **Room** — a square drawn as a floor plan, walls in section, a door gap in one side with the door's swing on the floor | `room` | The only square in the act, and the only outline with a gap. Solid. |
 | **House with a face** — a gabled house front, a door and two windows, at boss scale | `boss-mortgage` | The only gable, and the only thing with a roof. |
 
 **Threat colours held back:**

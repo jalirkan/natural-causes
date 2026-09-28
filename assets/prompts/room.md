@@ -7,7 +7,7 @@
 - **SVG sha256:** `1313228f73069ac24dc9265cedd8a3a481aa70a0f64811da0c71b4f050a3f229`
 - **Rasteriser:** sharp 0.34.5 (libvips 8.17.3, librsvg 2.61.2)
 - **Render:** 54.000 dpi, 4× supersampled and area-averaged
-- **Rendered:** 2026-09-28T11:01:18.460Z
+- **Rendered:** 2026-09-28T11:03:07.047Z
 - **Sprite size:** 96px
 - **Tests:** the room — the only square in the act and the only outline with a gap; wallpaper, never a threat colour
 
@@ -15,7 +15,7 @@
 
 ## Description
 
-a square room seen from above as a floor plan, thick outlined walls with one door gap in the middle of its bottom side, the floor in flat muted mustard (#A3812F), the walls in warm near-black (#2A2521), two small dark dots for eyes and one short flat line for a mouth on the floor near the far wall, looking at the door gap, no furniture, no text, no red, no purple, no gold, no yellow, no teal anywhere
+a square room seen from above as a floor plan, its walls drawn in section as two ink lines with the floor showing between them, one door gap in the middle of its bottom side with the door leaf and its quarter-circle swing drawn on the floor inside, the floor in flat muted mustard (#A3812F), the walls in warm near-black (#2A2521), two small dark dots for eyes and one short flat line for a mouth on the floor near the far wall, looking at the door gap, no furniture, no text, no red, no purple, no gold, no yellow, no teal anywhere
 
 ## Mechanical checks
 

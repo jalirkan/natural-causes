@@ -1567,7 +1567,7 @@ export const FAMILY_ROSTER: AssetSpec[] = [
     // hurt, so it wears the act's mid tone and no threat colour (law 10).
     whyThisStage: 'Family is the first stage where the place the player lives is built around them while they are standing in it.',
     subject: [
-      'a square room seen from above as a floor plan, thick outlined walls with one door gap in the middle of its bottom side',
+      'a square room seen from above as a floor plan, its walls drawn in section as two ink lines with the floor showing between them, one door gap in the middle of its bottom side with the door leaf and its quarter-circle swing drawn on the floor inside',
       'the floor in flat muted mustard (#A3812F), the walls in warm near-black (#2A2521)',
       'two small dark dots for eyes and one short flat line for a mouth on the floor near the far wall, looking at the door gap',
       'no furniture, no text, no red, no purple, no gold, no yellow, no teal anywhere',
