@@ -253,6 +253,30 @@ describe('law 11 — each act reserves its silhouettes, before generation', () =
     expect(RESERVATIONS['conception']!.reservedThreat.boss).toBe('boss-egg');
   });
 
+  it('a threat holder wears its colour: every committed sprite that holds a threat class has pixels of it', async () => {
+    // The guard the variant frames taught: CONFORM once quantised a boss's
+    // teal away on a D-029 variant and every CHECK row still passed. A holder
+    // (or its variant) with none of its colour on the sprite is that bug.
+    let checked = 0;
+    for (const spec of ALL_ASSETS) {
+      const holds = heldThreats(spec);
+      if (holds.length === 0) continue;
+      const file = resolve(process.cwd(), `assets/sprites/${spec.act}/${spec.id}.png`);
+      if (!existsSync(file)) continue;
+      const bmp = await fromPng(readFileSync(file));
+      for (const cls of holds) {
+        const [r, g, b] = THREAT[cls].rgb;
+        let n = 0;
+        for (let i = 0; i < bmp.data.length; i += 4) {
+          if (bmp.data[i] === r && bmp.data[i + 1] === g && bmp.data[i + 2] === b && bmp.data[i + 3]! > 0) n++;
+        }
+        expect(n, `${spec.id} holds ${cls} and wears none of it`).toBeGreaterThan(0);
+      }
+      checked++;
+    }
+    expect(checked).toBeGreaterThan(10);
+  });
+
   it('D-029: every variant frame is a boss-role spec in its act and holds its holder\'s reservation', () => {
     let variants = 0;
     for (const [act, reserved] of Object.entries(RESERVATIONS)) {
