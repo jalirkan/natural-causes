@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { ACTS, type ActDef } from '../data/acts';
-import { actVisuals, type ActVisuals } from '../data/act-visuals';
+import { ACT_VISUALS, actVisuals, type ActVisuals } from '../data/act-visuals';
+import { ENEMIES } from '../data/enemies';
 import { ITEMS, isActive, itemDef, type ItemIcon } from '../data/items';
 import { neutralDevState, type DevState } from '../dev/state';
 import { addVignette, ensureFieldTile, ensureGemTexture, ensureShotTextures } from './dressing';
@@ -8,6 +9,7 @@ import { ITEM_ICON_ATLAS, itemIconFrame } from '../data/item-visuals';
 import { parseOfferId } from '../data/items';
 import { offerPips, offerTitle, statLines } from '../data/item-text';
 import { buildSheet, pipString } from '../data/build-sheet';
+import { actDocument, PAPER_NARROW_TITLE, PAPER_SHEET, paperType } from '../data/documents';
 import { sfx } from '../audio/sfx';
 import { combineMoves, stickVector, type Move } from './touch';
 import { oncePerEvent } from './keys';
@@ -45,6 +47,7 @@ import {
   PAPER,
   SHADOW,
   THREAT_CONTACT,
+  THREAT_ELITE,
   THREAT_RANGED,
   UI_FILL,
   VIEW_HEIGHT,
@@ -72,16 +75,50 @@ const GEM_SIZE = 9;
 const MAX_ATTACHED_SPRITES = 16;
 /**
  * Enemies whose aimed shot is drawn as a word in the ranged gold instead of the
- * gold dot: the substitute's (the player's name, misspelled) and the
- * registrar's (HOLD). Keyed on the id because the word is the drawing.
+ * gold dot: the substitute's (the player's name, misspelled), the registrar's
+ * (HOLD) and the performance review's rating (MEETS, OFFICE-ROSTER §3.5).
+ * Keyed on the id because the word is the drawing; `SHOT_WORDS` holds the
+ * fixed ones, and the substitute's is the name.
  */
-const WORDED_SHOTS: ReadonlySet<string> = new Set(['substitute-teacher', 'registrar']);
+const SHOT_WORDS: Readonly<Record<string, string>> = { registrar: 'HOLD', 'performance-review': 'MEETS' };
+const WORDED_SHOTS: ReadonlySet<string> = new Set(['substitute-teacher', ...Object.keys(SHOT_WORDS)]);
 /**
  * The Loan's tape jerking on its interest tick: how long the jolt rings, in
  * world seconds, and how far it stretches the frame at its peak.
  */
 const LOAN_JERK_SECONDS = 0.45;
 const LOAN_JERK = 0.07;
+/**
+ * The Reorg's restructure (OFFICE-ROSTER §4): the chart lands somewhere new
+ * and settles, a quick squash (wider and shorter first) ringing down the way
+ * the Loan's jerk does. PLACEHOLDER, watched by nobody yet.
+ */
+const REORG_SWAP_SECONDS = 0.4;
+const REORG_SWAP = 0.12;
+/**
+ * The chart greys from the bottom (G-004: damaged boxes go grey and stay in
+ * the chart). Where each of its three faced rows begins, top to bottom, as a
+ * share of the frame's height, read from boss-reorg.svg's note for the
+ * renderer (rows 2–4 at y 132, 236 and 340 of 384, each with 8 of ink above,
+ * cut 2 higher so the ink goes with it). The top box is empty and never
+ * greys. PLACEHOLDER as a picture: one frame exists, so the grey is the same
+ * frame cropped to the rows below the cut and laid over the chart in the
+ * shadow tone at `REORG_GREY` — a render tint (G-032 retired those for
+ * sprites; this marks a state, not a corrected colour) until a grey chart is
+ * drawn and packed, when the overlay wears that frame and drops the tint.
+ */
+const REORG_ROW_TOPS = [122 / 384, 226 / 384, 330 / 384];
+const REORG_GREY = 2 / 3;
+/**
+ * The boss's entrance (AUDIT 37). Every boss stands 420px above the player
+ * and the view reaches 360, so on the boss's first frame the camera goes to
+ * look: out to where the whole drawing is in view, a hold, and back to the
+ * player. Presentation only; the sim steps on and the bots never see it.
+ * PLACEHOLDER timings, watched by nobody yet: 450ms out, 800ms held, 600ms back.
+ */
+const ENTRANCE_OUT_MS = 450;
+const ENTRANCE_HOLD_MS = 800;
+const ENTRANCE_BACK_MS = 600;
 /**
  * How far a finger travels for full stick, in CSS pixels rather than game
  * pixels: the canvas is FIT-scaled, and a radius in game units would be a
@@ -90,8 +127,21 @@ const LOAN_JERK = 0.07;
 const STICK_RADIUS_CSS = 56;
 /** A tap this soon after the run ends is the thumb still steering, not a restart. */
 const RESTART_GRACE_MS = 700;
+/** How long the act's document stays up at the crossing unless a key or a tap takes it first. */
+const DOCUMENT_MS = 4000;
 /** The last clean run's held headings (src/meta/input-log.ts), beside `nc-ancestors`. One run, overwritten. */
 const INPUT_LOG_KEY = 'nc-input-log';
+/**
+ * Every stack the player wears, whatever it costs (`World.wornBy`): the
+ * antibody's drag, tuition's tax, the ping's attention. Acts one to four
+ * attach only things that drag, so there it equals `dragStacks`; in The
+ * Office a ping adds to it and not to the drag.
+ */
+function wornCount(w: World): number {
+  let n = 0;
+  for (const k of w.wornBy.values()) n += k;
+  return n;
+}
 /** Arrival toasts stay below the HUD's top band (plate, boss bar, race bar) and this far off the edges. */
 const TOAST_TOP = 104;
 const TOAST_EDGE = 16;
@@ -107,6 +157,18 @@ interface Arrival {
   uid: number;
   x: number;
   y: number;
+}
+
+/**
+ * How far a view spanning [viewLo, viewHi] must move, on one axis, to hold
+ * [lo, hi]: zero when it already does. When the span cannot all fit, its
+ * low edge (the top, the left) wins, so a tall drawing shows its head. The
+ * boss's entrance (AUDIT 37) asks it once per axis.
+ */
+function shiftToShow(lo: number, hi: number, viewLo: number, viewHi: number): number {
+  if (lo < viewLo) return lo - viewLo;
+  if (hi > viewHi) return Math.min(hi - viewHi, lo - viewLo);
+  return 0;
 }
 
 /**
@@ -155,7 +217,8 @@ export class ActScene extends Phaser.Scene {
   private projectileSprites: Phaser.GameObjects.Image[] = [];
   /**
    * Shots drawn as words (`WORDED_SHOTS`): the substitute's, the player's name
-   * spelled wrong (SCHOOL-ROSTER §3.5), and the registrar's HOLD (COLLEGE §3.5).
+   * spelled wrong (SCHOOL-ROSTER §3.5), the registrar's HOLD (COLLEGE §3.5)
+   * and the review's MEETS (OFFICE §3.5).
    */
   private nameShotTexts: Phaser.GameObjects.Text[] = [];
   /** The name on the form, read once per life; the sim never knows it. */
@@ -163,6 +226,9 @@ export class ActScene extends Phaser.Scene {
   private gemSprites: Phaser.GameObjects.Image[] = [];
   private ringSprites: Phaser.GameObjects.Arc[] = [];
   private areaSprites: Phaser.GameObjects.Arc[] = [];
+  /** Meetings (OFFICE-ROSTER §3.4): each hold's ring at its honest radius, and its chairs on it. */
+  private holdRings: Phaser.GameObjects.Arc[] = [];
+  private holdChairs: Phaser.GameObjects.Image[] = [];
   /** Orbit items' objects (Grudge), each wearing its card's icon (G-036). */
   private orbiterSprites: Phaser.GameObjects.Image[] = [];
   /** Aura rings (Personal Space, G-044) at their honest radius, and the icon riding each. */
@@ -187,6 +253,21 @@ export class ActScene extends Phaser.Scene {
   private bossInterestIn = 0;
   /** World time of the Loan's last tick, which the tape's jerk rings down from. */
   private bossJerkAt = -Infinity;
+  /**
+   * The Reorg's restructures seen last frame, and the world time of the last
+   * one, which the swap's squash rings down from (OFFICE-ROSTER §4).
+   */
+  private bossRestructures = 0;
+  private bossSwapAt = -Infinity;
+  /** The Reorg's greyed rows: the chart's own frame, cropped from a row down (`REORG_ROW_TOPS`). */
+  private bossGrey?: Phaser.GameObjects.Image;
+  /**
+   * The boss's entrance (AUDIT 37): owed from the frame its sprite is made
+   * until the camera goes to look, and the look while it runs. One per
+   * sprite, so one per spawn; a restart or a crossing drops both.
+   */
+  private bossEntranceOwed = false;
+  private bossEntrance?: Phaser.Tweens.TweenChain;
 
   /** Set by P or Escape. Distinct from the offer freeze, which is the rules. */
   private paused = false;
@@ -221,7 +302,7 @@ export class ActScene extends Phaser.Scene {
    * it must not know sound exists — so the renderer notices changes the same
    * way it notices everything else: by reading state and diffing.
    */
-  private heard = { kills: 0, hp: 0, stacks: 0, offers: false, boss: false, dead: false, won: false, xp: 0, level: 1, raced: 0, shot: 0, homework: 0, stun: 0, bossPhase: '', typing: 0, car: 0, time: 0, auraAt: -Infinity };
+  private heard = { kills: 0, hp: 0, stacks: 0, offers: false, boss: false, dead: false, won: false, xp: 0, level: 1, raced: 0, shot: 0, homework: 0, stun: 0, bossPhase: '', typing: 0, car: 0, bell: 0, interestIn: 0, time: 0, auraAt: -Infinity };
 
   /**
    * How long this run held each heading (§12.4's sixth question). Fed the
@@ -240,7 +321,7 @@ export class ActScene extends Phaser.Scene {
   /**
    * The certificate's words: `certificateLines`, typed on the receipt under
    * the form (showCertificate). The smoke reads this object's text for
-   * "Natural causes." and "Age 22." (tools/smoke/run.ts), so those lines live
+   * "Natural causes." and "Age 34." (tools/smoke/run.ts), so those lines live
    * here and nowhere else on the sheet decides them.
    */
   private overlay!: Phaser.GameObjects.Text;
@@ -252,6 +333,15 @@ export class ActScene extends Phaser.Scene {
   private pauseSheetNarrow = false;
   /** The certificate as a document. Built the first frame the run is over. */
   private form?: Phaser.GameObjects.Container;
+  /**
+   * The act's document at the crossing (showDocument), its scrim with it; the
+   * scene holds its steps while this is set. When it goes, whether it took an
+   * upright phone's canvas, and the life clock the playing act began at.
+   */
+  private paper?: Phaser.GameObjects.Container;
+  private paperUntil = 0;
+  private paperNarrow = false;
+  private actBegan = 0;
   private endScrim!: Phaser.GameObjects.Rectangle;
   private devBadge!: Phaser.GameObjects.Text;
 
@@ -308,6 +398,10 @@ export class ActScene extends Phaser.Scene {
     this.world = new World({ acts: this.life, seed: Date.now() & 0xffff });
     this.shownAct = this.world.actIndex;
     this.visuals = actVisuals(this.world.act.id);
+    // A restart destroyed the paper with the display list; the shutdown gave its canvas back.
+    delete this.paper;
+    this.paperNarrow = false;
+    this.actBegan = this.world.time - this.world.actTime;
 
     this.enemySprites = [];
     this.projectileSprites = [];
@@ -316,13 +410,20 @@ export class ActScene extends Phaser.Scene {
     this.gemSprites = [];
     this.ringSprites = [];
     this.areaSprites = [];
+    this.holdRings = [];
+    this.holdChairs = [];
     this.orbiterSprites = [];
     this.auraRings = [];
     this.auraIcons = [];
     this.sweepIcons = [];
     this.attachedSprites = [];
     delete this.bossSprite;
+    delete this.bossGrey;
     delete this.floorRing;
+    // The old scene's look went with its tweens, and startFollow below sets
+    // the follow offset back to nothing; a new world has no boss to owe one.
+    this.bossEntranceOwed = false;
+    delete this.bossEntrance;
 
     this.puffs = [];
     this.areaIcons = [];
@@ -384,13 +485,17 @@ export class ActScene extends Phaser.Scene {
         `keydown-${key}`,
         oncePerEvent(() => {
           const offers = this.world.offers;
-          if (offers && offers[i]) {
+          // Not under the act's document: the card is not drawn yet (drawHud).
+          if (offers && offers[i] && !this.paper) {
             this.world.choose(offers[i]!);
             sfx.choose();
           }
         }),
       );
     }
+    // Any key takes the act's document down. After the named keys: Phaser
+    // emits `keydown-ONE` before `keydown`, so a 1 only lifts the paper.
+    keyboard.on('keydown', oncePerEvent(() => this.hideDocument()));
     this.createTouch(togglePause);
 
     this.createHud();
@@ -409,7 +514,7 @@ export class ActScene extends Phaser.Scene {
     this.resetArrivals();
 
     this.dev = neutralDevState();
-    this.heard = { kills: 0, hp: this.world.hp, stacks: 0, offers: false, boss: false, dead: false, won: false, xp: 0, level: 1, raced: 0, shot: 0, homework: 0, stun: 0, bossPhase: '', typing: 0, car: 0, time: this.world.time, auraAt: -Infinity };
+    this.heard = { kills: 0, hp: this.world.hp, stacks: 0, offers: false, boss: false, dead: false, won: false, xp: 0, level: 1, raced: 0, shot: 0, homework: 0, stun: 0, bossPhase: '', typing: 0, car: 0, bell: 0, interestIn: 0, time: this.world.time, auraAt: -Infinity };
     this.inputLog = new InputLog();
     if (import.meta.env.DEV) {
       this.detachDev?.();
@@ -463,6 +568,9 @@ export class ActScene extends Phaser.Scene {
     this.attachedSprites = [];
     this.bossSprite?.destroy();
     delete this.bossSprite;
+    this.bossGrey?.destroy();
+    delete this.bossGrey;
+    this.endBossEntrance();
     this.floorRing?.destroy();
     delete this.floorRing;
     this.absorbZoomed = false;
@@ -474,7 +582,8 @@ export class ActScene extends Phaser.Scene {
       .setTexture(this.visuals.atlas.key, this.visuals.playerFrame)
       .setDisplaySize(PLAYER_DISPLAY, PLAYER_DISPLAY);
     this.resetArrivals();
-    this.announceAct();
+    // The finished act's paper first; the act is announced as it goes.
+    if (!this.showDocument()) this.announceAct();
   }
 
   /**
@@ -536,6 +645,143 @@ export class ActScene extends Phaser.Scene {
       ],
       onComplete: () => card.destroy(),
     });
+  }
+
+  /**
+   * The act's document (`documents.ts`): the paper the crossing issues from
+   * the life so far, before the next act is announced — the certificate's
+   * sibling on a smaller sheet, in its register (G-038): the office, the
+   * title in small caps, the fields numbered and typed on their rules, the
+   * stamp in the new act's deep tone, on a scrim of its own.
+   *
+   * While it is up the scene holds its steps, as the pause does (`update`), so
+   * nothing starts behind the paper; the rules never know. It goes after
+   * `DOCUMENT_MS` or on any key or tap (`hideDocument`), and the act is
+   * announced as it goes. False when the finished act issues none yet.
+   *
+   * On a screen wider than tall the type is raised to the certificate's floors
+   * at the ratio FIT shows the canvas (`paperType`). An upright phone
+   * (`narrowCanvas`) gets the pause sheet's treatment: the world is held, so
+   * the paper takes a canvas of the screen's shape in the certificate's
+   * narrow type, and `hideDocument` gives 1280×720 back.
+   */
+  private showDocument(): boolean {
+    const w = this.world;
+    // The finished act's clock, off the life clock: when this act began, less
+    // when the last one did. Exact at any time scale, and under the dev
+    // panel's skip, which moves both clocks together.
+    const began = w.time - w.actTime;
+    const clock = began - this.actBegan;
+    this.actBegan = began;
+    const finished = this.life[w.actIndex - 1];
+    const doc = finished ? actDocument(w, this.playerName, finished, clock) : null;
+    if (!doc) return false;
+
+    const cam = this.cameras.main;
+    const shape = narrowCanvas(this.scale.parentSize);
+    const type = shape
+      ? { line: NARROW_TYPE.print, label: NARROW_TYPE.print, value: NARROW_TYPE.value, title: PAPER_NARROW_TITLE, hint: NARROW_TYPE.hint }
+      : paperType(this.scale.displaySize.width / this.scale.width);
+    const view = shape ?? { width: cam.width, height: cam.height };
+    const W = shape ? NARROW_WIDTH - 40 : PAPER_SHEET.width;
+    const M = shape ? 40 : PAPER_SHEET.margin;
+    // As showCertificate: an absorb's lean-in ends under the paper, which takes the zoom too.
+    cam.zoomEffect.reset();
+    cam.setZoom(1);
+    const parts: Phaser.GameObjects.GameObject[] = [];
+    const text = (x: number, y: number, s: string, size: number, colour: string, spacing = 0) => {
+      const t = this.add.text(x, y, s, { fontFamily: 'monospace', fontSize: `${size}px`, color: colour, letterSpacing: spacing });
+      parts.push(t);
+      return t;
+    };
+    const sheet = this.add.graphics();
+    const rules = this.add.graphics();
+
+    // The office, the title, the double rule: the certificate's head.
+    const office = text(W / 2, 32, doc.line, type.line, CERT_PRINT, shape ? 3 : 5).setOrigin(0.5, 0);
+    const baseline = office.y + office.height + 16 + type.title;
+    parts.push(...this.smallCaps(doc.title, W / 2, baseline, type.title, CERT_INK, shape ? 3 : 4));
+    rules.lineStyle(2, INK, 1).lineBetween(M, baseline + 16, W - M, baseline + 16);
+    rules.lineStyle(1, INK, 1).lineBetween(M, baseline + 21, W - M, baseline + 21);
+
+    // The fields, numbered; a value too long for its rule wraps rather than spills.
+    let y = baseline + 21 + (shape ? 30 : 24);
+    let rule = y;
+    doc.fields.forEach(([label, value], i) => {
+      const printed = text(M, y, `${i + 1}. ${label}`, type.label, CERT_PRINT, 1);
+      const typed = text(M + 6, printed.y + printed.height + 6, value, type.value, CERT_INK);
+      typed.setWordWrapWidth(W - 2 * M - 6);
+      rule = typed.y + Math.max(Math.round(type.value * 1.25), typed.height + 4);
+      rules.lineStyle(1.5, INK, 1).lineBetween(M, rule, W - M, rule);
+      y = rule + (shape ? 24 : 16);
+    });
+
+    // The stamp in a band of its own under the last rule, so it covers no value.
+    const stamp = this.inkStamp(doc.stamp, shape ? 34 : 30, shape ? 48 : 44);
+    // Its half-height, and what the tilt (inkStamp's 8°) lifts and drops its corners by.
+    const half = stamp.height / 2 + (stamp.width / 2) * Math.sin(Phaser.Math.DegToRad(8));
+    stamp.setPosition(W - M - 16 - stamp.width / 2, rule + 10 + half);
+    const H = stamp.y + half + 28;
+    sheet.fillStyle(INK, 0.55).fillRect(8, 10, W, H);
+    sheet.fillStyle(PAPER, 1).fillRect(0, 0, W, H);
+    sheet.lineStyle(3, INK, 1).strokeRect(14, 14, W - 28, H - 28);
+    sheet.lineStyle(1, INK, 1).strokeRect(21, 21, W - 42, H - 42);
+    const gap = shape ? 50 : 32;
+    const hint = this.add
+      .text(W / 2, H + gap, this.touch ? 'tap to continue' : 'any key to continue', {
+        fontFamily: 'monospace',
+        fontSize: `${type.hint}px`,
+        color: css(PAPER),
+      })
+      .setOrigin(0.5)
+      .setAlpha(0.85);
+
+    // Centred on the view, sheet and hint together; scaled down only if FIT
+    // shows the canvas so small the raised type overruns it.
+    const need = H + gap + type.hint;
+    const s = Math.min(1, (view.height - 16) / need);
+    const paper = this.add
+      .container(Math.round((view.width - W * s) / 2), Math.max(8, Math.round((view.height - need * s) / 2)), [
+        sheet,
+        rules,
+        ...parts,
+        stamp,
+        hint,
+      ])
+      .setScale(s);
+    const scrim = this.add.rectangle(view.width / 2, view.height / 2, view.width, view.height, INK, 0.62);
+    this.paper = this.add.container(0, 0, [scrim, paper]).setScrollFactor(0).setDepth(202);
+    this.paperUntil = this.time.now + DOCUMENT_MS;
+    if (shape) {
+      this.scale.setGameSize(shape.width, shape.height);
+      // The follow would glide to the new view's centre; the world is still, so snap.
+      cam.centerOn(this.player.x, this.player.y);
+      this.events.off('shutdown', this.restoreCanvas, this).once('shutdown', this.restoreCanvas, this);
+      this.paperNarrow = true;
+      this.devBadge.setPosition(shape.width - 14, shape.height - 14 - this.devBadge.height);
+    }
+    return true;
+  }
+
+  /**
+   * Takes the act's document down, and announces the act it held back. Fades
+   * where it can; an upright phone's paper goes at once, because the canvas
+   * it was set on goes back to 1280×720 with it. No-op with no paper up.
+   */
+  private hideDocument(): void {
+    const paper = this.paper;
+    if (!paper) return;
+    delete this.paper;
+    if (this.paperNarrow) {
+      this.paperNarrow = false;
+      paper.destroy();
+      if (this.restoreCanvas()) this.events.off('shutdown', this.restoreCanvas, this);
+      this.cameras.main.centerOn(this.player.x, this.player.y);
+      this.devBadge.setPosition(VIEW_WIDTH - 14, 58);
+    } else {
+      this.tweens.add({ targets: paper, alpha: 0, duration: 300, onComplete: () => paper.destroy() });
+    }
+    this.announceAct();
   }
 
   /**
@@ -701,6 +947,12 @@ export class ActScene extends Phaser.Scene {
       'pointerdown',
       (p: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]) => {
         sfx.unlock();
+        // Any tap takes the act's document down, and only that: no stick
+        // starts under the paper (a tap on the pause button also pauses).
+        if (this.paper) {
+          this.hideDocument();
+          return;
+        }
         // The pause button and the offer cards handle their own taps (their
         // events fire before this one); a stick must not start under them.
         if (over.length > 0) return;
@@ -849,6 +1101,12 @@ export class ActScene extends Phaser.Scene {
       this.drawHud();
       return;
     }
+    // The act's document holds the scene's steps, as the pause does, so the
+    // next act does not begin behind a piece of paper. The rules are untouched.
+    if (this.paper) {
+      if (this.time.now < this.paperUntil) return;
+      this.hideDocument();
+    }
 
     // Clamp: a stalled tab must not teleport the horde.
     const dt = Math.min(deltaMs, 50) / 1000;
@@ -903,6 +1161,7 @@ export class ActScene extends Phaser.Scene {
     this.syncGems();
     this.syncRings();
     this.syncAreas();
+    this.syncHolds();
     this.syncOrbiters();
     this.syncAuras();
     this.syncSweeps();
@@ -934,7 +1193,9 @@ export class ActScene extends Phaser.Scene {
       // Three pixels for ninety milliseconds. Feedback, not an earthquake.
       this.cameras.main.shake(90, 0.0035);
     }
-    if (w.dragStacks > h.stacks) {
+    // Every stack worn, not only the ones that drag: a ping lands with the
+    // same sound and puff as an antibody, or it lands in silence.
+    if (wornCount(w) > h.stacks) {
       sfx.attach();
       this.spawnPuff(w.x, w.y);
     }
@@ -963,7 +1224,8 @@ export class ActScene extends Phaser.Scene {
     if (firedBy.has('group-chat')) sfx.notification();
     if (firedBy.has('substitute-teacher')) sfx.substituteShot();
     // Any ranged enemy nobody has given a voice yet borrows the substitute's.
-    for (const id of firedBy) if (id !== 'group-chat' && id !== 'substitute-teacher') sfx.substituteShot();
+    // The registrar has one (its stamp, under the gate with College's below).
+    for (const id of firedBy) if (id !== 'group-chat' && id !== 'substitute-teacher' && id !== 'registrar') sfx.substituteShot();
     // The Gym Teacher's whistle (SCHOOL-ROSTER §9): rising on the telegraph,
     // one long blow on the exit. Read off the phase edge like everything else;
     // the Egg's phases make no sound of their own.
@@ -986,12 +1248,16 @@ export class ActScene extends Phaser.Scene {
     if (homework > h.homework) sfx.homeworkLand();
     // Adolescence (§3.5, §3.2). A consult starting is the number of group chats
     // typing rising; a car entering is a drivers-ed uid above the highest heard,
-    // as homework's is. One of each per frame.
+    // as homework's is. One of each per frame. College's deadline (§3.2) is
+    // driver's ed without the wheels and arrives on the same engine; its
+    // registrars consulting are counted here and rung under the gate below.
     let typing = 0;
+    let bell = 0;
     let car = h.car;
     for (const e of w.enemies) {
       if (e.def.id === 'group-chat' && e.consult > 0) typing++;
-      else if (e.def.id === 'drivers-ed' && e.uid > car) car = e.uid;
+      else if (e.def.id === 'registrar' && e.consult > 0) bell++;
+      else if ((e.def.id === 'drivers-ed' || e.def.id === 'deadline') && e.uid > car) car = e.uid;
     }
     if (typing > h.typing) sfx.typing();
     if (car > h.car) sfx.carPass();
@@ -1001,8 +1267,9 @@ export class ActScene extends Phaser.Scene {
     // world time this frame's steps covered, and nothing while an offer is
     // open or the life is done.
     const elapsed = w.time - h.time;
+    const live = elapsed > 0 && !w.offers && !w.dead && !w.won;
     let auraAt = h.auraAt;
-    if (elapsed > 0 && !w.offers && !w.dead && !w.won) {
+    if (live) {
       // Backhand: arcs are aged before the swing (updateSweeps runs first), so
       // one swung on this frame's step reads 0 and one from the frame before
       // reads a whole step; half the frame's world time splits them with room
@@ -1036,12 +1303,23 @@ export class ActScene extends Phaser.Scene {
         }
       }
     }
+    // College (COLLEGE-ROSTER §3.5, §4), under the same gate, so a frame that
+    // opened a card or ended the life says only that. The registrar's bell is
+    // the number consulting rising, as the group chat's typing is; its HOLD is
+    // stamped on the post. The Loan's interest clock counts down and wraps UP
+    // when the balance compounds, so a rise since last frame is the tape
+    // advancing; `h.boss` keeps the clock appearing at spawn from sounding.
+    if (live) {
+      if (bell > h.bell) sfx.bell();
+      if (firedBy.has('registrar')) sfx.stamp();
+      if (w.boss?.kind === 'loan' && h.boss && w.boss.interestIn > h.interestIn) sfx.tapeTick();
+    }
     if (w.dead && !h.dead) sfx.death();
     if (w.won && !h.won) sfx.win();
     this.heard = {
       kills: w.kills,
       hp: w.hp,
-      stacks: w.dragStacks,
+      stacks: wornCount(w),
       offers: !!w.offers,
       boss: !!w.boss,
       dead: w.dead,
@@ -1055,6 +1333,8 @@ export class ActScene extends Phaser.Scene {
       bossPhase,
       typing,
       car,
+      bell,
+      interestIn: w.boss?.interestIn ?? 0,
       time: w.time,
       auraAt,
     };
@@ -1075,7 +1355,9 @@ export class ActScene extends Phaser.Scene {
       w.engulfTimer = 0;
       w.dead = false;
     }
-    if (this.dev.noDrag) w.dragStacks = 0;
+    // The tax comes off with the drag (AUDIT 42): zeroing `dragStacks` alone
+    // left the HUD reading `xp −8%` with nothing worn.
+    if (this.dev.noDrag) w.shedWornStacks();
     if (this.dev.emptyField) w.enemies.length = 0;
   }
 
@@ -1193,7 +1475,8 @@ export class ActScene extends Phaser.Scene {
           break;
         }
         case 'drivers-ed':
-        case 'deadline': {
+        case 'deadline':
+        case 'commute': {
           // A vehicle has a front (AUDIT part five): the car is drawn side-on
           // facing right, so it turns to its `cross` heading, and one driving
           // left flips and rotates by the remainder so the roof stays up.
@@ -1203,7 +1486,9 @@ export class ActScene extends Phaser.Scene {
           // monitor and substitute are people, who would walk left on their
           // heads. The deadline (COLLEGE-ROSTER §3.2) is driver's ed without
           // the wheels, a leaf in flight, so it leads with its edge the same
-          // way and its curl stays up. A third is the moment for a flag.
+          // way and its curl stays up. The commute (OFFICE-ROSTER §3.2) is
+          // the carriage drawn side-on facing right, its face in the front
+          // window looking along the track: a third, and still no flag.
           const a = Math.atan2(e.vy, e.vx);
           const left = Math.abs(a) > Math.PI / 2;
           s.setFlipX(left).setRotation(left ? a - Math.PI : a);
@@ -1231,6 +1516,9 @@ export class ActScene extends Phaser.Scene {
     //
     // The registrar's form is the one word HOLD (COLLEGE-ROSTER §3.5), in the
     // same hand and the same pool: the aimed thing is not a hit but a hold.
+    // The review's rating is the one word MEETS (OFFICE-ROSTER §3.5): the
+    // number about the player, and the level bar slipping when it lands.
+    // The Reorg's memo has no owner, so it is the Egg's hostile dot.
     this.fit(this.projectileSprites, list.length, () => this.add.image(0, 0, 'nc-shot').setDepth(8));
     let named = 0;
     for (const p of list) if (p.hostile && WORDED_SHOTS.has(p.owner?.id ?? '')) named++;
@@ -1253,7 +1541,7 @@ export class ActScene extends Phaser.Scene {
       const heading = Math.atan2(p.vy, p.vx);
       if (p.hostile && WORDED_SHOTS.has(p.owner?.id ?? '')) {
         this.nameShotTexts[named++]!
-          .setText(p.owner!.id === 'registrar' ? 'HOLD' : misspell(this.playerName, p.serial))
+          .setText(SHOT_WORDS[p.owner!.id] ?? misspell(this.playerName, p.serial))
           .setPosition(p.x, p.y)
           .setVisible(true);
         s.setVisible(false);
@@ -1493,6 +1781,40 @@ export class ActScene extends Phaser.Scene {
     }
   }
 
+  /**
+   * Meetings (OFFICE-ROSTER §3.4): a ring at the radius the sim slows and
+   * walls at, in the elite colour — it is the act's elite thing, and law 10
+   * allows the threat colour on the threat — faint, with its fill fainter.
+   * The meeting's own sprite is the ring of chairs, so its frame is drawn at
+   * twice the live radius and the chairs sit on the edge as it closes. Until
+   * the drawing lands in the act's atlas the ring is drawn alone.
+   */
+  private syncHolds(): void {
+    const list = this.world.holds;
+    const atlas = this.visuals.atlas.key;
+    this.fit(this.holdRings, list.length, () => this.add.circle(0, 0, 10).setDepth(2));
+    this.fit(this.holdChairs, list.length, () => this.add.image(0, 0, atlas).setDepth(3));
+    for (let i = 0; i < list.length; i++) {
+      const h = list[i]!;
+      this.holdRings[i]!.setPosition(h.x, h.y)
+        .setRadius(h.radius)
+        .setFillStyle(THREAT_ELITE, 0.06)
+        .setStrokeStyle(3, THREAT_ELITE, 0.4)
+        .setVisible(true);
+      const chairs = this.holdChairs[i]!;
+      const frame = ENEMIES[h.source]?.frame;
+      if (frame && this.textures.get(atlas).has(frame)) {
+        chairs
+          .setTexture(atlas, frame)
+          .setPosition(h.x, h.y)
+          .setDisplaySize(h.radius * 2, h.radius * 2)
+          .setVisible(true);
+      } else {
+        chairs.setVisible(false);
+      }
+    }
+  }
+
   /** Grudge and anything else that circles: the item's own icon, turning. */
   private syncOrbiters(): void {
     const list = this.world.orbiters;
@@ -1617,6 +1939,9 @@ export class ActScene extends Phaser.Scene {
       this.bossScale = this.bossBaseScale;
       this.bossInterestIn = b.interestIn;
       this.bossJerkAt = -Infinity;
+      this.bossRestructures = b.restructures;
+      this.bossSwapAt = -Infinity;
+      this.bossEntranceOwed = true;
       // Prom's floor (ADOLESCENCE-ROSTER §4): the HUD says get on it, so it is
       // drawn — a thin paper ring at floorRadius, chrome not threat (law 10),
       // under everything that moves. Destroyed with the boss sprite.
@@ -1657,24 +1982,154 @@ export class ActScene extends Phaser.Scene {
     if (b.interestIn > this.bossInterestIn) this.bossJerkAt = this.world.time;
     this.bossInterestIn = b.interestIn;
     const since = this.world.time - this.bossJerkAt;
+    // The Reorg's restructure, found the same way (OFFICE-ROSTER §4): the
+    // count rising between two frames is the chart having moved. The squash
+    // is the Loan's ring with the sign turned, wider first, so the swap reads
+    // as the chart landing rather than being yanked. Zero for the other kinds,
+    // whose count never leaves 0.
+    if (b.restructures > this.bossRestructures) this.bossSwapAt = this.world.time;
+    this.bossRestructures = b.restructures;
+    const swapped = this.world.time - this.bossSwapAt;
     const jerk =
-      since >= 0 && since < LOAN_JERK_SECONDS ? LOAN_JERK * Math.exp(-since * 9) * Math.cos(since * 28) : 0;
+      (since >= 0 && since < LOAN_JERK_SECONDS ? LOAN_JERK * Math.exp(-since * 9) * Math.cos(since * 28) : 0) -
+      (swapped >= 0 && swapped < REORG_SWAP_SECONDS
+        ? REORG_SWAP * Math.exp(-swapped * 10) * Math.cos(swapped * 30)
+        : 0);
     this.bossScale = Phaser.Math.Linear(this.bossScale, target, 0.14);
+    const alpha = b.phase === 'absorbing' ? Math.max(0, b.timer / 1.8) : telegraph ? 0.72 : 1;
+    // Every frame at the sim's point: the Reorg relocates at a restructure,
+    // and the sprite is wherever the chart is now, never where it spawned.
     this.bossSprite
       .setPosition(b.x, b.y)
       // Taller and thinner first (the tape yanked up), then a squash, ringing
       // down: about the body's anchor, so the machine stays on the floor.
       .setScale(this.bossScale * (1 - jerk), this.bossScale * (1 + jerk))
       // Value, not tint (G-032, law 10).
-      .setAlpha(b.phase === 'absorbing' ? Math.max(0, b.timer / 1.8) : telegraph ? 0.72 : 1);
+      .setAlpha(alpha);
+    if (this.world.act.boss.kind === 'reorg') this.syncChartGrey(b, alpha);
+    // Behind a card nobody would see the look, so it waits for the choice.
+    if (this.bossEntranceOwed && !this.world.offers) this.lookAtBoss(b.phase === 'absorbing');
   }
 
+  /**
+   * The Reorg's grey rows (G-004, OFFICE-ROSTER §4): one of the three faced
+   * rows per share of its health gone, from the bottom — a share is what lies
+   * between two of `thresholds`, so each restructure greys the next row up,
+   * and the absorb greys them all (the dev panel's kill skips the
+   * restructures and lands there too). It reads the restructures, not the
+   * health, so a row greys when the chart moves and stays grey (the chart
+   * stays).
+   * Drawn as the chart's own frame cropped from the cut down, laid exactly
+   * over the chart (same point, origin, scale and alpha) and filled with the
+   * shadow tone at REORG_GREY: the rows above the cut are untouched.
+   */
+  private syncChartGrey(b: NonNullable<World['boss']>, alpha: number): void {
+    const s = this.bossSprite!;
+    const boss = this.world.act.boss;
+    const shares = (boss.kind === 'reorg' ? boss.thresholds.length : 0) + 1;
+    const gone = b.phase === 'absorbing' ? shares : b.restructures;
+    const rows = Math.min(REORG_ROW_TOPS.length, Math.round((REORG_ROW_TOPS.length * gone) / shares));
+    if (rows === 0) {
+      this.bossGrey?.setVisible(false);
+      return;
+    }
+    if (!this.bossGrey) {
+      this.bossGrey = this.add
+        .image(s.x, s.y, s.texture.key, s.frame.name)
+        .setDepth(s.depth)
+        .setTintFill(SHADOW);
+    }
+    const cut = Math.round(s.frame.height * REORG_ROW_TOPS[REORG_ROW_TOPS.length - rows]!);
+    this.bossGrey
+      .setCrop(0, cut, s.frame.width, s.frame.height - cut)
+      .setOrigin(s.originX, s.originY)
+      .setPosition(s.x, s.y)
+      .setScale(s.scaleX, s.scaleY)
+      .setAlpha(alpha * REORG_GREY)
+      .setVisible(true);
+  }
+
+  /**
+   * The boss's entrance (AUDIT 37): the camera eases from the player to the
+   * nearest point that has the whole drawing in view below the HUD band,
+   * holds, and eases back. It moves the follow OFFSET, never the follow, so
+   * the camera is following the player the whole time and nothing has to
+   * remember to turn it back on; the lerp smooths both legs. Measured from
+   * the sprite as drawn (its display size about its origin, not the body
+   * circle): the Loan's tape stands well above its anchor.
+   */
+  private lookAtBoss(over: boolean): void {
+    this.bossEntranceOwed = false;
+    const s = this.bossSprite;
+    // Killed before the card was answered: the absorb is the moment now.
+    if (!s || over) return;
+    const cam = this.cameras.main;
+    const zoom = cam.zoom;
+    const halfW = cam.width / zoom / 2;
+    const halfH = cam.height / zoom / 2;
+    const left = s.x - s.displayWidth * s.originX;
+    const top = s.y - s.displayHeight * s.originY;
+    const dx = shiftToShow(
+      left,
+      left + s.displayWidth,
+      this.player.x - halfW + TOAST_EDGE / zoom,
+      this.player.x + halfW - TOAST_EDGE / zoom,
+    );
+    const dy = shiftToShow(
+      top,
+      top + s.displayHeight,
+      this.player.y - halfH + TOAST_TOP / zoom,
+      this.player.y + halfH - TOAST_EDGE / zoom,
+    );
+    if (dx === 0 && dy === 0) return;
+    // The camera looks at the target minus the offset (Camera.preRender).
+    this.bossEntrance = this.tweens.chain({
+      targets: cam.followOffset,
+      tweens: [
+        { x: -dx, y: -dy, duration: ENTRANCE_OUT_MS, ease: 'Sine.easeInOut' },
+        { x: 0, y: 0, delay: ENTRANCE_HOLD_MS, duration: ENTRANCE_BACK_MS, ease: 'Sine.easeInOut' },
+      ],
+      onComplete: () => delete this.bossEntrance,
+    });
+  }
+
+  /** Drops a look owed or running and puts the camera back on the player. */
+  private endBossEntrance(): void {
+    this.bossEntranceOwed = false;
+    this.bossEntrance?.stop();
+    delete this.bossEntrance;
+    this.cameras.main.followOffset.set(0, 0);
+  }
+
+  /**
+   * The worn stacks on the player, one sprite per stack up to
+   * MAX_ATTACHED_SPRITES, each in the frame of the def that attached it from
+   * that def's act's atlas (AUDIT six, 38; OFFICE-ROSTER §5): tuition carried
+   * out of College still draws as an invoice in The Office, and a ping as a
+   * ping. Every act in the life has its atlas loaded (`preload`), and a stack
+   * can only come from an act in the life. The act's `attachFrame` is the
+   * fallback for a def with no frame the scene can find. In `wornBy`'s
+   * order, which is the order first worn (the persisting ones first after a
+   * crossing), so a slot keeps its drawing as more are worn.
+   */
   private syncAttached(): void {
-    const want = Math.min(this.world.dragStacks, MAX_ATTACHED_SPRITES);
+    const w = this.world;
+    const frames: [string, string][] = [];
+    for (const [id, n] of w.wornBy) {
+      const def = ENEMIES[id];
+      const own = def ? ACT_VISUALS[def.act] : undefined;
+      const found = !!own && this.textures.exists(own.atlas.key) && this.textures.get(own.atlas.key).has(def!.frame);
+      const drawn: [string, string] = found
+        ? [own!.atlas.key, def!.frame]
+        : [this.visuals.atlas.key, this.visuals.attachFrame ?? 'antibody.png'];
+      for (let i = 0; i < n && frames.length < MAX_ATTACHED_SPRITES; i++) frames.push(drawn);
+    }
+    const want = frames.length;
     while (this.attachedSprites.length < want) {
       const angle = Math.random() * Math.PI * 2;
+      const [key, frame] = frames[this.attachedSprites.length]!;
       const s = this.add
-        .image(0, 0, this.visuals.atlas.key, this.visuals.attachFrame ?? 'antibody.png')
+        .image(0, 0, key, frame)
         .setDisplaySize(22, 22)
         .setDepth(11)
         .setRotation(Math.random() * Math.PI * 2);
@@ -1691,12 +2146,13 @@ export class ActScene extends Phaser.Scene {
         s.setVisible(false);
         continue;
       }
-      const angle = (s.getData('angle') as number) + this.world.time * 0.18;
+      // Retextured only when the slot's stack changed kind; a new frame may be
+      // a different size, so the display size goes back on with it.
+      const [key, frame] = frames[i]!;
+      if (s.texture.key !== key || s.frame.name !== frame) s.setTexture(key, frame).setDisplaySize(22, 22);
+      const angle = (s.getData('angle') as number) + w.time * 0.18;
       const dist = s.getData('dist') as number;
-      s.setVisible(true).setPosition(
-        this.world.x + Math.cos(angle) * dist,
-        this.world.y + Math.sin(angle) * dist,
-      );
+      s.setVisible(true).setPosition(w.x + Math.cos(angle) * dist, w.y + Math.sin(angle) * dist);
     }
   }
 
@@ -1883,9 +2339,21 @@ export class ActScene extends Phaser.Scene {
     // every gem is worth now, derived from the sim's own factor so the HUD
     // cannot drift from the tax it reports.
     const tax = Math.round((1 - w.xpTax) * 100);
+    // The ping's cost is on the cadence (OFFICE-ROSTER §3.3): every cooldown
+    // is multiplied by `attentionFactor`, so the share of attack speed lost is
+    // 1 − 1/factor (two pings, 1.06², read −11%). Derived, as the tax is. The
+    // count is every stack worn, and the speed term is there only when one of
+    // them drags: pings alone read `2 attached · attention −11%`.
+    const attention = Math.round((1 - 1 / w.attentionFactor) * 100);
+    const worn = wornCount(w);
     this.hudDrag.setText(
-      (w.dragStacks > 0 ? `${w.dragStacks} attached  −${drag}% speed` : '') +
-        (w.taxStacks > 0 ? `${w.dragStacks > 0 ? ' · ' : ''}xp −${tax}%` : ''),
+      [
+        worn > 0 ? `${worn} attached${w.dragStacks > 0 ? `  −${drag}% speed` : ''}` : '',
+        w.taxStacks > 0 ? `xp −${tax}%` : '',
+        w.pingStacks > 0 ? `attention −${attention}%` : '',
+      ]
+        .filter((t) => t !== '')
+        .join(' · '),
     );
 
     this.bars.clear();
@@ -1938,7 +2406,8 @@ export class ActScene extends Phaser.Scene {
     // same three items, and the pips must not show the pre-choice level. A
     // path card's level lives in `pathLevels` (G-043); an id is in one map or
     // the other, never both.
-    const offerKey = w.offers
+    // Held under the act's document, whose paper a tap on a card would not reach.
+    const offerKey = w.offers && !this.paper
       ? `${w.level}:${w.offers.map((id) => `${id}@${w.pathLevels.get(id) ?? w.items.get(id) ?? 0}`).join(',')}`
       : '';
     if (offerKey !== this.shownOffers) {
@@ -2405,9 +2874,10 @@ export class ActScene extends Phaser.Scene {
    * The stamp in the act's deep tone (a spot ink, not a threat): the word,
    * double-framed and tilted, at 0,0 for the form to place. `long` is its size
    * for a word of more than eight letters, `short` for one of eight or fewer.
+   * A certificate stamps what `certificateStamp` says; an act's document, its own word.
    */
-  private inkStamp(c: Certificate, long: number, short: number): Phaser.GameObjects.Container {
-    const word = certificateStamp(c);
+  private inkStamp(c: Certificate | string, long: number, short: number): Phaser.GameObjects.Container {
+    const word = typeof c === 'string' ? c : certificateStamp(c);
     const size = word.length > 8 ? long : short;
     const inked = this.add
       .text(0, 0, word, {

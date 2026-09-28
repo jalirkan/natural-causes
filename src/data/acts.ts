@@ -132,8 +132,27 @@ export interface LoanBoss {
   shieldHint?: never;
 }
 
+/**
+ * The Reorg (OFFICE-ROSTER §4, G-004): same health throughout; at each of
+ * `thresholds` of its health it relocates (the world's dice, at least 300 px
+ * from the player), moves the player's box sideways by `lateralMove` px and
+ * never up, and closes a meeting (`meetingId`, the act's hold) around them.
+ * Its attack is the memo: `memoShots` shots in a column `memoSpacing` px
+ * apart, moving together at the player, on the Egg's timings. Never shields,
+ * never raced for. Every number is a placeholder.
+ */
+export interface ReorgBoss {
+  kind: 'reorg';
+  thresholds: number[];
+  lateralMove: number;
+  meetingId: string;
+  memoShots: number;
+  memoSpacing: number;
+  shieldHint?: never;
+}
+
 /** Which boss an act fights. world.ts branches on `kind`. */
-export type BossDef = EggBoss | GymTeacherBoss | PromBoss | LoanBoss;
+export type BossDef = EggBoss | GymTeacherBoss | PromBoss | LoanBoss | ReorgBoss;
 
 /**
  * Seconds between the Gym Teacher's whistles at this share of his health: the
@@ -394,6 +413,62 @@ export const COLLEGE: ActDef = {
   ],
 };
 
+export const OFFICE: ActDef = {
+  id: 'office',
+  name: 'The Office',
+  // The clock keeps shrinking: 300, 300, 240, 210, 180 (the roster's header).
+  durationSeconds: 180,
+  bossName: 'The Reorg',
+  // OFFICE-ROSTER §4, G-004: same health throughout, and at each of
+  // `thresholds` everything moves — it relocates, the player's box moves
+  // sideways by `lateralMove` and never up, and a `meetingId` closes around
+  // them. Its attack is the memo: `memoShots` shots in a column `memoSpacing`
+  // apart. Every number is a PLACEHOLDER under `provisional`; the memo's
+  // telegraph, idle, speed and damage are the Egg's, and its health BOSS_HP.
+  boss: {
+    kind: 'reorg',
+    thresholds: [2 / 3, 1 / 3],
+    lateralMove: 220,
+    meetingId: 'meeting',
+    memoShots: 5,
+    // 64, not §4's 36: a shot hits within 26 px of its centre, so 36 leaves no
+    // gap to stand in and the column is a wall; 64 leaves one (the Reorg agent's
+    // reading). PLACEHOLDER with the rest.
+    memoSpacing: 64,
+  },
+  // The connectors go slack, and the act ends on one word.
+  endWord: 'SYNERGY',
+  age: { from: 22, to: 34 },
+  // No race: nobody else wants the job.
+  provisional:
+    "Every rate, time and enemy number here, reply-all's split (`split`: 2 children, 3 generations, at 0.75 scale), the ping's cost to cadence (`attach.cooldownMultiplier`, 1.06 a stack), the meeting's hold (`hold`: from 260px to 120px over 30s, held 12s, at 0.6 speed), the review's cut of the level bar (`ranged.xpLoss`, 0.15), and all of The Reorg's numbers (`boss.thresholds` at two thirds and one third, `lateralMove` 220, `memoShots` 5, `memoSpacing` 64, the 300px it relocates beyond, and the Egg's telegraph, idle, shot and BOSS_HP it borrows) were written as placeholders before anyone played the act (OFFICE-ROSTER §3.6 and §4, G-048); a person playing it at the link is what moves them (D-022).",
+  // OFFICE-ROSTER.md §3.6, transcribed. The ORDER is the design and is under
+  // test (office-act.test.ts): age runs 22 to 34, a year every 15 seconds.
+  // Reply-all from 0s, the first day; pings at 15s; the meeting's stream at
+  // 40s; the review's at 60s (26); the commute's at 75s (27), then about
+  // twice a minute. Nothing new after 90s; the last 90 seconds are
+  // escalation, then The Reorg.
+  //
+  // The rates are placeholders, and they are streams, not arrivals: a stream
+  // that opens at 40s with a rate of 0.025 first delivers when its
+  // accumulator fills, at 80s. Nothing here is culled (a chaser, a patrol,
+  // three statics), so every rate is a count, and reply-all is the density
+  // — before it splits, which multiplies what the build kills by up to four.
+  waves: [
+    { fromSeconds: 0, enemyId: 'reply-all', rate: 0.9 },
+    { fromSeconds: 15, enemyId: 'ping', rate: 0.15 },
+    { fromSeconds: 40, enemyId: 'meeting', rate: 0.025 },
+    { fromSeconds: 40, enemyId: 'reply-all', rate: 1.4 },
+    { fromSeconds: 60, enemyId: 'performance-review', rate: 0.05 },
+    { fromSeconds: 75, enemyId: 'commute', rate: 0.034 },
+    { fromSeconds: 90, enemyId: 'reply-all', rate: 2.2 },
+    { fromSeconds: 90, enemyId: 'ping', rate: 0.3 },
+    { fromSeconds: 120, enemyId: 'performance-review', rate: 0.1 },
+    { fromSeconds: 120, enemyId: 'reply-all', rate: 3 },
+    { fromSeconds: 150, enemyId: 'ping', rate: 0.45 },
+  ],
+};
+
 /**
  * Every act with a schedule, in life order. The content rules iterate THIS
  * list, so an act cannot escape them by not being startable yet (the
@@ -405,15 +480,17 @@ export const COLLEGE: ActDef = {
  * `ACTS`, the prefix whose art exists, so the life gets longer as acts become
  * startable and nothing about the sim changes when one does.
  */
-export const ALL_ACTS: ActDef[] = [CONCEPTION, SCHOOL, ADOLESCENCE, COLLEGE];
+export const ALL_ACTS: ActDef[] = [CONCEPTION, SCHOOL, ADOLESCENCE, COLLEGE, OFFICE];
 
 /**
  * The life the browser plays, in order: the prefix of `ALL_ACTS` with an
  * atlas, a player frame and a boss frame registered in `act-visuals.ts`.
  * School joined when its authored SVG sprites landed (G-038); its boss is the
  * Gym Teacher, picture and behaviour (SCHOOL-ROSTER §9). College joined when
- * its seven drawings were packed (G-045), so the browser's life now ends at
- * twenty-two. A test asserts this list and `ACT_VISUALS` agree, so moving an
- * act in is a one-line change that fails loudly if the art is not there.
+ * its seven drawings were packed (G-045); The Office joined when its seven
+ * were (G-048), so the browser's life now ends at thirty-four, and every act
+ * in `ALL_ACTS` is startable. A test asserts this list and `ACT_VISUALS`
+ * agree, so moving an act in is a one-line change that fails loudly if the
+ * art is not there.
  */
-export const ACTS: ActDef[] = [CONCEPTION, SCHOOL, ADOLESCENCE, COLLEGE];
+export const ACTS: ActDef[] = [CONCEPTION, SCHOOL, ADOLESCENCE, COLLEGE, OFFICE];

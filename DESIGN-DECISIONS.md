@@ -1251,3 +1251,33 @@ Rejected: raise every evolution's base numbers to a maxed weapon's — then the
 same fact lives in six places and drifts, which is the AUDIT class of bug.
 Rejected: let evolutions level to 8 too — then they are weapons with a hat,
 and what you became (G-039) goes back to being something you grind.
+
+## G-048 · 2026-09-28 · The fifth act is The Office, and its pressure is attention
+PLAN.md's fifth act, built now that four are playable: **The Office**, ages 22
+to 34 on a 180-second clock, whose line is *you are being measured*. The
+accumulator (Ping) costs cadence — every worn notification multiplies every
+cooldown — the ranged thing (Performance review) docks progress toward the
+next level, the roadblock (Meeting) is a hold that contracts around the player
+and walls the crowd in with them, the crowd (Reply-all) splits when killed,
+and the boss is G-004's Reorg: same health throughout, and at each threshold
+everything moves — it relocates, the player's box moves sideways and never up,
+and a meeting closes around them. The tuition stacks that persist from College
+draw as invoices here (AUDIT six, 38): a stack carries the frame of the act
+that attached it. Every number is a placeholder under `OFFICE.provisional`.
+Rejected: The Office before Service — Service is the D-007 edge and G-045 already parks it until a person has played; the panel's Reply-All and Meeting were the two enemy designs with a joke already in the mechanic.
+Rejected: a Reorg with new attacks per phase — G-004 refused it, and it holds: a reorg that gets stronger is a monster; one that only rearranges is the experience.
+
+## G-049 · 2026-09-28 · A paper at every crossing, written from the life so far
+The certificate of death (G-002) gets its ancestors. At each crossing the
+finished act hands over one document in the same register, held four seconds
+or until a key, then the next act is announced: a birth certificate (TIME OF
+ARRIVAL, RIVALS OUTLASTED, INHERITED), a report card (the name misspelled, a
+GRADE from the level, a COMMENT from the kills, SEE ME), a yearbook page (MOST
+LIKELY TO, from the item held highest), a diploma (a degree from the top
+weapon, a Master's for an evolution, honours in the path taken furthest, the
+balance in invoices, PAID IN PART). Every value is the run's; no number is
+typed in the copy and every table is a placeholder. One registry,
+`src/data/documents.ts`, keyed by act; an act without an entry crosses as
+before, which is how The Office ends today (AUDIT seven, 52).
+Rejected: a stats screen between acts — the register is the joke; a table of numbers is a menu.
+Rejected: the stats folded into the act card — three lines seen while moving; a paper stops the world and is read.

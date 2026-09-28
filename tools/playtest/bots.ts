@@ -148,7 +148,11 @@ export interface RunResult {
   enemiesAt300: number;
   /** Realised mean speed across the crowd phase. Endogenous: stacks lower it. */
   meanSpeed: number;
-  /** How much of the boss was left when the run ended. Null if it never spawned. */
+  /**
+   * How much of the boss was left when the run ended. Null if it never spawned.
+   * For The Loan it is the balance, which opens at 1/cap and fills (AUDIT 41);
+   * the report names the column for it.
+   */
   bossHpLeft: number | null;
   bossHpFraction: number | null;
   /** Item levels when the run ended — over the whole life, every act's picks. */
@@ -785,7 +789,10 @@ export function runOnce(
   while (!world.dead && !world.won && steps < maxSteps) {
     if (!reached300 && world.actIndex === 0 && world.time >= act.durationSeconds) {
       reached300 = true;
-      stacksAt300 = world.dragStacks;
+      // Every stack worn, not only the drag (`wornBy`): a ping costs cadence,
+      // not speed, and counts here as the drag's stacks do. Equal to
+      // `dragStacks` in every act before The Office, whose attaches all drag.
+      stacksAt300 = [...world.wornBy.values()].reduce((n, k) => n + k, 0);
       itemSpeedAt300 = world.itemSpeed;
       hpAt300 = world.hp;
       hpFractionAt300 = world.hp / world.maxHp;

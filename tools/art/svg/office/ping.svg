@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <title>Ping</title>
+  <desc>A small hand bell seen from the side, standing upright: a bone dome with narrow rounded shoulders whose sides flare out to an ink rim at the mouth, under a short ink handle with a round knob. One fat round ink dot floats just clear of its right shoulder. No face: a ping has no face, it has a count, and the count is the dot. No clapper, no plate, nothing in the dot.</desc>
+  <!--
+    Ping (OFFICE-ROSTER §3.3), the act's accumulator. Reserved silhouette
+    (§1): the bell with a dot, the only bell in the act and the smallest
+    thing in it, as acne and tuition were in theirs. It wears their colours
+    on purpose: no threat colour, because it deals no damage; it attaches,
+    and every one worn costs cadence. The roster gives it no face.
+
+    Drawn on the finished sprite's own pixel grid. The group maps one unit
+    to one pixel of the 40px sprite: the drawing is 38 units tall, knob to
+    rim (40 less the 1px outline each side), and 37 wide, bell to dot. At
+    the rasteriser's first density one unit is exactly four supersampled
+    pixels, so the fit lands on the first try. The handle, the rim and the
+    dot are stated as steps on that grid; only the bell's curve is left to
+    the rasteriser.
+
+    A hand bell, not a half-dome: the shoulders are narrow and the sides
+    flare out to the mouth, so the outline is a bell and never acne's
+    half-circle, nor the registrar's desk bell on its plate (COLLEGE-ROSTER
+    §3.5), which a life has just passed. The rim is the lip of the mouth,
+    barely wider than the flare, not a plate under it, and the handle is
+    held from above. A clapper under the rim was drawn and taken out: worn
+    and turned, it read as a second dot, and there is one dot.
+
+    The dot is 11 units across in rows of 5, 7, 9, 9, 11, 11, 11, 9, 9, 7,
+    5; the outline makes it 13 of the sprite's 40, so it is still about
+    seven pixels when the sprite is worn at the player's side. It sits
+    beside the knob and above the shoulder with three pixels of carpet
+    between its outline and the bell's, which is still more than one
+    pixel worn.
+
+    Colours are palette hex values: bone #D2C6AC bell, ink #2A2521 handle,
+    rim and dot. No threat colour and no office-light, which is the
+    pickups' (law 10). CONFORM adds the outline; there is none here.
+  -->
+  <g shape-rendering="crispEdges" transform="scale(2.5) translate(1 1)">
+  <!-- the handle: a round knob, 6 wide, on a neck 4 wide -->
+  <path d="M14,0 H18 V1 H19 V4 H18 V9 H14 V4 H13 V1 H14 Z" fill="#2A2521"/>
+  <!-- the bell: narrow rounded shoulders, sides flaring out to the mouth -->
+  <path d="M0,36.5 C2.5,35.5 5.5,32 6.2,26 C6.6,22 7,18.5 7.6,15.5 C9,10.5 12,8 16,8 C20,8 23,10.5 24.4,15.5 C25,18.5 25.4,22 25.8,26 C26.5,32 29.5,35.5 32,36.5 Z" fill="#D2C6AC"/>
+  <!-- the rim: the lip of the mouth, 32 wide, its bottom corners cut -->
+  <path d="M0,36 H32 V37 H31 V38 H1 V37 H0 Z" fill="#2A2521"/>
+  <!-- the dot, above the right shoulder: the count -->
+  <path d="M29,2 H34 V3 H35 V4 H36 V6 H37 V9 H36 V11 H35 V12 H34 V13 H29 V12 H28 V11 H27 V9 H26 V6 H27 V4 H28 V3 H29 Z" fill="#2A2521"/>
+  </g>
+</svg>

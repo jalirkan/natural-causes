@@ -12,7 +12,7 @@ export interface DevState {
   god: boolean;
   /** Clears the enemy array every frame. Free roaming with the horde off. */
   emptyField: boolean;
-  /** Holds antibody stacks at zero — they are the act's main mobility tax. */
+  /** Holds worn stacks at zero, and tuition's XP tax with them (`World.shedWornStacks`). */
   noDrag: boolean;
   /** Latches on the first cheat. Only a restart clears it. */
   tainted: boolean;

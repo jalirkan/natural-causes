@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <title>Commute</title>
+  <desc>A long low commuter carriage seen exactly side-on, a rounded red box riding high on two small sets of paired wheels, with three square windows along its side. The back two windows are empty. The front window is its face: two dots and a flat line, looking forward along the track rather than out of the screen. Nobody is inside.</desc>
+  <!--
+    Commute (OFFICE-ROSTER §3.2), the act's velocity: driver's ed and the
+    deadline again, longer and heavier. Reserved silhouette: the carriage,
+    the only thing in the act with wheels and the widest. The length is the
+    read, so the drawing is about two and a half times as wide as it is
+    tall, and it sits high on two wheel-sets set in from its ends, each a
+    pair of small wheels on one frame, with open ground between them: that
+    is what makes it a carriage and not a bus (one big wheel in an arch at
+    each end) or a brick (no daylight underneath).
+    The body is one flat tone, a rounded box with a bowed roof, the front
+    corner more rounded than the rear so it leans into its heading; it is
+    hand-cut, not ruled (law 4, G-013: the ruler is the Reorg's alone), so no
+    edge or window is quite square. Three windows, bone, nothing in them.
+    The front window is the face, turned along the track like driver's ed's:
+    eyes on the line ahead, not on the player. Nobody inside, no driver, no
+    lettering, no number, nothing with skin (D-007, law 9).
+    Contact red is held by this asset alone: the act's heaviest hit is its
+    only red thing. The renderer flips it to face its heading.
+    Colours are palette hex values: threat-contact #C4472E, bone #D2C6AC,
+    shadow #6E6353, ink #2A2521.
+    CONFORM adds the outline; there is none here.
+  -->
+  <!-- the wheel-sets: a frame and two wheels each, under the body -->
+  <g fill="#2A2521">
+    <rect x="6.5" y="57" width="31" height="6" rx="2.5"/>
+    <circle cx="14" cy="64.3" r="4.6"/>
+    <circle cx="30" cy="64.3" r="4.6"/>
+    <rect x="62.5" y="57" width="31" height="6" rx="2.5"/>
+    <circle cx="70" cy="64.3" r="4.6"/>
+    <circle cx="86" cy="64.3" r="4.6"/>
+  </g>
+  <g fill="#6E6353">
+    <circle cx="14" cy="64.3" r="1.7"/>
+    <circle cx="30" cy="64.3" r="1.7"/>
+    <circle cx="70" cy="64.3" r="1.7"/>
+    <circle cx="86" cy="64.3" r="1.7"/>
+  </g>
+  <!-- the body: bowed roof, rounder at the front -->
+  <path d="M 5 60.2 Q 2 60.2 2 57.2 L 2.3 39 Q 2.5 31 10.5 31 Q 48 29.6 85 31 Q 98 31.4 98 44 L 97.8 57 Q 97.8 60 94.8 60 Q 50 60.6 5 60.2 Z" fill="#C4472E"/>
+  <!-- windows, rear to front, nothing in them -->
+  <path d="M 14.5 35.2 L 27.8 35 Q 29.6 35 29.6 36.8 L 29.4 50.2 Q 29.4 52 27.6 52 L 14.4 52.1 Q 12.5 52.1 12.5 50.2 L 12.6 37 Q 12.6 35.2 14.5 35.2 Z" fill="#D2C6AC"/>
+  <path d="M 43.3 35 L 56.6 35.1 Q 58.5 35.1 58.5 37 L 58.6 50.1 Q 58.6 52 56.7 52 L 43.4 51.9 Q 41.5 51.9 41.5 50 L 41.4 36.9 Q 41.4 35 43.3 35 Z" fill="#D2C6AC"/>
+  <!-- the front window: the face -->
+  <path d="M 72.4 35.1 L 85.6 35 Q 87.5 35 87.5 36.9 L 87.4 50.1 Q 87.4 52 85.5 52 L 72.3 52 Q 70.4 52 70.4 50.1 L 70.5 37 Q 70.5 35.1 72.4 35.1 Z" fill="#D2C6AC"/>
+  <!-- face, eyes on the line ahead -->
+  <g fill="#2A2521">
+    <circle cx="77.5" cy="41.5" r="2.4"/>
+    <circle cx="83.3" cy="41.5" r="2.4"/>
+    <rect x="76.5" y="46.6" width="8.6" height="2"/>
+  </g>
+</svg>

@@ -1,10 +1,18 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { fromPng } from '../bitmap';
+import { fromPng, type Bitmap } from '../bitmap';
 import { ALL_ASSETS, DETAIL_THRESHOLD_PX, styleSuffixFor } from '../batch';
 import { generate } from '../generate';
-import { MAX_ENEMY_LIGHTNESS, reservedColourViolations, threatColourViolations } from '../check';
+import {
+  MAX_ENEMY_LIGHTNESS,
+  check,
+  fieldColourViolations,
+  fieldScannedColours,
+  reservedColourViolations,
+  threatColourViolations,
+} from '../check';
+import { thresholdsFor } from '../pipeline';
 import {
   FIELD_RESERVED_COLOURS,
   PICKUP_SILHOUETTE,
@@ -18,7 +26,7 @@ import {
 import type { AssetSpec } from '../types';
 import { UI_FILL } from '../../../src/config';
 import { ITEMS, isActive } from '../../../src/data/items';
-import { ACT_IDS, PAPER, actLight, rgbToOklab } from '../palette';
+import { ACT_IDS, FULL_PALETTE, PAPER, actLight, rgbToOklab } from '../palette';
 import { THREAT } from '../palette';
 
 /**
@@ -104,6 +112,11 @@ describe('G-032 — the sprite arrives dark; nothing is corrected on the GPU', (
  * once per act and holding no threat colour, so it shares that scan's one
  * blind spot: service-light is inside the grain tolerance of bone and cannot
  * be told from it.
+ *
+ * CHECK enforces the same law first (`field-colours`, G-032: the pipeline
+ * rejects), so `art:svg` refuses such a sprite before it is written. This
+ * scan stays as the second reading, and requires CHECK to agree with it on
+ * every committed rider and on every colour the verdict lists.
  */
 describe('law 10 — a field-riding icon wears nothing reserved on the field', () => {
   const riders = ALL_ASSETS.filter((s) => s.fieldRiding === true);
@@ -117,7 +130,9 @@ describe('law 10 — a field-riding icon wears nothing reserved on the field', (
    * G-036 put them on the field all sat here — "brick red" had landed on
    * contact red, and the dart's body on ranged gold — and the same day they
    * were redrawn as SVG. The map stays so the next slip has somewhere honest
-   * to sit while it is fixed.
+   * to sit while it is fixed — though since CHECK gained `field-colours` the
+   * pipeline will not write such a sprite, so a slip can only be one committed
+   * around it.
    */
   const KNOWN_ON_FIELD_EXCEPTIONS = new Map<string, { colours: string[]; reason: string }>([
     // Empty since 2026-09-28: the five generated icons that wore reserved
@@ -126,14 +141,54 @@ describe('law 10 — a field-riding icon wears nothing reserved on the field', (
   ]);
 
   /** The reserved colours a sprite wears on the field, by colour name, sorted. */
-  async function onFieldViolations(file: string): Promise<string[]> {
-    const bmp = await fromPng(readFileSync(file));
+  function onFieldViolationsOf(bmp: Bitmap): string[] {
     const found = new Set<string>();
     for (const act of ACT_IDS) {
       for (const v of reservedColourViolations(bmp, act, [])) found.add(v.replace(/ \(.*\)$/, ''));
     }
     return [...found].sort();
   }
+
+  async function onFieldViolations(file: string): Promise<string[]> {
+    return onFieldViolationsOf(await fromPng(readFileSync(file)));
+  }
+
+  /**
+   * What `art:svg`'s CHECK says about a committed sprite under the spec's own
+   * thresholds: its `field-colours` row, and the colours that row counted.
+   */
+  async function pipelineVerdict(spec: AssetSpec, file: string) {
+    const bmp = await fromPng(readFileSync(file));
+    const report = await check(bmp, spec.act, thresholdsFor(spec));
+    return {
+      row: report.results.find((r) => r.name === 'field-colours'),
+      colours: [...fieldColourViolations(bmp).colours].sort(),
+    };
+  }
+
+  async function expectPipelineAgrees(spec: AssetSpec, file: string, found: string[]) {
+    const pipeline = await pipelineVerdict(spec, file);
+    expect(pipeline.row, `${spec.id}: CHECK did not run field-colours`).toBeDefined();
+    expect(pipeline.colours, `${spec.id}: CHECK and this scan disagree`).toEqual(found);
+    expect(pipeline.row!.pass, `${spec.id}: field-colours verdict`).toBe(found.length === 0);
+  }
+
+  it("CHECK reads every colour the verdict lists as this scan does — all but service-light", () => {
+    // One pixel of each colour the dry run says a rider keeps off. Where the
+    // two scans could drift apart is here, not in the sprites: a colour added
+    // to one list and not the other, or a tolerance changed in one place.
+    for (const name of FIELD_RESERVED_COLOURS) {
+      const colour = FULL_PALETTE.find((c) => c.name === name)!;
+      const pixel: Bitmap = { width: 1, height: 1, data: Buffer.from([...colour.rgb, 255]) };
+      expect([...fieldColourViolations(pixel).colours].sort(), name).toEqual(
+        onFieldViolationsOf(pixel),
+      );
+    }
+    // The shared blind spot, stated so it cannot be mistaken for coverage:
+    // service-light is inside the grain tolerance of bone.
+    const scanned = new Set(fieldScannedColours().map((c) => c.name));
+    expect(FIELD_RESERVED_COLOURS.filter((n) => !scanned.has(n))).toEqual(['service-light']);
+  });
 
   it('the flag is on icons only, and some flagged icon has a sprite to read', () => {
     for (const spec of riders) expect(spec.role, spec.id).toBe('icon');
@@ -171,13 +226,17 @@ describe('law 10 — a field-riding icon wears nothing reserved on the field', (
     if (known) {
       const listed = known.colours.join(', ');
       it(`${spec.id} is a known exception and still wears exactly ${listed}`, async () => {
-        expect(await onFieldViolations(file), known.reason).toEqual([...known.colours].sort());
+        const found = await onFieldViolations(file);
+        expect(found, known.reason).toEqual([...known.colours].sort());
+        await expectPipelineAgrees(spec, file, found);
       });
       continue;
     }
     it(`${spec.id} wears no threat colour, no paper and no act's light tone`, async () => {
       const found = await onFieldViolations(file);
       expect(found, `${spec.id} rides the field wearing ${found.join(', ')}`).toEqual([]);
+      // ...and art:svg's CHECK passes it for the same reason.
+      await expectPipelineAgrees(spec, file, found);
     });
   }
 });
@@ -208,7 +267,7 @@ describe('law 11 — each act reserves its silhouettes, before generation', () =
     // one must fail closed, or the rule is advisory. Service and Office have
     // no roster yet, so they are the live cases.
     expect(() => assertReserved('service', ['anything'])).toThrow(ReservationError);
-    expect(() => assertReserved('office', [])).toThrow(/before any asset/);
+    expect(() => assertReserved('service', [])).toThrow(/before any asset/);
   });
 
   it('School is lifted and accepts its five swarm shapes and its boss, and refuses the undeclared', () => {
@@ -350,10 +409,10 @@ describe('law 11 is enforced on the path that spends money, not only in tests', 
         .filter(refuses)
         .map((v) => v.act),
     );
-    // Service and Office are the live cases and they are Cowork's open item,
-    // not something to work around here. If either gains a list, this test is
-    // where that shows up.
-    expect([...refusedActs].sort()).toEqual(['office', 'service']);
+    // Service is the live case (G-045 parks it until a person has played);
+    // The Office gained its list with OFFICE-ROSTER (G-048). If Service gains
+    // one, this test is where that shows up.
+    expect([...refusedActs].sort()).toEqual(['service']);
   });
 });
 

@@ -4,6 +4,7 @@ import { fromPng, toPng, type Bitmap } from './bitmap';
 import { DETAIL_THRESHOLD_PX, fullPrompt, styleSuffixFor } from './batch';
 import {
   BOSS_THRESHOLDS,
+  FIELD_RIDING_ICON_THRESHOLDS,
   ICON_THRESHOLDS,
   PLAYER_THRESHOLDS,
   SWARM_THRESHOLDS,
@@ -77,7 +78,10 @@ export function checkRows(checks: GenerationRecord['checks']): string {
 
 export function thresholdsFor(spec: AssetSpec): CheckThresholds {
   if (spec.role === 'boss') return BOSS_THRESHOLDS;
-  if (spec.role === 'icon') return ICON_THRESHOLDS;
+  // G-036: an icon whose object is also drawn on the field keeps law 10 there,
+  // and CHECK rejects it if it does not (`field-colours`), rather than only
+  // laws.test.ts noticing after the sprite is committed.
+  if (spec.role === 'icon') return spec.fieldRiding ? FIELD_RIDING_ICON_THRESHOLDS : ICON_THRESHOLDS;
   if (spec.role === 'player') return PLAYER_THRESHOLDS;
   return SWARM_THRESHOLDS;
 }

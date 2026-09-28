@@ -301,6 +301,13 @@ describe('none of this reaches Conception', () => {
     for (const id of Object.keys(ENEMIES)) {
       world.enemies.length = 0;
       world.spawnEnemy(id);
+      // A hold (the meeting, OFFICE-ROSTER §3.4) never enters `enemies`; it
+      // lives in `holds`, sized by its def.
+      if (ENEMIES[id]!.hold) {
+        expect(world.holds.length, id).toBe(1);
+        world.holds.length = 0;
+        continue;
+      }
       const e = world.enemies[0]!;
       expect(e.radius, id).toBe(ENEMIES[id]!.radius);
       expect(e.xp, id).toBe(ENEMIES[id]!.xp);

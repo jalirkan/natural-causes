@@ -328,6 +328,45 @@ class Sfx {
     });
   }
 
+  // --- College -----------------------------------------------------------
+
+  /**
+   * The registrar's consult (COLLEGE-ROSTER §3.5): the bell on the ledge,
+   * struck once. A bright sine dying fast, with a quiet inharmonic partial
+   * (2.76x, a small bell's) that dies faster still; ~200ms. Lower than the
+   * group chat's ding and not a fifth, so a counter never reads as a phone.
+   */
+  bell(): void {
+    if (!this.due('bell', 300)) return;
+    this.tone(1319, { gain: 0.032, attack: 0.002, decay: 0.19 });
+    this.tone(3640, { gain: 0.008, attack: 0.001, decay: 0.07 });
+  }
+
+  /**
+   * The registrar's shot (§3.5): a HOLD is stamped, not pinged. A dull thump,
+   * low-passed paper over a short falling body, ~70ms. On the post, not the
+   * hit: the hit is the hall monitor's stop, which already has its sound.
+   */
+  stamp(): void {
+    if (!this.due('stamp', 150)) return;
+    this.noise({ gain: 0.04, decay: 0.035, cutoff: 800 });
+    this.tone(150, { wave: 'triangle', gain: 0.08, attack: 0.003, decay: 0.06, glideTo: 95 });
+  }
+
+  /**
+   * The Loan compounds (§4): the adding machine's tape advancing. A click and
+   * a lower clack 40ms apart, each a band-passed tick of noise over a tiny
+   * triangle for the metal; ~60ms, and the only sound the Loan makes of its
+   * own. Five seconds apart at its placeholder rate, so the floor is a guard.
+   */
+  tapeTick(): void {
+    if (!this.due('tapeTick', 300)) return;
+    this.noise({ gain: 0.03, decay: 0.01, cutoff: 3200, band: { q: 3, glideTo: 2800 } });
+    this.tone(1100, { wave: 'triangle', gain: 0.018, attack: 0.001, decay: 0.012 });
+    this.noise({ gain: 0.035, decay: 0.014, cutoff: 1900, delay: 0.04, band: { q: 3, glideTo: 1600 } });
+    this.tone(760, { wave: 'triangle', gain: 0.022, attack: 0.001, decay: 0.016, delay: 0.04 });
+  }
+
   // --- G-044's weapons ---------------------------------------------------
 
   /**

@@ -209,7 +209,12 @@ async function cmdSvg(argv: string[]): Promise<number> {
       if (!o.ok) {
         failed++;
         for (const r of o.report?.results ?? []) {
-          if (!r.pass) log(`      ${r.name}: measured ${r.measured}, expected ${r.expected}`);
+          if (!r.pass) {
+            log(
+              `      ${r.name}: measured ${r.measured}${r.detail ? ` (${r.detail})` : ''}, ` +
+                `expected ${r.expected}`,
+            );
+          }
         }
       }
     } catch (err) {

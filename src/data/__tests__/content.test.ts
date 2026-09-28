@@ -59,9 +59,16 @@ describe('behaviours are fully specified (CONCEPTION-ROSTER §5.2)', () => {
       }
       if (def.contact === 'attach') {
         expect(def.attach, `"${id}" attaches but has no drag`).toBeDefined();
-        expect(def.attach!.drag).toBeGreaterThan(0);
+        // Every attach costs something. It was "a drag above zero" until the
+        // ping (OFFICE-ROSTER §3.3), whose drag is 0 by design — it costs
+        // cadence, never speed — so the rule is now that a stack costs speed,
+        // XP or cadence, and an attach that costs none of them is inert.
+        const a = def.attach!;
+        const costs = a.drag > 0 || (a.tax ?? 0) > 0 || (a.cooldownMultiplier ?? 1) > 1;
+        expect(costs, `"${id}" attaches and costs nothing`).toBe(true);
+        expect(a.drag).toBeGreaterThanOrEqual(0);
         // Small enough per stack that no single attachment feels unfair.
-        expect(def.attach!.drag).toBeLessThan(0.1);
+        expect(a.drag).toBeLessThan(0.1);
       }
       if (def.burst) {
         expect(def.burst.fuseSeconds, `"${id}" bursts instantly`).toBeGreaterThan(0);
@@ -167,7 +174,7 @@ describe("law 10 / G-030 — pickups take the act's light tone", () => {
     // earlier, where it is enforceable today: the palette an enemy in each act
     // is allowed to be quantised INTO excludes paper (the player's) and the
     // act's light tone (the pickups').
-    for (const act of ['conception', 'school', 'adolescence', 'college'] as const) {
+    for (const act of ['conception', 'school', 'adolescence', 'college', 'office'] as const) {
       const allowed = enemyPalette(act).map((c) => c.name);
       expect(allowed, `act "${act}" lets an enemy be paper`).not.toContain('paper');
       expect(allowed, `act "${act}" lets an enemy take the pickup tone`).not.toContain(

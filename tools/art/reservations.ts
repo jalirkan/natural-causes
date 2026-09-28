@@ -268,6 +268,58 @@ export const RESERVATIONS: Partial<Record<ActId, ActReservations>> = {
       boss: 'boss-loan',
     },
   },
+
+  // Lifted from OFFICE-ROSTER.md §1, consequences verbatim. The test batch's
+  // org chart (G-013's ruled geometry) is the boss; the sheet is clipped
+  // because the envelope is College's, and the meeting is chairs because the
+  // meeting is not the people (law 9).
+  office: {
+    silhouettes: [
+      {
+        silhouette: 'clipped sheet',
+        heldBy: 'reply-all',
+        consequence:
+          'The only sheet in the act, and the only clip. Its children are the same sheet smaller, never a different shape.',
+      },
+      {
+        silhouette: 'carriage',
+        heldBy: 'commute',
+        consequence: 'The only thing in the act with wheels, and the widest.',
+      },
+      {
+        silhouette: 'bell with a dot',
+        heldBy: 'ping',
+        consequence: 'The only bell, and the smallest thing in the act.',
+      },
+      {
+        silhouette: 'ring of chairs',
+        heldBy: 'meeting',
+        consequence: 'The only ring in the act, and the only thing drawn around an empty middle.',
+      },
+      {
+        silhouette: 'row of stars',
+        heldBy: 'performance-review',
+        consequence: 'The only stars. Nothing else in the act has points.',
+      },
+      {
+        silhouette: 'tree of boxes',
+        heldBy: 'boss-reorg',
+        consequence:
+          'The only ruled geometry in the act (G-013), and the only thing with an empty top box.',
+      },
+    ],
+    reservedThreat: {
+      // The act's heaviest hit is its only red thing.
+      contact: 'commute',
+      // The test's and the project's colour on the slow heavy thing: the chairs.
+      elite: 'meeting',
+      // G-031: the review's gold is on the rating it fires, never its body,
+      // and it is the act's only gold.
+      ranged: PROJECTILE_HOLDER,
+      // The chart's boxes and connectors.
+      boss: 'boss-reorg',
+    },
+  },
 };
 
 /**
@@ -288,11 +340,14 @@ export const PICKUP_SILHOUETTE = 'lozenge';
  * are not act-scoped — Reflex fires the same manicule in School as in
  * Conception.
  *
- * `laws.test.ts` reads the sprites against this through the enemy scan
- * (`reservedColourViolations`, once per act), which inherits that scan's one
- * blind spot: service-light sits inside the grain tolerance of bone, so a
- * service-light pixel cannot be told from a legal bone one. A palette
- * collision, recorded in check.ts, not a licence.
+ * CHECK rejects a field-riding icon that wears one (`field-colours`, which
+ * scans for exactly this list), so `art:svg` refuses the sprite before it is
+ * written; `laws.test.ts` reads the committed sprites against it again
+ * through the enemy scan (`reservedColourViolations`, once per act) and
+ * requires the two to agree. Both share that scan's one blind spot:
+ * service-light sits inside the grain tolerance of bone, so a service-light
+ * pixel cannot be told from a legal bone one. A palette collision, recorded
+ * in check.ts, not a licence.
  */
 export const FIELD_RESERVED_COLOURS: readonly string[] = [
   ...Object.values(THREAT).map((c) => c.name),
@@ -391,7 +446,8 @@ export function reservationVerdict(
   // for it and the verdict says so. It stays off the silhouette list for the
   // player's reason below (it is the player's weapon, and the list answers
   // "how does this hurt me"), but law 10 applies to it in full: the verdict
-  // names the colours it keeps off, and laws.test.ts reads its sprite for them.
+  // names the colours it keeps off, CHECK's `field-colours` rejects a sprite
+  // that wears one, and laws.test.ts reads the committed sprite for them too.
   if (role === 'icon') {
     return {
       status: 'icon',

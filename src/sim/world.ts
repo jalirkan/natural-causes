@@ -1,4 +1,4 @@
-import type { ActDef, BossDef, GymTeacherBoss, LoanBoss, PromBoss, SpawnWave } from '../data/acts';
+import type { ActDef, BossDef, GymTeacherBoss, LoanBoss, PromBoss, ReorgBoss, SpawnWave } from '../data/acts';
 import { ALL_ACTS, rateAt, spawnStreams, whistleInterval } from '../data/acts';
 import { enemyDef, type EnemyDef } from '../data/enemies';
 import {
@@ -198,6 +198,27 @@ export const LOAN_OPENING_PER_STACK = 0.1;
 export const LOAN_INVOICE_SPREAD = 0.16;
 
 /**
+ * The Reorg (OFFICE-ROSTER §4, G-004). PLACEHOLDERS under `OFFICE.provisional`,
+ * beside the five on `ReorgBoss` (thresholds [2/3, 1/3], lateralMove 220,
+ * memoShots 5, memoSpacing 64). None has been played:
+ *   REORG_MIN_DISTANCE 300 — §4's "at least 300 px from the player": how near
+ *     a restructure may set the chart down, measured from where the player
+ *     stands before their own box is moved. At the Egg's shot speed a memo
+ *     from here arrives in just over a second;
+ *   REORG_MARGIN — how far inside the walls the chart lands: spawnBoss's
+ *     margin (BOSS_RADIUS + 40), for spawnBoss's reason: the camera is held
+ *     inside the arena and a boss past its edge is a bar over an empty screen.
+ * REORG_RELOCATE_TRIES is a resolution, not a dial: rolls before the farthest
+ * is taken. In a 3200×2200 field a roll lands within 300 px of the player at
+ * most ~6% of the time, so eight misses in a row is ~1e-10 and the fallback
+ * exists only so the loop is bounded.
+ * The memo is the Egg's shot (EGG_SHOT) on the Egg's timings; both are read.
+ */
+export const REORG_MIN_DISTANCE = 300;
+export const REORG_MARGIN = BOSS_RADIUS + 40;
+export const REORG_RELOCATE_TRIES = 8;
+
+/**
  * How long ago "recently" is, for an enemy that lands where the player has
  * been (`spawnAt: 'trail'` — homework, SCHOOL-ROSTER §3.3).
  *
@@ -355,6 +376,14 @@ export interface EnemyState {
    * other enemy, which every hit reads as "anywhere counts" (`hitsWeakPoint`).
    */
   weakQuadrant?: number;
+  /**
+   * `def.split` only (reply-all, OFFICE-ROSTER §3.1): how many splits deep
+   * this one is. 0 for anything the schedule or a boss put on the field;
+   * each child is its parent's plus one, and at `split.generations − 1` it
+   * dies as any enemy does (`reapDead`). Set to 0 on every enemy by
+   * `addEnemy`; optional so hand-built states need not carry it.
+   */
+  generation?: number;
 }
 
 export interface ProjectileState {
@@ -522,6 +551,39 @@ export interface AreaState {
   source?: string;
 }
 
+/**
+ * A hold (OFFICE-ROSTER §3.4, the meeting): a place, not a body. An enemy
+ * whose def carries `hold` becomes one of these where it is spawned and is
+ * never on the field as an enemy (`addEnemy`), so no target, hit, contact or
+ * cull can reach it. It contracts from `from` to `to` over `seconds`, holds at
+ * `to` for `holdSeconds`, then ends (`updateHolds`). Inside it everything
+ * moves at `slow` (`slowAt`, the same reading Snooze's field has); its edge is
+ * a wall for the crowd both ways (`wallHolds`) and never for the player. No
+ * damage, no drop, nothing on the certificate.
+ */
+export interface HoldState {
+  x: number;
+  y: number;
+  /** Honest: the radius it slows and walls at, this step. */
+  radius: number;
+  from: number;
+  to: number;
+  seconds: number;
+  holdSeconds: number;
+  age: number;
+  slow: number;
+  /** The enemy id it was spawned as. The renderer draws that def's frame. */
+  source: string;
+}
+
+/**
+ * How far to the right side of a hold's edge the wall sets an enemy, px. An
+ * enemy set exactly on the edge is read as inside by `d <= radius`, and one
+ * pushed back out would walk in on the next step; float error either way is
+ * far below this. Invisible at any zoom.
+ */
+const HOLD_EDGE = 0.01;
+
 export interface GemState {
   x: number;
   y: number;
@@ -545,7 +607,9 @@ export interface BossState {
    * `idle` → `telegraph` → `attack`, then back. For the Gym Teacher the
    * telegraph is the whistle rising and `attack` begins on the step it blows;
    * for Prom it is the lights going down and `attack` begins on the ring;
-   * for the Loan it is the tape jerking and `attack` begins on the statement.
+   * for the Loan it is the tape jerking and `attack` begins on the statement;
+   * for the Reorg it is the memo drafted and `attack` begins on the memo, and
+   * a restructure sets it back to `idle`.
    * The exit, for every kind, is `absorbing`: the word is the Egg's, and it
    * means the outcome has latched (G-033) and `finishAct` follows the timer —
    * the Gym Teacher's stopwatch click and `ActDef.endWord` play in it.
@@ -557,8 +621,8 @@ export interface BossState {
    * True while it cannot be damaged: the Gym Teacher with any of his
    * `enemyId` alive on the field (§9); Prom with the player farther than its
    * `floorRadius` from the ball (ADOLESCENCE-ROSTER §4). Always false for the
-   * Egg and the Loan. Plain state for the renderer and the bots; the sim reads
-   * the field and the player itself.
+   * Egg, the Loan and the Reorg. Plain state for the renderer and the bots;
+   * the sim reads the field and the player itself.
    */
   shielded: boolean;
   /**
@@ -577,6 +641,14 @@ export interface BossState {
    * the kinds that never compound.
    */
   interestIn: number;
+  /**
+   * How many of its `thresholds` the Reorg has restructured at this act, in
+   * order: 0 until its health first reaches two thirds, then 1, then 2, and
+   * never more than there are thresholds. Read-only outside the sim; the
+   * renderer greys the chart's rows from it. Zero for the kinds that never
+   * restructure.
+   */
+  restructures: number;
 }
 
 export interface Input {
@@ -813,6 +885,25 @@ export class World {
   private persistentTaxedStacks = 0;
   private persistentTaxFactor = 1;
   /**
+   * Worn stacks whose attach carries a `cooldownMultiplier` (the ping,
+   * OFFICE-ROSTER §3.3), and the product of their multipliers, which
+   * `cooldownFactor` multiplies in. Read through `pingStacks` and
+   * `attentionFactor`. They come off at the crossing unless the attach
+   * `persists`, as the drag does; the ping's does not.
+   */
+  private cooldownStacks = 0;
+  private attention = 1;
+  private persistentCooldownStacks = 0;
+  private persistentAttention = 1;
+  /**
+   * Stacks worn, by the id of the def that attached them (AUDIT six, 38): the
+   * persisting ones through every crossing, the rest until the next. For
+   * drawing each stack in its own act's frame; `dragStacks` stays the
+   * number the sim moves the player by. Read through `wornBy`.
+   */
+  private readonly worn = new Map<string, number>();
+  private readonly persistentWorn = new Map<string, number>();
+  /**
    * Seconds left of a `contactStun` (the hall monitor, §3.4). While it runs
    * `movePlayer` ignores input. Refreshed by a touch, never extended past it.
    */
@@ -857,6 +948,8 @@ export class World {
   projectiles: ProjectileState[] = [];
   rings: RingState[] = [];
   areas: AreaState[] = [];
+  /** Meetings (OFFICE-ROSTER §3.4) on the field. Read-only outside the sim. */
+  readonly holds: HoldState[] = [];
   gems: GemState[] = [];
   /** Everything circling the player this step. Read-only outside the sim. */
   orbiters: OrbiterState[] = [];
@@ -984,6 +1077,45 @@ export class World {
   }
 
   /**
+   * Every worn stack off, and the tax with them. DEV ONLY: nothing in the
+   * rules calls it. The dev panel's "no drag" (AUDIT 42) must take the tax
+   * off with the drag, and the tax is private. The persisting part is left
+   * alone, so the next crossing restores it as it would have.
+   */
+  shedWornStacks(): void {
+    this.dragStacks = 0;
+    this.taxedStacks = 0;
+    this.xpTaxFactor = 1;
+    // The pings and the by-def record go with them (OFFICE-ROSTER §3.3; AUDIT 42).
+    this.cooldownStacks = 0;
+    this.attention = 1;
+    this.worn.clear();
+  }
+
+  /**
+   * What the pings worn do to every cooldown: the product of their
+   * `cooldownMultiplier`s (two pings, 1.06²), 1 with none. Already inside
+   * `cooldownFactor`; exposed for the HUD.
+   */
+  get attentionFactor(): number {
+    return this.attention;
+  }
+
+  /** Worn stacks that carry a cooldown multiplier (pings), for the HUD. */
+  get pingStacks(): number {
+    return this.cooldownStacks;
+  }
+
+  /**
+   * Stacks worn, by the def id that attached them — `{ tuition: 2, ping: 1 }`
+   * — so a renderer can draw a College invoice in The Office (AUDIT six, 38).
+   * Read-only; `dragStacks` is the sim's number.
+   */
+  get wornBy(): ReadonlyMap<string, number> {
+    return this.worn;
+  }
+
+  /**
    * Speed from items alone — no antibody drag, no engulf.
    *
    * The exogenous half of the player's speed: what the build chose, rather
@@ -1008,7 +1140,8 @@ export class World {
    * The player's own hold: every field that holds them (Snooze's) but never
    * a damaging trail (Rut's, G-046), which is laid where the player stands
    * and would otherwise hold them for as long as they kept moving. A trail
-   * holds what follows; the player walks it at full speed.
+   * holds what follows; the player walks it at full speed. A meeting holds
+   * them too (OFFICE-ROSTER §3.4), and never walls them in.
    */
   private slowAtPlayer(): number {
     let k = 1;
@@ -1016,7 +1149,7 @@ export class World {
       if (f.slow === undefined || f.slow >= k || f.damage > 0) continue;
       if ((this.x - f.x) ** 2 + (this.y - f.y) ** 2 <= f.radius * f.radius) k = f.slow;
     }
-    return k;
+    return this.slowInHolds(this.x, this.y, k);
   }
 
   /**
@@ -1035,10 +1168,11 @@ export class World {
   }
 
   /**
-   * The movement multiplier at a point: the slowest Snooze field whose area
-   * holds it, 1 outside all of them. Slowest rather than product, so two
-   * overlapping fields are one field and not a standstill. Reads `areas`
-   * directly; the per-entity passes collect the fields once instead.
+   * The movement multiplier at a point: the slowest Snooze field or meeting
+   * (`holds`) whose area holds it, 1 outside all of them. Slowest rather than
+   * product, so two overlapping fields are one field and not a standstill.
+   * Reads `areas` directly; the per-entity passes collect the fields once
+   * instead. The holds are always read whole: there are a few at most.
    */
   slowAt(x: number, y: number, fields: readonly AreaState[] = this.areas): number {
     let k = 1;
@@ -1046,7 +1180,24 @@ export class World {
       if (f.slow === undefined || f.slow >= k) continue;
       if ((x - f.x) ** 2 + (y - f.y) ** 2 <= f.radius * f.radius) k = f.slow;
     }
+    return this.slowInHolds(x, y, k);
+  }
+
+  /** `k`, or the slowest hold whose centre-within-radius holds the point, if slower. */
+  private slowInHolds(x: number, y: number, k: number): number {
+    for (const h of this.holds) {
+      if (h.slow >= k) continue;
+      if ((x - h.x) ** 2 + (y - h.y) ** 2 <= h.radius * h.radius) k = h.slow;
+    }
     return k;
+  }
+
+  /**
+   * True when nothing on the field slows a mover: no Snooze field collected
+   * and no hold. The per-entity passes skip `slowAt` entirely then.
+   */
+  private unheld(fields: readonly AreaState[]): boolean {
+    return fields.length === 0 && this.holds.length === 0;
   }
 
   /** The live Snooze fields, into a reused buffer, for a pass over many movers. */
@@ -1073,9 +1224,12 @@ export class World {
     return out;
   }
 
-  /** Restlessness: every active item's cooldown, multiplied. */
+  /**
+   * Restlessness: every active item's cooldown, multiplied. And the pings
+   * worn (`attentionFactor`, OFFICE-ROSTER §3.3), which are 1 until one is.
+   */
   get cooldownFactor(): number {
-    return this.passiveProduct((d) => d.cooldownMultiplier);
+    return this.passiveProduct((d) => d.cooldownMultiplier) * this.attention;
   }
 
   /** Appetite: how far away a gem starts coming to the player. */
@@ -1165,6 +1319,7 @@ export class World {
     this.moveProjectiles(dt);
     this.updateRings(dt);
     this.updateAreas(dt);
+    this.updateHolds(dt);
     this.updateOrbiters();
     this.updateAuras(dt);
     this.updateGems(dt);
@@ -1293,6 +1448,11 @@ export class World {
         x = this.x + nx * reach;
         y = this.y + ny * reach;
       }
+    } else if ((this.spawnOverride ?? def.spawnAt) === 'player') {
+      // OFFICE-ROSTER §3.4: the meeting is called where the player stands,
+      // and the hold is centred on them. No dice: nothing about it is chosen.
+      x = this.x;
+      y = this.y;
     } else {
       const angle = this.rng() * Math.PI * 2;
       x = this.x + Math.cos(angle) * SPAWN_RADIUS;
@@ -1349,9 +1509,20 @@ export class World {
    * The one constructor for an enemy on the field. `spawnEnemy` decides where
    * and how fast; the Gym Teacher's throw decides both itself; every field is
    * set here, so a thrown ball and a spawned one cannot differ in anything
-   * but where they started.
+   * but where they started. Null for a def with `hold`, which becomes a hold
+   * instead of a body.
    */
-  private addEnemy(def: EnemyDef, x: number, y: number, vx: number, vy: number): EnemyState {
+  private addEnemy(def: EnemyDef, x: number, y: number, vx: number, vy: number): EnemyState | null {
+    // A hold is a place, not a body (OFFICE-ROSTER §3.4): it goes on `holds`
+    // where it was placed and never on `enemies`, so no pass that walks the
+    // crowd — targets, hits, contact, the grid, the cull, the cap — can see
+    // it. Here rather than in `spawnEnemy`, so whatever places one (a wave,
+    // the Reorg's threshold) gets a hold and nothing else. No dice drawn.
+    if (def.hold) {
+      const { from, to, seconds, holdSeconds, slow } = def.hold;
+      this.holds.push({ x, y, radius: from, from, to, seconds, holdSeconds, age: 0, slow, source: def.id });
+      return null;
+    }
     const e: EnemyState = {
       uid: this.nextUid++,
       hitBySerial: 0,
@@ -1366,6 +1537,7 @@ export class World {
       xp: def.xp,
       consult: 0,
       reload: 0,
+      generation: 0,
     };
     // Rolled for a weak point and for nothing else, so no other enemy draws
     // from the dice and every seed without one replays exactly as it did.
@@ -1386,8 +1558,9 @@ export class World {
       if (e.radius > this.maxEnemyRadius) this.maxEnemyRadius = e.radius;
       if (e.def.merge) this.solids.push(e);
 
-      // Snooze holds the walk and nothing else: fuses and consults keep time.
-      const mdt = fields.length === 0 ? dt : dt * this.slowAt(e.x, e.y, fields);
+      // Snooze and a meeting hold the walk and nothing else: fuses and
+      // consults keep time.
+      const mdt = this.unheld(fields) ? dt : dt * this.slowAt(e.x, e.y, fields);
       // Where it stood before this step's walk: a reversal below reflects at
       // most this step's travel past the edge, never distance it came in with.
       const fromX = e.x;
@@ -1456,6 +1629,11 @@ export class World {
           }
         }
       }
+
+      // A meeting's edge (OFFICE-ROSTER §3.4), against where it stood before
+      // the walk. Here, in the one loop that has both positions: the grid
+      // holds last step's cells, so it cannot say who was where.
+      if (this.holds.length > 0) this.wallHolds(e, fromX, fromY);
 
       if (e.def.burst && e.age >= e.def.burst.fuseSeconds) {
         this.rings.push({
@@ -1585,8 +1763,12 @@ export class World {
         const d = Math.hypot(a.x - e.x, a.y - e.y);
         if (d > a.radius || d < 1) continue;
         const strength = (1 - d / a.radius) * 130 * dt;
+        const fromX = e.x;
+        const fromY = e.y;
         e.x += ((a.x - e.x) / d) * strength;
         e.y += ((a.y - e.y) / d) * strength;
+        // A meeting's edge holds against the pull as against the walk.
+        if (this.holds.length > 0) this.wallHolds(e, fromX, fromY);
       }
     }
   }
@@ -2170,9 +2352,9 @@ export class World {
     const fields = this.collectFields();
     for (let i = this.projectiles.length - 1; i >= 0; i--) {
       const p = this.projectiles[i]!;
-      // Held by Snooze, hostile or not. Its life is held with it, so a shot
-      // through a field arrives late rather than falling short.
-      const pdt = fields.length === 0 ? dt : dt * this.slowAt(p.x, p.y, fields);
+      // Held by Snooze or a meeting, hostile or not. Its life is held with it,
+      // so a shot through a field arrives late rather than falling short.
+      const pdt = this.unheld(fields) ? dt : dt * this.slowAt(p.x, p.y, fields);
       p.x += p.vx * pdt;
       p.y += p.vy * pdt;
       p.life -= pdt;
@@ -2234,6 +2416,95 @@ export class World {
   }
 
   /**
+   * A meeting's life (OFFICE-ROSTER §3.4): its radius runs linearly from
+   * `from` to `to` over `seconds`, stays at `to` for `holdSeconds`, and then
+   * it is gone. The edge carries the crowd with it (`moveHoldEdge`): an enemy
+   * the wall held in is taken inward as the room closes, or the next step's
+   * wall would read it as outside and let it walk away.
+   */
+  private updateHolds(dt: number): void {
+    for (let i = this.holds.length - 1; i >= 0; i--) {
+      const h = this.holds[i]!;
+      h.age += dt;
+      if (h.age >= h.seconds + h.holdSeconds) {
+        swapRemove(this.holds, i);
+        continue;
+      }
+      const was = h.radius;
+      const t = h.seconds > 0 ? Math.min(1, h.age / h.seconds) : 1;
+      h.radius = h.from + (h.to - h.from) * t;
+      if (h.radius !== was) this.moveHoldEdge(h, was);
+    }
+  }
+
+  /**
+   * Keeps the wall's two sides true across a change of radius: whatever was
+   * inside at `was` and is outside now is set just inside the new edge, and
+   * whatever was outside and is inside now just outside it, each along the
+   * centre line. Walks every enemy once per hold, allocation-free: there are
+   * a few holds at most, and the grid would miss anything added since it was
+   * built this step (a split, a throw).
+   */
+  private moveHoldEdge(h: HoldState, was: number): void {
+    const was2 = was * was;
+    const now2 = h.radius * h.radius;
+    for (const e of this.enemies) {
+      if (!World.walledByHolds(e.def)) continue;
+      const dx = e.x - h.x;
+      const dy = e.y - h.y;
+      const d2 = dx * dx + dy * dy;
+      const wasIn = d2 <= was2;
+      if (wasIn === d2 <= now2) continue;
+      this.setOnHoldEdge(e, h, dx, dy, Math.sqrt(d2), wasIn);
+    }
+  }
+
+  /**
+   * A meeting's edge is a wall for the crowd both ways (OFFICE-ROSTER §3.4):
+   * an enemy that stood outside a hold at (`fromX`, `fromY`) and has come in
+   * is set back just outside its edge, and one that stood inside and has left
+   * is set back just inside, along the centre line through where it got to.
+   * Inside is the centre within the radius, as `slowAt` reads it. Called
+   * wherever the crowd is moved — the walk, the pull, a shove — with where
+   * the enemy stood before; the holds against this one enemy, and there are
+   * a few holds at most. The player is never walled.
+   */
+  private wallHolds(e: EnemyState, fromX: number, fromY: number): void {
+    if (!World.walledByHolds(e.def)) return;
+    for (const h of this.holds) {
+      const r2 = h.radius * h.radius;
+      const wasIn = (fromX - h.x) ** 2 + (fromY - h.y) ** 2 <= r2;
+      const dx = e.x - h.x;
+      const dy = e.y - h.y;
+      const d2 = dx * dx + dy * dy;
+      if (wasIn === d2 <= r2) continue;
+      this.setOnHoldEdge(e, h, dx, dy, Math.sqrt(d2), wasIn);
+    }
+  }
+
+  /** Sets `e` on `h`'s edge along the centre line: just inside it if `inside`, else just outside. */
+  private setOnHoldEdge(e: EnemyState, h: HoldState, dx: number, dy: number, d: number, inside: boolean): void {
+    const at = Math.max(0, inside ? h.radius - HOLD_EDGE : h.radius + HOLD_EDGE);
+    // On the centre exactly there is no line; any consistent one will do.
+    const nx = d < 0.001 ? 1 : dx / d;
+    const ny = d < 0.001 ? 0 : dy / d;
+    e.x = h.x + nx * at;
+    e.y = h.y + ny * at;
+  }
+
+  /**
+   * What a meeting's edge holds: the crowd, not the room (AUDIT 28 and 33's
+   * rule, as the pull and the shove read it). A pile, a patrol line and
+   * anything `static` are the arena's shape — carried by a closing meeting, a
+   * review would stay moved for the rest of the act and a ping would be
+   * brought to the player — and a `cross` mover took its heading at spawn and
+   * does not care who is in a meeting: a commute passes straight through.
+   */
+  private static walledByHolds(def: EnemyDef): boolean {
+    return def.merge !== true && def.patrol !== true && def.movement !== 'cross' && def.movement !== 'static';
+  }
+
+  /**
    * Pushes an enemy straight away from the player, held inside the arena. The
    * boss is never in `enemies`, so it is never pushed.
    */
@@ -2252,12 +2523,16 @@ export class World {
     // another without merging, since piles merge only on arrival.
     if (e.def.merge) return;
     const inside = e.x >= 0 && e.x <= ARENA_WIDTH && e.y >= 0 && e.y <= ARENA_HEIGHT;
+    const fromX = e.x;
+    const fromY = e.y;
     e.x += nx * distance;
     e.y += ny * distance;
     if (inside) {
       e.x = clamp(e.x, 0, ARENA_WIDTH);
       e.y = clamp(e.y, 0, ARENA_HEIGHT);
     }
+    // A meeting's edge holds against a shove as against the walk.
+    if (this.holds.length > 0) this.wallHolds(e, fromX, fromY);
   }
 
   private updateGems(dt: number): void {
@@ -2397,9 +2672,51 @@ export class World {
     for (let i = this.enemies.length - 1; i >= 0; i--) {
       const e = this.enemies[i]!;
       if (e.hp > 0) continue;
-      this.gems.push({ x: e.x, y: e.y, value: e.xp });
+      // Removed first: the last element moves into `i` and has been visited;
+      // any children are pushed past it and are alive, so none is reaped here.
       swapRemove(this.enemies, i);
       this.kills++;
+      const split = e.def.split;
+      const generation = e.generation ?? 0;
+      if (split && generation < split.generations - 1) this.splitFrom(e, split, generation + 1);
+      else this.gems.push({ x: e.x, y: e.y, value: e.xp });
+    }
+  }
+
+  /**
+   * Reply-all (OFFICE-ROSTER §3.1): a killed `split` enemy short of its last
+   * generation becomes `children` of itself where it died, each at
+   * `scale ** generation` of the def's hp, radius and drawn size, and drops
+   * nothing — only the last generation drops the XP. The same def: one
+   * registry, a generation on the state.
+   *
+   * Spread by index, not by the dice, so no seed's later rolls move: evenly
+   * about the parent, starting across the line to the player (two children
+   * land side by side, one each side of that line), each its own radius from
+   * the centre, so two touch and do not stack. They carry the parent's
+   * hit serials, so the shot or burst that killed it does not also land on
+   * them — each split is one kill's worth of work, not a chain in one hit.
+   * Capped by MAX_ACTIVE_ENEMIES like any spawn: at the cap a split is short
+   * of children, and still drops nothing.
+   */
+  private splitFrom(parent: EnemyState, split: NonNullable<EnemyDef['split']>, generation: number): void {
+    const def = parent.def;
+    const k = split.scale ** generation;
+    const radius = def.radius * k;
+    const across = Math.atan2(this.y - parent.y, this.x - parent.x) + Math.PI / 2;
+    for (let c = 0; c < split.children && this.enemies.length < MAX_ACTIVE_ENEMIES; c++) {
+      const angle = across + (c * 2 * Math.PI) / split.children;
+      const x = parent.x + Math.cos(angle) * radius;
+      const y = parent.y + Math.sin(angle) * radius;
+      const e = this.addEnemy(def, x, y, parent.vx, parent.vy);
+      // A hold def never splits and addEnemy returns null for one (§3.4).
+      if (!e) continue;
+      e.hp = def.hp * k;
+      e.radius = radius;
+      e.displaySize = def.displaySize * k;
+      e.generation = generation;
+      e.hitBySerial = parent.hitBySerial;
+      e.hitByAreaSerial = parent.hitByAreaSerial;
     }
   }
 
@@ -2469,6 +2786,11 @@ export class World {
       swapRemove(this.projectiles, i);
       if (this.invulnerable > 0) continue;
       this.hurt(p.damage, p.owner ?? 'boss');
+      // The review's rating (OFFICE-ROSTER §3.5): a share of the bar to the
+      // next level, taken from the progress along it and never below it, so
+      // a level already reached is never taken back.
+      const xpLoss = p.owner?.ranged?.xpLoss;
+      if (xpLoss !== undefined) this.xp = Math.max(0, this.xp - xpLoss * this.xpToNext);
       // The registrar's hold (COLLEGE-ROSTER §3.5): the monitor's stop, by
       // post, and its i-frames run from the END of the stop for the reason the
       // contact branch above gives (AUDIT part three, 18).
@@ -2491,24 +2813,45 @@ export class World {
   }
 
   /**
-   * One attach stack on the player: a drag stack, always; for tuition, a
-   * share of every gem from now on (`attach.tax`) and a stack that stays on
-   * through the crossing (`attach.persists`, COLLEGE-ROSTER §3.3).
+   * One attach stack on the player: a drag stack for any attach with a drag;
+   * for tuition, a share of every gem from now on (`attach.tax`) and a stack
+   * that stays on through the crossing (`attach.persists`, COLLEGE-ROSTER
+   * §3.3); for the ping, a multiplier on every cooldown
+   * (`attach.cooldownMultiplier`, OFFICE-ROSTER §3.3). Every stack is also
+   * counted by the kind that attached it (`wornBy`), so a renderer can draw
+   * each in its own frame (AUDIT six, 38).
+   *
+   * The ping's drag is 0 and it adds no drag stack: the drag is one curve
+   * over `dragStacks` (`antibodyDrag`), not a per-def figure, so a stack
+   * counted there costs speed whatever its def says.
    */
   private wear(def: EnemyDef): void {
-    this.dragStacks++;
-    const tax = def.attach?.tax ?? 0;
-    const persists = def.attach?.persists === true;
+    const attach = def.attach;
+    const drags = (attach?.drag ?? 0) > 0;
+    const tax = attach?.tax ?? 0;
+    const cooldown = attach?.cooldownMultiplier;
+    const persists = attach?.persists === true;
+    if (drags) this.dragStacks++;
     if (tax > 0) {
       this.taxedStacks++;
       this.xpTaxFactor *= 1 - tax;
     }
+    if (cooldown !== undefined) {
+      this.cooldownStacks++;
+      this.attention *= cooldown;
+    }
+    this.worn.set(def.id, (this.worn.get(def.id) ?? 0) + 1);
     if (!persists) return;
-    this.persistentStacks++;
+    if (drags) this.persistentStacks++;
     if (tax > 0) {
       this.persistentTaxedStacks++;
       this.persistentTaxFactor *= 1 - tax;
     }
+    if (cooldown !== undefined) {
+      this.persistentCooldownStacks++;
+      this.persistentAttention *= cooldown;
+    }
+    this.persistentWorn.set(def.id, (this.persistentWorn.get(def.id) ?? 0) + 1);
   }
 
   private hurt(amount: number, cause: Cause): void {
@@ -2691,6 +3034,7 @@ export class World {
     this.projectiles.length = 0;
     this.rings.length = 0;
     this.areas.length = 0;
+    this.holds.length = 0;
     this.solids.length = 0;
     this.maxEnemyRadius = 0;
     this.grid.build(this.enemies);
@@ -2704,6 +3048,11 @@ export class World {
     this.dragStacks = this.persistentStacks;
     this.taxedStacks = this.persistentTaxedStacks;
     this.xpTaxFactor = this.persistentTaxFactor;
+    // The pings are the day, not debt (OFFICE-ROSTER §3.3): off at the door.
+    this.cooldownStacks = this.persistentCooldownStacks;
+    this.attention = this.persistentAttention;
+    this.worn.clear();
+    for (const [id, n] of this.persistentWorn) this.worn.set(id, n);
     this.engulfTimer = 0;
     this.engulfSlow = 1;
     this.engulfDps = 0;
@@ -2938,6 +3287,7 @@ export class World {
       shielded: false,
       rings: 0,
       interestIn: 0,
+      restructures: 0,
     };
     // The Loan opens at what the player carried in (COLLEGE-ROSTER §4): a
     // tenth more per invoice worn, and its cap is `cap` times that, so the bar
@@ -3062,6 +3412,8 @@ export class World {
 
     // Above the phase timer: interest runs every step, not on phase changes.
     if (this.act.boss.kind === 'loan') return this.loanPhase(b, this.act.boss, dt);
+    // Above it too: a threshold is read off the health every step, not on a timer.
+    if (this.act.boss.kind === 'reorg') return this.reorgPhase(b, this.act.boss, dt);
 
     // It does not move from where it is. It has already decided.
     b.timer -= dt;
@@ -3289,5 +3641,153 @@ export class World {
     }
     this.facingX = fx;
     this.facingY = fy;
+  }
+
+  /**
+   * The Reorg's step (OFFICE-ROSTER §4, G-004), called every step it is not
+   * absorbing, after the damage passes: a kill this step latched `absorbing`
+   * and returned before this, so the blow that empties the chart never
+   * restructures it.
+   *
+   * The threshold watcher: health over the opening (`maxHp`, which for the
+   * Reorg never moves) against the next of `thresholds` not yet passed, in
+   * order — `restructures` is its index. At or below it, the chart
+   * restructures and the step ends there. One restructure a step: a blow that
+   * crosses two thresholds restructures on this step and the next, so each
+   * threshold is one restructure, once, and `restructures` counts it.
+   *
+   * The memo is the Egg's machine at the Egg's timings, carried as the Loan's
+   * is: idle; the memo drafted (telegraph); the memo (attack). It never
+   * shields (`shieldUp` has no branch for it) and is never raced for (`race`
+   * reads only the Egg and Prom). Nothing in it reads the health left: the
+   * same monster and the same memo at every threshold, everything moved.
+   *
+   * Nothing of it runs once the player has died this step (resolveHits comes
+   * first): a restructure then would shove the body away from what killed it
+   * and seat a meeting round the death.
+   */
+  private reorgPhase(b: BossState, boss: ReorgBoss, dt: number): void {
+    if (this.dead) return;
+    const next = boss.thresholds[b.restructures];
+    if (next !== undefined && b.hp / b.maxHp <= next) {
+      this.restructure(b, boss);
+      return;
+    }
+
+    b.timer -= dt;
+    if (b.timer > 0) return;
+    if (b.phase === 'idle') {
+      b.phase = 'telegraph';
+      b.timer += EGG_TELEGRAPH_SECONDS;
+    } else if (b.phase === 'telegraph') {
+      b.phase = 'attack';
+      b.timer += EGG_ATTACK_SECONDS;
+      this.memo(b, boss);
+    } else {
+      b.phase = 'idle';
+      b.timer += EGG_IDLE_SECONDS;
+    }
+  }
+
+  /**
+   * The memo: `memoShots` of the Egg's shot in a column across the line from
+   * the chart to the player, `memoSpacing` apart and centred on that line,
+   * every one with the same velocity — at where the player is now, at the
+   * Egg's speed — so the column travels as one rank and only its middle shot
+   * is aimed. The bearing is the Egg's (atan2, so a player on the boss point
+   * is fired at along +x, as the Egg's fan is). No owner: a death to one
+   * names the boss (`bossName`), and it would thin a race if there were one.
+   *
+   * Between two shots is open only when `memoSpacing` exceeds twice the
+   * shot's radius plus the player's — 2 × (10 + 16) = 52 px at base size.
+   * At the roster's 36 the rank is solid: it is dodged around, not through.
+   * Flagged, not moved (D-022).
+   */
+  private memo(b: BossState, boss: ReorgBoss): void {
+    const bearing = Math.atan2(this.y - b.y, this.x - b.x);
+    const ux = Math.cos(bearing);
+    const uy = Math.sin(bearing);
+    for (let i = 0; i < boss.memoShots; i++) {
+      const offset = (i - (boss.memoShots - 1) / 2) * boss.memoSpacing;
+      this.projectiles.push({
+        x: b.x - uy * offset,
+        y: b.y + ux * offset,
+        vx: ux * EGG_SHOT.speed,
+        vy: uy * EGG_SHOT.speed,
+        life: EGG_SHOT.life,
+        damage: EGG_SHOT.damage,
+        pierce: 1,
+        radius: EGG_SHOT.radius,
+        hostile: true,
+        source: 'boss',
+        serial: this.nextSerial++,
+      });
+    }
+  }
+
+  /**
+   * One restructure (§4), in this order:
+   *   1. The chart moves. Up to REORG_RELOCATE_TRIES points rolled inside the
+   *      arena, REORG_MARGIN in from every wall; the first at least
+   *      REORG_MIN_DISTANCE from the player is taken, else the farthest
+   *      rolled.
+   *   2. The player's box moves sideways: `lateralMove` px across the line
+   *      from the player to where the chart now is, the side rolled, then
+   *      held inside the arena (`clampPlayer`), with i-frames. Across and
+   *      never along, so short of a wall it takes the player no nearer the
+   *      chart — the distance becomes hypot(d, lateralMove) — which is
+   *      "never up". At a wall the clamp takes the part of the move that
+   *      points out, and what is left can be nearer.
+   *   3. A meeting closes around them: one `meetingId` through `spawnEnemy`,
+   *      the act's own arrival, so where it lands is its def's `spawnAt`, and
+   *      what it does there is its def's. Capped by MAX_ACTIVE_ENEMIES like
+   *      any spawn.
+   *   4. The memo starts over: idle, a fresh EGG_IDLE_SECONDS, a memo in its
+   *      telegraph dropped. Memos already fired fly on.
+   * Nothing is added: the same health, the same memo.
+   *
+   * Dice, in order: two per roll (x, then y), then one for the side. The
+   * meeting draws what its placement draws: a lead or player arrival none,
+   * the edge override (`spawnOverride`) one.
+   */
+  private restructure(b: BossState, boss: ReorgBoss): void {
+    b.restructures++;
+
+    let best = -1;
+    let bestX = b.x;
+    let bestY = b.y;
+    for (let i = 0; i < REORG_RELOCATE_TRIES; i++) {
+      const x = REORG_MARGIN + this.rng() * (ARENA_WIDTH - 2 * REORG_MARGIN);
+      const y = REORG_MARGIN + this.rng() * (ARENA_HEIGHT - 2 * REORG_MARGIN);
+      const d = Math.hypot(x - this.x, y - this.y);
+      if (d > best) {
+        best = d;
+        bestX = x;
+        bestY = y;
+      }
+      // Every earlier roll was nearer than REORG_MIN_DISTANCE, so the first
+      // roll far enough is also the farthest yet.
+      if (d >= REORG_MIN_DISTANCE) break;
+    }
+    b.x = bestX;
+    b.y = bestY;
+
+    const dx = b.x - this.x;
+    const dy = b.y - this.y;
+    const d = Math.hypot(dx, dy);
+    // Never zero in practice (the fallback is the farthest of
+    // REORG_RELOCATE_TRIES rolls); the guard is for the arithmetic.
+    const ax = d < 0.001 ? 1 : dx / d;
+    const ay = d < 0.001 ? 0 : dy / d;
+    const side = this.rng() < 0.5 ? -1 : 1;
+    this.x += -ay * side * boss.lateralMove;
+    this.y += ax * side * boss.lateralMove;
+    this.clampPlayer();
+    this.invulnerable = Math.max(this.invulnerable, IFRAMES);
+
+    if (this.enemies.length < MAX_ACTIVE_ENEMIES) this.spawnEnemy(boss.meetingId);
+
+    b.phase = 'idle';
+    b.timer = EGG_IDLE_SECONDS;
   }
 }
