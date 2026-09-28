@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { ACTS, type ActDef } from '../data/acts';
 import { actVisuals, type ActVisuals } from '../data/act-visuals';
+import { ENEMIES } from '../data/enemies';
 import { ITEMS, isActive, itemDef, type ItemIcon } from '../data/items';
 import { neutralDevState, type DevState } from '../dev/state';
 import { addVignette, ensureFieldTile, ensureGemTexture, ensureShotTextures } from './dressing';
@@ -45,6 +46,7 @@ import {
   PAPER,
   SHADOW,
   THREAT_CONTACT,
+  THREAT_ELITE,
   THREAT_RANGED,
   UI_FILL,
   VIEW_HEIGHT,
@@ -163,6 +165,9 @@ export class ActScene extends Phaser.Scene {
   private gemSprites: Phaser.GameObjects.Image[] = [];
   private ringSprites: Phaser.GameObjects.Arc[] = [];
   private areaSprites: Phaser.GameObjects.Arc[] = [];
+  /** Meetings (OFFICE-ROSTER §3.4): each hold's ring at its honest radius, and its chairs on it. */
+  private holdRings: Phaser.GameObjects.Arc[] = [];
+  private holdChairs: Phaser.GameObjects.Image[] = [];
   /** Orbit items' objects (Grudge), each wearing its card's icon (G-036). */
   private orbiterSprites: Phaser.GameObjects.Image[] = [];
   /** Aura rings (Personal Space, G-044) at their honest radius, and the icon riding each. */
@@ -316,6 +321,8 @@ export class ActScene extends Phaser.Scene {
     this.gemSprites = [];
     this.ringSprites = [];
     this.areaSprites = [];
+    this.holdRings = [];
+    this.holdChairs = [];
     this.orbiterSprites = [];
     this.auraRings = [];
     this.auraIcons = [];
@@ -903,6 +910,7 @@ export class ActScene extends Phaser.Scene {
     this.syncGems();
     this.syncRings();
     this.syncAreas();
+    this.syncHolds();
     this.syncOrbiters();
     this.syncAuras();
     this.syncSweeps();
@@ -1508,6 +1516,40 @@ export class ActScene extends Phaser.Scene {
           .setFlipX(false)
           .setAlpha(0.75 * fade)
           .setVisible(true);
+      }
+    }
+  }
+
+  /**
+   * Meetings (OFFICE-ROSTER §3.4): a ring at the radius the sim slows and
+   * walls at, in the elite colour — it is the act's elite thing, and law 10
+   * allows the threat colour on the threat — faint, with its fill fainter.
+   * The meeting's own sprite is the ring of chairs, so its frame is drawn at
+   * twice the live radius and the chairs sit on the edge as it closes. Until
+   * the drawing lands in the act's atlas the ring is drawn alone.
+   */
+  private syncHolds(): void {
+    const list = this.world.holds;
+    const atlas = this.visuals.atlas.key;
+    this.fit(this.holdRings, list.length, () => this.add.circle(0, 0, 10).setDepth(2));
+    this.fit(this.holdChairs, list.length, () => this.add.image(0, 0, atlas).setDepth(3));
+    for (let i = 0; i < list.length; i++) {
+      const h = list[i]!;
+      this.holdRings[i]!.setPosition(h.x, h.y)
+        .setRadius(h.radius)
+        .setFillStyle(THREAT_ELITE, 0.06)
+        .setStrokeStyle(3, THREAT_ELITE, 0.4)
+        .setVisible(true);
+      const chairs = this.holdChairs[i]!;
+      const frame = ENEMIES[h.source]?.frame;
+      if (frame && this.textures.get(atlas).has(frame)) {
+        chairs
+          .setTexture(atlas, frame)
+          .setPosition(h.x, h.y)
+          .setDisplaySize(h.radius * 2, h.radius * 2)
+          .setVisible(true);
+      } else {
+        chairs.setVisible(false);
       }
     }
   }
