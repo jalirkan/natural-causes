@@ -30,6 +30,7 @@ import { DEFAULT_NAME, misspell, readPlayerName } from '../meta/name';
 import {
   BOSS_RADIUS,
   PLAYER_RADIUS,
+  STRIKE_DELAY,
   World,
   type Certificate,
   type EnemyState,
@@ -38,6 +39,7 @@ import {
   type ProjectileState,
 } from '../sim/world';
 import {
+  BONE,
   INK,
   PAPER,
   SHADOW,
@@ -147,6 +149,12 @@ export class ActScene extends Phaser.Scene {
   private areaSprites: Phaser.GameObjects.Arc[] = [];
   /** Orbit items' objects (Grudge), each wearing its card's icon (G-036). */
   private orbiterSprites: Phaser.GameObjects.Image[] = [];
+  /** Aura rings (Personal Space, G-044) at their honest radius, and the icon riding each. */
+  private auraRings: Phaser.GameObjects.Arc[] = [];
+  private auraIcons: Phaser.GameObjects.Image[] = [];
+  /** Sweep wedges (Backhand), redrawn every frame, and the hand crossing each. */
+  private sweepFx!: Phaser.GameObjects.Graphics;
+  private sweepIcons: Phaser.GameObjects.Image[] = [];
   private attachedSprites: Phaser.GameObjects.Image[] = [];
   private bossSprite?: Phaser.GameObjects.Image;
   /** Prom's dance floor, drawn as a ring at floorRadius; only while its boss stands. */
@@ -279,6 +287,9 @@ export class ActScene extends Phaser.Scene {
     this.ringSprites = [];
     this.areaSprites = [];
     this.orbiterSprites = [];
+    this.auraRings = [];
+    this.auraIcons = [];
+    this.sweepIcons = [];
     this.attachedSprites = [];
     delete this.bossSprite;
     delete this.floorRing;
@@ -298,6 +309,8 @@ export class ActScene extends Phaser.Scene {
     addVignette(this, VIEW_WIDTH, VIEW_HEIGHT, 90);
 
     this.playerFx = this.add.graphics().setDepth(9);
+    // Under the crowd, so what the swing hits is drawn on top of it.
+    this.sweepFx = this.add.graphics().setDepth(4);
     this.player = this.add
       .image(this.world.x, this.world.y, this.visuals.atlas.key, this.visuals.playerFrame)
       .setDepth(10);
@@ -858,6 +871,8 @@ export class ActScene extends Phaser.Scene {
     this.syncRings();
     this.syncAreas();
     this.syncOrbiters();
+    this.syncAuras();
+    this.syncSweeps();
     this.syncBoss();
     this.syncAttached();
     this.drawHud();
@@ -1275,7 +1290,47 @@ export class ActScene extends Phaser.Scene {
       const circle = this.areaSprites[i]!;
       const icon = this.areaIcons[i]!;
 
-      if (a.slow !== undefined) {
+      if (a.delay !== undefined) {
+        // Judgement (G-044): while it is coming, a ring closes on the spot
+        // from twice its radius to its honest one and the card's icon comes
+        // down onto it; on landing, a flash at the radius it hurts in with
+        // the icon on the point. Checked first: a landed strike is one-shot
+        // and would otherwise draw as Temper's starburst.
+        const def = a.source ? ITEMS[a.source] : undefined;
+        const [key, frame] = def ? this.iconTexture(def.icon, def.name) : ['nc-shot', undefined];
+        if (a.delay > 0) {
+          const t = 1 - a.delay / STRIKE_DELAY;
+          circle
+            .setPosition(a.x, a.y)
+            .setRadius(a.radius * (2 - t))
+            .setFillStyle()
+            .setStrokeStyle(2, BONE, 0.35 + 0.45 * t)
+            .setVisible(true);
+          icon
+            .setTexture(key, frame)
+            .setPosition(a.x, a.y - 60 * (1 - t))
+            .setDisplaySize(36, 36)
+            .setRotation(0)
+            .setFlipX(false)
+            .setAlpha(0.5 + 0.5 * t)
+            .setVisible(true);
+        } else {
+          circle
+            .setPosition(a.x, a.y)
+            .setRadius(a.radius)
+            .setFillStyle(PAPER, 0.2 * fade)
+            .setStrokeStyle(2, BONE, 0.6 * fade)
+            .setVisible(true);
+          icon
+            .setTexture(key, frame)
+            .setPosition(a.x, a.y)
+            .setDisplaySize(40, 40)
+            .setRotation(0)
+            .setFlipX(false)
+            .setAlpha(fade)
+            .setVisible(true);
+        }
+      } else if (a.slow !== undefined) {
         // Snooze: the field it holds, drawn at its honest radius, with the
         // card's icon where it was dropped. Checked first: it ticks and does
         // not pull, which would otherwise draw it as Wake's footprints.
@@ -1367,6 +1422,64 @@ export class ActScene extends Phaser.Scene {
         .setPosition(o.x, o.y)
         .setDisplaySize(o.radius * 2.6, o.radius * 2.6)
         .setRotation(this.world.time * 2)
+        .setVisible(true);
+    }
+  }
+
+  /**
+   * Personal Space and anything else that rings the player (G-044): the ring
+   * at the radius the sim hurts in, faint, and the card's icon riding it like
+   * a satellite. Under the player; bone and paper, never a threat colour (law
+   * 10), and wider and fainter than Thick Skin's ring hugging the body.
+   */
+  private syncAuras(): void {
+    const list = this.world.auras;
+    this.fit(this.auraRings, list.length, () => this.add.circle(0, 0, 10).setDepth(2));
+    this.fit(this.auraIcons, list.length, () => this.add.image(0, 0, 'nc-shot').setDepth(8));
+    const t = this.world.time;
+    for (let i = 0; i < list.length; i++) {
+      const a = list[i]!;
+      const def = ITEMS[a.source];
+      this.auraRings[i]!.setPosition(a.x, a.y)
+        .setRadius(a.radius)
+        .setFillStyle(PAPER, 0.05)
+        .setStrokeStyle(2, BONE, 0.3)
+        .setVisible(true);
+      const angle = t * 0.8 + (i * Math.PI * 2) / list.length;
+      const [key, frame] = def ? this.iconTexture(def.icon, def.name) : ['nc-shot', undefined];
+      this.auraIcons[i]!.setTexture(key, frame)
+        .setPosition(a.x + Math.cos(angle) * a.radius, a.y + Math.sin(angle) * a.radius)
+        .setDisplaySize(32, 32)
+        .setRotation(0)
+        .setAlpha(0.85)
+        .setVisible(true);
+    }
+  }
+
+  /**
+   * Backhand's swings (G-044): each arc as a wedge at its honest reach and
+   * width, fading over the moment it is drawn, with the card's icon crossing
+   * it edge to edge — the swat. The hit was dealt on the step it swung.
+   */
+  private syncSweeps(): void {
+    const list = this.world.sweeps;
+    this.sweepFx.clear();
+    this.fit(this.sweepIcons, list.length, () => this.add.image(0, 0, 'nc-shot').setDepth(8));
+    for (let i = 0; i < list.length; i++) {
+      const s = list[i]!;
+      const t = Math.min(1, s.age / s.seconds);
+      this.sweepFx
+        .fillStyle(PAPER, 0.18 * (1 - t))
+        .slice(s.x, s.y, s.reach, s.angle - s.arc / 2, s.angle + s.arc / 2, false)
+        .fillPath();
+      const def = ITEMS[s.source];
+      const [key, frame] = def ? this.iconTexture(def.icon, def.name) : ['nc-shot', undefined];
+      const lead = s.angle - s.arc / 2 + s.arc * t;
+      this.sweepIcons[i]!.setTexture(key, frame)
+        .setPosition(s.x + Math.cos(lead) * s.reach * 0.8, s.y + Math.sin(lead) * s.reach * 0.8)
+        .setDisplaySize(36, 36)
+        .setRotation(lead)
+        .setAlpha(1 - 0.5 * t)
         .setVisible(true);
     }
   }
