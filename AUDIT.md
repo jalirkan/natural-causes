@@ -352,7 +352,7 @@ document; nothing says the starting weapon should keep trying. One line in
 half and moves every baseline in the record; whether homework is a target is a
 roster question.
 
-### 26. Capacitation restarts below baseline at the crossing
+### 26. ~~Capacitation restarts below baseline at the crossing~~ — BY DESIGN, 2026-09-28: the ramp is on the act clock (the card says so, "a function of the act clock"), and Late Bloomer's blurb now reads "of every act"
 
 `damageDealt` ramps on `actTime`, so the crossing sets it back to
 `damageMultiplier`. Reproduced: level 1 goes ×1.85 → ×0.70 on the first frame

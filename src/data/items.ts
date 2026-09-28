@@ -554,7 +554,9 @@ export const ITEMS: Record<string, ItemDef> = {
     rampTo: 1.85,
     maxLevel: 5,
     icon: 'clock',
-    blurb: 'Worthless for two minutes, then unstoppable.',
+    // Every act: the ramp runs on the act clock, so it restarts at each
+    // crossing (AUDIT part four, 26 — by design; the card now says so).
+    blurb: 'Worthless for two minutes of every act, then unstoppable.',
     enables:
       'A late-act scaling build that outperforms every other item in the last ninety seconds, and it is the only item in the game whose power is a function of the act clock rather than the player.',
     tradesAway:
