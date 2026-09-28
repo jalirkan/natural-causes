@@ -7,7 +7,7 @@
 - **SVG sha256:** `14c4bf9bf803a7698a7eb93953431e8ee8b050775248eb72979f824b584c9871`
 - **Rasteriser:** sharp 0.34.5 (libvips 8.17.3, librsvg 2.61.2)
 - **Render:** 224.949 dpi, 4× supersampled and area-averaged
-- **Rendered:** 2026-09-28T18:56:29.967Z
+- **Rendered:** 2026-09-28T18:56:04.172Z
 - **Sprite size:** 384px
 - **Tests:** the house exactly as boss-mortgage with its door open: the doorway a dark opening in the act deep tone with the door leaf swung inward, the windows and roof identical
 
