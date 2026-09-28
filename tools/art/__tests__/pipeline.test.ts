@@ -5,8 +5,21 @@ import { applyOutline, binariseAlpha, outlineWidthFor, quantise, OUTLINE_RATIO }
 import { check, distanceToleranceFor, DEFAULT_THRESHOLDS } from '../check';
 import { GRAIN_AMPLITUDE, grainTile, texture } from '../texture';
 import { pack } from '../pack';
-import { mutateSeed } from '../pipeline';
-import { ACT_IDS, BONE, FULL_PALETTE, INK, PAPER, SHADOW, actPalette, nearest, rgbToOklab } from '../palette';
+import { mutateSeed, thresholdsFor } from '../pipeline';
+import {
+  ACT_IDS,
+  BONE,
+  FULL_PALETTE,
+  INK,
+  PAPER,
+  SHADOW,
+  THREAT,
+  actPalette,
+  nearest,
+  rgbToOklab,
+  type Colour,
+} from '../palette';
+import type { AssetSpec } from '../types';
 
 /** Build a test image: a solid magenta field with a coloured blob in it. */
 function fixture(size = 64, blobColour: [number, number, number] = [240, 240, 226]): Bitmap {
@@ -481,6 +494,121 @@ describe('check', () => {
 
   it('bosses get a wider coverage band than swarm enemies', () => {
     expect(DEFAULT_THRESHOLDS.maxCoverage).toBeLessThan(0.9);
+  });
+});
+
+/**
+ * Law 10 on a field-riding icon, in CHECK (G-036, G-032). The pipeline
+ * rejects the sprite; laws.test.ts reading it after it was committed is the
+ * second line, not the first.
+ */
+describe('check: field-colours rejects a field-riding icon wearing a reserved colour', () => {
+  const ROSE = FULL_PALETTE.find((c) => c.name === 'conception-mid')!;
+
+  const icon = (fieldRiding: boolean): AssetSpec => ({
+    id: 'icon-fixture',
+    name: 'Fixture icon',
+    act: 'conception',
+    role: 'icon',
+    ...(fieldRiding ? { fieldRiding: true as const } : {}),
+    source: 'svg',
+    subject: 'a fixture',
+    seed: 1,
+    targetSize: 96,
+  });
+
+  /**
+   * A 96×96 icon in rose, bone and ink — the colours the redrawn riders
+   * wear — with an ink outline and features, so every other card check
+   * passes and a failure can only be `field-colours`. `stamp` paints single
+   * pixels inside the rose body.
+   */
+  function iconSprite(stamp: Array<[number, number, Colour]> = []): Bitmap {
+    const size = 96;
+    const bmp = blank(size, size);
+    const paint = (x: number, y: number, c: Colour) => {
+      const i = index(bmp, x, y);
+      bmp.data.set([c.rgb[0], c.rgb[1], c.rgb[2], 255], i);
+    };
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        if (Math.hypot(x - size / 2, y - size / 2) > size / 2.6) continue;
+        const eye = Math.hypot(x - 38, y - 40) < 6 || Math.hypot(x - 58, y - 43) < 7;
+        paint(x, y, eye ? INK : y > size * 0.66 ? BONE : ROSE);
+      }
+    }
+    for (const [x, y, c] of stamp) paint(x, y, c);
+    return applyOutline(bmp, 3);
+  }
+
+  const fieldColours = (r: Awaited<ReturnType<typeof check>>) =>
+    r.results.find((x) => x.name === 'field-colours');
+
+  it('the rider thresholds carry the flag and the card-only ones do not', () => {
+    expect(thresholdsFor(icon(true)).fieldRiding).toBe(true);
+    expect(thresholdsFor(icon(false)).fieldRiding).toBeFalsy();
+    // Both are still judged on the card.
+    expect(thresholdsFor(icon(true)).surface).toBe('card');
+  });
+
+  it('a clean rose/bone/ink icon passes, field-colours included', async () => {
+    const report = await check(iconSprite(), 'conception', thresholdsFor(icon(true)));
+    expect(report.failures).toEqual([]);
+    expect(fieldColours(report)).toMatchObject({ pass: true, measured: 0 });
+    expect(fieldColours(report)!.detail).toBeUndefined();
+  });
+
+  it('one paper pixel fails a field-riding icon, and the failure names paper', async () => {
+    const report = await check(
+      iconSprite([[48, 50, PAPER]]),
+      'conception',
+      thresholdsFor(icon(true)),
+    );
+    expect(report.pass).toBe(false);
+    const r = fieldColours(report)!;
+    expect(r).toMatchObject({ pass: false, measured: 1, detail: 'wears paper' });
+    // The only failure, so the rejection is this law and nothing else.
+    expect(report.failures).toEqual(['field-colours (1: wears paper)']);
+    // And the failure points at the dry run's verdict, which lists the colours.
+    expect(r.expected).toMatch(/0 px/);
+    expect(r.expected).toContain('art:batch -- --dry');
+    expect(r.expected).toContain('law 11 line');
+  });
+
+  it('the same bitmap under a card-only spec does not run the check, and passes', async () => {
+    // G-035: card art may wear paper. The reservation is the field's.
+    const report = await check(
+      iconSprite([[48, 50, PAPER]]),
+      'conception',
+      thresholdsFor(icon(false)),
+    );
+    expect(fieldColours(report)).toBeUndefined();
+    expect(report.pass).toBe(true);
+  });
+
+  it('counts pixels and names every reserved colour worn, the act light and threats included', async () => {
+    const report = await check(
+      iconSprite([
+        [44, 50, PAPER],
+        [46, 50, THREAT.contact],
+        [48, 50, THREAT.contact],
+        [50, 50, FULL_PALETTE.find((c) => c.name === 'conception-light')!],
+      ]),
+      'conception',
+      thresholdsFor(icon(true)),
+    );
+    expect(fieldColours(report)).toMatchObject({
+      pass: false,
+      measured: 4,
+      detail: 'wears threat-contact, paper, conception-light',
+    });
+  });
+
+  it('the grain does not make a clean icon fail', async () => {
+    // TEXTURE runs after CONFORM; a rose pixel lifted by the grain is still
+    // rose, the same tolerance palette conformance allows.
+    const report = await check(texture(iconSprite()), 'conception', thresholdsFor(icon(true)));
+    expect(fieldColours(report)).toMatchObject({ pass: true, measured: 0 });
   });
 });
 

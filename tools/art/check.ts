@@ -1,6 +1,7 @@
 import { CHANNELS, index, opaqueBounds, opaqueCount, resizeSmooth, type Bitmap } from './bitmap';
 import {
   BONE,
+  FULL_PALETTE,
   INK,
   PAPER,
   THREAT,
@@ -15,6 +16,7 @@ import {
   type Colour,
   type ThreatClass,
 } from './palette';
+import { FIELD_RESERVED_COLOURS } from './reservations';
 import { GRAIN_AMPLITUDE } from './texture';
 
 /**
@@ -38,6 +40,12 @@ export interface CheckResult {
   measured: number;
   expected: string;
   note?: string;
+  /**
+   * What the measured number is made of, when the number alone cannot say:
+   * `field-colours` counts pixels, and this names the colours they are.
+   * Carried into the failure line, so a rejection says what to redraw.
+   */
+  detail?: string;
 }
 
 export interface CheckReport {
@@ -64,9 +72,17 @@ export interface CheckThresholds {
    * Where the sprite will actually sit. `field` (default) checks contrast
    * against the act background and enforces the enemy value ceiling; `card`
    * checks against INK — the offer cards' surface — and skips the ceiling,
-   * because UI art may legally wear paper.
+   * because UI art may legally wear paper. Card art that also rides the
+   * field may not: see `fieldRiding`.
    */
   surface?: 'field' | 'card';
+  /**
+   * Field-riding icons only (G-036). The sprite is card art that is ALSO
+   * drawn on the field — a shot, a stamp, an orbiter, a rider — so on top of
+   * the card checks it runs `field-colours`: no pixel in a colour the field
+   * reserves (law 10). Omitted: card-only, and free to wear paper (G-035).
+   */
+  fieldRiding?: boolean;
   /**
    * Distinct palette colours still present at 48px (D-018).
    *
@@ -153,6 +169,17 @@ export const ICON_THRESHOLDS: CheckThresholds = {
   maxSingleColourShare: 0.97,
   minDistinctColours48: 2,
   surface: 'card',
+};
+
+/**
+ * An icon that also rides the field (G-036): the card's thresholds, plus
+ * `field-colours`. Contrast is still judged on the card, where the icon is
+ * read at rest; on the field every colour already has one job (law 10) and
+ * this icon is none of the things they belong to.
+ */
+export const FIELD_RIDING_ICON_THRESHOLDS: CheckThresholds = {
+  ...ICON_THRESHOLDS,
+  fieldRiding: true,
 };
 
 function paletteHistogram(bmp: Bitmap, act: ActId): Map<string, number> {
@@ -349,9 +376,38 @@ export async function check(
     note: 'below this the sprite has collapsed to a featureless blob in a crowd',
   });
 
-  const failures = results.filter((r) => !r.pass).map((r) => `${r.name} (${r.measured})`);
+  // 6. Field colours (law 10, G-036). An icon that rides the field is not a
+  //    threat, not the player and not a pickup, so it wears none of their
+  //    colours — in any act, because items are not act-scoped. A rejection,
+  //    never a correction (G-032): CONFORM quantised to the act palette,
+  //    which holds paper and every threat colour, and nothing here moves a
+  //    pixel off them. The drawing is fixed by whoever drew it.
+  if (thresholds.fieldRiding) {
+    const worn = fieldColourViolations(bmp);
+    results.push({
+      name: 'field-colours',
+      pass: worn.pixels === 0,
+      measured: worn.pixels,
+      expected: FIELD_COLOURS_EXPECTED,
+      note: fieldColoursBlindSpot(),
+      ...(worn.colours.length > 0 ? { detail: `wears ${worn.colours.join(', ')}` } : {}),
+    });
+  }
+
+  const failures = results
+    .filter((r) => !r.pass)
+    .map((r) => `${r.name} (${r.measured}${r.detail ? `: ${r.detail}` : ''})`);
   return { pass: failures.length === 0, results, failures };
 }
+
+/**
+ * What `field-colours` expects, pointing at the list rather than repeating
+ * it: the dry run prints every field-riding icon's law 11 verdict as "keeps
+ * off <FIELD_RESERVED_COLOURS> (law 10)", which is the list this scans for.
+ */
+const FIELD_COLOURS_EXPECTED =
+  '0 px in a colour it keeps off on the field, as its law 11 line in ' +
+  '`pnpm art:batch -- --dry --set=icons` lists them (law 10, G-036)';
 
 /**
  * The brightest an enemy pixel may be (G-032).
@@ -394,9 +450,8 @@ export function reservedColourViolations(
   act: ActId,
   holdsThreat: ThreatClass[] = [],
 ): string[] {
-  const tolerance = distanceToleranceFor(GRAIN_AMPLITUDE);
-  const forbidden: Array<{ name: string; colour: Colour }> = [
-    { name: 'paper (the player)', colour: PAPER },
+  const forbidden: Array<{ label: string; colour: Colour }> = [
+    { label: 'paper (the player)', colour: PAPER },
   ];
 
   // The act's light tone is the pickups' (G-030) — but only if it is
@@ -406,29 +461,103 @@ export function reservedColourViolations(
   // would fail every enemy in the act for wearing bone. That is a palette
   // collision to be resolved in the palette, not a sprite defect to reject.
   const light = actLight(act);
-  const lightLab = rgbToOklab(light.rgb[0], light.rgb[1], light.rgb[2]);
-  const boneLab = rgbToOklab(BONE.rgb[0], BONE.rgb[1], BONE.rgb[2]);
-  const lightIsDistinct =
-    Math.hypot(lightLab.L - boneLab.L, lightLab.a - boneLab.a, lightLab.b - boneLab.b) > tolerance;
-  if (lightIsDistinct) {
-    forbidden.push({ name: `${act}-light (pickups)`, colour: light });
+  if (scannableAgainstBone(light)) {
+    forbidden.push({ label: `${act}-light (pickups)`, colour: light });
   }
   for (const [cls, colour] of Object.entries(THREAT) as Array<[ThreatClass, Colour]>) {
     if (!holdsThreat.includes(cls)) {
-      forbidden.push({ name: `threat-${cls} (not held by this asset)`, colour });
+      forbidden.push({ label: `threat-${cls} (not held by this asset)`, colour });
     }
   }
 
-  const found = new Set<string>();
+  const { worn } = scanReserved(bmp, forbidden.map((f) => f.colour));
+  return forbidden.filter((f) => worn.has(f.colour.name)).map((f) => f.label);
+}
+
+/**
+ * Whether a reserved colour can be scanned for at all: false when it sits
+ * inside the grain tolerance of bone, which every sprite may wear, because
+ * then a legal bone pixel and a reserved one are the same pixel to the scan.
+ * service-light is the one such colour today (above). Shared by both scans,
+ * so the enemy scan and `field-colours` have the same blind spot, not two.
+ */
+function scannableAgainstBone(colour: Colour): boolean {
+  const lab = rgbToOklab(colour.rgb[0], colour.rgb[1], colour.rgb[2]);
+  const bone = rgbToOklab(BONE.rgb[0], BONE.rgb[1], BONE.rgb[2]);
+  return (
+    Math.hypot(lab.L - bone.L, lab.a - bone.a, lab.b - bone.b) >
+    distanceToleranceFor(GRAIN_AMPLITUDE)
+  );
+}
+
+/**
+ * The reading both reserved-colour scans share: an opaque pixel within the
+ * grain's reach of a reserved colour IS that colour to a player, as in
+ * palette conformance. Returns how many opaque pixels wear any of them and
+ * which ones, by palette name.
+ */
+function scanReserved(bmp: Bitmap, reserved: Colour[]): { pixels: number; worn: Set<string> } {
+  const tolerance = distanceToleranceFor(GRAIN_AMPLITUDE);
+  const targets = reserved.map((c) => ({
+    name: c.name,
+    lab: rgbToOklab(c.rgb[0], c.rgb[1], c.rgb[2]),
+  }));
+  const worn = new Set<string>();
+  let pixels = 0;
   for (let i = 0; i < bmp.data.length; i += CHANNELS) {
     if (bmp.data[i + 3] === 0) continue;
     const lab = rgbToOklab(bmp.data[i]!, bmp.data[i + 1]!, bmp.data[i + 2]!);
-    for (const f of forbidden) {
-      const t = rgbToOklab(f.colour.rgb[0], f.colour.rgb[1], f.colour.rgb[2]);
-      if (Math.hypot(lab.L - t.L, lab.a - t.a, lab.b - t.b) <= tolerance) found.add(f.name);
+    let hit = false;
+    for (const t of targets) {
+      if (Math.hypot(lab.L - t.lab.L, lab.a - t.lab.a, lab.b - t.lab.b) <= tolerance) {
+        worn.add(t.name);
+        hit = true;
+      }
     }
+    if (hit) pixels++;
   }
-  return [...found];
+  return { pixels, worn };
+}
+
+/**
+ * The colours `field-colours` scans a field-riding icon for:
+ * FIELD_RESERVED_COLOURS — the list the dry run's law 11 verdict prints as
+ * what the icon keeps off — less any the scan cannot tell from bone.
+ *
+ * That is service-light, the enemy scan's one blind spot, inherited on
+ * purpose: `laws.test.ts` reads the committed sprites through the enemy scan
+ * once per act, and this has to agree with it. service-light #CFC3A0 sits
+ * inside the grain tolerance of bone #D2C6AC, so a service-light pixel cannot
+ * be told from a legal bone one. A palette collision, not a licence.
+ */
+export function fieldScannedColours(): Colour[] {
+  return FIELD_RESERVED_COLOURS.map((name) => {
+    const colour = FULL_PALETTE.find((c) => c.name === name);
+    if (!colour) throw new Error(`FIELD_RESERVED_COLOURS names "${name}", which is not in the palette`);
+    return colour;
+  }).filter(scannableAgainstBone);
+}
+
+/** The reserved colours `field-colours` cannot scan for, and why. */
+function fieldColoursBlindSpot(): string {
+  const scanned = new Set(fieldScannedColours().map((c) => c.name));
+  const blind = FIELD_RESERVED_COLOURS.filter((name) => !scanned.has(name));
+  return blind.length === 0
+    ? 'law 10 — threat colours to threats, paper to the player, light tones to pickups'
+    : `${blind.join(', ')} not scanned: inside the grain tolerance of bone, it cannot be ` +
+        "told from a legal bone pixel (the enemy scan's blind spot)";
+}
+
+/**
+ * Law 10 on an icon that rides the field (G-036): how many opaque pixels wear
+ * a colour the field reserves, and which colours, by palette name in
+ * FIELD_RESERVED_COLOURS order. Empty is a pass. The same reading as the enemy
+ * scan (`scanReserved`) over every act at once, since items are not
+ * act-scoped.
+ */
+export function fieldColourViolations(bmp: Bitmap): { pixels: number; colours: string[] } {
+  const { pixels, worn } = scanReserved(bmp, fieldScannedColours());
+  return { pixels, colours: FIELD_RESERVED_COLOURS.filter((name) => worn.has(name)) };
 }
 
 /**
