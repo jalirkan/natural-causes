@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <title>Reply-all</title>
+  <desc>A portrait sheet of paper seen flat on, taller than wide, bone with square corners. A paperclip stands over its top edge near the left corner, its loop showing above the paper, and three short ink rules sit to the right of the clip. Low on the sheet, two dots and one flat mouth, looking straight out. Nothing is written on it.</desc>
+  <!--
+    Reply-all (OFFICE-ROSTER §3.1), the act's crowd. Reserved silhouette
+    (§1): the clipped sheet, the only sheet in the act and the only clip.
+    One sheet seen flat on, 30 units wide and 39 tall with square corners.
+    Portrait on purpose: the rectangle wider than tall is College's tuition
+    envelope, and a shape that meant a bill an act ago must not come back
+    meaning a message. No flap, no window, no fan of pages (reading's pile),
+    no turned corner.
+
+    The clip is the read. A paperclip stood upright over the top edge, three
+    units in from the left so a column of bone keeps its wall off the sheet's
+    outline. The wire is two units everywhere: a closed loop 10 wide and 22
+    tall with stepped round ends, and one leg up its middle from the bottom
+    end, the three-wire glyph. Seven units stand above the paper, where the
+    loop is open to the carpet and CONFORM's outline rings the wire on both
+    sides, so the part above the edge reads heavier than the part on the
+    paper. That weight is what survives at half size: at 24px the loop still
+    stands clear of the sheet as a dark hook, with its middle leg a line.
+
+    Rules: three short ink bars to the right of the clip, two of 11 units and
+    one of 7, the first lines of something nobody read to the end.
+    Face: two 3-by-4 ink eyes low on the sheet and a flat 6-by-2 mouth,
+    straight out, the same eyes the grid gives acne. It is not looking at
+    anyone in particular; it went to everyone.
+
+    The children (the split, §3.1) are this drawing scaled at run time to
+    three quarters and one half. Nothing is drawn for them, which is why
+    every stroke and every gap is at least two units: at half size each is
+    still one pixel.
+
+    Drawn on the finished sprite's own pixel grid, as reading and tuition
+    are: one unit is one pixel of the 46px subject (48 less the 1px outline
+    each side). The group puts 46 units at exactly 184 supersampled pixels
+    at the rasteriser's first density (27), so the render fits on the first
+    pass, and the clip's top sits on y=0 and the sheet's left edge on x=0 so
+    the crop starts on the grid. crispEdges keeps the ink/bone edges from
+    inventing tones.
+
+    Colours are palette hex values: bone #D2C6AC, ink #2A2521. No threat
+    colour (contact red is the commute's), no shadow tone, nothing in the
+    act's light tone. CONFORM adds the outline; there is none here.
+  -->
+  <g shape-rendering="crispEdges" transform="translate(2.0833333 2.0833333) scale(2.0833333)">
+    <!-- the sheet: bone, 30 by 39, its top edge seven units under the clip's -->
+    <rect x="0" y="7" width="30" height="39" fill="#D2C6AC"/>
+    <!-- three short rules, right of the clip -->
+    <g fill="#2A2521">
+      <rect x="16" y="12" width="11" height="2"/>
+      <rect x="16" y="17" width="11" height="2"/>
+      <rect x="16" y="22" width="7" height="2"/>
+    </g>
+    <!-- the clip: a closed loop with stepped ends, and one leg up its middle from the bottom -->
+    <path fill="#2A2521" fill-rule="evenodd" d="
+      M6,0 H10 V1 H12 V2 H13 V20 H12 V21 H10 V22 H6 V21 H4 V20 H3 V2 H4 V1 H6 Z
+      M6,2 H10 V3 H11 V19 H10 V20 H9 V8 H7 V20 H6 V19 H5 V3 H6 Z"/>
+    <!-- the face, low on the sheet: two eyes straight out, one flat mouth -->
+    <g fill="#2A2521">
+      <rect x="9" y="31" width="3" height="4"/>
+      <rect x="18" y="31" width="3" height="4"/>
+      <rect x="12" y="39" width="6" height="2"/>
+    </g>
+  </g>
+</svg>
