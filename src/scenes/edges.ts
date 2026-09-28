@@ -1,4 +1,4 @@
-import type { BossState, EnemyState, HoldState } from '../sim/world';
+import type { AreaState, BossState, EnemyState, HoldState, SweepState } from '../sim/world';
 
 /**
  * Edges `ActScene.hearWorld` reads off the world, the ones with enough in
@@ -256,4 +256,109 @@ export function timeTicks(boss: ClockView, before: { filed: number; secondsLeft:
   if (boss?.kind !== 'time') return false;
   if (boss.secondsLeft < TIME_COUNTDOWN) return Math.floor(boss.secondsLeft) < Math.floor(before.secondsLeft);
   return boss.filed > before.filed;
+}
+
+// --- The kid's things (G-054) ---------------------------------------------
+
+/**
+ * THE CRY CONTRACT, read in this one place. The Cry (`cry`, G-054) is the sim's
+ * `World.cries`: a ring expanding from (x, y) over `seconds` to `maxRadius`,
+ * its radius now `maxRadius * age / seconds`, gone when `age >= seconds`.
+ * Written against that contract before the sim carries it, so this mirrors
+ * the interface and reads the field as optional; when `CryState` is exported
+ * from `src/sim/world.ts`, this type becomes `import type { CryState }` and
+ * `criesOf` becomes `w.cries`, and nothing else changes.
+ */
+export interface CryState {
+  x: number;
+  y: number;
+  age: number;
+  seconds: number;
+  maxRadius: number;
+  source: string;
+}
+
+/** The world's cries, or none on a world that has no Cry (see the contract above). */
+export function criesOf(w: object): readonly CryState[] {
+  return (w as unknown as { cries?: readonly CryState[] }).cries ?? [];
+}
+
+/** What `criesBegun` remembers of last frame's cries: how many, and the youngest one's age. */
+export interface CriesHeard {
+  cries: number;
+  youngestCry: number;
+}
+
+/** The youngest cry's age, or Infinity with none: what `CriesHeard.youngestCry` keeps. */
+export function youngestCry(cries: readonly Pick<CryState, 'age'>[]): number {
+  let youngest = Infinity;
+  for (const c of cries) youngest = Math.min(youngest, c.age);
+  return youngest;
+}
+
+/**
+ * How many cries began since last frame (G-054): the count rising, each new
+ * one counted once. Cries carry no serial, so a count alone would miss one
+ * starting on the frame the last one ends; the ages cover that, since a cry
+ * only ever ages — a cry younger than the youngest heard last frame is new.
+ * The larger of the two readings, so a cry is never counted twice. A world
+ * held still (a card up, the life over) changes neither, and is silent.
+ */
+export function criesBegun(cries: readonly Pick<CryState, 'age'>[], before: CriesHeard): number {
+  const rose = cries.length - before.cries;
+  const younger = cries.length > 0 && youngestCry(cries) < before.youngestCry ? 1 : 0;
+  return Math.max(0, rose, younger);
+}
+
+/**
+ * The weapons whose burst is Spilt Milk (G-054): the milk, and Tantrum, which
+ * it becomes. Each burst lays a puddle, an area carrying the item's id as its
+ * `source` (a zero-damage slow, `syncPuddles` draws it); the splat is heard
+ * off that id and never off the act.
+ */
+export const SPILT_MILK: ReadonlySet<string> = new Set(['acrosome', 'tantrum']);
+
+/**
+ * The highest serial of a Spilt Milk area on the field, or `highest` when
+ * none is above it: a result above `highest` is a burst since last frame, so
+ * one splat however many landed. Area serials come off the world's one
+ * monotonic counter, as the hostile shots' do, so anything laid since last
+ * frame is above every serial that existed then; a puddle lying there for
+ * seconds is heard once, when it lands. If a burst's own area is tagged too,
+ * it lands on the puddle's step and is the same splat.
+ */
+export function splatAbove(areas: readonly Pick<AreaState, 'serial' | 'source'>[], highest: number): number {
+  let top = highest;
+  for (const a of areas) if (a.source !== undefined && SPILT_MILK.has(a.source) && a.serial > top) top = a.serial;
+  return top;
+}
+
+/**
+ * The sweeps whose swing is the rattle (G-054): the Rattle (`backhand`),
+ * Decline's pill bottle at the other end of the life, the same sound. Its
+ * evolution is the adult word, Backhand (`reach`), and swishes.
+ */
+const RATTLING_SWEEPS: ReadonlySet<string> = new Set(['backhand']);
+
+/**
+ * What the sweeps swung this frame sound like: the rattle for a Rattle, the
+ * swish for any other, at most one of each however many arcs swung. Arcs are
+ * aged before the swing (`updateSweeps` runs before `fireItems`), so one
+ * swung on this frame's step reads 0 and one from the frame before reads a
+ * whole step; half the frame's world time splits them with room for float.
+ * `elapsed` is the world time this frame's steps covered; the caller hears
+ * nothing while the world is held, where an arc sits still at its age.
+ */
+export function sweepsSwung(
+  sweeps: readonly Pick<SweepState, 'age' | 'source'>[],
+  elapsed: number,
+): { swish: boolean; rattle: boolean } {
+  let swish = false;
+  let rattle = false;
+  for (const s of sweeps) {
+    if (!(s.age < elapsed / 2)) continue;
+    if (RATTLING_SWEEPS.has(s.source)) rattle = true;
+    else swish = true;
+  }
+  return { swish, rattle };
 }
