@@ -35,7 +35,22 @@ export interface ActVisuals {
    */
   atlas: { key: string; png: string; json: AtlasJson };
   playerFrame: string;
+  /**
+   * The boss's frame: the one its sprite is made with, and the holder of the
+   * act's boss reservation (law 11). Every variant in `bossFrames` holds this
+   * frame's reservation and reserves nothing.
+   */
   bossFrame: string;
+  /**
+   * The boss's variant frames (D-029): the same drawing in another state,
+   * swapped in on the state edge where a render overlay used to stand in for
+   * a drawing the pipeline did not have. Each shares the holder's opaque
+   * bounds, size and body, so a swap moves nothing but what changed (AUDIT
+   * 131). The renderer chooses among them from the sim's boss state
+   * (`bossFrameFor`, src/scenes/boss-frames.ts); a missing one leaves the
+   * holder drawn. Absent for a boss with none.
+   */
+  bossFrames?: BossFrames;
   /**
    * The boss's round body within its frame, as fractions of the frame: where
    * its centre sits and how big it is (AUDIT 34). The Egg fills its frame;
@@ -71,6 +86,30 @@ export interface ActVisuals {
   pickup: number;
 }
 
+/**
+ * A boss's variant frames by the state each draws (D-029). Each is optional:
+ * a boss has only the states its drawing changes in.
+ */
+export interface BossFrames {
+  /** The Egg's eyes closed (G-006), from the absorb's start. */
+  closing?: string;
+  /** The Egg's eyes closed and its corona parted (G-006), from the absorb's halfway. */
+  parted?: string;
+  /**
+   * The Reorg's chart with its faced rows greyed from the bottom (G-004),
+   * bottom row first: one more row per restructure, and every row on the
+   * absorb. Each frame is the one before it with one more row greyed.
+   */
+  grey?: string[];
+  /** The Mortgage's door open (FAMILY-ROSTER §4), from the absorb: the window closed on the last payment. */
+  open?: string;
+  /**
+   * Time's clock without its long hand (DECLINE-ROSTER §4, AUDIT 96/121),
+   * for its whole fight: the renderer draws the hand that turns.
+   */
+  face?: string;
+}
+
 export const ACT_VISUALS: Record<string, ActVisuals> = {
   conception: {
     // conception-deep.
@@ -79,6 +118,8 @@ export const ACT_VISUALS: Record<string, ActVisuals> = {
     playerFrame: 'player-sperm.png',
     attachFrame: 'antibody.png',
     bossFrame: 'boss-egg.png',
+    // G-006: it does not die. Its eyes close, then the corona parts.
+    bossFrames: { closing: 'boss-egg-closing.png', parted: 'boss-egg-parted.png' },
     // conception-light.
     pickup: 0xc99b8c,
   },
@@ -131,6 +172,8 @@ export const ACT_VISUALS: Record<string, ActVisuals> = {
     playerFrame: 'player-office.png',
     // The org chart, standing (OFFICE-ROSTER §4, G-004).
     bossFrame: 'boss-reorg.png',
+    // G-004: damaged boxes go grey and stay in the chart. Bottom row first.
+    bossFrames: { grey: ['boss-reorg-grey-1.png', 'boss-reorg-grey-2.png', 'boss-reorg-grey-3.png'] },
     // MEASURED, as the Loan's is: the chart is four rows of boxes, not a
     // circle, so boss-reorg.svg has none to read. This is the drawer's
     // recommended circle over the chart's boxes, as fractions of the frame.
@@ -149,6 +192,8 @@ export const ACT_VISUALS: Record<string, ActVisuals> = {
     playerFrame: 'player-family.png',
     // The house with a face (FAMILY-ROSTER §4).
     bossFrame: 'boss-mortgage.png',
+    // §4: on the twelfth payment the door opens.
+    bossFrames: { open: 'boss-mortgage-open.png' },
     // MEASURED by the drawer, as the Loan's and the Reorg's are: a house is a
     // wall under a gable, not a circle, so boss-mortgage.svg has none to read.
     // The wall block from the eave line (y 163 of 384) to the plinth seam
@@ -170,6 +215,8 @@ export const ACT_VISUALS: Record<string, ActVisuals> = {
     playerFrame: 'player-decline.png',
     // The clock face, standing on its feet (DECLINE-ROSTER §4).
     bossFrame: 'boss-time.png',
+    // The clock without its long hand: the hand is drawn turning over it.
+    bossFrames: { face: 'boss-time-face.png' },
     // MEASURED by the drawer (boss-time.svg's note for the renderer): the
     // face out to the rim's teal edge, centred on the pivot where the hands
     // turn (0.499, 0.472 of the frame), so shots stop on the edge the player

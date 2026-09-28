@@ -13,6 +13,7 @@ import { actDocument, PAPER_NARROW_TITLE, PAPER_SHEET, paperType } from '../data
 import { sfx } from '../audio/sfx';
 import { combineMoves, stickVector, type Move } from './touch';
 import { oncePerEvent } from './keys';
+import { bossFrameFor } from './boss-frames';
 import {
   certificateFields,
   certificateLines,
@@ -123,36 +124,6 @@ const LOAN_JERK = 0.07;
 const REORG_SWAP_SECONDS = 0.4;
 const REORG_SWAP = 0.12;
 /**
- * The chart greys from the bottom (G-004: damaged boxes go grey and stay in
- * the chart). Where each of its three faced rows begins, top to bottom, as a
- * share of the frame's height, read from boss-reorg.svg's note for the
- * renderer (rows 2–4 at y 132, 236 and 340 of 384, each with 8 of ink above,
- * cut 2 higher so the ink goes with it). The top box is empty and never
- * greys. PLACEHOLDER as a picture: one frame exists, so the grey is the same
- * frame cropped to the rows below the cut and laid over the chart in the
- * shadow tone at `REORG_GREY` — a render tint (G-032 retired those for
- * sprites; this marks a state, not a corrected colour) until a grey chart is
- * drawn and packed, when the overlay wears that frame and drops the tint.
- */
-const REORG_ROW_TOPS = [122 / 384, 226 / 384, 330 / 384];
-const REORG_GREY = 2 / 3;
-/**
- * The Mortgage's door, its mouth (FAMILY-ROSTER §4): the rectangle
- * boss-mortgage.svg's note for the renderer measures on the 384 sprite, frame
- * included — x 160–223, y 266–351 — as shares of the frame. On the twelfth
- * payment the door opens. PLACEHOLDER as a picture, as the Reorg's grey rows
- * are (AUDIT seven, 55): one frame exists, so the open door is that rectangle
- * filled in the act's deep tone, the carpet seen through the doorway, laid
- * over the house for the absorb; when an open door is drawn and packed, the
- * overlay wears that frame instead.
- */
-const MORTGAGE_DOOR = { x0: 160 / 384, x1: 223 / 384, y0: 266 / 384, y1: 351 / 384 };
-/**
- * The door ajar: the share of its width open between the last instalment
- * being met and the window closing on it (`syncDoor`). PLACEHOLDER.
- */
-const MORTGAGE_AJAR = 0.35;
-/**
  * A hold taking the player (an engulf: the white cell's, the toddler's,
  * FAMILY-ROSTER §3.4): the grab is a squash, wider first, ringing down as the
  * Reorg's landing does, and for as long as the hold runs the swim's wiggle
@@ -166,28 +137,18 @@ const HOLD_GRAB = 0.12;
 const HOLDER_DEPTH = 10.5;
 /**
  * Time's minute hand (DECLINE-ROSTER §4, AUDIT 96). boss-time.svg's note for
- * the renderer, measured on the 384 sprite: the pivot where both hands turn
- * and the face sits, as shares of the frame (a pixel from the boss point,
- * which is `bossBody`'s cy 0.47), and the cap's ink edge, r 33px, which the
- * hands pass under. The long hand's rest pose, ten past ten, is the sim's
- * `TIME_HAND_REST`, where its hand starts. The drawn hand is the sim's honest
+ * the renderer, measured on the 384 sprite: the cap's ink edge, r 33px, which
+ * the hands pass under, as a share of the frame; the pivot where both hands
+ * turn (0.499, 0.472 of the frame) is within a pixel of the boss point,
+ * `bossBody`'s cy 0.47, so the hand turns about the boss point. Time is drawn
+ * in its face frame (`bossFrames.face`, D-029), the clock without its long
+ * hand, so the one long hand on the face is the drawn one: the sim's honest
  * rectangle (`sweepLength` × `sweepWidth` from the boss point, turned by
- * `boss.hand`), in the boss teal because it hurts, from the cap's edge out, so
- * the face stays on top as the drawing has it.
+ * `boss.hand` from the sim's `TIME_HAND_REST`, ten past ten), in the boss
+ * teal because it hurts, from the cap's edge out, so the face stays on top
+ * as the drawing has it.
  */
-const TIME_PIVOT = { x: 0.499, y: 0.472 };
 const TIME_CAP_R = 33 / 384;
-/**
- * The baked long hand, covered (PLACEHOLDER as a picture, as the Mortgage's
- * door and the Reorg's grey rows are, AUDIT seven 55): the sprite has its
- * long hand at the rest pose, so once the drawn hand turns there would be two
- * teal hands on the face and only one of them hurts. Until a frame without the
- * long hand is drawn and packed, a strip of the dial's bone is laid over the
- * baked one, from the cap's edge to past its ink tip (127px of 384) and wider
- * than its ink edge (27px), at the rest pose, about the sprite's own pivot
- * (`TIME_PIVOT`). Shares of the frame.
- */
-const TIME_BAKED_HAND = { from: 30 / 384, to: 131 / 384, width: 31 / 384 };
 /**
  * A Highlighter mark (College's first item): a flat level band with square
  * ends laid under the marked body, as the icon's own stroke is, in the pen's
@@ -349,16 +310,8 @@ export class ActScene extends Phaser.Scene {
    */
   private bossRestructures = 0;
   private bossSwapAt = -Infinity;
-  /** The Reorg's greyed rows: the chart's own frame, cropped from a row down (`REORG_ROW_TOPS`). */
-  private bossGrey?: Phaser.GameObjects.Image;
-  /** The Mortgage's open door (`MORTGAGE_DOOR`), laid over the house from the last payment on. */
-  private bossDoor?: Phaser.GameObjects.Rectangle;
-  /**
-   * Time's minute hand, drawn as its own shape over the clock (`syncTimeHand`),
-   * and the bone strip that covers the sprite's baked one (`TIME_BAKED_HAND`).
-   */
+  /** Time's minute hand, drawn as its own shape over the clock's face frame (`syncTimeHand`). */
   private bossHand?: Phaser.GameObjects.Rectangle;
-  private bossHandCover?: Phaser.GameObjects.Rectangle;
   /** Highlighter marks (`MARK_ROSE`), redrawn every frame under the crowd. */
   private markFx!: Phaser.GameObjects.Graphics;
   /**
@@ -535,10 +488,7 @@ export class ActScene extends Phaser.Scene {
     this.sweepIcons = [];
     this.attachedSprites = [];
     delete this.bossSprite;
-    delete this.bossGrey;
-    delete this.bossDoor;
     delete this.bossHand;
-    delete this.bossHandCover;
     delete this.floorRing;
     this.heldFor = 0;
     this.grabAt = -Infinity;
@@ -694,14 +644,8 @@ export class ActScene extends Phaser.Scene {
     this.attachedSprites = [];
     this.bossSprite?.destroy();
     delete this.bossSprite;
-    this.bossGrey?.destroy();
-    delete this.bossGrey;
-    this.bossDoor?.destroy();
-    delete this.bossDoor;
     this.bossHand?.destroy();
     delete this.bossHand;
-    this.bossHandCover?.destroy();
-    delete this.bossHandCover;
     this.endBossEntrance();
     this.floorRing?.destroy();
     delete this.floorRing;
@@ -2208,10 +2152,12 @@ export class ActScene extends Phaser.Scene {
   private syncBoss(): void {
     const b = this.world.boss;
     if (!b) return;
+    const kind = this.world.act.boss.kind;
+    // The holder, or the variant this state draws (D-029, `bossFrameFor`):
+    // Time is made in its face frame, the clock without its long hand.
+    const frame = bossFrameFor(this.visuals, kind, b.phase, b.restructures, b.timer);
     if (!this.bossSprite) {
-      this.bossSprite = this.add
-        .image(b.x, b.y, this.visuals.atlas.key, this.visuals.bossFrame)
-        .setDepth(6);
+      this.bossSprite = this.add.image(b.x, b.y, this.visuals.atlas.key, frame).setDepth(6);
       // Anchored on the body the drawing actually has (AUDIT 34), so the
       // hitbox and the picture agree: shots stop at its edge, not above it.
       const body = this.visuals.bossBody ?? { cy: 0.5, r: 0.5 };
@@ -2278,6 +2224,13 @@ export class ActScene extends Phaser.Scene {
         : 0);
     this.bossScale = Phaser.Math.Linear(this.bossScale, target, 0.14);
     const alpha = b.phase === 'absorbing' ? Math.max(0, b.timer / 1.8) : telegraph ? 0.72 : 1;
+    // The state's drawing, swapped on the edge where it changes (D-029): the
+    // Egg's eyes closing and its corona parting through the absorb (G-006),
+    // the Reorg's rows greying from the bottom (G-004), the Mortgage's door
+    // opening on the last payment (§4). The variants share the holder's size,
+    // bounds and body, so the size and the origin stay the holder's and only
+    // the picture changes; the squash, the pulse and the fade go on over it.
+    if (this.bossSprite.frame.name !== frame) this.bossSprite.setFrame(frame, false, false);
     // Every frame at the sim's point: the Reorg relocates at a restructure,
     // and the sprite is wherever the chart is now, never where it spawned.
     this.bossSprite
@@ -2287,99 +2240,26 @@ export class ActScene extends Phaser.Scene {
       .setScale(this.bossScale * (1 - jerk), this.bossScale * (1 + jerk))
       // Value, not tint (G-032, law 10).
       .setAlpha(alpha);
-    if (this.world.act.boss.kind === 'reorg') this.syncChartGrey(b, alpha);
-    if (this.world.act.boss.kind === 'mortgage') this.syncDoor(b, alpha);
-    if (this.world.act.boss.kind === 'time') this.syncTimeHand(b, alpha);
+    if (kind === 'time') this.syncTimeHand(b, alpha);
     // Behind a card nobody would see the look, so it waits for the choice.
     if (this.bossEntranceOwed && !this.world.offers) this.lookAtBoss(b.phase === 'absorbing');
   }
 
   /**
-   * The Reorg's grey rows (G-004, OFFICE-ROSTER §4): one of the three faced
-   * rows per share of its health gone, from the bottom — a share is what lies
-   * between two of `thresholds`, so each restructure greys the next row up,
-   * and the absorb greys them all (the dev panel's kill skips the
-   * restructures and lands there too). It reads the restructures, not the
-   * health, so a row greys when the chart moves and stays grey (the chart
-   * stays).
-   * Drawn as the chart's own frame cropped from the cut down, laid exactly
-   * over the chart (same point, origin, scale and alpha) and filled with the
-   * shadow tone at REORG_GREY: the rows above the cut are untouched.
-   */
-  private syncChartGrey(b: NonNullable<World['boss']>, alpha: number): void {
-    const s = this.bossSprite!;
-    const boss = this.world.act.boss;
-    const shares = (boss.kind === 'reorg' ? boss.thresholds.length : 0) + 1;
-    const gone = b.phase === 'absorbing' ? shares : b.restructures;
-    const rows = Math.min(REORG_ROW_TOPS.length, Math.round((REORG_ROW_TOPS.length * gone) / shares));
-    if (rows === 0) {
-      this.bossGrey?.setVisible(false);
-      return;
-    }
-    if (!this.bossGrey) {
-      this.bossGrey = this.add
-        .image(s.x, s.y, s.texture.key, s.frame.name)
-        .setDepth(s.depth)
-        .setTintFill(SHADOW);
-    }
-    const cut = Math.round(s.frame.height * REORG_ROW_TOPS[REORG_ROW_TOPS.length - rows]!);
-    this.bossGrey
-      .setCrop(0, cut, s.frame.width, s.frame.height - cut)
-      .setOrigin(s.originX, s.originY)
-      .setPosition(s.x, s.y)
-      .setScale(s.scaleX, s.scaleY)
-      .setAlpha(alpha * REORG_GREY)
-      .setVisible(true);
-  }
-
-  /**
-   * The Mortgage's door opening on the twelfth payment (FAMILY-ROSTER §4):
-   * the door's rectangle (`MORTGAGE_DOOR`) laid over the house in the act's
-   * deep tone, at the house's own place, size and alpha, so the mouth opens
-   * on the carpet behind it and fades with the house. The last instalment can
-   * be met with up to a window left to run (the sim pays at the window's
-   * close, and the outcome latches only then), so the house would stand at
-   * nothing owed for seconds looking stuck: from the take that meets it the
-   * door stands ajar (`MORTGAGE_AJAR` of its width, the latch side), and it
-   * opens whole when the house absorbs. Hidden before. A render overlay,
-   * PLACEHOLDER as the Reorg's grey rows are.
-   */
-  private syncDoor(b: NonNullable<World['boss']>, alpha: number): void {
-    const open = b.phase === 'absorbing';
-    if (!open && !(b.hp <= 0)) {
-      this.bossDoor?.setVisible(false);
-      return;
-    }
-    const s = this.bossSprite!;
-    if (!this.bossDoor) this.bossDoor = this.add.rectangle(0, 0, 1, 1).setOrigin(0, 0).setDepth(s.depth);
-    const left = s.x - s.displayWidth * s.originX;
-    const top = s.y - s.displayHeight * s.originY;
-    const width = s.displayWidth * (MORTGAGE_DOOR.x1 - MORTGAGE_DOOR.x0) * (open ? 1 : MORTGAGE_AJAR);
-    this.bossDoor
-      .setPosition(left + s.displayWidth * MORTGAGE_DOOR.x0, top + s.displayHeight * MORTGAGE_DOOR.y0)
-      .setSize(width, s.displayHeight * (MORTGAGE_DOOR.y1 - MORTGAGE_DOOR.y0))
-      .setFillStyle(this.visuals.background, 1)
-      .setAlpha(alpha)
-      .setVisible(true);
-  }
-
-  /**
-   * Time's minute hand (DECLINE-ROSTER §4, AUDIT 96). The sprite's own long
-   * hand is baked at the rest pose; the hazard is drawn as its own shape: a
-   * boss-teal rectangle (`THREAT_BOSS`: it hurts, law 10), `sweepLength` long
-   * and `sweepWidth` wide with a square tip, pivoted on the boss point where
-   * the sim's hand turns (`fromHand`), turned by the sim's `boss.hand` —
-   * radians clockwise from twelve, pointing along (sin, −cos), so a strip
-   * laid along +x takes Phaser's rotation `hand − π/2`. It starts at the
-   * cap's edge (`TIME_CAP_R`), where the drawn hands pass under the face; the
-   * part under the cap is inside the clock. On Time's first frame it lies
-   * over the baked hand at `TIME_HAND_REST`; the bone strip
-   * (`TIME_BAKED_HAND`) covers the baked one wherever the drawn one goes,
-   * laid about the sprite's own pivot as drawn this frame, since it covers
-   * pixels of the sprite. Ink-edged, as everything drawn is (law 1), so it
-   * reads where it crosses the teal rim. PLACEHOLDER as a picture: a
-   * rectangle at the sim's honest size, not a drawn blade, until the hand is
-   * drawn as its own frame.
+   * Time's minute hand (DECLINE-ROSTER §4, AUDIT 96). The sprite is the face
+   * frame, the clock without its long hand (D-029), so the hazard is the one
+   * long hand drawn: a boss-teal rectangle (`THREAT_BOSS`: it hurts, law 10),
+   * `sweepLength` long and `sweepWidth` wide with a square tip, pivoted on
+   * the boss point where the sim's hand turns (`fromHand`), turned by the
+   * sim's `boss.hand` — radians clockwise from twelve, pointing along
+   * (sin, −cos), so a strip laid along +x takes Phaser's rotation
+   * `hand − π/2`. It starts at the cap's edge (`TIME_CAP_R`), where the drawn
+   * hands pass under the face; the part under the cap is inside the clock.
+   * Ink-edged, as everything drawn is (law 1), so it reads where it crosses
+   * the teal rim. A strip and not a drawn frame by D-029: a hand alone is
+   * too thin a sprite to pass the swarm silhouette floor, and the strip is
+   * the hazard's true size, so it is square-tipped and 40 wide where the
+   * drawn short hand is a pointed blade.
    */
   private syncTimeHand(b: NonNullable<World['boss']>, alpha: number): void {
     const owed = this.world.act.boss;
@@ -2387,36 +2267,22 @@ export class ActScene extends Phaser.Scene {
     const s = this.bossSprite!;
     const angle = Number.isFinite(b.hand) ? b.hand : TIME_HAND_REST;
     const cap = TIME_CAP_R * s.displayWidth;
-    this.bossHandCover ??= this.add.rectangle(0, 0, 1, 1, BONE).setDepth(s.depth + 0.1);
-    this.bossHand ??= this.add.rectangle(0, 0, 1, 1, THREAT_BOSS).setStrokeStyle(3, INK, 1).setDepth(s.depth + 0.2);
-    // Each a strip lying along its rotation from `start` px out of (px, py).
-    const lay = (
-      r: Phaser.GameObjects.Rectangle,
-      px: number,
-      py: number,
-      start: number,
-      length: number,
-      width: number,
-      turn: number,
-    ) => {
-      // A resize rebuilds the shape's path and resets its display origin, so
-      // only on a change; the origin, which puts the pivot `start` px behind
-      // the strip's near end, goes back on every frame after it.
-      const l = Math.round(length);
-      const w = Math.round(width);
-      if (r.width !== l || r.height !== w) r.setSize(l, w);
-      r.setDisplayOrigin(-start, w / 2)
-        .setPosition(px, py)
-        .setRotation(turn - Math.PI / 2)
-        .setAlpha(alpha)
-        .setVisible(true);
-    };
-    const d = s.displayWidth;
-    const cx = s.x + (TIME_PIVOT.x - s.originX) * d;
-    const cy = s.y + (TIME_PIVOT.y - s.originY) * s.displayHeight;
-    const baked = TIME_BAKED_HAND;
-    lay(this.bossHandCover, cx, cy, baked.from * d, (baked.to - baked.from) * d, baked.width * d, TIME_HAND_REST);
-    lay(this.bossHand, b.x, b.y, cap, Math.max(1, owed.sweepLength - cap), owed.sweepWidth, angle);
+    const r = (this.bossHand ??= this.add
+      .rectangle(0, 0, 1, 1, THREAT_BOSS)
+      .setStrokeStyle(3, INK, 1)
+      .setDepth(s.depth + 0.2));
+    // A strip lying along its rotation from `cap` px out of the boss point. A
+    // resize rebuilds the shape's path and resets its display origin, so only
+    // on a change; the origin, which puts the pivot `cap` px behind the
+    // strip's near end, goes back on every frame after it.
+    const l = Math.round(Math.max(1, owed.sweepLength - cap));
+    const w = Math.round(owed.sweepWidth);
+    if (r.width !== l || r.height !== w) r.setSize(l, w);
+    r.setDisplayOrigin(-cap, w / 2)
+      .setPosition(b.x, b.y)
+      .setRotation(angle - Math.PI / 2)
+      .setAlpha(alpha)
+      .setVisible(true);
   }
 
   /**
