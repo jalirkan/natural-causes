@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <title>Player at fifty-five</title>
+  <desc>The same face and single cowlick as in every act: the same small round-headed figure as at thirty-four, no taller, the same shirt collar now inside the V of a cardigan buttoned down the front, and a plain crook-handled cane held in one hand with its tip on the floor.</desc>
+  <!--
+    The player at fifty-five (G-003, DECLINE-ROSTER §5: "the same figure, a
+    cardigan and a cane"). The same drawing as player-family with the props
+    changed: the head, eyes, mouth, cowlick, legs, the body's outline, the
+    pocketed arm's inside edge, the collar's two leaves and the holding
+    arm's contour and hand are that file's geometry unchanged, and the
+    figure spans the same height, so the head is drawn at the same size and
+    height; the cane's crook widens the frame on the left, never its height.
+    Not taller: taller is Growth Spurt's. The face does not change.
+    What went: the tote and its strap, the keys and their ring, and the
+    belt, which the cardigan now covers.
+    What came: the shirt's outline is now a cardigan, still paper, with its
+    edges in shadow: a wide V from the shoulders to a point under the
+    collar, which lies over it (the shirt from thirty-four, inside), three
+    shadow buttons down the front below the point, and the ribbed hem along
+    the body's foot. Three buttons, not two (the knees are the act's only
+    pair), each a round dot, not a square (the boxes are the form's). The
+    buttons and the hem's edges sit on whole pixel rows at 112px, which is
+    why their numbers are odd: a hem edge that split a pixel with the leg
+    below it came out, in a draft, as two pixels of the act's sage on the
+    player. Paper, shadow and ink are all this sprite holds. In the hand
+    where the keys were, a plain cane,
+    one shadow stroke: the shaft behind the fist, leaning a little out to
+    its tip on the floor, level with the feet (the clip is the floor), and
+    above the fist a crook turned away from the body. The cane is the only
+    prop in any frame that touches the floor, so it is the one thing drawn
+    out against the ground: its shaft and its crook are thick enough, and
+    the crook's hollow wide enough, that CONFORM's outline edges them
+    rather than swallowing them (the keys at thirty-four were kept on the
+    shirt for this reason; a cane cannot be). Head, cardigan, collar and
+    hand stay paper, which is the player's and nothing else's (law 10); the
+    cardigan's edges, its buttons and the cane take the shadow, the only
+    second tone. No glasses. Nothing is written on anything. The crook is
+    not the clock's hand and the shaft is not the stairs' rail: one stroke,
+    held, planted (law 11 is the enemies'; the player is outside it).
+    CONFORM adds the outline; there is none here.
+    Colours are palette hex values: paper #EFE7D6, shadow #6E6353, ink #2A2521.
+  -->
+  <defs>
+    <!-- the body's outline, so the cardigan's edges never leave it -->
+    <clipPath id="body">
+      <path d="M31 65 C31 60 36 58 42 58 L58 58 C64 58 69 60 69 65 C71 70 72.5 74 72 78 C71.5 81 69 82 67 82 L67.5 86 C67.5 87.5 66.5 88 65 88 L35 88 C33.5 88 32.5 87.5 32.5 86 L33 82 C31 82 28.5 81 28 78 C27.5 74 29 70 31 65 Z"/>
+    </clipPath>
+    <!-- the floor, level with the feet: the cane stops on it -->
+    <clipPath id="floor">
+      <rect x="0" y="0" width="100" height="98"/>
+    </clipPath>
+  </defs>
+  <!-- The cowlick: one hair, always. -->
+  <path d="M54 12 C52 4 58 0 62 3 C58 4 57 8 58 12 Z" fill="#2A2521"/>
+  <!-- legs, as at five -->
+  <path d="M40 84 L47 84 L47 98 L40 98 Z M53 84 L60 84 L60 98 L53 98 Z" fill="#EFE7D6"/>
+  <!-- the cardigan: the shirt's outline at twenty-two, unchanged -->
+  <path d="M31 65 C31 60 36 58 42 58 L58 58 C64 58 69 60 69 65 C71 70 72.5 74 72 78 C71.5 81 69 82 67 82 L67.5 86 C67.5 87.5 66.5 88 65 88 L35 88 C33.5 88 32.5 87.5 32.5 86 L33 82 C31 82 28.5 81 28 78 C27.5 74 29 70 31 65 Z" fill="#EFE7D6"/>
+  <!-- the right arm, inside edge, down to the hip: the hand is in the pocket -->
+  <path d="M65.5 64 C65.2 70 64.7 75.5 63.8 81.2 L65.6 81.2 C66.4 75.5 66.9 70 67.4 64.4 Z" fill="#2A2521"/>
+  <!-- the cardigan's front edges: a wide V from the shoulders, under the collar -->
+  <path d="M30 56 L35.6 56 L50 69.4 L64.4 56 L70 56 L50 73 Z" fill="#6E6353" clip-path="url(#body)"/>
+  <!-- the collar, as at thirty-four: the same two ink-edged leaves, over the V -->
+  <path d="M38.8 58.4 L50 59.6 L50 63.4 L44.6 67.6 Z" fill="#EFE7D6" stroke="#2A2521" stroke-width="1.4" stroke-linejoin="round"/>
+  <path d="M61.2 58.4 L50 59.6 L50 63.4 L55.4 67.6 Z" fill="#EFE7D6" stroke="#2A2521" stroke-width="1.4" stroke-linejoin="round"/>
+  <!-- three buttons down the front, below the V's point -->
+  <circle cx="49.8" cy="74.78" r="1.2" fill="#6E6353"/>
+  <circle cx="49.8" cy="79.24" r="1.2" fill="#6E6353"/>
+  <circle cx="49.8" cy="83.71" r="1.2" fill="#6E6353"/>
+  <!-- the ribbed hem, along the body's foot; the belt is under it now -->
+  <rect x="30" y="85.938" width="40" height="1.785" fill="#6E6353" clip-path="url(#body)"/>
+  <!-- the head: player-school's, unchanged -->
+  <circle cx="50" cy="36" r="26" fill="#EFE7D6"/>
+  <ellipse cx="57" cy="34" rx="3.4" ry="6" fill="#2A2521"/>
+  <ellipse cx="68" cy="34" rx="3.4" ry="6" fill="#2A2521"/>
+  <rect x="58" y="46" width="9" height="2.8" rx="1.3" fill="#2A2521"/>
+  <!-- the cane: one plain stroke, from the floor up behind the fist, and a
+       crook over the top turned away from the body -->
+  <path d="M22.4 100 L28.6 66.5 A5 5 0 0 0 18.6 66.5 L18.6 68.2" fill="none" stroke="#6E6353" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" clip-path="url(#floor)"/>
+  <!-- the left arm, as at twenty-two: one ink contour down its inside edge
+       and on round the hand, which now holds the cane -->
+  <ellipse cx="29.6" cy="72" rx="3.8" ry="3.4" fill="#EFE7D6"/>
+  <path d="M33.6 63.8 C34.5 67 34.2 69.6 32.95 72 A3.35 2.95 0 1 1 29.6 69.05" fill="none" stroke="#2A2521" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
