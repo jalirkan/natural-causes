@@ -657,13 +657,16 @@ export const ITEM_ICONS: AssetSpec[] = [
     act: 'conception',
     role: 'icon',
     fieldRiding: true,
+    // Drawn, not generated: fal's dart came back ranged gold, and Stubbornness
+    // fires this icon as its shot (G-036), so it keeps to bone, rose and ink.
+    source: 'svg',
     targetSize: 96,
     seed: 61022,
-    tests: 'a sleek dart, long and slender, unmistakably a paper aeroplane',
+    tests: 'a sleek dart, long and slender, unmistakably a paper aeroplane, read at 52px on a card and 42px in flight',
     subject: [
       'a folded paper dart made from a single sheet of folded paper, seen from directly above, a slim elegant triangle with the point to the right, filling most of the frame',
       'two flat wing panels meeting at a centre crease, nothing but folded paper, not an aircraft, no fuselage, no tail, no engines',
-      'flat pale warm paper colouring with one darker shadow tone along the centre crease',
+      'the sheet in flat pale warm tan (#D2C6AC) with one narrow flat dusty rose (#A86A63) shadow panel along the centre crease and the crease one dark warm near-black (#2A2521) line, no gold, no yellow, no paper white, no pale pink, no red',
     ].join(', '),
   },
   {
