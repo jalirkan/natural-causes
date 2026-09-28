@@ -299,7 +299,8 @@ for (const s of summarise(results)) {
     .slice(0, 3)
     .map(([cause, n]) => `${cause} ${n}`)
     .join(', ');
-  out.push(`${s.policy.padEnd(22)} ${String(s.medianAge).padStart(5)}   ${endedIn.padEnd(29)} ${causes}`);
+  // One decimal: a median of two ages is a half-year, and 15.149999999999999 is not an age.
+  out.push(`${s.policy.padEnd(22)} ${s.medianAge.toFixed(1).padStart(5)}   ${endedIn.padEnd(29)} ${causes}`);
 }
 
 out.push('');

@@ -24,6 +24,48 @@ Running record of what the automated bots measured and what it means for design.
 
 ---
 
+# 2026-09-28 · The first three-act life — Conception, School, Adolescence. Presence only.
+
+`pnpm playtest -- --runs=16 --life` (seeds 1000–1015, 112 lives) at `9bfabc6`, sim clean;
+`--runs=12 --act=adolescence` (84 runs) at `39f1869`, `world.ts` and `acts.ts` **mid-edit**:
+Prom's own behaviour was being built, so the life meets the Egg standing in for Prom and the
+alone run may predate Prom's finished kind. Timings, spawns, hurts: replay probes, all matched.
+
+| policy | outlived Adolescence (95% CI) | median age | ended in | Conception deaths | Adolescence deaths | Adolescence alone, deaths of 12 |
+|---|---|---|---|---|---|---|
+| midpiece+wake | 69% [44–86] | 18 | conception 5, adolescence 11 | Rival sperm 4, Someone else 1 | none | Group chat 6, Hormones 4 |
+| membrane+acrosome | 56% [33–77] | 18 | conception 7, adolescence 9 | Someone else 6, Rival sperm 1 | none | Hormones 11 |
+| motility | 88% [64–97] | 18 | conception 1, adolescence 15 | Rival sperm 1 | Hormones 1 | Hormones 11, Group chat 1 |
+| greedy-capacitation | 75% [51–90] | 18 | conception 4, adolescence 12 | Rival sperm 3, Someone else 1 | none | Hormones 7, Group chat 1 |
+| acrosome+midpiece | 69% [44–86] | 18 | conception 5, adolescence 11 | Someone else 5 | none | Hormones 11, Someone else 1 |
+| grudge+group-chat | 13% [3–36] | 0 | conception 10, adolescence 6 | Someone else 8, Rival sperm 2 | Hormones 4 | Hormones 12 |
+| random | 56% [33–77] | 18 | conception 6, adolescence 10 | Rival sperm 3, Someone else 3 | Hormones 1 | Hormones 11, Group chat 1 |
+| **all** | 61% [51–69] | 18 | conception 38, adolescence 74 | Someone else 24, Rival sperm 14 | Hormones 6 | Hormones 67, Group chat 9, Someone else 1 (of 84) |
+
+No life ends in School (0 of the 74 that crossed the Egg, [0–5%]); 68 of those 74 outlived
+Adolescence, ending on a level 36–48 build against 6–24 for the act played alone from level
+1, and the six that did not died of Hormones at 15.5–17.1. "Someone else" is still 24 of
+Conception's 38 deaths, but none comes one step after the Egg: replayed at a clean `9bfabc6`
+with the spawn probed, the Egg-to-certificate gap is 0.38s at least, 1.61s median and 9.20s
+at most, 5 of 24 under a second, where the last entry had 12 of 31 at 0.02s (Adolescence
+alone adds one at Prom's race, 1.42s after it arrived). In Adolescence alone Hormones kill
+67 of 84 and the group chat 9, and aimed pressure is present and is the group chat's (649
+shots came at a bot, 118 hit, the blind control 15 of 32, a larger share than any
+sidestepping policy; Prom's mid-edit shot 3 of 6 in the 8 runs that reached 240s), while the
+standardised test and driver's ed kill nobody: in the life they spawned in 71 and 69 of 74
+Adolescences and never hurt a bot, against 838 hurts from hormones and 289 from the group
+chat. All twelve cards are taken over the life, rarest first and shaped by the policies'
+priority lists: Tantrum 28%, Temper 58%, Stubbornness 75%, Late Bloomer 79%, Appetite 80%,
+Baggage and Thick Skin 81%, Charisma 82%, Grudge 84%, Gossip 86%, Restlessness 90%, Reflex
+past level 1 95%. At the link, play Conception to the Egg with the crowd on you: when the
+certificate says "Someone else", had you seen the crowd part and the Egg sit there first,
+and did losing the race land as the joke?
+
+**INSTRUMENT.** The life's aimed-shot table pools all three acts, so Adolescence's shots are
+read from its own run; "how it ended" prints median age unrounded (15.149999999999999).
+
+---
+
 # 2026-09-27 · The life after the merge — the race, the substitute. Presence only.
 
 `pnpm playtest -- --runs=24 --life` (seeds 1000–1023, 168 lives) and
