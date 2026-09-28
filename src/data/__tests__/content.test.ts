@@ -249,13 +249,16 @@ describe('upgrades gain (G-038)', () => {
     }
   });
 
-  it('every passive is a gain; a cost may only be a timing (Late Bloomer\'s ramp)', () => {
+  it('every passive is a gain; a cost may only be a timing (Late Bloomer\'s ramp) or a shape (Growth Spurt\'s size)', () => {
     for (const def of items) {
       if (def.kind !== 'passive') continue;
       expect(def.speedMultiplier, `"${def.id}" speed`).toBeGreaterThanOrEqual(1);
       expect(def.healthMultiplier, `"${def.id}" health`).toBeGreaterThanOrEqual(1);
       expect(def.cooldownMultiplier, `"${def.id}" cooldown`).toBeLessThanOrEqual(1);
       expect(def.pickupMultiplier, `"${def.id}" pickup`).toBeGreaterThanOrEqual(1);
+      expect(def.reachMultiplier, `"${def.id}" reach`).toBeGreaterThanOrEqual(1);
+      // Size is the shape cost a passive may carry: bigger, never smaller.
+      expect(def.sizeMultiplier, `"${def.id}" size`).toBeGreaterThanOrEqual(1);
       expect(def.damageTakenMultiplier, `"${def.id}" damage taken`).toBeLessThanOrEqual(1);
       if (def.rampTo !== def.damageMultiplier) {
         // A ramp: it may start below baseline, it must end above it.
@@ -264,6 +267,24 @@ describe('upgrades gain (G-038)', () => {
       } else {
         expect(def.damageMultiplier, `"${def.id}" damage`).toBeGreaterThanOrEqual(1);
       }
+    }
+  });
+
+  it('an item born in a later act names an act that exists', () => {
+    for (const def of items) {
+      if (def.from === undefined) continue;
+      expect(ALL_ACTS.map((a) => a.id), `"${def.id}" is born in unknown act "${def.from}"`).toContain(def.from);
+    }
+  });
+
+  it('a field holds and does nothing else: a slow below 1, no damage', () => {
+    for (const def of items) {
+      if (!isActive(def) || def.mode !== 'field') continue;
+      expect(def.slow, `"${def.id}" is a field with no slow`).toBeDefined();
+      expect(def.slow!).toBeGreaterThan(0);
+      expect(def.slow!).toBeLessThan(1);
+      expect(def.damage, `"${def.id}" field deals damage`).toBe(0);
+      expect(def.kind, `"${def.id}"`).toBe('control');
     }
   });
 

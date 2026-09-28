@@ -44,6 +44,7 @@ function fixture(over: Partial<RunResult>): RunResult {
     shotsSeen: 0,
     shotsHit: 0,
     shotsBy: {},
+    inheritance: null,
     ...over,
   };
 }

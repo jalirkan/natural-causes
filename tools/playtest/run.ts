@@ -308,6 +308,15 @@ for (const s of summarise(results)) {
   out.push(`${s.policy.padEnd(22)} ${s.medianAge.toFixed(1).padStart(5)}   ${endedIn.padEnd(29)} ${causes}`);
 }
 
+// What the Egg dealt (G-042), for presence: a roll that never appears is a
+// defect; the shares are dice, not a finding (G-026).
+if (acts.length > 1) {
+  const dealt = new Map<string, number>();
+  for (const r of results) dealt.set(r.inheritance ?? 'never crossed', (dealt.get(r.inheritance ?? 'never crossed') ?? 0) + 1);
+  const shares = [...dealt].sort((a, b) => b[1] - a[1]).map(([id, n]) => `${id} ${n} (${pct(n / results.length)})`);
+  out.push('', `inherited — ${shares.join(', ')}`);
+}
+
 out.push('');
 out.push(
   `item uptake — share of runs that took it at least once${acts.length > 1 ? ' over the life' : ''}, rarest first`,
