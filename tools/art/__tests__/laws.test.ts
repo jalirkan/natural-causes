@@ -139,15 +139,6 @@ describe('law 10 — a field-riding icon wears nothing reserved on the field', (
       },
     ],
     [
-      'icon-trail',
-      {
-        colours: ['conception-light', 'threat-contact'],
-        reason:
-          "Baggage's footprint (wake), stamped behind the player: contact red over the " +
-          'whole sole (2095 of 2746 px), conception-light (1 px).',
-      },
-    ],
-    [
       'icon-pull',
       {
         colours: ['conception-light', 'threat-contact'],
