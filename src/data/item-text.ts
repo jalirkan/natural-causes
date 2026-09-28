@@ -105,19 +105,28 @@ function signed(n: number): string | null {
   return r > 0 ? `+${r}` : `${MINUS}${-r}`;
 }
 
-/** `2 targets`; null for one or fewer (one is what the weapon is). */
-function many(n: number, noun: string): string | null {
+/** `2 targets`; null for one or fewer (one is what the weapon is). `plural` when it is not the noun and an s. */
+function many(n: number, noun: string, plural = `${noun}s`): string | null {
   if (!finite(n) || n <= 1) return null;
-  return `${Math.round(n)} ${noun}s`;
+  return `${Math.round(n)} ${plural}`;
 }
 
 // --- vocabulary by mode ---------------------------------------------------
 
+/**
+ * What one landing of a strike is called: the def's own `noun` where it
+ * carries one (the Letter's letters, AUDIT 104), else Judgement's bolt.
+ */
+function strikeNoun(def: ActiveItem): { one: string; many: string } {
+  return def.noun ?? { one: 'bolt', many: 'bolts' };
+}
+
 /** What one more projectile is called, by mode. */
-function projectileTerm(mode: Mode, n: number): string | null {
+function projectileTerm(def: ActiveItem, n: number): string | null {
   const s = signed(n);
   if (s === null) return null;
   const plural = Math.abs(Math.round(n)) !== 1;
+  const mode: Mode = def.mode;
   switch (mode) {
     case 'orbit':
       return `${s} orbiting`;
@@ -127,8 +136,10 @@ function projectileTerm(mode: Mode, n: number): string | null {
       return `${s} ${plural ? 'lines' : 'line'}`;
     case 'sweep':
       return `${s} ${plural ? 'sweeps' : 'sweep'}`;
-    case 'strike':
-      return `${s} ${plural ? 'bolts' : 'bolt'}`;
+    case 'strike': {
+      const noun = strikeNoun(def);
+      return `${s} ${plural ? noun.many : noun.one}`;
+    }
     default:
       return `${s} ${plural ? 'shots' : 'shot'}`;
   }
@@ -229,7 +240,7 @@ function fieldTerms(def: ActiveItem, l: LevelBonus | undefined, speedAfter = NaN
   const chain = signed(l.chain ?? 0);
   const knock = signed(l.knockback ?? 0);
   return [
-    projectileTerm(mode, l.projectiles ?? 0),
+    projectileTerm(def, l.projectiles ?? 0),
     pierce === null ? null : `${pierce} pierce`,
     l.area === undefined ? null : areaTerm(mode, l.area),
     l.duration === undefined ? null : labelled(def.marks ? 'mark lasts' : 'lasts', l.duration - 1),
@@ -319,10 +330,13 @@ function activeTerms(def: ActiveItem, level: number, b: Required<LevelBonus>): A
       ];
       break;
     }
-    case 'strike':
-      // The Letter's wait, which Registered shortens (`arrivalTerm`).
-      terms = [hits, every, range, within, many(count, 'bolt'), arrivalTerm(def, b.speed)];
+    case 'strike': {
+      // The Letter's wait, which Registered shortens (`arrivalTerm`), and its
+      // letters rather than Judgement's bolts (`strikeNoun`).
+      const noun = strikeNoun(def);
+      terms = [hits, every, range, within, many(count, noun.one, noun.many), arrivalTerm(def, b.speed)];
       break;
+    }
     case 'attractor':
       terms = [within && `pulls within ${px(radius)}`, every];
       break;

@@ -417,6 +417,54 @@ describe('the toddler takes a hand, and lets go (engulf.cooldownMultiplier, engu
   });
 });
 
+describe('the sim says which body holds the player (heldBy, AUDIT 81)', () => {
+  it('null with nothing holding', () => {
+    const w = empty(35);
+    expect(w.heldBy).toBeNull();
+    place(w, TODDLER, 400, 0);
+    w.step(DT, still);
+    expect(w.heldBy).toBeNull();
+  });
+
+  it('the white cell while it engulfs, then null when its window ends with it gone from the player', () => {
+    const w = empty(36, { ...CONCEPTION, waves: [] });
+    const cell = place(w, WHITE_CELL, 0, 0);
+    w.step(DT, still);
+    expect(w.heldBy).toBe(cell);
+    expect(w.heldBy?.def).toBe(WHITE_CELL);
+    // Out of touch, so the window running out is not a fresh hold on the next step.
+    cell.x = w.x + 600;
+    for (let i = 0; i < 60 * (WHITE_CELL.engulf!.seconds + 1) && w.engulfTimer > 0; i++) {
+      expect(w.heldBy).toBe(cell);
+      w.step(DT, still);
+    }
+    expect(w.engulfTimer).toBeLessThanOrEqual(0);
+    expect(w.heldBy).toBeNull();
+    expect(w.enemies).toContain(cell);
+  });
+
+  it('the toddler that took the hand, not the one touching beside it, until it lets go; then the next', () => {
+    const w = empty(37);
+    const first = place(w, TODDLER, 0, 0);
+    w.step(DT, still);
+    expect(w.heldBy).toBe(first);
+    const second = place(w, TODDLER, 0, 0);
+    w.step(DT, still);
+    // Both touch the player, one def between them: only the sim knows which holds.
+    expect(w.heldBy).toBe(first);
+    expect(w.heldBy?.def).toBe(TODDLER);
+    for (let i = 0; i < 60 * (HOLD.seconds + 1) && w.enemies.includes(first); i++) {
+      expect(w.heldBy).toBe(first);
+      w.step(DT, still);
+    }
+    expect(w.enemies).not.toContain(first);
+    expect(w.heldBy).toBe(second);
+    // Zeroed from outside (dev god mode): nobody holds, from that moment.
+    w.engulfTimer = 0;
+    expect(w.heldBy).toBeNull();
+  });
+});
+
 describe('the phone moves you (ranged.pull, §3.5)', () => {
   /**
    * A phone `dx` to the right of a still, unarmed player, stepped until its
