@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <title>Hindsight icon</title>
+  <desc>A wide rear-view mirror seen straight on: a rounded landscape housing with a pale glass face and one darker band slanting across it, on a short stalk with a ball joint rising from a small mount below.</desc>
+  <!--
+    Hindsight (G-046: Judgement evolved beside Late Bloomer). Three bolts, no
+    warning; it was obvious afterwards. A card icon, and also what drops onto
+    the target on the field (~36px), so it keeps off the field's reserved
+    colours: no threat colour, no paper, no conception-light.
+    A rear-view mirror, never a hand mirror: no handle to the side, no round
+    glass. The landscape proportion and the stalk from below are the read,
+    and the ball joint where the stalk meets the housing is what makes it
+    adjustable glass rather than a sign on a post or a set on a stand.
+    Nothing like the gavel it evolves from: level, symmetric, and nothing
+    comes down.
+    The band is the frame's rose, not ink. Rendered in ink it read as a crack,
+    or a slash through the glass, at both sizes; a cracked mirror is a
+    different joke. Rose is a tone in the glass, and still clears bone by
+    0.24 L. The ink line round the glass keeps the band from joining the
+    frame at its ends.
+    The stalk and its ball are one rose piece: a seam between them stacked
+    the stalk into a pedestal at 36px.
+    CONFORM adds the outer outline; interior lines are drawn here.
+    Colours: conception-mid #A86A63, bone #D2C6AC, ink #2A2521.
+  -->
+  <defs>
+    <!-- the glass: the band lives only here -->
+    <clipPath id="glass">
+      <rect x="12" y="26" width="76" height="22" rx="7"/>
+    </clipPath>
+  </defs>
+  <g shape-rendering="crispEdges">
+    <!-- the mount: a small low dome the stalk rises out of -->
+    <path d="M 40 80 A 10 6 0 0 1 60 80 Z" fill="#A86A63"/>
+    <!-- the stalk and the ball joint at its top, one piece, tucked under the housing -->
+    <g fill="#A86A63">
+      <rect x="46" y="58" width="8" height="19"/>
+      <circle cx="50" cy="59" r="7"/>
+    </g>
+
+    <!-- the housing -->
+    <rect x="6" y="20" width="88" height="34" rx="12" fill="#A86A63"/>
+    <!-- the glass -->
+    <rect x="12" y="26" width="76" height="22" rx="7" fill="#D2C6AC"/>
+    <!-- the reflection: one band slanting across the glass -->
+    <polygon clip-path="url(#glass)" points="22,50 36,50 48,24 34,24" fill="#A86A63"/>
+    <!-- the glass's edge, where it sits in the housing -->
+    <rect x="12" y="26" width="76" height="22" rx="7" fill="none" stroke="#2A2521" stroke-width="2"/>
+
+    <!-- seams where rose meets rose: the housing over the ball, the stalk into the mount -->
+    <g stroke="#2A2521" stroke-width="2">
+      <line x1="45" y1="54" x2="55" y2="54"/>
+      <line x1="46" y1="75" x2="54" y2="75"/>
+    </g>
+  </g>
+</svg>
