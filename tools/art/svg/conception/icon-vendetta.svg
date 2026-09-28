@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <title>Vendetta icon</title>
+  <desc>A boxing glove seen from the side, thumb up, tilted into a jab up and to the right: a fat rounded mitt with the thumb lying along its top, and a short pale cuff laced straight across.</desc>
+  <!--
+    Vendetta (G-046: Grudge evolved beside Thick Skin). The grudge with gloves
+    on. A card icon, and also what circles the player on the field (ActScene
+    syncOrbiters, about 36px, four at once, always turning), so it keeps off
+    the field's reserved colours: no threat colour, no paper, no
+    conception-light. The cuff and laces are bone, not paper.
+    Grudge's bare fist (icon-orbit) is what this evolves from, so it differs
+    from it in every way the silhouette can: one round padded mitt with no
+    finger gaps where that one shows four, the thumb lying up along the top
+    where that one folds across the front, a cuff where that one has none,
+    and side-on in a jab where that one stands knuckles-on.
+    Not a mitten: the mitt is fatter than the cuff and the thumb is sewn to
+    it along its length, never splayed. Not a balloon: the cuff is nearly the
+    mitt's height and square-ended, and nothing trails from it.
+    The laces are bar lacing: bone bars pulled across the ink gap of the lace
+    opening, which survives to card size where a criss-cross turns to grit.
+    Drawn level in the glove's own frame, then tilted 20 degrees.
+    CONFORM adds the outer outline; the seam where the thumb meets the mitt
+    (the thumb's own edge, clipped to the mitt) and the seam at the cuff are
+    drawn here.
+    Colours: conception-mid #A86A63, bone #D2C6AC, ink #2A2521.
+  -->
+  <defs>
+    <!-- the mitt: a padded knuckle face in front, the curled fingers under it, tucking back to the cuff -->
+    <path id="mitt" d="M -16 -17 C -6 -21, 10 -24, 24 -24 C 39 -24, 48 -15, 48 -1 C 48 16, 40 29, 23 30 C 12 30.5, 5 27, 0 21 C -4 17.5, -10 17, -16 17 Z"/>
+    <!-- the thumb: rising off the cuff, lying along the top of the mitt, its tip against the knuckle face -->
+    <path id="thumb" d="M -12 -13 C -13 -25, -4 -34, 10 -34 C 22 -34, 30 -29, 30 -22 C 30 -17, 25 -16, 20 -17.5 C 10 -20, 0 -17, -8 -10 Z"/>
+    <clipPath id="inmitt">
+      <use href="#mitt"/>
+    </clipPath>
+  </defs>
+  <g shape-rendering="crispEdges">
+    <g transform="translate(50 54) rotate(-20)">
+      <use href="#mitt" fill="#A86A63"/>
+      <use href="#thumb" fill="#A86A63"/>
+      <!-- where the thumb meets the mitt: the thumb's edge, only where it lies over the mitt -->
+      <g clip-path="url(#inmitt)">
+        <use href="#thumb" fill="none" stroke="#2A2521" stroke-width="2.4"/>
+      </g>
+
+      <!-- the cuff: short, square-ended, flaring a little toward the mitt -->
+      <path d="M -13 -18 L -37 -16 Q -41 -16 -41 -12 L -41 12 Q -41 16 -37 16 L -13 18 Z" fill="#D2C6AC"/>
+      <line x1="-14" y1="-18" x2="-14" y2="18" stroke="#2A2521" stroke-width="2.2"/>
+      <!-- the lace opening, and two bars of lace pulled across it -->
+      <rect x="-38" y="-5" width="21" height="10" rx="1.2" fill="#2A2521"/>
+      <g fill="#D2C6AC">
+        <rect x="-33.5" y="-6" width="3.5" height="12"/>
+        <rect x="-25.5" y="-6" width="3.5" height="12"/>
+      </g>
+    </g>
+  </g>
+</svg>
