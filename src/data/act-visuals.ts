@@ -8,6 +8,8 @@ import collegeAtlasPng from '../../assets/atlas/college.png';
 import collegeAtlasJson from '../../assets/atlas/college.json';
 import officeAtlasPng from '../../assets/atlas/office.png';
 import officeAtlasJson from '../../assets/atlas/office.json';
+import familyAtlasPng from '../../assets/atlas/family.png';
+import familyAtlasJson from '../../assets/atlas/family.json';
 
 export interface AtlasJson {
   frames: Record<string, unknown>;
@@ -44,7 +46,8 @@ export interface ActVisuals {
    * What an attach stack is drawn as on the player when the def that attached
    * it has no frame the scene can find: the antibody in Conception, acne in
    * Adolescence (ADOLESCENCE-ROSTER §5), the invoice in College
-   * (COLLEGE-ROSTER §3.3), the ping in The Office (OFFICE-ROSTER §3.3).
+   * (COLLEGE-ROSTER §3.3), the ping in The Office (OFFICE-ROSTER §3.3), the
+   * HOA letter in Family (FAMILY-ROSTER §3.3).
    * A FALLBACK since AUDIT six's 38: the scene draws each worn stack
    * (`World.wornBy`) in its own def's frame from its own act's atlas, so
    * tuition's invoices, which persist through the crossing, still draw as
@@ -134,6 +137,27 @@ export const ACT_VISUALS: Record<string, ActVisuals> = {
     attachFrame: 'ping.png',
     // office-light: the strip light, pickups only.
     pickup: 0xa8b7c4,
+  },
+  family: {
+    // family-deep: umber, the carpet (FAMILY-ROSTER §1).
+    background: 0x4d3a1f,
+    atlas: { key: 'family', png: familyAtlasPng, json: familyAtlasJson },
+    // The same figure, a tote bag over one shoulder and keys in hand (§5).
+    playerFrame: 'player-family.png',
+    // The house with a face (FAMILY-ROSTER §4).
+    bossFrame: 'boss-mortgage.png',
+    // MEASURED by the drawer, as the Loan's and the Reorg's are: a house is a
+    // wall under a gable, not a circle, so boss-mortgage.svg has none to read.
+    // The wall block from the eave line (y 163 of 384) to the plinth seam
+    // (359) centres on 0.68, and r 0.30 is the largest circle inside the
+    // silhouette there, clear of the roof's peak and the chimney (the
+    // drawer's note in the SVG).
+    bossBody: { cy: 0.68, r: 0.3 },
+    // The worn notice (§3.3); a fallback only (see `attachFrame`): tuition
+    // carried in from College draws as tuition, and a letter as a letter.
+    attachFrame: 'hoa-letter.png',
+    // family-light: butter, the fridge light, pickups only.
+    pickup: 0xf3e3a6,
   },
 };
 

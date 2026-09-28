@@ -54,10 +54,10 @@ describe('The Office has a schedule, and it is provisional', () => {
     expect(ALL_ACTS.indexOf(OFFICE)).toBe(ALL_ACTS.indexOf(COLLEGE) + 1);
     expect(ACTS.indexOf(OFFICE)).toBe(ACTS.indexOf(COLLEGE) + 1);
     // It was the last of ALL_ACTS until Family (FAMILY-ROSTER §5), which
-    // follows it there; the browser's life still ends here, at thirty-four,
-    // until Family's atlas exists (family-act.test.ts).
+    // follows it there, and the last of the browser's life until Family's
+    // atlas was packed; Family follows it in both now (family-act.test.ts).
     expect(ALL_ACTS[ALL_ACTS.indexOf(OFFICE) + 1]).toBe(FAMILY);
-    expect(ACTS[ACTS.length - 1]).toBe(OFFICE);
+    expect(ACTS[ACTS.indexOf(OFFICE) + 1]).toBe(FAMILY);
   });
 
   it('runs 180 seconds from twenty-two to thirty-four and ends on SYNERGY', () => {
@@ -285,12 +285,12 @@ describe('the life is five acts long now', () => {
   }
 
   it('The Loan falling crosses into The Office, and The Reorg falling is natural causes at thirty-four', () => {
-    // The life up to and including The Office. This was ALL_ACTS while The
-    // Office was the last act; Family follows it now (FAMILY-ROSTER §5), and
-    // in ALL_ACTS The Reorg falling is a crossing, not the end
-    // (family-act.test.ts). ACTS, the browser's life, still ends here.
+    // The life up to and including The Office. This was ALL_ACTS, and then
+    // ACTS, while The Office was the last act; Family follows it in both now
+    // (FAMILY-ROSTER §5), and there The Reorg falling is a crossing, not the
+    // end (family-act.test.ts). A life cut here still ends at thirty-four.
     const life = ALL_ACTS.slice(0, ALL_ACTS.indexOf(OFFICE) + 1);
-    expect(life).toEqual(ACTS);
+    expect(life).toEqual(ACTS.slice(0, ACTS.indexOf(OFFICE) + 1));
     const w = new World({ acts: life, seed: 5, startingItems: [] });
     for (let i = 0; i < ALL_ACTS.indexOf(OFFICE); i++) cross(w);
     expect(w.act).toBe(OFFICE);
