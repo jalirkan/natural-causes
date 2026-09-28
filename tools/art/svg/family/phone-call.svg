@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <title>Phone call</title>
+  <desc>An upright bone wall telephone seen from the front: a tall body with rounded corners and a dark handset laid across its top, an arched handle between two cups that flare at their rims. From under the right-hand cup a dark cord drops clear of the body in three loose loops down its right side and turns in to its bottom corner. A face high on the body under the handset, two ink dots with their bottoms cut flat, turned up at the handset, and one flat mouth. No dial, no buttons, no numbers, no text, nobody on the line.</desc>
+  <!--
+    Phone call (FAMILY-ROSTER §3.5), the act's ranged enemy. Reserved
+    silhouette (§1): the wall phone, an upright body with a handset laid
+    across its top and a coiled cord looping down one side. The only cord
+    and the only coil in the act; nothing else here may loop. Drawn as the
+    role (law 9): nobody is calling anybody. The phone is ringing, and the
+    face on it is looking up at its own handset, never at the player.
+
+    The coil is the read. The cord drops from under the mouthpiece and
+    hangs clear of the body, a strip of carpet between them, in three loose
+    loops, then turns in to the body's bottom corner: one cord from handset
+    to base, not three rings stuck to a box, which is what it read as when
+    the loops hugged the body's edge. Each loop is big enough that its hole
+    survives CONFORM's outline. Smaller loops filled in and the coil became
+    a bumpy dark stripe at 48px; filling the holes with shadow made them
+    three buttons. The loops open a little toward the bottom, hanging.
+
+    The handset is the telephone glyph's: a shallow arched handle between
+    two cups that flare at their rims, set on the body's top so the slot
+    under the handle shows. Wrapped round a rounded top it read as hair;
+    hooked down beside the body, as earmuffs. It spans body and cord and
+    overhangs on the right, where the cord hangs from it. No dial and no
+    buttons (the roster's "no buttons with numbers"): the face is the only
+    thing on the body.
+
+    Hand-cut (law 4): no two of the body's corners are rounded alike, the
+    two cups are not the same, and no two loops are the same size.
+
+    Drawn on the finished sprite's pixel grid: the group maps one unit to
+    one pixel of the 80px sprite (76 tall inside the 2px outline). The
+    handle's crown and the body's foot are the top and bottom, the left
+    cup's rim is the leftmost edge, so the face lands on whole pixels.
+
+    Face (law 5): two ink dots with the bottoms cut flat, lower lids up,
+    turned up at the handset, and one short flat mouth, high on the body
+    and centred on it.
+
+    Ink sits 0.094 Oklab L from family-deep, under the contrast floor, so
+    the handset, the cord, the face and the outline CONFORM adds must stay
+    under 0.4 of the sprite: the body is as wide as that needs, and the cord
+    is drawn at the outline's weight (law 1).
+
+    No gold anywhere (G-031, law 6): the ranged colour rides the call it
+    fires, which the renderer draws. No butter (law 10, pickups), no red,
+    no purple, no teal. Colours: bone #D2C6AC body, ink #2A2521 handset,
+    cord and face. CONFORM adds the outline; there is none here.
+  -->
+  <g transform="scale(1.25) translate(4 0)">
+    <!-- the body; no two corners alike -->
+    <path d="M 8 13 H 44.5 Q 49 13 49 17.5 V 74 Q 49 78 45 78 H 7 Q 3 78 3 74.5 V 18 Q 3 13 8 13 Z" fill="#D2C6AC"/>
+    <!-- the cord: from under the mouthpiece, three loose loops clear of the body, into its bottom corner -->
+    <path fill="none" stroke="#2A2521" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M 60.5 15 C 60.5 19 57 19.5 57 23
+      C 57 25.89 57.64 28.77 58.75 31 C 59.86 33.23 61.42 34.79 63 35.41 C 64.58 36.03 66.15 35.7 67.27 34.7
+      C 68.4 33.69 69.06 32.02 69.06 30.33 C 69.07 28.64 68.42 26.96 67.3 25.94 C 66.17 24.91 64.59 24.57 63 25.17
+      C 61.41 25.77 59.82 27.33 58.68 29.57 C 57.55 31.82 56.89 34.73 56.88 37.67 C 56.88 40.6 57.53 43.53 58.66 45.79
+      C 59.79 48.05 61.39 49.63 63 50.25 C 64.61 50.87 66.21 50.53 67.36 49.49 C 68.5 48.45 69.18 46.73 69.18 45
+      C 69.19 43.27 68.52 41.54 67.38 40.48 C 66.24 39.42 64.63 39.06 63 39.66 C 61.37 40.27 59.75 41.84 58.6 44.12
+      C 57.44 46.39 56.77 49.35 56.76 52.33 C 56.76 55.31 57.42 58.28 58.58 60.58 C 59.73 62.88 61.36 64.47 63 65.09
+      C 64.64 65.71 66.28 65.35 67.44 64.28 C 68.61 63.21 69.3 61.45 69.3 59.67 C 69.3 57.89 68.63 56.11 67.47 55.03
+      C 66.3 53.94 64.66 53.55 63 54.15 C 61.34 54.76 59.69 56.35 58.51 58.66 C 57.34 60.97 56.65 63.97 56.64 67
+      Q 57 76 48 74"/>
+    <!-- the handset: earpiece cup, arched handle, mouthpiece cup, rims flared -->
+    <path d="M 4.5 5.5 Q 6 3.5 11 3.5 Q 34 0.5 57 3.5 Q 62.5 3.5 64 6 L 66 12.5 V 14.5 Q 66 16.5 63.5 16.5 H 57.5 Q 55 16.5 55.2 14 L 55.8 10.5 Q 56.2 8 53.5 8 Q 34 2 14.5 8 Q 12 8 12.3 10.5 L 12.8 13.5 Q 13 16 10.5 16 H 4.2 Q 2 16 2 13.8 V 12.5 Z" fill="#2A2521"/>
+    <!-- the face, high on the body, turned up at the handset -->
+    <g fill="#2A2521">
+      <path d="M 19 21 H 21 V 22 H 22 V 25 H 18 V 22 H 19 Z"/>
+      <path d="M 31 21 H 33 V 22 H 34 V 25 H 30 V 22 H 31 Z"/>
+      <rect x="23" y="29" width="6" height="2"/>
+    </g>
+  </g>
+</svg>
