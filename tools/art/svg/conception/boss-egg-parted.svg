@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <title>The Egg, corona parting</title>
+  <desc>The same vast round egg, its eyes closed to two short flat lines, the same knowing smile. Its corona has parted in one wide gap, low and to the right, on the side the face looks toward; the two ends either side lean back from it. It is letting you in.</desc>
+  <!-- D-029: a variant frame of boss-egg, its holder, swapped in for boss-egg-closing during the absorb. The eyes are boss-egg-closing's; the corona is boss-egg's own circle with a gap clipped out of it, so its rim is untouched outside the gap. Every other element is boss-egg's, byte for byte, so the swap does not pop. -->
+  <defs>
+    <!-- the gap: a sixth of the rim, centred where the face sits on the egg (down and right of the egg's middle), narrower at the egg than at the rim so the ends lean away -->
+    <clipPath id="parted">
+      <path clip-rule="evenodd" d="M-10 -10 H110 V110 H-10 Z M79.88 71.82 L82.31 73.58 L92.98 69.96 Q95.06 69.25 95.88 67.21 L106.18 71.07 A60 60 0 0 1 54.5 109.83 L53.67 98.86 Q55.86 98.65 57.12 96.85 L63.6 87.62 L62.58 84.8 A37 37 0 0 0 79.88 71.82 Z"/>
+    </clipPath>
+  </defs>
+  <circle cx="50" cy="50" r="49" fill="#2F7370" clip-path="url(#parted)"/>
+  <circle cx="50" cy="50" r="40" fill="#A86A63"/>
+  <circle cx="47" cy="46" r="36" fill="#D2C6AC"/>
+  <rect x="34" y="43.8" width="10" height="1.2" rx="0.6" fill="#2A2521"/>
+  <rect x="56" y="43.8" width="10" height="1.2" rx="0.6" fill="#2A2521"/>
+  <rect x="45" y="56" width="10" height="2.6" rx="1.2" fill="#2A2521"/>
+</svg>
