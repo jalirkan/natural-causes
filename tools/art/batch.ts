@@ -1079,6 +1079,30 @@ export const ITEM_ICONS: AssetSpec[] = [
       'no envelope, no fold, no dog-ear, no seal, no stamp, no window, no hand, no figure, no legible text',
     ].join(', '),
   },
+  // --- Born in Decline (G-051): the Nap ------------------------------------
+  // A control that fires nothing, so its icon is card-only: nothing of it is
+  // drawn on the field (the nap shows as the stop, the swim held still).
+  // The panel's line is "You fell asleep in the chair", so it is the chair,
+  // seen from the front and empty: the one who napped in it is off playing.
+  // Rose, bone and ink like the others. Never the Office's ring of chairs
+  // (upholstered, winged, one on its own) and never a clock (Time's).
+  {
+    id: 'icon-nap',
+    name: 'Nap icon',
+    act: 'conception',
+    role: 'icon',
+    source: 'svg',
+    targetSize: 96,
+    seed: 61051,
+    tests: 'an empty wingback armchair seen from the front, read at 52px on a card, never an office chair, a throne or a sofa',
+    subject: [
+      'one upholstered wingback armchair seen straight from the front, empty, a tall back with a wing standing out at each top corner',
+      'two fat rolled arms either side of one deep seat cushion, two short stubby legs under the front',
+      'a small cloth laid over the top of the back where a head would rest, and a soft dent in the seat cushion',
+      'flat muted dusty rose frame, back, wings and arms, pale warm cushion and head cloth, dark interior lines where the cushion meets the arms and the back',
+      'nobody sitting in it, no figure, no clock, no blanket, no text',
+    ].join(', '),
+  },
 ];
 
 /**

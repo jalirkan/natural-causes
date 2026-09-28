@@ -1167,6 +1167,14 @@ export class World {
    */
   stunTimer = 0;
   /**
+   * Decline's Nap (items.ts `nap`, world.ts `nap`): seconds left asleep, 0
+   * awake. Public so the renderer and the bots can see it; while it runs no
+   * contact hurts the player, and the stop itself is `stunTimer`'s. `napRate`
+   * is the health a second the nap running now gives back.
+   */
+  napTimer = 0;
+  private napRate = 0;
+  /**
    * Where the player has been: a ring of (time, x, y), one sample every
    * TRAIL_SAMPLE_SECONDS, for `spawnAt: 'trail'`. Typed arrays so the step
    * that writes it does not allocate.
@@ -2229,6 +2237,8 @@ export class World {
       if (def.mode === 'orbit') continue;
       // Nor does an aura (updateAuras).
       if (def.mode === 'aura') continue;
+      // Nor a nap: it waits for low health, not a cooldown (`nap`).
+      if (def.mode === 'nap') continue;
 
       const remaining = (this.cooldowns.get(id) ?? 0) - dt;
       if (remaining > 0) {
@@ -2423,6 +2433,9 @@ export class World {
         return false;
       case 'aura':
         // Never fired; see updateAuras.
+        return false;
+      case 'nap':
+        // Never fired; see `nap`, which resolveContact runs.
         return false;
       case 'sweep': {
         // Backhand (G-044): an arc along the facing, swung on its cooldown
@@ -3306,7 +3319,8 @@ export class World {
         }
         continue;
       }
-      if (this.invulnerable > 0) continue;
+      // Asleep (Decline's Nap): no touch lands, as i-frames skip it; a shot below still does.
+      if (this.invulnerable > 0 || this.napTimer > 0) continue;
       this.hurt(e.def.contactDamage, e.def);
       if (e.def.contactStun !== undefined) {
         this.stun(e.def.contactStun);
@@ -3359,6 +3373,12 @@ export class World {
       const pull = p.owner?.ranged?.pull;
       if (pull !== undefined && !this.dead) this.pullToward(p, pull);
     }
+
+    // Decline's Nap (`nap`), last in the pass the engulf's tick opens: it
+    // reads the health the touches and shots above left, and a nap's final
+    // step still sleeps through them, because the timer they read runs down
+    // here, after them.
+    this.nap(dt);
   }
 
   /**
@@ -3579,6 +3599,46 @@ export class World {
     return true;
   }
 
+  /**
+   * Decline's Nap (items.ts `nap`, DECLINE-ROSTER §6, G-051): the one verb a
+   * `nap` item has, run at the end of `resolveContact`. Generic: it names no
+   * item, only the mode and its `nap` numbers.
+   *
+   * Asleep (`napTimer`), health comes back at `napRate`, evenly over the
+   * window, never past the maximum. Every held nap counts its cooldown down
+   * on `cooldowns` (fireItems skips it); off cooldown, awake, and with
+   * health under its `threshold` share of the maximum, the player falls
+   * asleep for `range` × `duration` seconds and `heal` × `damage` of the
+   * maximum is owed over them. The stop is the hall monitor's (`stun`, so
+   * movePlayer ignores the input and the renderer squashes the swim); the
+   * touches are skipped in `resolveContact` while `napTimer` runs; a hostile
+   * shot still lands. The clock keeps running: that is the joke, and the
+   * only cost (G-038). Never once the outcome has latched — the absorb, a
+   * death, the win — and in any act once held, as every item is. No dice.
+   */
+  private nap(dt: number): void {
+    if (this.outcomeDecided) return;
+    if (this.napTimer > 0) {
+      const t = Math.min(dt, this.napTimer);
+      this.napTimer -= t;
+      this.hp = Math.min(this.maxHp, this.hp + this.napRate * t);
+    }
+    for (const [id, level] of this.items) {
+      const def = ITEMS[id];
+      if (!def || !isActive(def) || def.mode !== 'nap' || !def.nap) continue;
+      const left = Math.max(0, (this.cooldowns.get(id) ?? 0) - dt);
+      this.cooldowns.set(id, left);
+      if (left > 0 || this.napTimer > 0 || !(this.hp < def.nap.threshold * this.maxHp)) continue;
+      const b = this.bonusFor(def, level);
+      const seconds = def.range * b.duration;
+      if (!(seconds > 0)) continue;
+      this.napTimer = seconds;
+      this.napRate = (def.nap.heal * b.damage * this.maxHp) / seconds;
+      this.stun(seconds);
+      this.cooldowns.set(id, this.activeCooldown(def, level));
+    }
+  }
+
   /** Writes the player's position to the trail, at most once per sample interval. */
   private recordTrail(): void {
     if (this.trailCount > 0) {
@@ -3700,6 +3760,8 @@ export class World {
     this.movedY = 0;
     this.invulnerable = 0;
     this.stunTimer = 0;
+    this.napTimer = 0;
+    this.napRate = 0;
     if (!this.inheritance) this.inherit();
     this.takeUnaskedLevels();
     // The form's decisions are "for the rest of the act" (DECLINE-ROSTER

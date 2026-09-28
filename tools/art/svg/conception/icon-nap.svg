@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <title>Nap icon</title>
+  <desc>An empty wingback armchair seen from the front: a tall winged back with a small cloth over its top, two rolled arms, one deep seat cushion with a dent in it, and two short legs.</desc>
+  <!--
+    Nap (items.ts, mode "nap"; G-051, Decline's item). "You fell asleep in
+    the chair." A control that fires nothing, so this is card-only: nothing
+    of it is drawn on the field, where the nap is the player's stop (the
+    stun's squash, the swim held still). Card-only icons may wear paper, but
+    this one keeps to rose, bone and ink like the rest of the set.
+    The chair is empty: whoever napped in it is the one playing. The cloth
+    over the top of the back (where a head rests) and the dent in the seat
+    say whose chair it is; the wings say armchair, never an office chair
+    (the Office's ring of chairs) and never a throne. No clock: Decline's
+    only circle is Time's. No face either: a first drawing's arm rolls (two
+    arcs) and seat dent (a short curve) read as a sleeping face, and the
+    icons are objects; the sag and the seams are drawn straight so they
+    stay upholstery.
+    CONFORM adds the outer outline; the interior lines are drawn here.
+    Colours: conception-mid #A86A63, bone #D2C6AC, ink #2A2521.
+  -->
+  <g shape-rendering="crispEdges">
+    <!-- the two short legs, bone, under the front corners -->
+    <g fill="#D2C6AC">
+      <rect x="15" y="80" width="10" height="17" rx="3"/>
+      <rect x="75" y="80" width="10" height="17" rx="3"/>
+    </g>
+
+    <!-- the back and its wings, rose: the wings stand out at the top corners
+         and come down into the arms -->
+    <path fill="#A86A63"
+      d="M 23 58 L 18 28 Q 16 17 29 17 C 31 9 40 5 50 5 C 60 5 69 9 71 17 Q 84 17 82 28 L 77 58 Z"/>
+    <!-- where each wing folds back into the chair -->
+    <g stroke="#2A2521" stroke-width="2.2" fill="none" stroke-linecap="round">
+      <path d="M 29 18 Q 30 34 29 50"/>
+      <path d="M 71 18 Q 70 34 71 50"/>
+    </g>
+
+    <!-- the cloth over the top of the back, bone, its lower edge scalloped -->
+    <path fill="#D2C6AC"
+      d="M 38 9 L 62 9 L 62 21 Q 59 25 56 21 Q 53 25 50 21 Q 47 25 44 21 Q 41 25 38 21 Z"/>
+
+    <!-- the base under the seat, rose; the cushion's edge is the line along its top -->
+    <rect x="10" y="72" width="80" height="12" rx="3" fill="#A86A63"/>
+
+    <!-- the seat cushion, bone, and the dent in it: a long shallow sag across
+         the whole seat, never a short curve, which read as a smile -->
+    <rect x="26" y="55" width="48" height="19" rx="5" fill="#D2C6AC" stroke="#2A2521" stroke-width="2.2"/>
+    <path d="M 29 61 Q 50 65 71 61" stroke="#2A2521" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+
+    <!-- the rolled arms, rose, in front of the wings and the cushion -->
+    <g fill="#A86A63" stroke="#2A2521" stroke-width="2.2">
+      <rect x="7" y="44" width="22" height="40" rx="10"/>
+      <rect x="71" y="44" width="22" height="40" rx="10"/>
+    </g>
+    <!-- the underside of the roll on each arm: a seam straight across, not
+         an arc (two arcs at one height read as a pair of closed eyes) -->
+    <g stroke="#2A2521" stroke-width="2.2" fill="none">
+      <line x1="7" y1="59" x2="29" y2="59"/>
+      <line x1="71" y1="59" x2="93" y2="59"/>
+    </g>
+  </g>
+</svg>
