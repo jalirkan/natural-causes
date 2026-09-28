@@ -24,6 +24,32 @@ Running record of what the automated bots measured and what it means for design.
 
 ---
 
+# 2026-09-28 · After Family — the six-act life. Presence only.
+
+`pnpm playtest -- --runs=8 --life` (seeds 1000–1007, 96 lives, twelve policies) at the integration
+branch before its PR (`b64ca00`), Family in `ACTS`, The Mortgage paid in instalments, the bots walking
+at the toddler. The papers are presentation and the bots never see them.
+
+| policy | ended in | of |
+|---|---|---|
+| motility, greedy-capacitation, judgement+appetite | family 8 | natural causes 5–7, The Mortgage 1–3 |
+| random (the blind control) | family 5, conception 3 | The Mortgage 4, Someone else 3, natural causes 1 |
+| backhand+midpiece | family 6, conception 1, adolescence 1 | The Mortgage 4, natural causes 2, Someone else 1 |
+| the other seven arms | family 4–7, the rest Conception's race or Adolescence | natural causes; The Mortgage 1–3 each; Someone else, Hormones |
+| uptake, evolutions | Jumpiness 10, Vendetta 5, Reach 3, Tantrum 3, Hindsight 1, Rut 0 of 96 | |
+
+Every life that reached Family (72 of 96) ended there, and for the first time since the Egg a boss ends
+lives in numbers: 22 of the 72 died to The Mortgage's DUE, the blind control worst (4 of 5), which is the
+shape AUDIT eight's 79 predicts — a build that cannot meet an instalment is refunded every window and
+stands in the statement's fire until it dies. Nothing else in the act killed a bot: no bill, no phone, no
+flat-pack, and the toddler held every bot it reached without ending one (AUDIT eight, 85). Worn stacks
+at the Mortgage's arrival were 8–19 a life, letters among them, so the reach cost is a pressure the bots
+felt and never read, as the tax and the pings were. The phone's hits are unreadable this round: the shot
+log never credits a call (AUDIT eight, 86, INSTRUMENT). Nothing here is calibration; the question for a
+person is FAMILY-ROSTER §7's, and README's sixteenth.
+
+---
+
 # 2026-09-28 · After The Office — the five-act life. Presence only.
 
 `pnpm playtest -- --runs=8 --life` (seeds 1000–1007, 96 lives, twelve policies) at the integration
