@@ -1,5 +1,6 @@
 import { ENEMIES } from '../data/enemies';
-import { ITEMS } from '../data/items';
+import { offerTitle } from '../data/item-text';
+import { ITEMS, OFFER_PATH_SEPARATOR, isActive, offerIdFor, type ItemDef } from '../data/items';
 import type { InputLog } from '../meta/input-log';
 import type { World } from '../sim/world';
 import type { DevState } from './state';
@@ -45,6 +46,8 @@ font:inherit;padding:2px 6px;margin:0 3px 3px 0;cursor:pointer}
 #nc-dev .row{display:flex;align-items:center;gap:4px;margin-bottom:2px}
 #nc-dev .row span{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #nc-dev .lv{width:22px;text-align:right;color:#d2c6ac}
+#nc-dev .row span.lv{flex:none}
+#nc-dev .row span.path{padding-left:8px;color:#d2c6ac}
 #nc-dev .hd{display:flex;justify-content:space-between;align-items:center;
 font-size:10px;letter-spacing:.13em;color:#c4472e}
 #nc-dev .note{color:#9a8f7d;font-size:10px;margin-top:8px;line-height:1.4}
@@ -163,7 +166,47 @@ export function attachDevPanel(host: DevPanelHost): () => void {
       heldNote,
     );
 
-    const itemRows = Object.values(ITEMS).map((def) => {
+    /**
+     * G-043: one row per path of an owned active item, under its level row,
+     * written straight into `world.pathLevels`. No sim hook is needed for the
+     * write to land: `World.bonusFor` compares the weapon's level and every
+     * path's level against the ones its cached total was folded at on every
+     * read, so the next shot (or the next step, for an orbit or aura) sees
+     * it. A path of an item not held is not shown — and not kept, see below.
+     */
+    const pathRows = (def: ItemDef, owned: number): HTMLDivElement[] => {
+      if (owned <= 0 || !isActive(def) || !def.paths) return [];
+      return def.paths.map((path) => {
+        const key = offerIdFor(def, path);
+        const at = w.pathLevels.get(key) ?? 0;
+        const name = document.createElement('span');
+        name.className = 'path';
+        name.textContent = `· ${path.name}`;
+        // Under its weapon's row, the path's name alone reads; the hover is
+        // the card's whole title ("Grudge · Company").
+        name.title = offerTitle(key);
+        const lv = document.createElement('span');
+        lv.className = 'lv';
+        lv.textContent = `${at}/${path.maxLevel}`;
+        const set = (n: number) => () => {
+          if (n <= 0) w.pathLevels.delete(key);
+          else w.pathLevels.set(key, Math.min(path.maxLevel, n));
+        };
+        return line(name, lv, button('−', act(set(at - 1))), button('+', act(set(at + 1))));
+      });
+    };
+
+    /**
+     * A removed item takes its path levels with it, as the weapon an
+     * evolution replaces does in `World.take` (G-043, kept by G-046):
+     * otherwise they wait unseen and return when the item is added again.
+     */
+    const dropPaths = (id: string): void => {
+      const prefix = id + OFFER_PATH_SEPARATOR;
+      for (const key of [...w.pathLevels.keys()]) if (key.startsWith(prefix)) w.pathLevels.delete(key);
+    };
+
+    const itemRows = Object.values(ITEMS).flatMap((def) => {
       const owned = w.items.get(def.id) ?? 0;
       const name = document.createElement('span');
       name.textContent = def.name;
@@ -171,13 +214,18 @@ export function attachDevPanel(host: DevPanelHost): () => void {
       lv.className = 'lv';
       lv.textContent = `${owned}/${def.maxLevel}`;
       const set = (n: number) => () => {
-        if (n <= 0) w.items.delete(def.id);
-        else w.items.set(def.id, Math.min(def.maxLevel, n));
+        if (n <= 0) {
+          w.items.delete(def.id);
+          dropPaths(def.id);
+        } else w.items.set(def.id, Math.min(def.maxLevel, n));
         // Thick Skin moves maxHp, and removing it must pull the current
         // value back under the new ceiling.
         w.hp = Math.min(w.hp, w.maxHp);
       };
-      return line(name, lv, button('−', act(set(owned - 1))), button('+', act(set(owned + 1))));
+      return [
+        line(name, lv, button('−', act(set(owned - 1))), button('+', act(set(owned + 1)))),
+        ...pathRows(def, owned),
+      ];
     });
 
     section(
@@ -193,6 +241,13 @@ export function attachDevPanel(host: DevPanelHost): () => void {
               if ('evolvesFrom' in def && def.evolvesFrom) continue;
               w.items.set(def.id, def.maxLevel);
             }
+            // And every path of every item now held (G-043), written as the
+            // path rows write it; `bonusFor` sees it on its next read.
+            for (const id of w.items.keys()) {
+              const def = ITEMS[id];
+              if (!def || !isActive(def) || !def.paths) continue;
+              for (const path of def.paths) w.pathLevels.set(offerIdFor(def, path), path.maxLevel);
+            }
             w.hp = Math.min(w.hp, w.maxHp);
           }),
         ),
@@ -200,6 +255,8 @@ export function attachDevPanel(host: DevPanelHost): () => void {
           'clear',
           act(() => {
             w.items.clear();
+            // Paths go with their items: a cleared Reflex is a fresh one.
+            w.pathLevels.clear();
             w.items.set('lash', 1);
           }),
         ),

@@ -841,6 +841,58 @@ export const ITEMS: Record<string, ItemDef> = {
       {},
       each(2, 6, { area: 1.08 }),
     ),
+    // G-043 paths on a control item. PLACEHOLDER VALUES, every one, under
+    // Conception's `provisional` (its weapon level tables clause): each path
+    // level's single bonus field and each maxLevel were written to make the
+    // branch playable, not measured; a person playing at the link moves them.
+    // No numbers in the copy: the card prints them from these fields.
+    paths: [
+      {
+        id: 'magnetism',
+        name: 'Magnetism',
+        blurb: 'Pulls from further. They heard about you first.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Further. You come up at parties you missed.',
+            'Further again. Friends of friends have opinions.',
+            'From across town. Nobody remembers meeting you.',
+          ],
+          {},
+          each(1, 3, { area: 1.15 }),
+        ),
+      },
+      {
+        id: 'staying-power',
+        name: 'Staying Power',
+        blurb: 'The pull lasts longer. Nobody wants to leave first.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Longer. They stay for one more story.',
+            'Longer again. Somebody missed the last bus.',
+            'Nobody leaves. The party is wherever you are.',
+          ],
+          {},
+          each(1, 3, { duration: 1.25 }),
+        ),
+      },
+      {
+        id: 'small-talk',
+        name: 'Small Talk',
+        blurb: 'Pulls sooner. You never run out of things to say.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Sooner. You remember everyone by name.',
+            'Sooner again. You ask about their weekend.',
+            'Sooner still. Even the wallflowers come over.',
+          ],
+          {},
+          each(1, 3, { cooldown: 0.85 }),
+        ),
+      },
+    ],
     enables:
       'Every area weapon in the act at once, by choosing where the crowd will be instead of reacting to it. It is the item that makes Temper and Baggage into builds rather than options.',
     // Extended 2026-08-01 after Run 5 (§10.2). Chemotaxis is the largest
@@ -1012,6 +1064,58 @@ export const ITEMS: Record<string, ItemDef> = {
       {},
       each(2, 6, { area: 1.08 }),
     ),
+    // G-043 paths on a control item. PLACEHOLDER VALUES, every one, under
+    // Adolescence's `provisional` (the items born there): each path level's
+    // single bonus field and each maxLevel were written to make the branch
+    // playable, not measured; a person playing at the link moves them. The
+    // "nine" in the name is a word, not a figure: the card prints the figure.
+    paths: [
+      {
+        id: 'nine-more',
+        name: 'Nine More Minutes',
+        blurb: 'Lasts longer. You hit the button without waking.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Longer. Nine more, and then nine more.',
+            'Longer again. You have stopped counting.',
+            'It is somehow noon. The alarm gave up first.',
+          ],
+          {},
+          each(1, 3, { duration: 1.25 }),
+        ),
+      },
+      {
+        id: 'whole-house',
+        name: 'Whole House',
+        blurb: 'Wider. Nobody under this roof is up yet.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Wider. Your brother slept through it too.',
+            'Wider again. The dog will not get up either.',
+            'The whole street. The bus is running late too.',
+          ],
+          {},
+          each(1, 3, { area: 1.15 }),
+        ),
+      },
+      {
+        id: 'early-alarm',
+        name: 'Early Alarm',
+        blurb: 'Sooner. It goes off before you need it to.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Sooner. You keep the clock a little fast.',
+            'Sooner again. There is a backup alarm now.',
+            'Sooner still. It goes off before you sleep.',
+          ],
+          {},
+          each(1, 3, { cooldown: 0.85 }),
+        ),
+      },
+    ],
     enables:
       'Builds that want the crowd held where it is: Baggage lays more trail over a crowd that crosses it at half speed, Temper and Grudge get twice as long with everything inside, and an aimed shot through the field arrives late enough to step round.',
     tradesAway:
