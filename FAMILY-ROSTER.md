@@ -19,7 +19,7 @@ Six shapes and the boss's. The consequence strings lift verbatim.
 
 | Reserved | Held by | Consequence |
 |---|---|---|
-| **Windowed envelope** — a landscape envelope with a clear address window low on its face | `bill` | The only envelope in the act (College's invoices are College's), and the only window. A late fee is the same envelope, never a different shape. |
+| **Windowed envelope** — a landscape envelope with a clear address window low on its face | `bill` | The only envelope in the act (College's invoices are College's), and the only address window (the house's windows are its eyes). A late fee is the same envelope, never a different shape. |
 | **Flat box** — a long flat closed carton side-on, one strip of tape down its middle, at twice the width of anything else | `flat-pack` | The only box, the only tape, and the widest thing. |
 | **Sealed letter** — a tri-fold sheet standing open like a tent, a round seal on its top panel | `hoa-letter` | The only seal, and the only thing folded. |
 | **Bib with arms** — a round bib, two short sleeves raised beside it, nothing above | `toddler` | The only thing in the act reaching up, and the smallest mover. |

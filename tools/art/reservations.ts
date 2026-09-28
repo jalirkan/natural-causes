@@ -331,7 +331,7 @@ export const RESERVATIONS: Partial<Record<ActId, ActReservations>> = {
         silhouette: 'windowed envelope',
         heldBy: 'bill',
         consequence:
-          "The only envelope in the act (College's invoices are College's), and the only window. A late fee is the same envelope, never a different shape.",
+          "The only envelope in the act (College's invoices are College's), and the only address window (the house's windows are its eyes). A late fee is the same envelope, never a different shape.",
       },
       {
         silhouette: 'flat box',
