@@ -125,7 +125,7 @@ describe('Growth Spurt: the player radius is a stat', () => {
     expect(tall.gems).toHaveLength(0);
   });
 
-  it('Reflex reaches a target past its base range, and its shot flies further', () => {
+  it('Pointing reaches a target past its base range, and its shot flies further', () => {
     const lash = ITEMS['lash'] as ActiveItem;
     const past = lash.range + 20;
     const base = new World({ act: QUIET, seed: 1, startingItems: ['lash'] });

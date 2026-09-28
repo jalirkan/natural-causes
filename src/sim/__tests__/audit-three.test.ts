@@ -35,7 +35,7 @@ function put(w: World, id: string, x: number, y: number, vx = 0, vy = 0): EnemyS
 }
 
 describe('audit candidates', () => {
-  it('A: Restlessness shortens Grudge’s hit cadence like every other weapon’s cooldown', () => {
+  it('A: Restlessness shortens Mobile’s (grudge) hit cadence like every other weapon’s cooldown', () => {
     const hitsOver = (items: [string, number][]): number => {
       const w = world([]);
       for (const [id, lv] of items) w.items.set(id, lv);

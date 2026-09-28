@@ -175,7 +175,7 @@ describe('the Strongly Worded Letter is a Family weapon that strikes the nearest
     }
   });
 
-  it('draws no dice: sending and landing take nothing from the world’s rng, where Judgement’s pick does', () => {
+  it('draws no dice: sending and landing take nothing from the world’s rng, where Tattle’s pick does', () => {
     const draws = (items: Record<string, number>): number => {
       const w = world(items);
       place(w, 200, 0);

@@ -30,11 +30,11 @@ const grudge = ITEMS['grudge'] as ActiveItem;
 const mode = (m: string) => m as unknown as ActiveItem['mode'];
 
 describe('real items read in classic terms', () => {
-  it('a new Grudge is its damage, its count and its re-hit', () => {
+  it('a new Mobile is its damage, its count and its re-hit', () => {
     expect(statLines('grudge', NEW)).toEqual(['damage 3 · 1 orbiting · re-hits every 0.5s']);
   });
 
-  it('Grudge 2 → 3 is more damage, faster, and one more orbiting', () => {
+  it('Mobile 2 → 3 is more damage, faster, and one more orbiting', () => {
     const line = joined('grudge', at(2));
     expect(line).toContain('+1 orbiting');
     expect(line).toMatch(/damage \+\d+%/);
@@ -44,7 +44,7 @@ describe('real items read in classic terms', () => {
   it('a new weapon of each existing mode', () => {
     expect(statLines('lash', NEW)).toEqual(['damage 2 · every 0.55s · range 420']);
     expect(statLines('motility', NEW)).toEqual(['damage 4 · every 0.9s · pierces all']);
-    expect(statLines('acrosome', NEW)).toEqual(['damage 5 · every 1.4s · radius 96']);
+    expect(statLines('acrosome', NEW)).toEqual(['damage 5 · every 1.4s · radius 96', 'puddle 2.5s · slows to 60%']);
     expect(statLines('wake', NEW)).toEqual(['damage 2 per tick · lasts 2.4s · radius 26']);
     expect(statLines('chemotaxis', NEW)).toEqual(['pulls within 330 · every 5.5s']);
   });
@@ -76,6 +76,54 @@ describe('real items read in classic terms', () => {
     expect(line).toMatch(/cooldown −\d+%/);
     expect(line).not.toContain('damage');
     expect(line).not.toContain('attack speed');
+  });
+});
+
+describe('G-054: the puddle and the cry print what the sim pays', () => {
+  const milk = ITEMS['acrosome'] as ActiveItem;
+  const cry = ITEMS['cry'] as ActiveItem;
+
+  it('a burst with a puddle says how long it lies and what it holds at, from the data', () => {
+    const p = milk.puddle!;
+    expect(p).toBeDefined();
+    const line = joined('acrosome');
+    expect(line).toContain(`puddle ${p.seconds}s`);
+    expect(line).toContain(`slows to ${Math.round(p.slow * 100)}%`);
+    // Tantrum keeps the puddle, and says so beside its push.
+    const tantrum = ITEMS['tantrum'] as ActiveItem;
+    expect(joined('tantrum')).toContain(`puddle ${tantrum.puddle!.seconds}s`);
+    expect(joined('tantrum')).toContain(`pushes ${tantrum.knockback}px`);
+    // A burst with none (a fixture) says nothing about one.
+    const dry: ActiveItem = { ...milk, id: 'test-dry-burst' };
+    delete dry.puddle;
+    register(dry);
+    expect(joined(dry.id)).not.toContain('puddle');
+    expect(joined(dry.id)).not.toContain('slows');
+  });
+
+  it('a new Cry is its ring, its shove, its slow and its cooldown, derived from the data', () => {
+    const line = joined('cry');
+    expect(line).toContain(`radius ${cry.radius}`);
+    expect(line).toContain(`shoves ${cry.knockback}px`);
+    expect(line).toContain(`slows to ${Math.round(cry.slow! * 100)}% for ${cry.slowSeconds}s`);
+    expect(line).toContain(`every ${cry.cooldown}s`);
+    // Pinned, so a placeholder moving in items.ts is seen moving here.
+    expect(statLines('cry', NEW)).toEqual(['radius 260 · shoves 120px', 'slows to 50% for 1.2s · every 12s']);
+    // A control: it has no damage to print and no attack, and it shoves rather than pushes.
+    expect(line).not.toContain('damage');
+    expect(line).not.toContain('pushes');
+    expect(joined('cry', at(1))).toMatch(/cooldown −\d+%/);
+  });
+
+  it('its paths: Louder is the ring, Longer the slow, Again the cooldown', () => {
+    const path = (id: string) => offerIdFor(cry, cry.paths!.find((p) => p.id === id)!);
+    expect(offerTitle(path('louder'))).toBe('Cry · Louder');
+    expect(joined(path('louder'), at(2))).toBe('radius +15%');
+    expect(joined(path('longer'), at(2))).toBe('slow lasts +25%');
+    expect(joined(path('again'), at(2))).toBe('cooldown −15%');
+    // Held, Longer lengthens the slow the card prints, as the sim holds it.
+    const held = heldLines('cry', 1, new Map([[path('longer'), 2]])).join(' · ');
+    expect(held).toContain(`for ${Math.round(cry.slowSeconds! * 1.25 * 1.25 * 100) / 100}s`);
   });
 });
 
@@ -156,18 +204,28 @@ describe('the coming modes, and a mode nobody taught it', () => {
     expect(joined(strike.id, at(2))).toContain('+1 bolt');
   });
 
-  it('a strike’s landings go by its noun: Judgement’s bolts, the letter’s letters (AUDIT 104)', () => {
-    const judgement = ITEMS['judgement'] as ActiveItem;
+  it('a strike’s landings go by its noun: Tattle’s tattles, the letter’s letters, Judgement’s bolts (AUDIT 104)', () => {
+    const tattle = ITEMS['judgement'] as ActiveItem;
     const letter = ITEMS['strongly-worded-letter'] as ActiveItem;
-    expect(judgement.noun).toBeUndefined();
+    expect(tattle.name).toBe('Tattle');
+    expect(tattle.noun).toEqual({ one: 'tattle', many: 'tattles' });
     expect(letter.noun).toEqual({ one: 'letter', many: 'letters' });
     // Level three is a second one on each (items.ts); level five or six a third.
-    expect(judgement.levels[2]!.projectiles).toBe(1);
+    expect(tattle.levels[2]!.projectiles).toBe(1);
     expect(letter.levels[2]!.projectiles).toBe(1);
-    expect(joined('judgement', at(2))).toContain('+1 bolt');
+    expect(joined('judgement', at(2))).toContain('+1 tattle');
+    expect(joined('judgement', at(2))).not.toContain('bolt');
     expect(joined('strongly-worded-letter', at(2))).toContain('+1 letter');
     expect(joined('strongly-worded-letter', at(2))).not.toContain('bolt');
-    expect(heldLines('judgement', 6, new Map()).join(' · ')).toContain('3 bolts');
+    expect(heldLines('judgement', 6, new Map()).join(' · ')).toContain('3 tattles');
+    // The List, Tattle's path of more names, is one more tattle too.
+    const list = tattle.paths!.find((p) => p.id === 'docket')!;
+    expect(joined(offerIdFor(tattle, list), at(tattle.maxLevel))).toContain('+1 tattle');
+    // Its evolution takes the adult word and keeps the bolts (G-054).
+    const judgement = ITEMS['hindsight'] as ActiveItem;
+    expect(judgement.name).toBe('Judgement');
+    expect(judgement.noun).toBeUndefined();
+    expect(heldLines('hindsight', 1, new Map()).join(' · ')).toContain(`${1 + judgement.levels[0]!.projectiles!} bolts`);
     const held = heldLines('strongly-worded-letter', 5, new Map()).join(' · ');
     expect(held).toContain('3 letters');
     expect(held).not.toContain('bolt');

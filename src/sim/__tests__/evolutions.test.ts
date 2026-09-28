@@ -18,8 +18,10 @@ import { World, scalingLevel, type EnemyState } from '../world';
  * G-046: five more evolutions, dealt as Tantrum is — one card alone once the
  * weapon is maxed beside its partner, never rolled, replacing the weapon and
  * the paths taken on it — each with the one mechanic it needed: a fist that
- * shoves (Vendetta), a sweep that is a circle (Reach), a bolt with no warning
- * (Hindsight), a trail that holds (Rut). Jumpiness needed none.
+ * shoves (Grudge, id vendetta), a sweep that is a circle (Backhand, id
+ * reach), a bolt with no warning (Judgement, id hindsight), a trail that
+ * holds (Baggage, id rut). Jumpiness needed none. G-054 gave them the adult
+ * words and their weapons the kid's things; the ids never moved.
  */
 
 /** G-046's table: each evolution, the weapon it replaces, the partner beside it. */
@@ -156,7 +158,7 @@ describe('the five are dealt as Tantrum is (G-046)', () => {
     });
   }
 
-  it('two ready at once are dealt in registry order, one level each: Tantrum, then Vendetta', () => {
+  it('two ready at once are dealt in registry order, one level each: Tantrum, then Grudge (vendetta)', () => {
     const w = new World({ act: CONCEPTION, seed: 1, startingItems: ['lash'] });
     w.items.set('acrosome', weapon('acrosome').maxLevel);
     w.items.set('midpiece', 1);
@@ -176,7 +178,7 @@ describe('the five are dealt as Tantrum is (G-046)', () => {
   });
 });
 
-describe('Vendetta: the fists shove', () => {
+describe('Grudge (vendetta): the fists shove', () => {
   it('pushes an enemy its fist hits straight away from the player', () => {
     const w = world({ vendetta: 1 });
     const def = weapon('vendetta');
@@ -190,7 +192,7 @@ describe('Vendetta: the fists shove', () => {
     expect(Math.atan2(e.y - w.y, e.x - w.x)).toBeCloseTo(angle, 6);
   });
 
-  it('Grudge, which carries no knockback, still never pushes', () => {
+  it('Mobile (grudge), which carries no knockback, still never pushes', () => {
     const w = world({ grudge: 1 });
     const def = weapon('grudge');
     expect(def.knockback).toBeUndefined();
@@ -205,7 +207,7 @@ describe('Vendetta: the fists shove', () => {
 });
 
 describe('Jumpiness: fires at everything, all the time', () => {
-  it('fires more shots a second than a maxed Reflex beside the same Restlessness', () => {
+  it('fires more shots a second than a maxed Pointing beside the same Restlessness', () => {
     const shots = (items: Record<string, number>, source: string): number => {
       const w = world(items);
       for (let k = 0; k < 8; k++) {
@@ -226,7 +228,7 @@ describe('Jumpiness: fires at everything, all the time', () => {
   });
 });
 
-describe('Reach: the arc is a circle', () => {
+describe('Backhand (reach): the arc is a circle', () => {
   it('hits an enemy directly behind the player on its first swing, and beside it', () => {
     const w = world({ reach: 1 });
     expect(w.facingX).toBe(1);
@@ -242,7 +244,7 @@ describe('Reach: the arc is a circle', () => {
   });
 });
 
-describe('Hindsight: no warning', () => {
+describe('Judgement (hindsight): no warning', () => {
   it('lands on the step it is fired: three bolts, no telegraph, each target hurt once', () => {
     const w = world({ hindsight: 1 });
     // Further apart than two radii, so each bolt hurts only the one it picked.
@@ -271,7 +273,7 @@ describe('Hindsight: no warning', () => {
   });
 });
 
-describe('Rut: the trail holds', () => {
+describe('Baggage (rut): the trail holds', () => {
   it('slows an enemy standing on a footprint and still hurts it', () => {
     const w = world({ rut: 1 });
     const x0 = w.x;
@@ -290,7 +292,7 @@ describe('Rut: the trail holds', () => {
 
   it('never holds the player: the trail is laid where they stand, and they walk it at full speed', () => {
     // `slowAt` reads every area with a `slow` for enemies and shots; the
-    // player's own hold (`speed`) skips a damaging trail, or Rut would hold
+    // player's own hold (`speed`) skips a damaging trail, or Baggage would hold
     // its owner for as long as they kept moving.
     const w = world({ rut: 1 });
     for (let i = 0; i < 60; i++) w.step(DT, { moveX: 1, moveY: 0 });
@@ -298,7 +300,7 @@ describe('Rut: the trail holds', () => {
     expect(w.speed / w.baseSpeed).toBeCloseTo(1, 9);
   });
 
-  it("Baggage's footprints still hold nothing", () => {
+  it("Legos' footprints (wake) still hold nothing", () => {
     const w = world({ wake: 1 });
     w.step(DT, still);
     const trail = w.areas.find((a) => a.tick && a.damage > 0);
@@ -337,7 +339,7 @@ describe('the registry holds its evolutions to the rules (content)', () => {
         expect(line, `"${line}"`).not.toMatch(/[0-9%]/);
         expect(line.length, `"${line}"`).toBeLessThan(64);
       }
-      // Tantrum wears Temper's burst, which is drawn; the five wear their own
+      // Tantrum wears Spilt Milk's burst, which is drawn; the five wear their own
       // tags, drawn in a later wave, and say which file retires each.
       if (itemIconFrame(def.icon) in frames) {
         expect(def.iconPending).toBeUndefined();
@@ -373,12 +375,12 @@ describe('the registry holds its evolutions to the rules (content)', () => {
 });
 
 describe('G-047: an evolution is paid at its weapon\'s max level', () => {
-  it('Tantrum at level 1 scales as Temper did at 8', () => {
+  it('Tantrum at level 1 scales as Spilt Milk did at 8', () => {
     expect(scalingLevel(ITEMS['tantrum']!, 1)).toBe(ITEMS['acrosome']!.maxLevel);
     expect(scalingLevel(ITEMS['acrosome']!, 3)).toBe(3);
   });
 
-  it('a dealt Vendetta hits at least as hard per fist as the maxed Grudge it replaced', () => {
+  it('a dealt Grudge (vendetta) hits at least as hard per fist as the maxed Mobile it replaced', () => {
     const before = world({ grudge: 8 });
     const after = world({ vendetta: 1 });
     const hit = (w: World, id: string): number => {

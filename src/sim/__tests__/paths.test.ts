@@ -141,7 +141,7 @@ describe('a path joins the pool when its weapon opens', () => {
 });
 
 describe('a path level is read by the sim', () => {
-  it('Company: one more orbiter per level', () => {
+  it('The Farm (grudge/company): one more orbiter per level', () => {
     const level = PATH_OPENS_AT;
     const plain = holding({ grudge: level });
     const directed = holding({ grudge: level });
@@ -160,7 +160,7 @@ describe('a path level is read by the sim', () => {
     expect(directed.items.get('grudge')).toBe(level);
   });
 
-  it('Spiralling: the orbiters go round faster, by the path’s multiplier per level', () => {
+  it('Lullaby (grudge/spiralling): the orbiters go round faster, by the path’s multiplier per level', () => {
     const spiralling = pathOf('grudge', 'spiralling');
     const angleStep = (levels: number): number => {
       const w = holding({ grudge: PATH_OPENS_AT });

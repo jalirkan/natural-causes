@@ -464,6 +464,17 @@ export interface EnemyState {
    */
   markedUntil?: number;
   markMultiplier?: number;
+  /**
+   * G-054 (Cry): the life clock (`World.time`) until which this enemy moves
+   * at `slowedTo` of its speed, wherever it goes: a cry's edge crossed it and
+   * shoved it, so the hold goes with it rather than staying on the floor. Read
+   * beside the areas' and holds' slows by the one rule they share — the
+   * slowest wins, nothing multiplies (`slowOn`). A later cry replaces it.
+   * Absent on anything never cried at; optional so hand-built states need not
+   * carry them.
+   */
+  slowedUntil?: number;
+  slowedTo?: number;
 }
 
 /** What a mark is written on: an enemy or the boss (College, `markFrom`). */
@@ -589,6 +600,27 @@ export interface RingState {
 }
 
 /**
+ * A cry (G-054): a ring spreading from where the player stood when it went
+ * off. Its radius now is `maxRadius * age / seconds`; it is gone once `age`
+ * reaches `seconds`. Everything its edge crosses is shoved outward and
+ * slowed, once per cry (`updateCries`). Never on `rings`: those are hostile
+ * hazards the bots dodge, and this one is the player's. `source` is the item
+ * that cried, for the renderer.
+ */
+export interface CryState { x: number; y: number; age: number; seconds: number; maxRadius: number; source: string }
+
+/** A cry as the sim runs it: what its edge does, and whom it has already done it to. */
+interface Cry extends CryState {
+  /** Pixels its edge shoves what it crosses, bonuses applied. */
+  shove: number;
+  /** The fraction of speed what it crosses moves at, and for how long. */
+  slow: number;
+  slowSeconds: number;
+  /** Uids its edge has crossed: once per enemy per cry. */
+  crossed: Set<number>;
+}
+
+/**
  * What the certificate says. Set once, when the run ends either way.
  *
  * A run is one life (D-024), so the win is also a death — of natural causes,
@@ -657,6 +689,14 @@ export interface AreaState {
   telegraph?: number;
   /** The item that made this area, where one did and the renderer needs it. Presentation metadata. */
   source?: string;
+  /**
+   * `'player'` on an area an item laid for the crowd and not for its holder:
+   * Spilt Milk's puddle (G-054), put down where the player stands. Its `slow`
+   * holds enemies and shots by the one rule (`slowAt`) and never the player
+   * (`slowAtPlayer` skips it, as it skips a damaging trail). Absent on
+   * Snooze's field, which holds everyone, its holder included.
+   */
+  owner?: 'player';
 }
 
 /**
@@ -1225,6 +1265,8 @@ export class World {
   readonly auras: AuraState[] = [];
   /** Arcs swung in the last SWEEP_SECONDS, for drawing (G-044). Read-only outside the sim. */
   readonly sweeps: SweepState[] = [];
+  /** Cries still spreading (G-054), what the renderer reads as `cries`. */
+  private readonly cryList: Cry[] = [];
   boss: BossState | null = null;
   /**
    * Racers that reached the boss this act (`ActDef.race`). Reset per act.
@@ -1450,17 +1492,24 @@ export class World {
     return this.baseSpeed * (this.engulfTimer > 0 ? this.engulfSlow : 1) * this.slowAtPlayer();
   }
 
+  /** Every cry still spreading (G-054), for drawing. Never `rings`, which are hostile. */
+  get cries(): readonly CryState[] {
+    return this.cryList;
+  }
+
   /**
    * The player's own hold: every field that holds them (Snooze's) but never
    * a damaging trail (Rut's, G-046), which is laid where the player stands
    * and would otherwise hold them for as long as they kept moving. A trail
    * holds what follows; the player walks it at full speed. A meeting holds
-   * them too (OFFICE-ROSTER §3.4), and never walls them in.
+   * them too (OFFICE-ROSTER §3.4), and never walls them in. Nor does an area
+   * an item laid for the crowd (`owner`, Spilt Milk's puddle, G-054): it goes
+   * down under the player every burst, and would hold its holder too.
    */
   private slowAtPlayer(): number {
     let k = 1;
     for (const f of this.areas) {
-      if (f.slow === undefined || f.slow >= k || f.damage > 0) continue;
+      if (f.slow === undefined || f.slow >= k || f.damage > 0 || f.owner === 'player') continue;
       if ((this.x - f.x) ** 2 + (this.y - f.y) ** 2 <= f.radius * f.radius) k = f.slow;
     }
     return this.slowInHolds(this.x, this.y, k);
@@ -1495,6 +1544,15 @@ export class World {
       if ((x - f.x) ** 2 + (y - f.y) ** 2 <= f.radius * f.radius) k = f.slow;
     }
     return this.slowInHolds(x, y, k);
+  }
+
+  /**
+   * `k` (what the floor holds `e` at: `slowAt`), or what a cry left on `e`
+   * while it lasts, if slower (G-054): the slowest wins, as between fields.
+   */
+  private slowOn(e: EnemyState, k: number): number {
+    const to = e.slowedTo;
+    return to !== undefined && to < k && e.slowedUntil !== undefined && this._time < e.slowedUntil ? to : k;
   }
 
   /** `k`, or the slowest hold whose centre-within-radius holds the point, if slower. */
@@ -1682,6 +1740,8 @@ export class World {
     // Aged before firing, so an arc swung this step is drawn from age zero.
     this.updateSweeps(dt);
     this.fireItems(dt);
+    // After firing, so a cry spreads on the step it goes off (G-054).
+    this.updateCries(dt);
     this.moveProjectiles(dt);
     this.updateRings(dt);
     this.updateAreas(dt);
@@ -1942,8 +2002,8 @@ export class World {
       if (e.def.merge) this.solids.push(e);
 
       // Snooze and a meeting hold the walk and nothing else: fuses and
-      // consults keep time.
-      const mdt = this.unheld(fields) ? dt : dt * this.slowAt(e.x, e.y, fields);
+      // consults keep time. So does a cry's slow, carried by the enemy (G-054).
+      const mdt = dt * this.slowOn(e, this.unheld(fields) ? 1 : this.slowAt(e.x, e.y, fields));
       // Where it stood before this step's walk: a reversal below reflects at
       // most this step's travel past the edge, never distance it came in with.
       const fromX = e.x;
@@ -2464,6 +2524,26 @@ export class World {
       case 'nap':
         // Never fired; see `nap`, which resolveContact runs.
         return false;
+      case 'cry': {
+        // G-054: a ring from where the player stands, on its cooldown whether
+        // or not anything is near — a cry does not wait for an audience. Its
+        // edge does the work as it spreads (`updateCries`). Growth Spurt's
+        // reach widens it as it widens a burst; Longer (`duration`) holds
+        // what it crosses longer. No dice.
+        this.cryList.push({
+          x: this.x,
+          y: this.y,
+          age: 0,
+          seconds: def.range,
+          maxRadius: radius * reach,
+          source: def.id,
+          shove: (def.knockback ?? 0) + bonus.knockback,
+          slow: def.slow ?? 1,
+          slowSeconds: (def.slowSeconds ?? 0) * bonus.duration,
+          crossed: new Set(),
+        });
+        return true;
+      }
       case 'sweep': {
         // Backhand (G-044): an arc along the facing, swung on its cooldown
         // whether or not anything is in it — a swat does not wait for a
@@ -2654,6 +2734,38 @@ export class World {
     if (b && (b.x - a.x) ** 2 + (b.y - a.y) ** 2 <= (a.radius + BOSS_RADIUS) ** 2) this.damageBoss(a.damage);
   }
 
+  /**
+   * Cries (G-054): each ring's edge runs from nothing to `maxRadius` over
+   * `seconds`. Every enemy whose body the edge has reached is crossed, once
+   * per cry: shoved `shove` px straight out from where the cry went off, by
+   * the knockback every hit uses (`knockBack`: the arena's and the meetings'
+   * walls hold, a pile or a patrol line is not moved, and the boss is never
+   * in `enemies`), and slowed to `slow` for `slowSeconds` (`slowOn`). Not
+   * what cannot be hurt either (G-018): no knockback has ever reached it. A
+   * hostile shot is untouched. The edge is read at the step's end, so the
+   * last step reaches the full radius before the ring goes.
+   */
+  private updateCries(dt: number): void {
+    for (let i = this.cryList.length - 1; i >= 0; i--) {
+      const c = this.cryList[i]!;
+      c.age += dt;
+      const radius = c.maxRadius * Math.min(1, c.seconds > 0 ? c.age / c.seconds : 1);
+      this.grid.query(c.x, c.y, radius + this.queryPad, this.near);
+      for (const e of this.near) {
+        if (e.def.invulnerable || e.hp <= 0 || c.crossed.has(e.uid)) continue;
+        const r = radius + e.radius;
+        if ((e.x - c.x) ** 2 + (e.y - c.y) ** 2 > r * r) continue;
+        c.crossed.add(e.uid);
+        if (c.shove > 0) this.knockBack(e, c.shove, c.x, c.y);
+        if (c.slow < 1 && c.slowSeconds > 0) {
+          e.slowedTo = c.slow;
+          e.slowedUntil = this._time + c.slowSeconds;
+        }
+      }
+      if (c.age >= c.seconds) swapRemove(this.cryList, i);
+    }
+  }
+
   /** Sweeps are drawn for SWEEP_SECONDS after they swing, then dropped. */
   private updateSweeps(dt: number): void {
     for (let i = this.sweeps.length - 1; i >= 0; i--) {
@@ -2749,6 +2861,26 @@ export class World {
     const knockback = (def.knockback ?? 0) + bonus.knockback;
     if (knockback > 0) area.knockback = knockback;
     this.areas.push(area);
+    // G-054 (Spilt Milk, Tantrum): the puddle it leaves. Snooze's shape — no
+    // damage, no pull, a `slow` that `slowAt` reads, so a crowd in two
+    // puddles is held once — owned by the player, so it never holds them.
+    const puddle = def.puddle;
+    if (puddle) {
+      this.areas.push({
+        x: this.x,
+        y: this.y,
+        age: 0,
+        seconds: puddle.seconds * bonus.duration,
+        radius: area.radius * puddle.radius,
+        damage: 0,
+        pull: false,
+        slow: puddle.slow,
+        tick: true,
+        serial: this.nextSerial++,
+        source: def.id,
+        owner: 'player',
+      });
+    }
   }
 
   /**
@@ -3076,14 +3208,15 @@ export class World {
   }
 
   /**
-   * Pushes an enemy straight away from the player, held inside the arena. The
-   * boss is never in `enemies`, so it is never pushed.
+   * Pushes an enemy straight away from the player — or from (`fromX`,
+   * `fromY`), where a cry went off (G-054) — held inside the arena. The boss
+   * is never in `enemies`, so it is never pushed.
    */
-  private knockBack(e: EnemyState, distance: number): void {
+  private knockBack(e: EnemyState, distance: number, fromX = this.x, fromY = this.y): void {
     // The crowd, not the room (AUDIT 33; 28's rule for the pull).
     if (e.def.merge === true || e.def.patrol === true) return;
-    const dx = e.x - this.x;
-    const dy = e.y - this.y;
+    const dx = e.x - fromX;
+    const dy = e.y - fromY;
     const d = Math.hypot(dx, dy);
     // Standing exactly on the player: any consistent direction will do.
     const nx = d < 0.001 ? 1 : dx / d;
@@ -3094,8 +3227,8 @@ export class World {
     // another without merging, since piles merge only on arrival.
     if (e.def.merge) return;
     const inside = e.x >= 0 && e.x <= ARENA_WIDTH && e.y >= 0 && e.y <= ARENA_HEIGHT;
-    const fromX = e.x;
-    const fromY = e.y;
+    const wasX = e.x;
+    const wasY = e.y;
     e.x += nx * distance;
     e.y += ny * distance;
     if (inside) {
@@ -3103,7 +3236,7 @@ export class World {
       e.y = clamp(e.y, 0, ARENA_HEIGHT);
     }
     // A meeting's edge holds against a shove as against the walk.
-    if (this.holds.length > 0) this.wallHolds(e, fromX, fromY);
+    if (this.holds.length > 0) this.wallHolds(e, wasX, wasY);
   }
 
   private updateGems(dt: number): void {
@@ -3754,6 +3887,7 @@ export class World {
     this.auraBossHits.clear();
     this.auras.length = 0;
     this.sweeps.length = 0;
+    this.cryList.length = 0;
     this.enemies.length = 0;
     this.projectiles.length = 0;
     this.rings.length = 0;
