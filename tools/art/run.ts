@@ -43,7 +43,10 @@ function describeVerdict(v: ReservationVerdict): string {
     case 'unlisted':
       return `REFUSED — not on act "${v.act}"'s reserved list (G-011)`;
     case 'icon':
-      return 'card-surface icon — never on the field, outside the act vocabulary (G-035)';
+      return v.fieldRiding
+        ? `card icon that also rides the field (G-036) — outside the act vocabulary; ` +
+            `keeps off ${v.keepsOff.join(', ')} (law 10)`
+        : 'card-surface icon — never on the field, outside the act vocabulary (G-035)';
   }
 }
 
@@ -114,7 +117,7 @@ async function cmdBatch(argv: string[]): Promise<number> {
         }
       }
 
-      const verdict = reservationVerdict(spec.act, spec.id, spec.role);
+      const verdict = reservationVerdict(spec.act, spec.id, spec.role, spec.fieldRiding === true);
       // An asset missing from a list its act HAS is this repository
       // contradicting itself, and it fails here exactly as it would fail at
       // generation. An act with no list at all is a document nobody has
