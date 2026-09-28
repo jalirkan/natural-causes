@@ -185,7 +185,11 @@ describe('the five (§3)', () => {
       if (def.id !== 'reply-all') expect(def.split, def.id).toBeUndefined();
       if (def.id !== 'ping') expect(def.attach?.cooldownMultiplier, def.id).toBeUndefined();
       if (def.id !== 'meeting') {
-        expect(def.hold, def.id).toBeUndefined();
+        // The meeting's alone until Decline: the stairs are its hold in a form
+        // that never adjourns (DECLINE-ROSTER §3.4, decline-act.test.ts pins
+        // it there), landing at the lead — nothing but the meeting is called
+        // on the player.
+        if (def.id !== 'stairs') expect(def.hold, def.id).toBeUndefined();
         expect(def.spawnAt, def.id).not.toBe('player');
       }
       if (def.id !== 'performance-review') expect(def.ranged?.xpLoss, def.id).toBeUndefined();

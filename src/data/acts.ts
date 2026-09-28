@@ -181,8 +181,38 @@ export interface MortgageBoss {
   shieldHint?: never;
 }
 
+/**
+ * Time (DECLINE-ROSTER §4): a clock face where the boss spawns, and the only
+ * boss in the life with no health — only a clock. It never moves, never
+ * shields, is never raced for and never restructures, and it cannot be hurt:
+ * the gate every damage path goes through (`bossTakes`) accepts nothing from
+ * it, ever, so no bar moves for it. Its bar is `seconds`, counting down from
+ * its arrival (`BossState.secondsLeft`); when they run out the hands stop and
+ * the life ends WON — the act's `endWord` first, then natural causes at the
+ * act's `age.to`. Surviving it is the win, and you die anyway.
+ *
+ * Its minute hand is a sweep `sweepLength` px from its centre and
+ * `sweepWidth` wide, turning clockwise once every `sweepSeconds` from its
+ * arrival, touching for the Egg's shot damage; at every quarter turn one of
+ * the act's knees lands at the player's lead. NOT BUILT YET: the hand and
+ * the knees are the next pass's, and until then the sim reads `seconds`
+ * alone. Every number is a placeholder.
+ */
+export interface TimeBoss {
+  kind: 'time';
+  /** Seconds from its arrival until the life ends, won. */
+  seconds: number;
+  /** Seconds for one turn of the minute hand. Not read yet. */
+  sweepSeconds: number;
+  /** Pixels from the boss's centre to the hand's tip. Not read yet. */
+  sweepLength: number;
+  /** Pixels across the hand. Not read yet. */
+  sweepWidth: number;
+  shieldHint?: never;
+}
+
 /** Which boss an act fights. world.ts branches on `kind`. */
-export type BossDef = EggBoss | GymTeacherBoss | PromBoss | LoanBoss | ReorgBoss | MortgageBoss;
+export type BossDef = EggBoss | GymTeacherBoss | PromBoss | LoanBoss | ReorgBoss | MortgageBoss | TimeBoss;
 
 /**
  * Seconds between the Gym Teacher's whistles at this share of his health: the
@@ -551,6 +581,52 @@ export const FAMILY: ActDef = {
   ],
 };
 
+export const DECLINE: ActDef = {
+  id: 'decline',
+  name: 'Decline',
+  // The clock keeps shrinking: 300, 300, 240, 210, 180, 150, 120 (the
+  // roster's header) — twenty-nine years in two minutes, and the game never
+  // says so, until here, where the boss is a clock.
+  durationSeconds: 120,
+  bossName: 'Time',
+  // DECLINE-ROSTER §4: no health, only `seconds`; the life ends won when they
+  // run out. The hand (`sweepSeconds`, `sweepLength`, `sweepWidth`) and the
+  // knee at each quarter turn are declared and not built yet. Every number is
+  // a PLACEHOLDER under `provisional`.
+  boss: { kind: 'time', seconds: 60, sweepSeconds: 12, sweepLength: 520, sweepWidth: 40 },
+  // The hands stop, and the life ends on one word.
+  endWord: 'EVENTUALLY',
+  age: { from: 55, to: 84 },
+  // No race: nobody else wants the time.
+  provisional:
+    "Every rate, time and enemy number here, the medication's heal on a kill (`killHeal`, 2 health, never past the maximum), the form's decision (`ranged.maxHpLoss`, 0.05 of the current maximum a landing shot, for the rest of the act, never below MAX_HP_FLOOR, a fifth of the act's opening maximum, in world.ts), the knees' drag (`attach.drag` 0.03, the antibody's, persisting), the stairs' hold that never adjourns (`hold`: 130px, `seconds` 0, held 600s, at 0.45 speed), and all of Time's numbers (`boss.seconds` 60 to survive it, `sweepSeconds` 12 a turn, `sweepLength` 520, `sweepWidth` 40, a knee each quarter turn, the Egg's shot damage on the hand) were written as placeholders before anyone played the act (DECLINE-ROSTER §3.6 and §4), and Time's hand and its knee spawns are not built yet, so today it only counts down; a person playing it at the link is what moves them (D-022).",
+  // DECLINE-ROSTER.md §3.6, transcribed. The ORDER is the design and is under
+  // test (decline-act.test.ts): age runs 55 to 84, a year about every four
+  // seconds. Medications from 0s, the first prescription; the knees' stream
+  // at 15s (59); the stairs' at 30s (62); the weather's at 45s (66), then
+  // about one every half minute; the form's at 60s (70). Nothing new after
+  // 60s; the last sixty seconds are escalation, then Time.
+  //
+  // The rates are placeholders, and they are streams, not arrivals (AUDIT
+  // 44): a stream that opens at t with rate r first delivers when its
+  // accumulator fills, at t + 1/r — the stairs' at 30s and 0.03 first land
+  // at about 63s, the weather's at about 74s, the form's at 80s. Medications
+  // chase and are never culled, the knees, the stairs and the forms are
+  // static, and the weather crosses and leaves; medications are the density,
+  // and the only density in the life that heals.
+  waves: [
+    { fromSeconds: 0, enemyId: 'medication', rate: 0.7 },
+    { fromSeconds: 15, enemyId: 'your-knees', rate: 0.12 },
+    { fromSeconds: 30, enemyId: 'stairs', rate: 0.03 },
+    { fromSeconds: 45, enemyId: 'weather', rate: 0.034 },
+    { fromSeconds: 45, enemyId: 'medication', rate: 1.1 },
+    { fromSeconds: 60, enemyId: 'insurance-form', rate: 0.05 },
+    { fromSeconds: 80, enemyId: 'medication', rate: 1.6 },
+    { fromSeconds: 80, enemyId: 'your-knees', rate: 0.25 },
+    { fromSeconds: 100, enemyId: 'insurance-form', rate: 0.1 },
+  ],
+};
+
 /**
  * Every act with a schedule, in life order. The content rules iterate THIS
  * list, so an act cannot escape them by not being startable yet (the
@@ -562,7 +638,7 @@ export const FAMILY: ActDef = {
  * `ACTS`, the prefix whose art exists, so the life gets longer as acts become
  * startable and nothing about the sim changes when one does.
  */
-export const ALL_ACTS: ActDef[] = [CONCEPTION, SCHOOL, ADOLESCENCE, COLLEGE, OFFICE, FAMILY];
+export const ALL_ACTS: ActDef[] = [CONCEPTION, SCHOOL, ADOLESCENCE, COLLEGE, OFFICE, FAMILY, DECLINE];
 
 /**
  * The life the browser plays, in order: the prefix of `ALL_ACTS` with an
@@ -572,7 +648,8 @@ export const ALL_ACTS: ActDef[] = [CONCEPTION, SCHOOL, ADOLESCENCE, COLLEGE, OFF
  * its seven drawings were packed (G-045); The Office joined when its seven
  * were (G-048); Family joined when its atlas, `player-family` and
  * `boss-mortgage` were packed (FAMILY-ROSTER §5), so the browser's life now
- * ends at fifty-five. A test asserts this list and `ACT_VISUALS` agree, so
+ * ends at fifty-five. Decline is in `ALL_ACTS` and not here until its atlas,
+ * `player-decline` and `boss-time` exist (DECLINE-ROSTER §5). A test asserts this list and `ACT_VISUALS` agree, so
  * moving an act in is a one-line change that fails loudly if the art is not
  * there.
  */

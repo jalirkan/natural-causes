@@ -151,12 +151,21 @@ export interface RunResult {
   /** Realised mean speed across the crowd phase. Endogenous: stacks lower it. */
   meanSpeed: number;
   /**
-   * How much of the boss was left when the run ended. Null if it never spawned.
+   * How much of the boss was left when the run ended. Null if it never spawned,
+   * and null for Time, which has no health to leave (`bossSecondsLeft`).
    * For The Loan it is the balance, which opens at 1/cap and fills (AUDIT 41);
    * the report names the column for it.
    */
   bossHpLeft: number | null;
   bossHpFraction: number | null;
+  /**
+   * Time (DECLINE-ROSTER §4): seconds still on its clock when the run ended
+   * (`boss.secondsLeft`) — 0 for a life it ended won. Null when the run did
+   * not end at Time. The bots cannot hurt it and its health never moves, so
+   * this is its column, never hp/maxHp. Optional so a result written before
+   * the field existed still reads.
+   */
+  bossSecondsLeft?: number | null;
   /**
    * The Mortgage (FAMILY-ROSTER §4): instalments still owed when the run
    * ended — `instalments` less the windows paid (`boss.paid`). Null when the
@@ -958,6 +967,17 @@ export function instalmentsLeft(w: Pick<World, 'boss' | 'act'>): number | null {
   return Math.max(0, def.instalments - paid);
 }
 
+/**
+ * What is left on Time's clock, if the run is at Time: `boss.secondsLeft`,
+ * to a tenth. Null for any other boss and for no boss. Presence, not
+ * calibration: the bots cannot hurt it, and their job is to live.
+ */
+export function timeLeft(w: Pick<World, 'boss' | 'act'>): number | null {
+  const b = w.boss;
+  if (!b || w.act.boss.kind !== 'time') return null;
+  return +Math.max(0, b.secondsLeft).toFixed(1);
+}
+
 export function runOnce(
   policy: BotPolicy,
   seed: number,
@@ -1074,9 +1094,12 @@ export function runOnce(
     actId: world.act.id,
     age: +world.age.toFixed(1),
     cause: world.certificate?.cause ?? null,
-    bossHpLeft: world.boss ? Math.round(world.boss.hp) : null,
-    bossHpFraction: world.boss ? +(world.boss.hp / world.boss.maxHp).toFixed(3) : null,
+    // Time has no health to leave: its figure is its clock (`bossSecondsLeft`).
+    bossHpLeft: world.boss && world.boss.kind !== 'time' ? Math.round(world.boss.hp) : null,
+    bossHpFraction:
+      world.boss && world.boss.kind !== 'time' ? +(world.boss.hp / world.boss.maxHp).toFixed(3) : null,
     bossInstalmentsLeft: instalmentsLeft(world),
+    bossSecondsLeft: timeLeft(world),
     seconds: +world.time.toFixed(1),
     kills: world.kills,
     level: world.level,
@@ -1219,6 +1242,8 @@ export interface PolicySummary {
    * keeping count (`bossInstalmentsLeft`); null if none did.
    */
   medianInstalmentsLeft: number | null;
+  /** Median seconds left on Time's clock, over the runs that ended at Time; null if none did. */
+  medianSecondsLeft: number | null;
   reachedBoss: number;
   /** The life: median age at the end, and how many runs ended in each act. */
   medianAge: number;
@@ -1286,7 +1311,7 @@ export function summarise(results: RunResult[]): PolicySummary[] {
       medianHpFractionAt300: median(runs.filter((r) => r.reached300).map((r) => r.hpFractionAt300)),
       medianKillsAt300: median(runs.filter((r) => r.reached300).map((r) => r.killsAt300)),
       medianEnemiesAt300: median(runs.filter((r) => r.reached300).map((r) => r.enemiesAt300)),
-      reachedBoss: runs.filter((r) => r.bossHpFraction !== null).length,
+      reachedBoss: runs.filter((r) => r.bossHpFraction !== null || r.bossSecondsLeft != null).length,
       medianBossLeft: (() => {
         const reached = runs.filter((r) => r.bossHpFraction !== null);
         return reached.length ? median(reached.map((r) => r.bossHpFraction!)) : null;
@@ -1294,6 +1319,10 @@ export function summarise(results: RunResult[]): PolicySummary[] {
       medianInstalmentsLeft: (() => {
         const owed = runs.flatMap((r) => (r.bossInstalmentsLeft == null ? [] : [r.bossInstalmentsLeft]));
         return owed.length ? median(owed) : null;
+      })(),
+      medianSecondsLeft: (() => {
+        const left = runs.flatMap((r) => (r.bossSecondsLeft == null ? [] : [r.bossSecondsLeft]));
+        return left.length ? median(left) : null;
       })(),
       medianAge: median(runs.map((r) => r.age)),
       endedIn: runs.reduce<Record<string, number>>((acc, r) => {

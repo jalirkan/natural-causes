@@ -69,9 +69,10 @@ const doc = <C>(d: DocumentDef<C>): DocumentDef<C> => d;
 
 /**
  * One document per act id: the only list of them (CONCEPTION-ROSTER §5.3).
- * Decline has none yet (its act does not exist); the obituary is the death
- * certificate, which `certificate.ts` already is. A paper is handed over at a
- * crossing, so the last act in the life hands its paper to nobody: The
+ * Decline has none, and is not owed one: its paper is the death certificate
+ * (DECLINE-ROSTER §4, G-049), which `certificate.ts` already is. A paper is
+ * handed over at a crossing, so the last act in the life hands its paper to
+ * nobody: The
  * Office's is seen once Family follows it in `ACTS`, and Family's only once
  * an act follows Family (AUDIT seven, 52's shape).
  */

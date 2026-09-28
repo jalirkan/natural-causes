@@ -128,8 +128,17 @@ const owedColumn = owedRuns > 0 && owedRuns === bossRuns;
 const mortgage = acts.map((a) => a.boss).find((b) => b.kind === 'mortgage');
 const owedOf = mortgage?.kind === 'mortgage' ? `/${mortgage.instalments}` : '';
 const OWED_HEADER = 'instalments left';
+// DECLINE-ROSTER §4: Time has no health, only a clock, and the bots cannot
+// hurt it, so its runs carry no boss-left share at all (null, never hp/maxHp)
+// and `bossSecondsLeft` instead. Where every run that reached a boss ended at
+// Time, the column is the seconds still on its clock: 0 is a life it ended.
+const timeRuns = results.filter((r) => r.bossSecondsLeft != null).length;
+const secondsColumn = timeRuns > 0 && bossRuns === 0;
+const SECONDS_HEADER = 'seconds left';
 out.push(
-  `policy                 runs   win rate (95% CI)      median s   kills   lvl   ${owedColumn ? OWED_HEADER : bossColumn}`,
+  `policy                 runs   win rate (95% CI)      median s   kills   lvl   ${
+    owedColumn ? OWED_HEADER : secondsColumn ? SECONDS_HEADER : bossColumn
+  }`,
 );
 out.push('-'.repeat(84));
 for (const s of summarise(results)) {
@@ -145,7 +154,15 @@ for (const s of summarise(results)) {
       `${String(s.medianKills).padStart(5)}   ${String(s.medianLevel).padStart(3)}   ` +
       (owedColumn
         ? owed.padStart(OWED_HEADER.length)
-        : `${s.medianBossLeft === null ? '     -' : pct(s.medianBossLeft).padStart(6)}`),
+        : secondsColumn
+          ? (s.medianSecondsLeft === null ? '-' : s.medianSecondsLeft.toFixed(1)).padStart(SECONDS_HEADER.length)
+          : `${s.medianBossLeft === null ? '     -' : pct(s.medianBossLeft).padStart(6)}`),
+  );
+}
+if (timeRuns > 0 && !secondsColumn) {
+  out.push(
+    `‡ ${timeRuns} runs ended at Time, which has no health: not in this column; ` +
+      'the seconds left on its clock are in latest.json (bossSecondsLeft)',
   );
 }
 if (bossColumn.endsWith('*')) {
@@ -296,7 +313,7 @@ for (const s of summarise(results)) {
       `${String(s.reached300).padStart(8)}`,
   );
 }
-out.push('  stacks: every one worn, of every kind — the drag’s, tuition’s invoices, the pings, the HOA letters');
+out.push('  stacks: every one worn, of every kind — the drag’s, tuition’s invoices, the pings, the HOA letters, your knees');
 // FAMILY-ROSTER §3.4: an act that fields a `coy` enemy says how the bots meet
 // it, because nothing else in the report does, and the steering is the bot's.
 const coyIds = [...new Set(acts.flatMap((a) => [...spawnStreams(a.waves).keys()]))].filter((id) => ENEMIES[id]?.coy);

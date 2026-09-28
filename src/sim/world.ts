@@ -230,6 +230,21 @@ export const REORG_RELOCATE_TRIES = 8;
 export const MORTGAGE_DOOR_BELOW = ((0.8 - 0.68) * BOSS_RADIUS) / 0.3;
 
 /**
+ * The floor under the insurance form's decisions (DECLINE-ROSTER §3.5,
+ * `ranged.maxHpLoss`), as a share of the act's opening maximum health
+ * (`World.openingMaxHp`, captured at the act's start): a landing decision
+ * takes `maxHpLoss` of the maximum as it stands, and never takes it below
+ * this share of what it was when the act began. At the floor a decision
+ * takes nothing more. Read as `World.maxHpFloor`.
+ *
+ * PLACEHOLDER, a fifth — §3.5's own "a fifth of the act's opening maximum",
+ * under `DECLINE.provisional`. Nobody has played it. It exists so the form
+ * cannot decide the player out of existence without landing a hit; a person
+ * who feels the ceiling come down at the link is what moves it.
+ */
+export const MAX_HP_FLOOR = 1 / 5;
+
+/**
  * How long ago "recently" is, for an enemy that lands where the player has
  * been (`spawnAt: 'trail'` — homework, SCHOOL-ROSTER §3.3).
  *
@@ -626,7 +641,9 @@ export interface BossState {
   /**
    * For the Loan, the balance: it opens at 1/`cap` of `maxHp` and compounds
    * toward it, so a bar drawn as hp/maxHp starts part full and fills — the
-   * filling is the fight. For every other kind, health left.
+   * filling is the fight. For Time, inert: BOSS_HP from its arrival to its
+   * end, because nothing is accepted from anything (`bossTakes`); its bar is
+   * `secondsLeft`. For every other kind, health left.
    */
   hp: number;
   /** For the Loan, the cap: `cap` × the opening balance, where it forecloses. */
@@ -639,10 +656,12 @@ export interface BossState {
    * for the Reorg it is the memo drafted and `attack` begins on the memo, and
    * a restructure sets it back to `idle`; for the Mortgage it is the
    * statement drafted and `attack` begins on its one shot (DUE). The
-   * Mortgage's window clock (`windowTimer`) runs beside it, not in it.
+   * Mortgage's window clock (`windowTimer`) runs beside it, not in it. Time
+   * stays `idle` until its clock (`secondsLeft`) runs out.
    * The exit, for every kind, is `absorbing`: the word is the Egg's, and it
    * means the outcome has latched (G-033) and `finishAct` follows the timer —
-   * the Gym Teacher's stopwatch click and `ActDef.endWord` play in it.
+   * the Gym Teacher's stopwatch click and `ActDef.endWord` play in it. Time
+   * reaches it by running out, not by falling (`timePhase`).
    */
   phase: 'idle' | 'telegraph' | 'attack' | 'absorbing';
   /** Seconds left in the current phase. */
@@ -652,7 +671,10 @@ export interface BossState {
    * `enemyId` alive on the field (§9); Prom with the player farther than its
    * `floorRadius` from the ball (ADOLESCENCE-ROSTER §4). Always false for the
    * Egg, the Loan, the Reorg and the Mortgage. Plain state for the renderer and the bots;
-   * the sim reads the field and the player itself.
+   * the sim reads the field and the player itself. Always false for Time too:
+   * a shield is a thing that opens, and nothing opens Time — it is not
+   * shielded, it is untouchable (`bossTakes`), and nothing reads it as a
+   * shield to be got round.
    */
   shielded: boolean;
   /**
@@ -701,6 +723,14 @@ export interface BossState {
    * every other kind.
    */
   accepted: number;
+  /**
+   * Time's clock (DECLINE-ROSTER §4): seconds until the life ends, won,
+   * counting down from `TimeBoss.seconds` at its arrival and held at 0 once
+   * it gets there, the step the outcome latches (`timePhase`). Its bar: the
+   * renderer and the bots read this, never `hp`, which Time's gate never
+   * moves (hp and maxHp stay BOSS_HP, inert). Zero for every other kind.
+   */
+  secondsLeft: number;
 }
 
 export interface Input {
@@ -916,6 +946,20 @@ export class World {
    */
   private movedX = 0;
   private movedY = 0;
+  /**
+   * The insurance form's decisions this act (DECLINE-ROSTER §3.5,
+   * `ranged.maxHpLoss`): the share of the maximum health the items give that
+   * is left, the product of (1 − maxHpLoss) over every decision that landed,
+   * held at the floor (`maxHpFloor`). 1 until one lands, and back to 1 at
+   * every crossing: "for the rest of the act". Read through `maxHp`.
+   */
+  private maxHpShare = 1;
+  /**
+   * The maximum health the items gave when this act began, before any
+   * decision: what MAX_HP_FLOOR is a share of. Set by the constructor and by
+   * `beginAct`, and read through `openingMaxHp`.
+   */
+  private actOpeningMaxHp = PLAYER_BASE_HP;
 
   /**
    * Set to the middle of the arena by the constructor.
@@ -1046,6 +1090,7 @@ export class World {
     this.x = ARENA_WIDTH / 2;
     this.y = ARENA_HEIGHT / 2;
     for (const id of options.startingItems ?? ['lash']) this.items.set(id, 1);
+    this.actOpeningMaxHp = this.itemMaxHp;
   }
 
   /** The act that is playing. */
@@ -1114,8 +1159,40 @@ export class World {
     return out;
   }
 
+  /**
+   * The ceiling on health: what the items give (`itemMaxHp`), less what the
+   * insurance form has decided this act (DECLINE-ROSTER §3.5) — each landing
+   * decision took `maxHpLoss` of it as it stood — and never below the floor
+   * (`maxHpFloor`) nor above what the items give. Every reader of the
+   * maximum reads this: the HUD's bar, the pause sheet's `health`, a heal,
+   * the crossing's refill. Exactly `itemMaxHp` in every act nothing decides.
+   */
   get maxHp(): number {
+    const full = this.itemMaxHp;
+    if (this.maxHpShare >= 1) return full;
+    return Math.min(full, Math.max(full * this.maxHpShare, this.maxHpFloor));
+  }
+
+  /** The maximum health the items give, before any decision (Thick Skin's line). */
+  private get itemMaxHp(): number {
     return PLAYER_BASE_HP * this.passiveProduct((d) => d.healthMultiplier);
+  }
+
+  /**
+   * The maximum health this act began with, before any decision: the length a
+   * HUD can draw the maximum's bar against, so a shrinking maximum shows as a
+   * shrinking bar rather than as a full one (DECLINE-ROSTER §5). Read-only.
+   */
+  get openingMaxHp(): number {
+    return this.actOpeningMaxHp;
+  }
+
+  /**
+   * Where the insurance form's decisions stop (MAX_HP_FLOOR of the act's
+   * opening maximum), in health. Read-only; the HUD can mark it.
+   */
+  get maxHpFloor(): number {
+    return MAX_HP_FLOOR * this.actOpeningMaxHp;
   }
 
   /**
@@ -1627,7 +1704,11 @@ export class World {
     // the Reorg's threshold) gets a hold and nothing else. No dice drawn.
     if (def.hold) {
       const { from, to, seconds, holdSeconds, slow } = def.hold;
-      this.holds.push({ x, y, radius: from, from, to, seconds, holdSeconds, age: 0, slow, source: def.id });
+      // A hold with no contraction (the stairs, DECLINE-ROSTER §3.4:
+      // `seconds` 0) is at `to` from the step it lands, before its first
+      // `updateHolds` — the walk that walls this step reads the radius here.
+      const radius = seconds > 0 ? from : to;
+      this.holds.push({ x, y, radius, from, to, seconds, holdSeconds, age: 0, slow, source: def.id });
       return null;
     }
     const e: EnemyState = {
@@ -1925,10 +2006,14 @@ export class World {
     }
   }
 
-  /** The boss as a seeking target, if it exists and is in range of its edge. */
+  /**
+   * The boss as a seeking target, if it exists and is in range of its edge.
+   * Never Time (DECLINE-ROSTER §4): nothing hurts it, and a weapon does not
+   * aim at what it cannot hurt (AUDIT part three, 22; `nearestEnemies`).
+   */
   private bossAsTarget(within: number): { x: number; y: number } | null {
     const b = this.boss;
-    if (!b || b.phase === 'absorbing') return null;
+    if (!b || b.phase === 'absorbing' || b.kind === 'time') return null;
     const d = Math.hypot(b.x - this.x, b.y - this.y);
     return d - BOSS_RADIUS <= within ? { x: b.x, y: b.y } : null;
   }
@@ -2444,9 +2529,15 @@ export class World {
    * hair short of it. It never latches here, even at zero: whether the
    * window was paid, and whether that was the last, is `mortgagePhase`'s,
    * at the window's end — so the fight lasts every window of the schedule.
+   *
+   * Time (DECLINE-ROSTER §4): accepts nothing, ever. Every path above reaches
+   * it and does nothing — a shot is spent on the clock as on a shield, an
+   * area, an orbiter, an aura, a sweep or a strike leave no mark — and its
+   * health never moves. Its fight ends on its clock (`timePhase`), never here.
    */
   private bossTakes(b: BossState, amount: number): boolean {
     const boss = this.act.boss;
+    if (boss.kind === 'time') return false;
     if (boss.kind === 'mortgage') {
       const instalment = b.maxHp / boss.instalments;
       const owed = instalment - b.accepted;
@@ -2618,6 +2709,7 @@ export class World {
         continue;
       }
       const was = h.radius;
+      // `seconds` 0 (the stairs, DECLINE-ROSTER §3.4) divides by nothing: at `to`.
       const t = h.seconds > 0 ? Math.min(1, h.age / h.seconds) : 1;
       h.radius = h.from + (h.to - h.from) * t;
       if (h.radius !== was) this.moveHoldEdge(h, was);
@@ -2863,6 +2955,13 @@ export class World {
       // any children are pushed past it and are alive, so none is reaped here.
       swapRemove(this.enemies, i);
       this.kills++;
+      // The medication (DECLINE-ROSTER §3.1): taking it is killing it. Never
+      // past the maximum, never lowering a health already at it, and nothing
+      // once the outcome has latched. No dice.
+      const heal = e.def.killHeal;
+      if (heal !== undefined && heal > 0 && !this.outcomeDecided && this.hp < this.maxHp) {
+        this.hp = Math.min(this.maxHp, this.hp + heal);
+      }
       const split = e.def.split;
       const generation = e.generation ?? 0;
       if (split && generation < split.generations - 1) this.splitFrom(e, split, generation + 1);
@@ -2988,6 +3087,11 @@ export class World {
       // a level already reached is never taken back.
       const xpLoss = p.owner?.ranged?.xpLoss;
       if (xpLoss !== undefined) this.xp = Math.max(0, this.xp - xpLoss * this.xpToNext);
+      // The insurance form's decision (DECLINE-ROSTER §3.5): after the damage,
+      // the maximum loses `maxHpLoss` of what it is now, for the rest of the
+      // act, never below the floor. Not on a body the decision just killed.
+      const maxHpLoss = p.owner?.ranged?.maxHpLoss;
+      if (maxHpLoss !== undefined && !this.dead) this.decide(maxHpLoss);
       // The registrar's hold (COLLEGE-ROSTER §3.5): the monitor's stop, by
       // post, and its i-frames run from the END of the stop for the reason the
       // contact branch above gives (AUDIT part three, 18).
@@ -3053,6 +3157,22 @@ export class World {
     this.x += nx * reach;
     this.y += ny * reach;
     this.clampPlayer();
+  }
+
+  /**
+   * One landing decision (DECLINE-ROSTER §3.5, `ranged.maxHpLoss`): the
+   * maximum health is multiplied by (1 − `share`) and current health held
+   * inside it, never below `maxHpFloor` — at the floor it takes nothing more.
+   * Stored as a share of what the items give (`maxHpShare`), so a Thick Skin
+   * taken after a decision raises the maximum by its own multiplier and the
+   * decision still stands. Never raises health. No dice.
+   */
+  private decide(share: number): void {
+    const full = this.itemMaxHp;
+    if (!(full > 0) || !(share > 0)) return;
+    const floor = Math.min(1, this.maxHpFloor / full);
+    this.maxHpShare = Math.max(floor, this.maxHpShare * (1 - share));
+    if (this.hp > this.maxHp) this.hp = this.maxHp;
   }
 
   /**
@@ -3238,8 +3358,9 @@ export class World {
   // --- the life ---------------------------------------------------------
 
   /**
-   * The boss is down and its exit has played. Either the next act begins or,
-   * after the last one, the player dies of natural causes and that is the win.
+   * The boss is down, or Time has run out (`timePhase`), and its exit has
+   * played. Either the next act begins or, after the last one, the player
+   * dies of natural causes and that is the win.
    */
   private finishAct(): void {
     if (this.actIndex + 1 < this.life.length) {
@@ -3327,6 +3448,11 @@ export class World {
     this.stunTimer = 0;
     if (!this.inheritance) this.inherit();
     this.takeUnaskedLevels();
+    // The form's decisions are "for the rest of the act" (DECLINE-ROSTER
+    // §3.5): off at the door, and the floor re-read from the maximum the next
+    // act opens with, after the unasked levels (a Thick Skin among them).
+    this.maxHpShare = 1;
+    this.actOpeningMaxHp = this.itemMaxHp;
     this.hp = this.maxHp;
     // Levels earned from that XP, and any owed from the absorb (AUDIT 29),
     // are offered before the new act's first step, exactly as a mid-act
@@ -3557,6 +3683,7 @@ export class World {
       paid: 0,
       windowTimer: 0,
       accepted: 0,
+      secondsLeft: 0,
     };
     // The Loan opens at what the player carried in (COLLEGE-ROSTER §4): a
     // tenth more per invoice worn, and its cap is `cap` times that, so the bar
@@ -3573,6 +3700,10 @@ export class World {
     // from here every one is `instalmentSeconds` long.
     const mortgage = this.act.boss;
     if (mortgage.kind === 'mortgage') this.boss.windowTimer = mortgage.instalmentSeconds;
+    // Time's clock starts as it stands (DECLINE-ROSTER §4). Its health stays
+    // BOSS_HP and nothing ever moves it: its bar is `secondsLeft`.
+    const time = this.act.boss;
+    if (time.kind === 'time') this.boss.secondsLeft = time.seconds;
     // Read once it stands: Prom's shield is the player's distance from it.
     this.boss.shielded = this.shieldUp();
     this.partRace(this.boss);
@@ -3683,6 +3814,8 @@ export class World {
     if (this.act.boss.kind === 'reorg') return this.reorgPhase(b, this.act.boss, dt);
     // And the window clock: it runs every step, beside the statement.
     if (this.act.boss.kind === 'mortgage') return this.mortgagePhase(b, this.act.boss, dt);
+    // And Time's: it is all Time does yet.
+    if (this.act.boss.kind === 'time') return this.timePhase(b, dt);
 
     // It does not move from where it is. It has already decided.
     b.timer -= dt;
@@ -4225,5 +4358,35 @@ export class World {
       source: 'boss',
       serial: this.nextSerial++,
     });
+  }
+
+  /**
+   * Time (DECLINE-ROSTER §4): its clock runs down from `seconds`, and when it
+   * reaches zero the hands stop and the outcome latches exactly as a boss
+   * falling latches it (`bossTakes`): `absorbing` for the exit every boss
+   * takes (1.8s, the act's `endWord` shown in it), then `finishAct`, which
+   * after the last act is the win — natural causes at the act's `age.to`.
+   * A Time before the last act would be a crossing, as any boss is.
+   *
+   * Nothing hurts it, so the only other way its fight ends is a write from
+   * outside the sim: the dev panel's kill sets `absorbing` itself (handled
+   * above, in `updateBoss`), and health written to zero alone is read as the
+   * clock run out, so no boss stands at zero forever. Nothing of it runs
+   * once the player has died this step: a death on the last step is a death.
+   *
+   * NOT BUILT YET, and the next pass's (§4, TimeBoss): the minute hand — a
+   * sweep `sweepLength` × `sweepWidth` anchored on the boss, turning once
+   * every `sweepSeconds` clockwise from its arrival, the Egg's shot damage on
+   * touch with the usual i-frames — and the file, one of the act's knees at
+   * the player's lead at every quarter turn. Time does nothing else yet.
+   * No dice.
+   */
+  private timePhase(b: BossState, dt: number): void {
+    if (this.dead) return;
+    b.secondsLeft = Math.max(0, b.secondsLeft - dt);
+    if (b.secondsLeft > 0 && b.hp > 0) return;
+    b.secondsLeft = 0;
+    b.phase = 'absorbing';
+    b.timer = 1.8;
   }
 }

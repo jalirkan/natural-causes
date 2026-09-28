@@ -121,8 +121,9 @@ describe('the five (§3)', () => {
       if (def.id === 'tuition') continue;
       expect(def.attach?.tax, def.id).toBeUndefined();
       // Tuition's alone until Family: the HOA letter's notices persist too
-      // (FAMILY-ROSTER §3.3, family-act.test.ts pins them there).
-      if (def.id === 'hoa-letter') continue;
+      // (FAMILY-ROSTER §3.3, family-act.test.ts pins them there), and so do
+      // your knees (DECLINE-ROSTER §3.3, decline-act.test.ts pins them there).
+      if (def.id === 'hoa-letter' || def.id === 'your-knees') continue;
       expect(def.attach?.persists, def.id).toBeUndefined();
     }
     for (const def of Object.values(ENEMIES)) {
