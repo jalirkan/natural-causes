@@ -496,7 +496,7 @@ function fight(
 }
 
 describe('Time cannot be hurt (§4)', () => {
-  it('declares a clock and no health: seconds, a hand not built yet, no shield, no race', () => {
+  it('declares a clock and no health: seconds, a hand (time.test.ts), no shield, no race', () => {
     expect(DECLINE.boss).toEqual({ kind: 'time', seconds: 60, sweepSeconds: 12, sweepLength: 520, sweepWidth: 40 });
     const w = empty(30);
     const b = toBoss(w);

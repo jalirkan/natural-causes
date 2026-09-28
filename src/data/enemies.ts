@@ -1246,12 +1246,14 @@ export const ENEMIES: Record<string, EnemyDef> = {
     xp: 0,
     movement: 'static',
     contact: 'none',
-    // Lands at the player's lead (World.spawnEnemy) and becomes a hold that
-    // never adjourns: `seconds` 0 puts it at `to` from its first frame
-    // (World.addEnemy, World.updateHolds — nothing divides by it), and
-    // `holdSeconds` outlasts the act and Time together. Inside it everything
-    // moves at `slow`; its edge is a wall for the crowd both ways and never
-    // for the player. The meeting was a trap; the stairs are a refuge.
+    // Lands at the player's lead, or at the lead behind them where a wall
+    // they face would set it over them (World.spawnEnemy, AUDIT 93), and
+    // becomes a hold that never adjourns: `seconds` 0 puts it at `to` from
+    // its first frame (World.addEnemy, World.updateHolds — nothing divides by
+    // it), and `holdSeconds` outlasts the act and Time together. Inside it
+    // everything moves at `slow`; its edge is a wall for the crowd both ways
+    // and never for the player. The meeting was a trap; the stairs are a
+    // refuge.
     spawnAt: 'lead',
     hold: { from: 130, to: 130, seconds: 0, holdSeconds: 600, slow: 0.45 },
     whyThisStage: 'Decline is the first stage where the slow way up is the safe way, and the crowd cannot follow.',

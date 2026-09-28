@@ -44,10 +44,13 @@ describe('Decline has a schedule, and it is provisional', () => {
     for (const field of ['ranged.maxHpLoss', 'MAX_HP_FLOOR', 'held 600s', 'sweepLength', 'sweepWidth', 'attach.drag']) {
       expect(label, field).toContain(field);
     }
-    // And what is not built: the hand and the knees Time sends.
-    expect(label).toMatch(/not built yet/);
-    expect(label).toMatch(/hand/);
-    expect(label).toMatch(/knee/);
+    // The hand and the knees Time files are built now (time.test.ts): the
+    // label names their numbers, the file's cadence in world.ts among them,
+    // and no longer says they are missing. The rest pose is the drawing's.
+    expect(label).not.toMatch(/not built yet/);
+    for (const field of ['hand', 'knee', 'TIME_FILES_PER_TURN', 'TIME_HAND_REST', 'i-frames']) {
+      expect(label, field).toContain(field);
+    }
   });
 
   it('is the seventh and last act of the life, and the browser does not play it yet', () => {
