@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <title>The Egg, eyes closing</title>
+  <desc>The same vast round egg inside its corona, its eyes now closed to two short flat lines, the same knowing smile. It is letting you in.</desc>
+  <!-- D-029: a variant frame of boss-egg, its holder. Only the eyes differ; every other element is boss-egg's, byte for byte, so the swap does not pop. -->
+  <circle cx="50" cy="50" r="49" fill="#2F7370"/>
+  <circle cx="50" cy="50" r="40" fill="#A86A63"/>
+  <circle cx="47" cy="46" r="36" fill="#D2C6AC"/>
+  <rect x="34" y="43.8" width="10" height="1.2" rx="0.6" fill="#2A2521"/>
+  <rect x="56" y="43.8" width="10" height="1.2" rx="0.6" fill="#2A2521"/>
+  <rect x="45" y="56" width="10" height="2.6" rx="1.2" fill="#2A2521"/>
+</svg>
