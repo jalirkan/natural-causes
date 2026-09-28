@@ -1134,7 +1134,29 @@ describe("the splat: Spilt Milk's puddle landing, once a burst", () => {
     expect(heard).toBe(0);
   });
 
-  it.todo("an acrosome life and a tantrum life splat once a burst, off the sim's own puddle (at integration, when World lays it)");
+  it("an acrosome life and a tantrum life splat once a burst, off the sim's own puddle", () => {
+    for (const id of ['acrosome', 'tantrum']) {
+      const w = new World({ act: CONCEPTION, seed: 3, startingItems: [] });
+      w.items.set(id, 1);
+      const still = { moveX: 0, moveY: 0 };
+      const laid = new Set<number>();
+      let top = 0;
+      let heard = 0;
+      for (let i = 0; i < 60 * 4; i++) {
+        w.step(DT, still);
+        for (const a of w.areas) if (a.source === id && a.owner === 'player') laid.add(a.serial);
+        const next = splatAbove(w.areas, top);
+        if (next > top) {
+          heard++;
+          top = next;
+        }
+      }
+      // Bursts every 1.4s (placeholder): at least two in four seconds, and
+      // one splat per puddle the sim laid, never two for one.
+      expect(heard, id).toBeGreaterThanOrEqual(2);
+      expect(heard, id).toBe(laid.size);
+    }
+  });
 });
 
 describe("the Rattle's swing is Decline's rattle; any other sweep swishes", () => {

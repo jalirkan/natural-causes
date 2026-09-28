@@ -1072,8 +1072,6 @@ export const ITEMS: Record<string, ItemDef> = {
     slowSeconds: 1.2,
     maxLevel: 5,
     icon: 'cry',
-    iconPending:
-      'Not drawn yet: tools/art/svg/conception/icon-cry.svg, in the G-054 icon wave, retires the labelled placeholder.',
     blurb: 'Everything stops and looks. It is not about them.',
     levels: table(
       [

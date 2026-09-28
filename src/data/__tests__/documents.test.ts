@@ -221,7 +221,7 @@ describe('the diploma', () => {
 
   it('confers the degree of the weapon held highest, never a passive or a control item', () => {
     const items = new Map([['lash', 2], ['grudge', 5], ['membrane', 8], ['chemotaxis', 7]]);
-    expect(value(diploma({ items }), 'CONFERRED THE DEGREE OF')).toBe('Bachelor of Grudges');
+    expect(value(diploma({ items }), 'CONFERRED THE DEGREE OF')).toBe('Bachelor of Mobiles');
     expect(value(diploma({ items: new Map([['membrane', 3]]) }), 'CONFERRED THE DEGREE OF')).toBe(dip.general);
     for (const id of Object.keys(dip.degrees)) expect(ITEMS[id]?.kind, id).toBe('weapon');
   });

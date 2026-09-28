@@ -1,4 +1,4 @@
-import type { AreaState, BossState, EnemyState, HoldState, SweepState } from '../sim/world';
+import type { AreaState, BossState, CryState, EnemyState, HoldState, SweepState } from '../sim/world';
 
 /**
  * Edges `ActScene.hearWorld` reads off the world, the ones with enough in
@@ -261,26 +261,16 @@ export function timeTicks(boss: ClockView, before: { filed: number; secondsLeft:
 // --- The kid's things (G-054) ---------------------------------------------
 
 /**
- * THE CRY CONTRACT, read in this one place. The Cry (`cry`, G-054) is the sim's
- * `World.cries`: a ring expanding from (x, y) over `seconds` to `maxRadius`,
- * its radius now `maxRadius * age / seconds`, gone when `age >= seconds`.
- * Written against that contract before the sim carries it, so this mirrors
- * the interface and reads the field as optional; when `CryState` is exported
- * from `src/sim/world.ts`, this type becomes `import type { CryState }` and
- * `criesOf` becomes `w.cries`, and nothing else changes.
+ * The Cry (`cry`, G-054) is the sim's `World.cries`: a ring expanding from
+ * (x, y) over `seconds` to `maxRadius`, its radius now `maxRadius * age /
+ * seconds`, gone when `age >= seconds`. `CryState` is the sim's type; this is
+ * the one place the scene reads the list, so the sound and the drawing agree.
  */
-export interface CryState {
-  x: number;
-  y: number;
-  age: number;
-  seconds: number;
-  maxRadius: number;
-  source: string;
-}
+export type { CryState };
 
-/** The world's cries, or none on a world that has no Cry (see the contract above). */
-export function criesOf(w: object): readonly CryState[] {
-  return (w as unknown as { cries?: readonly CryState[] }).cries ?? [];
+/** The world's cries. */
+export function criesOf(w: { cries: readonly CryState[] }): readonly CryState[] {
+  return w.cries;
 }
 
 /** What `criesBegun` remembers of last frame's cries: how many, and the youngest one's age. */

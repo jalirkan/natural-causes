@@ -2316,15 +2316,11 @@ export class ActScene extends Phaser.Scene {
    * over it, and a thin crest on the honest edge — fading as it goes, with
    * the card's icon held at the ring's top. Under the crowd, as the sweep's
    * wedge is, so what it shoves is drawn over it; the icon over everything.
-   * Bone, never paper (law 10). Reads `criesOf`, so a world without a Cry
-   * draws none, and an icon not yet in the atlas draws `iconTexture`'s
-   * placeholder. PLACEHOLDER: the band widths and alphas; nobody has looked.
+   * Bone, never paper (law 10). Reads `criesOf`, the one place the scene
+   * reads the sim's cries. PLACEHOLDER: the band widths and alphas; nobody
+   * has looked.
    */
   private syncCries(): void {
-    // The Cry's card icon, until `cry` joins ItemIcon with the item (the
-    // double cast compiles either side of that); `iconTexture` draws the
-    // placeholder ring for as long as the atlas has no frame for it.
-    const CRY_ICON = 'cry' as string as ItemIcon;
     const list = criesOf(this.world);
     this.cryFx.clear();
     this.fit(this.cryIcons, list.length, () => this.add.image(0, 0, 'nc-shot').setDepth(8));
@@ -2341,7 +2337,7 @@ export class ActScene extends Phaser.Scene {
         .lineStyle(3, BONE, 0.55 * fade)
         .strokeCircle(c.x, c.y, r);
       const def = ITEMS[c.source];
-      const [key, frame] = this.iconTexture(def?.icon ?? CRY_ICON, def?.name ?? 'Cry');
+      const [key, frame] = this.iconTexture(def?.icon ?? 'cry', def?.name ?? 'Cry');
       this.cryIcons[i]!.setTexture(key, frame)
         .setPosition(c.x, c.y - r)
         .setDisplaySize(36, 36)
