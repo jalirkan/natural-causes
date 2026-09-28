@@ -20,9 +20,29 @@
         "h": 384
       }
     },
-    "weather.png": {
+    "boss-time-face.png": {
       "frame": {
         "x": 388,
+        "y": 2,
+        "w": 384,
+        "h": 384
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 384,
+        "h": 384
+      },
+      "sourceSize": {
+        "w": 384,
+        "h": 384
+      }
+    },
+    "weather.png": {
+      "frame": {
+        "x": 774,
         "y": 2,
         "w": 112,
         "h": 112
@@ -42,8 +62,8 @@
     },
     "player-decline.png": {
       "frame": {
-        "x": 2,
-        "y": 388,
+        "x": 888,
+        "y": 2,
         "w": 112,
         "h": 112
       },
@@ -62,7 +82,7 @@
     },
     "stairs.png": {
       "frame": {
-        "x": 116,
+        "x": 2,
         "y": 388,
         "w": 96,
         "h": 96
@@ -82,7 +102,7 @@
     },
     "insurance-form.png": {
       "frame": {
-        "x": 214,
+        "x": 100,
         "y": 388,
         "w": 80,
         "h": 80
@@ -102,7 +122,7 @@
     },
     "medication.png": {
       "frame": {
-        "x": 296,
+        "x": 182,
         "y": 388,
         "w": 40,
         "h": 40
@@ -122,7 +142,7 @@
     },
     "your-knees.png": {
       "frame": {
-        "x": 338,
+        "x": 224,
         "y": 388,
         "w": 40,
         "h": 40
@@ -147,7 +167,7 @@
     "image": "decline.png",
     "format": "RGBA8888",
     "size": {
-      "w": 512,
+      "w": 1024,
       "h": 512
     },
     "scale": "1"

@@ -20,10 +20,50 @@
         "h": 384
       }
     },
-    "player-sperm.png": {
+    "boss-egg-closing.png": {
       "frame": {
         "x": 388,
         "y": 2,
+        "w": 384,
+        "h": 384
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 384,
+        "h": 384
+      },
+      "sourceSize": {
+        "w": 384,
+        "h": 384
+      }
+    },
+    "boss-egg-parted.png": {
+      "frame": {
+        "x": 2,
+        "y": 388,
+        "w": 384,
+        "h": 384
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 384,
+        "h": 384
+      },
+      "sourceSize": {
+        "w": 384,
+        "h": 384
+      }
+    },
+    "player-sperm.png": {
+      "frame": {
+        "x": 388,
+        "y": 388,
         "w": 112,
         "h": 112
       },
@@ -42,7 +82,7 @@
     },
     "rival-sperm.png": {
       "frame": {
-        "x": 2,
+        "x": 502,
         "y": 388,
         "w": 96,
         "h": 96
@@ -62,7 +102,7 @@
     },
     "white-cell.png": {
       "frame": {
-        "x": 100,
+        "x": 600,
         "y": 388,
         "w": 96,
         "h": 96
@@ -82,7 +122,7 @@
     },
     "spermicide.png": {
       "frame": {
-        "x": 198,
+        "x": 698,
         "y": 388,
         "w": 72,
         "h": 72
@@ -102,7 +142,7 @@
     },
     "antibody.png": {
       "frame": {
-        "x": 272,
+        "x": 772,
         "y": 388,
         "w": 44,
         "h": 44
@@ -127,8 +167,8 @@
     "image": "conception.png",
     "format": "RGBA8888",
     "size": {
-      "w": 512,
-      "h": 512
+      "w": 1024,
+      "h": 1024
     },
     "scale": "1"
   }
