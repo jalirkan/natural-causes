@@ -7,13 +7,22 @@ import { addVignette, ensureFieldTile, ensureGemTexture, ensureShotTextures } fr
 import { ITEM_ICON_ATLAS, itemIconFrame } from '../data/item-visuals';
 import { sfx } from '../audio/sfx';
 import { combineMoves, stickVector, type Move } from './touch';
-import { certificateLines, hudAge, lifeClock } from './certificate';
+import {
+  certificateFields,
+  certificateLines,
+  certificateStamp,
+  effectLines,
+  hudAge,
+  type CertificateField,
+} from './certificate';
 import { recordLife } from '../meta/ancestors';
 import { InputLog } from '../meta/input-log';
+import { DEFAULT_NAME, misspell, readPlayerName } from '../meta/name';
 import {
   BOSS_RADIUS,
   PLAYER_RADIUS,
   World,
+  type Certificate,
   type EnemyState,
   type GemState,
   type Input,
@@ -62,6 +71,11 @@ const INPUT_LOG_KEY = 'nc-input-log';
 /** Arrival toasts stay below the HUD's top band (plate, boss bar, race bar) and this far off the edges. */
 const TOAST_TOP = 104;
 const TOAST_EDGE = 16;
+/** A palette number as the CSS string a Text wants. */
+const css = (n: number) => `#${n.toString(16).padStart(6, '0')}`;
+/** The certificate's typed ink and its printed labels: ink and shadow, the document register's two tones. */
+const CERT_INK = css(INK);
+const CERT_PRINT = css(SHADOW);
 
 /** An enemy kind waiting its frame to be named: its first instance, and where that was when seen. */
 interface Arrival {
@@ -115,6 +129,10 @@ export class ActScene extends Phaser.Scene {
 
   private enemySprites: Phaser.GameObjects.Image[] = [];
   private projectileSprites: Phaser.GameObjects.Image[] = [];
+  /** The substitute's shots: the player's name, spelled wrong (SCHOOL-ROSTER §3.5). */
+  private nameShotTexts: Phaser.GameObjects.Text[] = [];
+  /** The name on the form, read once per life; the sim never knows it. */
+  private playerName = DEFAULT_NAME;
   private gemSprites: Phaser.GameObjects.Image[] = [];
   private ringSprites: Phaser.GameObjects.Arc[] = [];
   private areaSprites: Phaser.GameObjects.Arc[] = [];
@@ -176,7 +194,17 @@ export class ActScene extends Phaser.Scene {
   private hudBossLabel!: Phaser.GameObjects.Text;
   private hudRaceLabel!: Phaser.GameObjects.Text;
   private bars!: Phaser.GameObjects.Graphics;
+  /**
+   * The certificate's words: `certificateLines`, typed on the receipt under
+   * the form (showCertificate). The smoke reads this object's text for
+   * "Natural causes." and "Age 18." (tools/smoke/run.ts), so those lines live
+   * here and nowhere else on the sheet decides them.
+   */
   private overlay!: Phaser.GameObjects.Text;
+  /** "paused", centred. Was `overlay` before the certificate became a form. */
+  private pauseNote!: Phaser.GameObjects.Text;
+  /** The certificate as a document. Built the first frame the run is over. */
+  private form?: Phaser.GameObjects.Container;
   private endScrim!: Phaser.GameObjects.Rectangle;
   private devBadge!: Phaser.GameObjects.Text;
 
@@ -236,6 +264,8 @@ export class ActScene extends Phaser.Scene {
 
     this.enemySprites = [];
     this.projectileSprites = [];
+    this.nameShotTexts = [];
+    this.playerName = readPlayerName() ?? DEFAULT_NAME;
     this.gemSprites = [];
     this.ringSprites = [];
     this.areaSprites = [];
@@ -718,7 +748,7 @@ export class ActScene extends Phaser.Scene {
       .setScrollFactor(0)
       .setDepth(199)
       .setVisible(false);
-    this.overlay = this.add
+    this.pauseNote = this.add
       .text(cam.width / 2, cam.height / 2, '', {
         ...style(20, '#EFE7D6'),
         align: 'center',
@@ -728,6 +758,15 @@ export class ActScene extends Phaser.Scene {
       .setScrollFactor(0)
       .setDepth(200)
       .setVisible(false);
+    // Placed by showCertificate, which owns the sheet's geometry; above the
+    // form's container (200), which is built after it.
+    this.overlay = this.add
+      .text(0, 0, '', { ...style(18, CERT_INK), lineSpacing: 6 })
+      .setScrollFactor(0)
+      .setDepth(201)
+      .setVisible(false);
+    // A restart destroys the old sheet with the display list; forget it.
+    delete this.form;
     this.devBadge = this.add
       .text(cam.width - 14, 58, 'DEV · RUN TAINTED', {
         ...style(13, '#EFE7D6'),
@@ -1058,11 +1097,39 @@ export class ActScene extends Phaser.Scene {
     // a weapon chosen on a card is recognised the first time it fires. G-031
     // unchanged: hostile gold stays on aimed shots — the Egg's and the
     // substitute's — and nothing else.
+    //
+    // The substitute's shot is the player's name, spelled wrong (SCHOOL-ROSTER
+    // §3.5): text in the HUD's hand, in the ranged gold, upright so it reads.
+    // The shot's serial picks the mistake, so one shot keeps its spelling for
+    // its whole flight and the next one gets it wrong differently.
     this.fit(this.projectileSprites, list.length, () => this.add.image(0, 0, 'nc-shot').setDepth(8));
+    let named = 0;
+    for (const p of list) if (p.hostile && p.owner?.id === 'substitute-teacher') named++;
+    this.fit(this.nameShotTexts, named, () =>
+      this.add
+        .text(0, 0, '', {
+          fontFamily: 'monospace',
+          fontSize: '14px',
+          color: '#D69A3C',
+          stroke: '#2A2521',
+          strokeThickness: 3,
+        })
+        .setOrigin(0.5)
+        .setDepth(8),
+    );
+    named = 0;
     for (let i = 0; i < list.length; i++) {
       const p = list[i]!;
       const s = this.projectileSprites[i]!;
       const heading = Math.atan2(p.vy, p.vx);
+      if (p.hostile && p.owner?.id === 'substitute-teacher') {
+        this.nameShotTexts[named++]!
+          .setText(misspell(this.playerName, p.serial))
+          .setPosition(p.x, p.y)
+          .setVisible(true);
+        s.setVisible(false);
+        continue;
+      }
       if (p.hostile) {
         s.setTexture('nc-shot-hostile').setDisplaySize(p.radius * 2, p.radius * 2).setRotation(0);
       } else if (p.source && ITEMS[p.source]) {
@@ -1586,39 +1653,196 @@ export class ActScene extends Phaser.Scene {
 
     if (this.paused) {
       this.endScrim.setVisible(true);
-      this.overlay
+      this.pauseNote
         .setText('paused' + '\n\n' + (this.touch ? 'tap to resume' : 'P or Esc to resume'))
         .setVisible(true);
       return;
     }
+    this.pauseNote.setVisible(false);
 
     if (w.dead || w.won) {
-      // The run's receipt: what you took is as much the story as how far you
-      // got, and it is the input to "what would I do differently" — which is
-      // the thought that makes a survivors run repeatable.
-      const build = [...w.items.entries()].map(([id, lv]) => `${itemDef(id).name} ${lv}`);
-      const buildLines: string[] = [];
-      for (let i = 0; i < build.length; i += 4) buildLines.push(build.slice(i, i + 4).join('  ·  '));
-      // The certificate (D-024): what ended it and how old you were. The sim
-      // writes the record; certificate.ts decides how it reads.
-      const said = w.certificate ? certificateLines(w.certificate) : ['', ''];
-      this.endScrim.setVisible(true);
-      this.overlay
-        .setText(
-          [
-            said[0],
-            said[1],
-            '',
-            `${w.act.name}   ${lifeClock(w.time)} lived   ${w.kills} killed   level ${w.level}`,
-            ...buildLines,
-            '',
-            this.touch ? 'tap to live again' : 'R to live again',
-          ].join('\n'),
-        )
-        .setVisible(true);
+      // Built once: the world is frozen from here, so the record cannot move.
+      if (!this.form && w.certificate) this.showCertificate(w.certificate);
     } else {
-      this.overlay.setVisible(false);
       this.endScrim.setVisible(false);
+      // God mode can take a death back (applyDevCheats); the paperwork goes with it.
+      if (this.form) this.hideCertificate();
     }
+  }
+
+  /**
+   * The certificate (G-002, D-024) as a document, in the register G-038 kept
+   * for documents: a paper sheet on the dimmed field, labels printed small,
+   * values typed large on ruled lines, a stamp. A win gets the same form —
+   * natural causes is still a death; that is the joke. Below a perforation,
+   * the receipt: `certificateLines` as prose (that is `overlay`, which the
+   * smoke reads) and the build as personal effects, because what you took is
+   * the input to "what would I do differently", which is what makes a
+   * survivors run repeatable.
+   *
+   * One screen at 1280×720. The sheet takes most of the width because FIT
+   * shrinks the whole canvas to 0.3 on a portrait phone: the typed values are
+   * set large enough to survive that; the printed labels are not, and need not.
+   * Colours: paper and ink, shadow for print, the act's deep tone as the
+   * stamp's ink. No threat colour — law 10 keeps them off chrome.
+   */
+  private showCertificate(c: Certificate): void {
+    const w = this.world;
+    const cam = this.cameras.main;
+    const W = 1120;
+    const L = Math.round((cam.width - W) / 2);
+    const T = 30;
+    /** Inner margin, and the tear line between the certificate and its receipt. */
+    const M = 48;
+    const PERF = T + 440;
+    // The last boss's absorb leans the camera in to 1.1 (syncBoss), and a
+    // scroll-factor-0 object still takes the zoom: the sheet would be set at
+    // 1232px and its hint pushed to the bottom edge. The field is dimmed from
+    // this frame, so the lean-in ends here, under the paper.
+    cam.zoomEffect.reset();
+    cam.setZoom(1);
+    const parts: Phaser.GameObjects.GameObject[] = [];
+    const text = (x: number, y: number, s: string, size: number, colour: string, spacing = 0) => {
+      const t = this.add.text(x, y, s, {
+        fontFamily: 'monospace',
+        fontSize: `${size}px`,
+        color: colour,
+        letterSpacing: spacing,
+      });
+      parts.push(t);
+      return t;
+    };
+    const sheet = this.add.graphics();
+    const rules = this.add.graphics();
+
+    // The header: the office that issues it, then the title in small caps.
+    text(cam.width / 2, T + 36, 'OFFICE OF VITAL STATISTICS', 13, CERT_PRINT, 5).setOrigin(0.5, 0);
+    parts.push(...this.smallCaps('Certificate of Death', cam.width / 2, T + 94, 36, CERT_INK, 4));
+    rules.lineStyle(2, INK, 1).lineBetween(L + M, T + 112, L + W - M, T + 112);
+    rules.lineStyle(1, INK, 1).lineBetween(L + M, T + 117, L + W - M, T + 117);
+
+    // The fields. Numbered, as a form's are; the value sits on its rule.
+    const at: Record<CertificateField['key'], { x: number; w: number; top: number; size: number }> = {
+      name: { x: 0, w: W - 2 * M, top: T + 136, size: 38 },
+      age: { x: 0, w: 220, top: T + 228, size: 38 },
+      act: { x: 256, w: 372, top: T + 228, size: 38 },
+      time: { x: 664, w: W - 2 * M - 664, top: T + 228, size: 38 },
+      cause: { x: 0, w: W - 2 * M, top: T + 320, size: 50 },
+    };
+    certificateFields(c, { name: this.playerName, lived: w.time }).forEach((f, i) => {
+      const box = at[f.key];
+      const x = L + M + box.x;
+      text(x, box.top, `${i + 1}. ${f.label}`, 14, CERT_PRINT, 1);
+      text(x + 6, box.top + 22, f.value, box.size, CERT_INK);
+      const ruleY = box.top + 22 + Math.round(box.size * 1.25);
+      rules.lineStyle(1.5, INK, 1).lineBetween(x, ruleY, x + box.w, ruleY);
+    });
+
+    // The receipt, below the tear.
+    const R = PERF + 30;
+    text(L + M, R, 'RECEIPT · DETACH AND RETAIN', 12, CERT_PRINT, 3);
+    this.overlay
+      .setPosition(L + M, R + 24)
+      .setText([...certificateLines(c), `${w.kills} killed, level ${w.level}.`].join('\n'))
+      .setVisible(true);
+    const effectsX = L + 520;
+    text(effectsX, R, 'PERSONAL EFFECTS', 12, CERT_PRINT, 3);
+    const build = [...w.items.entries()].map(([id, lv]) => `${itemDef(id).name} ${lv}`);
+    const effects = text(effectsX, R + 24, effectLines(build, 58).join('\n') || 'None', 15, CERT_INK).setLineSpacing(5);
+    // Grows for a long build rather than spilling; the hint still fits under it.
+    const bottom = Math.max(this.overlay.y + this.overlay.height, effects.y + effects.height) + 26;
+    const H = Math.min(Math.max(600, bottom - T), cam.height - T - 70);
+
+    // The sheet, under one flat tone for its shadow (law 2), double-ruled
+    // above the tear and single-ruled below it; the perforation between.
+    sheet.fillStyle(INK, 0.55).fillRect(L + 8, T + 10, W, H);
+    sheet.fillStyle(PAPER, 1).fillRect(L, T, W, H);
+    sheet.lineStyle(3, INK, 1).strokeRect(L + 14, T + 14, W - 28, PERF - T - 28);
+    sheet.lineStyle(1, INK, 1).strokeRect(L + 21, T + 21, W - 42, PERF - T - 42);
+    sheet.lineStyle(1, INK, 0.7).strokeRect(L + 14, PERF + 14, W - 28, T + H - PERF - 28);
+    sheet.lineStyle(1.5, INK, 0.6);
+    for (let x = L + 4; x < L + W - 4; x += 14) sheet.lineBetween(x, PERF, Math.min(x + 7, L + W - 4), PERF);
+
+    // The stamp, bottom right, in the act's deep tone: a spot ink, not a threat.
+    const word = certificateStamp(c);
+    const size = word.length > 8 ? 30 : 44;
+    const inked = this.add
+      .text(0, 0, word, {
+        fontFamily: 'monospace',
+        fontSize: `${size}px`,
+        fontStyle: 'bold',
+        color: css(this.visuals.background),
+        letterSpacing: size > 40 ? 12 : 5,
+      })
+      .setOrigin(0.5);
+    const bw = inked.width + 44;
+    const bh = inked.height + 26;
+    const frame = this.add.graphics();
+    frame.lineStyle(4, this.visuals.background, 1).strokeRect(-bw / 2, -bh / 2, bw, bh);
+    frame.lineStyle(1.5, this.visuals.background, 1).strokeRect(-bw / 2 + 7, -bh / 2 + 7, bw - 14, bh - 14);
+    const stamp = this.add
+      .container(L + W - M - 40 - bw / 2, T + 366, [frame, inked])
+      .setAngle(-8)
+      .setAlpha(0.88);
+
+    // The restart, under the form as it always was.
+    const hint = this.add
+      .text(cam.width / 2, T + H + 36, this.touch ? 'tap to live again' : 'R to live again', {
+        fontFamily: 'monospace',
+        fontSize: '20px',
+        color: css(PAPER),
+      })
+      .setOrigin(0.5);
+
+    this.endScrim.setFillStyle(INK, 0.62).setVisible(true);
+    this.form = this.add
+      .container(0, 0, [sheet, rules, ...parts, stamp, hint])
+      .setScrollFactor(0)
+      .setDepth(200);
+  }
+
+  private hideCertificate(): void {
+    this.form?.destroy();
+    delete this.form;
+    this.overlay.setVisible(false);
+    this.endScrim.setFillStyle(INK, 0.45);
+  }
+
+  /**
+   * Small caps, which a canvas monospace does not have: a capital in `text` is
+   * set at `big`, everything else capitalised at four-fifths of it, all on one
+   * baseline and centred on `cx`.
+   */
+  private smallCaps(
+    text: string,
+    cx: number,
+    baseline: number,
+    big: number,
+    colour: string,
+    spacing: number,
+  ): Phaser.GameObjects.Text[] {
+    const small = Math.round(big * 0.78);
+    const runs: { s: string; size: number }[] = [];
+    for (const ch of text) {
+      const size = ch !== ch.toLowerCase() ? big : small;
+      const last = runs[runs.length - 1];
+      if (last && last.size === size) last.s += ch.toUpperCase();
+      else runs.push({ s: ch.toUpperCase(), size });
+    }
+    const parts = runs.map((r) =>
+      this.add.text(0, 0, r.s, {
+        fontFamily: 'monospace',
+        fontSize: `${r.size}px`,
+        color: colour,
+        letterSpacing: spacing,
+      }),
+    );
+    const total = parts.reduce((sum, t) => sum + t.width, 0) + spacing * (parts.length - 1);
+    let x = cx - total / 2;
+    for (const t of parts) {
+      t.setPosition(x, baseline - t.getTextMetrics().ascent);
+      x += t.width + spacing;
+    }
+    return parts;
   }
 }

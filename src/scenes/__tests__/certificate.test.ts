@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { ageYears, certificateLines, hudAge, lifeClock } from '../certificate';
+import {
+  ageYears,
+  certificateFields,
+  certificateLines,
+  certificateStamp,
+  effectLines,
+  hudAge,
+  lifeClock,
+} from '../certificate';
 import { CONCEPTION, SCHOOL } from '../../data/acts';
 import { World, type Certificate } from '../../sim/world';
 
@@ -60,5 +68,55 @@ describe('lifeClock', () => {
   it('is m:ss', () => {
     expect(lifeClock(0)).toBe('0:00');
     expect(lifeClock(605.9)).toBe('10:05');
+  });
+});
+
+describe('certificateFields', () => {
+  const won: Certificate = { ...base, outcome: 'won', actName: 'Adolescence', causeId: 'natural-causes', cause: 'natural causes', age: 18.2 };
+
+  it('is the form in reading order: name, age, act, time, cause', () => {
+    expect(certificateFields(base, { name: 'Justin', lived: 252.9 })).toEqual([
+      { key: 'name', label: 'NAME OF DECEASED', value: 'Justin' },
+      { key: 'age', label: 'AGE, LAST BIRTHDAY', value: '9' },
+      { key: 'act', label: 'ACT', value: 'School' },
+      { key: 'time', label: 'TIME OF DEATH, FROM CONCEPTION', value: '4:12' },
+      { key: 'cause', label: 'CAUSE OF DEATH', value: 'Homework' },
+    ]);
+  });
+
+  it('leaves the name rule blank when there is no name', () => {
+    expect(certificateFields(base, { lived: 0 })[0]!.value).toBe('');
+    expect(certificateFields(base, { name: '  ', lived: 0 })[0]!.value).toBe('');
+  });
+
+  it('is the same form on a win, and the cause is natural causes', () => {
+    const f = certificateFields(won, { name: 'Nobody', lived: 855 });
+    expect(f.map((x) => x.key)).toEqual(['name', 'age', 'act', 'time', 'cause']);
+    expect(f.find((x) => x.key === 'cause')!.value).toBe('Natural causes');
+    expect(f.find((x) => x.key === 'age')!.value).toBe('18');
+    expect(f.find((x) => x.key === 'time')!.value).toBe('14:15');
+  });
+
+  it('agrees with the prose it sits beside', () => {
+    // The receipt under the form prints certificateLines; the two must not disagree.
+    for (const c of [base, won]) {
+      const f = certificateFields(c, { lived: 60 });
+      const [cause, age] = certificateLines(c);
+      expect(cause).toContain(f.find((x) => x.key === 'cause')!.value);
+      expect(age).toBe(`Age ${f.find((x) => x.key === 'age')!.value}.`);
+    }
+  });
+
+  it('stamps a win NATURAL CAUSES and files a death', () => {
+    expect(certificateStamp(won)).toBe('NATURAL CAUSES');
+    expect(certificateStamp(base)).toBe('FILED');
+  });
+});
+
+describe('effectLines', () => {
+  it('packs entries into lines without splitting one', () => {
+    expect(effectLines(['Reflex 1', 'Late Bloomer 1', 'Tail 3'], 30)).toEqual(['Reflex 1 · Late Bloomer 1', 'Tail 3']);
+    expect(effectLines(['A very long entry indeed'], 10)).toEqual(['A very long entry indeed']);
+    expect(effectLines([], 40)).toEqual([]);
   });
 });
