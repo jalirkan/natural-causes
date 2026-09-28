@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <title>Deadline</title>
+  <desc>A square calendar leaf in flat red, caught mid-flight at a slight tilt. Its top edge is curled over in a short tan roll with two ring holes punched through it. Low on the sheet, two dots and a straight flat line: a face that is not in a hurry and does not need to be. Nothing is printed on it.</desc>
+  <!--
+    Deadline (COLLEGE-ROSTER §3.2), the act's velocity: driver's ed without
+    the wheels. Reserved silhouette: the calendar leaf, the only square in
+    the act (not the envelope's landscape rectangle, not the reading's pile).
+    Contact red is held by this asset alone: the heaviest hit is the only red
+    thing in College.
+    The leaf is square and seen flat on, then turned nine degrees in the
+    picture plane: a leaf crossing a room is in the air. The turn is also what
+    lets a square pass CHECK at all. Upright, a square fills its own canvas
+    (silhouette-area measured 0.99 against a 0.82 ceiling); turned, its
+    corners give the canvas back and it reads as a card in flight rather than
+    a tile.
+    The curl is a roll lying along the top edge: bone where it faces out, a
+    shadow strip beneath where it turns under, so it reads as paper turned
+    over and not as a printed band or a lid. The two ring holes are punched
+    through the roll, where the top edge was, and look into it (shadow), so
+    the only ink on the sheet is the face and nothing above it reads as a
+    second pair of eyes.
+    Face: two ink dots and a flat line, low on the sheet, straight out. It
+    has somewhere to be, and it will be there on time.
+    No date, no numbers, no letters: text is not drawn (law 5).
+    Colours are palette hex values: threat-contact #C4472E, bone #D2C6AC,
+    shadow #6E6353, ink #2A2521.
+    CONFORM adds the outline; there is none here.
+  -->
+  <g transform="rotate(-9 50 50)">
+    <!-- the leaf -->
+    <path d="M 10 18 L 90 18 L 90 86.5 Q 90 90 86.5 90 L 12.5 90 Q 10 90 10 87.5 Z" fill="#C4472E"/>
+    <!-- the curl: its underside, then its face -->
+    <path d="M 10 17 Q 10 10 17 10 L 83 10 Q 90 10 90 17.5 L 90 21 Q 90 28 83 28 L 17 27.2 Q 10 27 10 20.5 Z" fill="#6E6353"/>
+    <path d="M 10 16 Q 10 10 16 10 L 83.5 10 Q 90 10 90 16.5 Q 90 23 83.5 23 L 16 22.2 Q 10 22 10 16 Z" fill="#D2C6AC"/>
+    <!-- the ring holes, through the curl -->
+    <circle cx="30" cy="16.5" r="3.6" fill="#6E6353"/>
+    <circle cx="70" cy="16.5" r="3.6" fill="#6E6353"/>
+    <!-- the face, low on the sheet -->
+    <g fill="#2A2521">
+      <circle cx="41.5" cy="63" r="4"/>
+      <circle cx="58.5" cy="63" r="4"/>
+      <rect x="40" y="74" width="20" height="3.6"/>
+    </g>
+  </g>
+</svg>
