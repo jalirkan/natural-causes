@@ -12,12 +12,15 @@ import {
   NARROW_WIDTH,
   narrowCanvas,
   narrowRows,
+  NARROW_WORN_CHARS,
   effectsColumn,
+  pauseTypeScale,
   WIDE_FLOOR,
   WIDE_SHEET,
   WIDE_TYPE,
   wideLayout,
   wideType,
+  wornText,
 } from '../certificate';
 import { CONCEPTION, SCHOOL } from '../../data/acts';
 import { World, type Certificate } from '../../sim/world';
@@ -250,5 +253,48 @@ describe('the wide certificate', () => {
     const proseBottom = lay.content + 3 * line(lay.type.receipt, lay.spacing.prose);
     const sheetBottom = Math.max(effectsBottom, proseBottom) + lay.foot;
     expect(sheetBottom + lay.hint + lay.type.hint / 2).toBeLessThanOrEqual(720);
+  });
+});
+
+describe("the HUD on an upright phone's canvas", () => {
+  // The Office's and Decline's longest worn lines seen in a browser, and every term at once.
+  const office = ['5 attached  −3% speed', 'xp −22%', 'attention −11%'];
+  const all = ['12 attached  −21% speed', 'xp −42%', 'attention −11%', 'reach −20%'];
+
+  it('draws the worn line as 1280×720 always has when the canvas is not narrow', () => {
+    expect(wornText(office, false)).toBe('5 attached  −3% speed · xp −22% · attention −11%');
+    expect(wornText(all, false)).toBe(all.join(' · '));
+    expect(wornText([], false)).toBe('');
+  });
+
+  it('breaks it between terms, never inside one, clear of the centred clock and boss label', () => {
+    // Anchored 16 in from the right; the clock and the label reach 62 right of the middle.
+    const room = NARROW_WIDTH - 16 - (NARROW_WIDTH / 2 + 62);
+    expect(0.6 * 13 * NARROW_WORN_CHARS).toBeLessThanOrEqual(room - 12);
+    for (const terms of [office, all]) {
+      const lines = wornText(terms, true).split('\n');
+      expect(lines.length).toBeGreaterThan(1);
+      for (const l of lines) expect(l.length).toBeLessThanOrEqual(NARROW_WORN_CHARS);
+      expect(lines.join(' · ')).toBe(terms.join(' · '));
+    }
+    expect(wornText(['reach −7%'], true)).toBe('reach −7%');
+  });
+});
+
+describe('the pause sheet', () => {
+  it('keeps its 1280 type on a canvas shown 1280 CSS px across, or near enough to read', () => {
+    expect(pauseTypeScale(1, false)).toBe(1);
+    expect(pauseTypeScale(1.5, false)).toBe(1);
+    expect(pauseTypeScale(0.9, false)).toBe(1);
+    expect(pauseTypeScale(0, false)).toBe(1);
+  });
+
+  it("sets its smallest lines at the certificate's floor on a landscape phone, and 1.7× on an upright one", () => {
+    const landscape = (390 * 16) / 9 / 1280;
+    const k = pauseTypeScale(landscape, false);
+    expect(13 * k * landscape).toBeCloseTo(WIDE_FLOOR.print, 6);
+    expect(pauseTypeScale(landscape, true)).toBe(1.7);
+    // 13px at 1.7 on the narrow canvas, on the narrowest phone it is sized for.
+    expect((13 * 1.7 * NARROW_SCREEN) / NARROW_WIDTH).toBeGreaterThanOrEqual(11);
   });
 });
