@@ -51,7 +51,9 @@ export type ItemIcon =
   | 'jump'
   | 'reach'
   | 'hindsight'
-  | 'rut';
+  | 'rut'
+  // College: the Highlighter's stroke.
+  | 'highlight';
 
 interface ItemBase {
   id: string;
@@ -127,6 +129,14 @@ export interface LevelBonus {
   speed?: number;
   /** Extra pixels a hit pushes a non-boss enemy away from the player. Adds to `knockback`. */
   knockback?: number;
+  /**
+   * College (the Highlighter): multiplier on a marking weapon's
+   * `marks.multiplier` — how much more a marked enemy takes from everything.
+   * Multiplies the multiplier itself (×1.5 with a `mark` of 1.1 is ×1.65),
+   * like every multiplier here. How long the mark lasts is `duration`'s, as a
+   * trail's is. Ignored by a weapon with no `marks`.
+   */
+  mark?: number;
 }
 
 export interface ItemLevel extends LevelBonus {
@@ -250,6 +260,17 @@ export interface ActiveItem extends ItemBase {
    * this one card, and taking it replaces `weapon`.
    */
   evolvesFrom?: { weapon: string; with: string };
+  /**
+   * College (the Highlighter): a shot from this weapon MARKS the enemy (or
+   * the boss) it lands on. For `seconds` after the hit, everything that
+   * damages it deals `multiplier` times as much — every shot, orbiter, area,
+   * sweep, strike and aura, and this weapon's own next stroke. A second mark
+   * on a marked enemy restarts the clock and does not multiply again.
+   * `duration` (a level's or a path's) lengthens `seconds`; `mark` multiplies
+   * `multiplier`. Read at the hit (world.ts `markFrom`, paid in `damageEnemy`
+   * and, for the boss, `bossTakes`). `seeking` only: other modes ignore it.
+   */
+  marks?: { seconds: number; multiplier: number };
 }
 
 /** Changes the player rather than the field. Every multiplier is per level. */
@@ -1241,6 +1262,105 @@ export const ITEMS: Record<string, ItemDef> = {
       'Anything but the walk: it deals nothing, slows nothing and stops no shot either way. It stays where it was put, it keeps whatever was already inside in there with the player, and a commute or a patrol walks straight through it.',
   },
 
+  // --- Born at eighteen (College) ------------------------------------------
+  //
+  // In the pool from College on, never before (`from`, G-039): the first
+  // item that arrives at eighteen, with one name for the rest of the life.
+  // A weapon that barely hurts and makes everything else hurt more: its
+  // stroke MARKS what it lands on (`marks`), and every damage path in the sim
+  // pays the mark through one gate (world.ts `damageEnemy`; `bossTakes` for
+  // the boss). It is the pen, not the argument.
+  // PLACEHOLDER NUMBERS, every one, under COLLEGE's `provisional`: the
+  // cooldown, damage, range, speed, the mark's seconds and multiplier, the
+  // levels table and every path were written to make it playable, not
+  // measured, and nobody has played it. A person playing it at the link is
+  // what moves them. The copy carries no numbers: the card prints them from
+  // these fields (G-043).
+
+  highlighter: {
+    id: 'highlighter',
+    name: 'Highlighter',
+    kind: 'weapon',
+    from: 'college',
+    mode: 'seeking',
+    cooldown: 1,
+    // Low on purpose: the damage is everyone else's.
+    damage: 1,
+    range: 360,
+    projectileSpeed: 480,
+    radius: 7,
+    pierce: 1,
+    marks: { seconds: 3, multiplier: 1.5 },
+    maxLevel: 8,
+    icon: 'highlight',
+    iconPending:
+      'Drawn at tools/art/svg/conception/icon-highlight.svg and conformed to assets/sprites/conception/icon-highlight.png; retired when `pnpm art:pack` puts icon-highlight.png in the icons atlas.',
+    blurb: 'Marks what matters. Everything then hits what matters.',
+    levels: table(
+      [
+        'Marks what matters. Everything then hits what matters.',
+        'Marks last longer. You pressed down harder.',
+        'A second stroke, on the next-nearest thing.',
+        'Marked things take more. You went over it twice.',
+        'Longer again. It shows through the back of the page.',
+        'A third stroke. Most of the chapter matters now.',
+        'Sooner. You highlight while you read, not after.',
+        'Marked things take more again. It will be on the exam.',
+      ],
+      { 2: { duration: 1.2 }, 3: { projectiles: 1 }, 4: { mark: 1.1 }, 5: { duration: 1.2 }, 6: { projectiles: 1 }, 7: { cooldown: 0.85 }, 8: { mark: 1.1 } },
+    ),
+    paths: [
+      {
+        id: 'fluorescent',
+        name: 'Fluorescent',
+        blurb: 'The mark lasts longer. It does not come out in the wash.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Longer. It bleeds through to the next page.',
+            'Longer again. It is on your fingers too.',
+            'It never fades. The book cannot be resold.',
+          ],
+          {},
+          each(1, 3, { duration: 1.25 }),
+        ),
+      },
+      {
+        id: 'every-page',
+        name: 'Every Page',
+        blurb: 'More strokes at once. Nothing gets left out.',
+        maxLevel: 2,
+        levels: table(
+          [
+            'One more stroke. The next line seemed important too.',
+            'Another. The whole page is highlighted, so nothing is.',
+          ],
+          {},
+          each(1, 2, { projectiles: 1 }),
+        ),
+      },
+      {
+        id: 'underline',
+        name: 'Underline',
+        blurb: 'Marked things take even more. It is underlined as well.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Underlined once. It might be on the test.',
+            'Twice. It is definitely on the test.',
+            'Three times, in pen. It is the whole test.',
+          ],
+          {},
+          each(1, 3, { mark: 1.1 }),
+        ),
+      },
+    ],
+    enables:
+      'A build for everything else the player holds: whatever it marks takes more from every weapon, area, orbit, sweep and strike for a few seconds, so it multiplies Judgement, Temper and Grudge instead of competing with them, and it marks the boss as readily as the crowd.',
+    tradesAway:
+      'Damage of its own, which is barely any, and anything alone: held with nothing else it marks things nobody then hits, and like Reflex it marks whatever is nearest rather than whatever matters.',
+  },
+
   // --- 4.5 The classic three (G-044) --------------------------------------
   //
   // The aura, the melee swing and the caster a survivors player reaches for
@@ -1669,7 +1789,7 @@ export function cooldownScale(level: number): number {
 
 /** Every field a `Required<LevelBonus>` starts from: the identity for each. */
 export function emptyBonus(): Required<LevelBonus> {
-  return { projectiles: 0, pierce: 0, area: 1, duration: 1, echo: false, chain: 0, damage: 1, cooldown: 1, speed: 1, knockback: 0 };
+  return { projectiles: 0, pierce: 0, area: 1, duration: 1, echo: false, chain: 0, damage: 1, cooldown: 1, speed: 1, knockback: 0, mark: 1 };
 }
 
 /** Folds one level's bonus into a running total, in place. Counts sum, multipliers multiply, echo latches. */
@@ -1684,6 +1804,8 @@ export function foldBonus(into: Required<LevelBonus>, l: LevelBonus): void {
   into.cooldown *= l.cooldown ?? 1;
   into.speed *= l.speed ?? 1;
   into.knockback += l.knockback ?? 0;
+  // College (the Highlighter): a multiplier on the mark's multiplier, so it multiplies.
+  into.mark *= l.mark ?? 1;
 }
 
 /**

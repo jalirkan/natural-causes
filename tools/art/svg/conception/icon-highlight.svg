@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <title>Highlighter icon</title>
+  <desc>A fat chisel-tip highlighter seen from the side, cap off and tilted down to the right as if writing, its tip resting on the right-hand end of the one broad flat stroke it has just laid, a level band with square ends running back to the left.</desc>
+  <!--
+    Highlighter (items.ts, icon "highlight"; College, mode "seeking"). A card
+    icon, and also the stroke the weapon fires on the field (ActScene
+    syncProjectiles, 30px, turned to its heading), so it keeps off the
+    field's reserved colours: no threat colour, no paper, no act's light
+    tone. Above all never highlighter yellow: that is the ranged threat's
+    gold (G-031), and the player's own pen would be wearing the enemy's
+    warning. The ink it lays is bone; the pen is rose.
+    The STROKE lies exactly along +x, because the renderer turns the icon to
+    the shot's heading: in flight the mark runs back along the line of fire
+    and the pen leans over its leading end, writing toward the target.
+    A marker, never a pencil or a crayon: the tip is a slanted chisel of
+    felt, not a cone, and the barrel is fat, with a clip. Never a syringe:
+    there is no plunger and no needle, and the band under it is a flat
+    stroke with square ends. Drawn level first, with the cap posted, it read
+    as a stapler on a shelf; tilted onto the page it is writing.
+    Where rose meets rose and bone meets bone there is no edge, so the ink
+    lines there are drawn here: either side of the collar, under the clip and
+    the chisel's face. CONFORM adds only the outer outline.
+    Colours: conception-mid #A86A63, bone #D2C6AC, ink #2A2521.
+  -->
+  <g shape-rendering="crispEdges">
+    <!-- the stroke it just laid: one broad flat level band, square ends, back from the tip -->
+    <rect x="5" y="66" width="76" height="15" fill="#D2C6AC"/>
+
+    <!-- the pen, drawn along +x and turned 35 degrees down onto the page, so the
+         chisel's writing corner (73, 6) presses into the band's right end at (80, 69) -->
+    <g transform="translate(23.64 22.2) rotate(35)">
+      <!-- the back end's plug -->
+      <rect x="0" y="-11" width="9" height="22" rx="2.5" fill="#D2C6AC"/>
+      <!-- the barrel: fat and short -->
+      <rect x="8" y="-11" width="43" height="22" fill="#A86A63"/>
+      <!-- the clip along its top, and its shadow on the barrel -->
+      <rect x="12" y="-16" width="24" height="5.5" rx="1.5" fill="#D2C6AC"/>
+      <line x1="14" y1="-10" x2="36" y2="-10" stroke="#2A2521" stroke-width="2"/>
+      <!-- the collar, narrower than the barrel -->
+      <rect x="51" y="-8" width="7" height="16" fill="#D2C6AC"/>
+      <g stroke="#2A2521" stroke-width="2">
+        <line x1="51" y1="-8" x2="51" y2="8"/>
+        <line x1="58" y1="-8" x2="58" y2="8"/>
+      </g>
+      <!-- the chisel tip: felt, rose, cut on the slant -->
+      <polygon points="59,-6 66,-6 73,6 59,6" fill="#A86A63"/>
+      <line x1="66" y1="-6" x2="73" y2="6" stroke="#2A2521" stroke-width="2"/>
+    </g>
+  </g>
+</svg>

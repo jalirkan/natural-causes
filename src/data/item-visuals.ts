@@ -29,6 +29,13 @@ import type { ItemIcon } from './items';
  * barrier for Personal Space, an open hand mid-swing for Backhand, a gavel
  * about to land for Judgement. All three also appear on the field (the ring,
  * the sweep's edge, the bolt's target), so they keep to rose, bone and ink.
+ *
+ * College's Highlighter is drawn too (`icon-highlight.svg`, tag `highlight`):
+ * a chisel-tip marker, cap off, leaning onto the end of the one broad stroke
+ * it just laid, the stroke along +x. It is also the stroke on the field —
+ * a seeking shot wears its card's icon (ActScene `syncProjectiles`, 30px,
+ * turned to its heading) — so it keeps to rose, bone and ink like Reflex's
+ * manicule: never the highlighter yellow, which is the ranged threat's gold.
  */
 export const ITEM_ICON_ATLAS = {
   key: 'nc-icons',
