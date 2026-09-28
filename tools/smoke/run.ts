@@ -23,7 +23,11 @@ import { createServer, type ViteDevServer } from 'vite';
  * still draws as tuition (AUDIT 38), walks into a ping and within range of a
  * performance review's MEETS, waits for a commute on screen, and at The Reorg
  * takes half its health from the panel and waits for the restructure to be
- * drawn before the kill (AUDIT 54) — and at every
+ * drawn before the kill (AUDIT 54); at the crossing into Family it asks that
+ * The Office's paper, the performance review, was drawn, and in Family walks
+ * into an HOA letter (the HUD's `reach` term with it) and within range of a
+ * phone's HELLO?, waits for a toddler on screen, sees The Mortgage's DUE, and
+ * sees its door open on the kill (FAMILY-ROSTER §3–§5) — and at every
  * milestone asserts: no console error, no page error, no failed request, no
  * Phaser texture warning, nothing visible drawn from `__MISSING`, no
  * NaN/undefined in any text on screen, and after the crossing the screen
@@ -68,8 +72,17 @@ const OUT = resolve(ROOT, 'tools/smoke/out');
 // out of 240s and then of 300s, at the certificate both times. 420s is 2.5
 // times the slowest CI run and 1.35 times that shared box. A hang is still
 // caught by MILESTONE_MS; the total only bounds a run that is slow but
-// moving. The sixth act will need this sum done again, or the acts its
-// milestones already cover skipped.
+// moving.
+//
+// The sum done again for the sixth act (2026-09-28, the four-core box, two
+// runs at 5–20 fps): family, family-play, family-boss and Family's
+// certificate took the place of a kill-to-certificate step that took 6s, and
+// the runs ended at 118.5s and 151.5s where they would have at about 99s and
+// 119s: +20% and +28%. At +28% the slowest CI run seen becomes about 218s,
+// and 420s is 1.9 times it; the shared box's ~310s becomes about 400s, and
+// 420s is 1.05 times it. Kept, because neither run here came near it; thin
+// on that box, so if it runs out there again, raise this before skipping an
+// act's milestones.
 const MILESTONE_MS = 60_000;
 const BUDGET_MS = 420_000;
 const VIEW = { width: 1280, height: 720 };
@@ -105,7 +118,15 @@ interface Probe {
      * caught up in syncBoss), and `grey` whether the chart's greyed rows are
      * drawn. Zero, zero and false for every boss that never restructures.
      */
-    boss: { phase: string; hp: number; restructures: number; drawnRestructures: number; grey: boolean } | null;
+    boss: {
+      phase: string;
+      hp: number;
+      restructures: number;
+      drawnRestructures: number;
+      grey: boolean;
+      /** The Mortgage's door drawn open (`bossDoor`, visible): false for every other boss, and before its absorb. */
+      door: boolean;
+    } | null;
     /**
      * The boss as drawn, where it is drawn (the Reorg's moves at a restructure),
      * and whether that point is inside the camera's view.
@@ -129,6 +150,14 @@ interface Probe {
     worn: Record<string, number>;
     /** The words drawn as shots this frame (`nameShotTexts`, visible): HOLD, a misspelled name. */
     words: string[];
+    /** The HUD's worn line (`hudDrag`): `2 attached · reach −14%`. */
+    wornLine: string;
+    /**
+     * The act's document at a crossing, while it is up (`paper`): every text
+     * drawn on it, in order, run together — the title's small-caps runs join
+     * back into its words (PERFORMANCE REVIEW). Null with no paper up.
+     */
+    paper: string | null;
     /** The nearest enemy of each kind, from the player, in world pixels. For steering only. */
     nearest: Record<string, { dx: number; dy: number }>;
     /**
@@ -186,6 +215,7 @@ const PROBE = String.raw`(() => {
             restructures: w.boss.restructures,
             drawnRestructures: s.bossRestructures,
             grey: !!s.bossGrey && s.bossGrey.visible,
+            door: !!s.bossDoor && s.bossDoor.visible,
           }
         : null,
       bossSprite: s.bossSprite
@@ -211,9 +241,21 @@ const PROBE = String.raw`(() => {
       fps: Math.round(game.loop.actualFps),
       worn: {},
       words: [...new Set(s.nameShotTexts.filter((t) => t.visible).map((t) => t.text))],
+      wornLine: s.hudDrag.text,
+      paper: null,
       nearest: {},
       seen: {},
     };
+    if (s.paper) {
+      const texts = [];
+      const walk = [s.paper];
+      while (walk.length > 0) {
+        const o = walk.shift();
+        if (Array.isArray(o.list)) walk.unshift(...o.list);
+        else if (typeof o.text === 'string') texts.push(o.text);
+      }
+      act.paper = texts.join('');
+    }
     for (const a of s.attachedSprites) if (a.visible) act.worn[a.frame.name] = (act.worn[a.frame.name] || 0) + 1;
     for (const e of w.enemies) {
       const dx = e.x - w.x;
@@ -640,12 +682,101 @@ async function main(): Promise<void> {
       (p.act!.bossSprite!.inView ? ', in view' : ', off screen'),
   );
 
+  // The Reorg falling crosses into Family (FAMILY-ROSTER §5), and The
+  // Office's paper, the performance review, is drawn for the first time: a
+  // life that ended at The Reorg never crossed with it. It is up for the
+  // scene's DOCUMENT_MS or until a key (an offer's "1" takes it), so both of
+  // the crossing's waits latch it drawn at any poll, as the words are.
+  const family = { paper: false, worn: 0, reach: false, hello: false, toddler: false, due: false, door: false };
+  const readPaper = (q: Probe) => (family.paper ||= q.act?.paper?.includes('PERFORMANCE REVIEW') ?? false);
   await press('office-reorg', 'kill');
+  p = await waitFor('family', (q) => {
+    readPaper(q);
+    return q.act?.index === 5 && q.act.shown === 5 && q.act.zoom === 1 && hudAge(q);
+  });
+  await press('family', '4x');
+  p = await waitFor('family', (q) => {
+    readPaper(q);
+    return q.act?.index === 5 && q.act.timeScale === 4 && populated(q);
+  });
+  if (!family.paper) {
+    throw new SmokeFailure('family', 'the crossing into Family never drew The Office\'s paper, PERFORMANCE REVIEW', p);
+  }
+  await milestone('family', p, `${actLine(p)}  paper PERFORMANCE REVIEW`);
+
+  // Family's own drawings, as The Office's above and at the same 4x under
+  // god: an HOA letter worn on the player with the HUD's `reach` term that
+  // names its cost (§3.3), a phone's HELLO? in flight (§3.5), and a toddler
+  // on screen (§3.4). The letter waits at the lead like the ping, so the
+  // smoke walks into the nearest one until one is worn; the phone is a
+  // counter that fires inside 440px, so it then walks to within 300px of the
+  // nearest until a HELLO? is drawn (the call pulls the player toward it;
+  // that is the act). The toddler is spawned on the player's trail and
+  // chases, so the player stands and it is latched on any poll that finds
+  // one drawn inside the camera's view, asked for again every 6s. God mode
+  // zeroes the hold (`applyDevCheats`), so a toddler that reaches the player
+  // lets go at once and leaves: the hold itself is a hand check, not this.
+  // All three are spawned from the panel rather than waited on (the act's
+  // first letter, toddler and phone open at 30s, 45s and 70s), and asked for
+  // again as The Office's are. Each sighting latches.
+  const familyAsked = { 'hoa-letter': 0, 'phone-call': 0, toddler: 0 };
+  const familyButton = { 'hoa-letter': '1x HOA letter', 'phone-call': '1x Phone call', toddler: '1x Toddler' };
+  for (const kind of ['hoa-letter', 'phone-call', 'toddler'] as const) {
+    await press('family-play', familyButton[kind]);
+    familyAsked[kind] = Date.now();
+  }
   p = await waitFor(
-    'certificate',
-    (q) => !!q.act?.won && !!q.act.overlay?.includes('Natural causes.') && q.act.overlay.includes('Age 34.'),
+    'family-play',
+    (q) => {
+      family.worn = Math.max(family.worn, q.act?.worn['hoa-letter.png'] ?? 0);
+      family.reach ||= /\breach −\d+%/.test(q.act?.wornLine ?? '');
+      family.hello ||= q.act?.words.includes('HELLO?') ?? false;
+      family.toddler ||= (q.act?.seen['toddler'] ?? 0) > 0;
+      return q.act?.index === 5 && family.worn > 0 && family.reach && family.hello && family.toddler;
+    },
+    async (q) => {
+      if (!q.act || q.act.index !== 5) return;
+      const kind = family.worn === 0 ? 'hoa-letter' : !family.hello ? 'phone-call' : 'toddler';
+      const target = q.act.nearest[kind];
+      const waited = Date.now() - familyAsked[kind];
+      const again =
+        kind === 'hoa-letter' ? !target && waited > 4000 : kind === 'phone-call' ? waited > 10_000 : waited > 6000;
+      if (again) {
+        await press('family-play', familyButton[kind]);
+        familyAsked[kind] = Date.now();
+      }
+      if (kind !== 'toddler' && target) await steer(target.dx, target.dy, kind === 'hoa-letter' ? 0 : 300);
+      else await steer(0, 0, 0);
+    },
   );
-  await milestone('certificate', p, p.act!.overlay!.split('\n').slice(0, 2).join(' '));
+  await steer(0, 0, 0);
+  await milestone(
+    'family-play',
+    p,
+    `${actLine(p)}  worn letter ${family.worn}  "${p.act!.wornLine}"  HELLO? drawn  toddler seen`,
+  );
+
+  // The Mortgage (§4), and its statement drawn as the word DUE: the boss's
+  // shot has no owner, so the word is keyed on its kind. It states within a
+  // few seconds of standing (the Egg's idle and telegraph, for now), and the
+  // shot lives four; latched at any poll.
+  await press('family-boss', 'skip to boss');
+  p = await waitFor('family-boss', (q) => {
+    family.due ||= q.act?.words.includes('DUE') ?? false;
+    return !!q.act?.boss && q.act.bossSprite?.frame === q.act.bossFrame && family.due;
+  });
+  await milestone('family-boss', p, `${actLine(p)}  DUE drawn`);
+
+  // The door opens on the win (§4): drawn from the frame the house begins to
+  // absorb, latched at any poll through the absorb, which runs 1.8s at 1x.
+  await press('family-boss', '1x');
+  await press('family-boss', 'kill');
+  p = await waitFor('certificate', (q) => {
+    family.door ||= q.act?.boss?.door ?? false;
+    return !!q.act?.won && !!q.act.overlay?.includes('Natural causes.') && q.act.overlay.includes('Age 55.');
+  });
+  if (!family.door) throw new SmokeFailure('certificate', 'The Mortgage fell and its door was never drawn open', p);
+  await milestone('certificate', p, `${p.act!.overlay!.split('\n').slice(0, 2).join(' ')}  door opened`);
 }
 
 let code = 0;

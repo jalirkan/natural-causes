@@ -48,13 +48,16 @@ describe('Family has a schedule, and it is provisional', () => {
     expect(label).toMatch(/Egg/);
   });
 
-  it('is the sixth act of the life, and the browser cannot start it yet', () => {
+  it('is the sixth act of the life, and the browser plays it', () => {
     // In ALL_ACTS after The Office, so the bots and the content rules run it;
-    // NOT in ACTS until its atlas, `player-family` and `boss-mortgage` exist
-    // (FAMILY-ROSTER §5; content.test.ts ties ACTS to ACT_VISUALS).
+    // and in ACTS after The Office too, now its atlas, `player-family` and
+    // `boss-mortgage` exist (FAMILY-ROSTER §5; content.test.ts ties ACTS to
+    // ACT_VISUALS and checks every frame it draws is in the atlas). The
+    // browser's life ends here, at fifty-five.
     expect(ALL_ACTS.indexOf(FAMILY)).toBe(ALL_ACTS.indexOf(OFFICE) + 1);
     expect(ALL_ACTS[ALL_ACTS.length - 1]).toBe(FAMILY);
-    expect(ACTS).not.toContain(FAMILY);
+    expect(ACTS.indexOf(FAMILY)).toBe(ACTS.indexOf(OFFICE) + 1);
+    expect(ACTS[ACTS.length - 1]).toBe(FAMILY);
   });
 
   it('runs 150 seconds from thirty-four to fifty-five and ends on EQUITY', () => {

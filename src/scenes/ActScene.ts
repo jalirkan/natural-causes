@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { ACTS, type ActDef } from '../data/acts';
+import { ACTS, type ActDef, type BossDef } from '../data/acts';
 import { ACT_VISUALS, actVisuals, type ActVisuals } from '../data/act-visuals';
 import { ENEMIES } from '../data/enemies';
 import { ITEMS, isActive, itemDef, type ItemIcon } from '../data/items';
@@ -78,12 +78,24 @@ const MAX_ATTACHED_SPRITES = 16;
 /**
  * Enemies whose aimed shot is drawn as a word in the ranged gold instead of the
  * gold dot: the substitute's (the player's name, misspelled), the registrar's
- * (HOLD) and the performance review's rating (MEETS, OFFICE-ROSTER §3.5).
- * Keyed on the id because the word is the drawing; `SHOT_WORDS` holds the
- * fixed ones, and the substitute's is the name.
+ * (HOLD), the performance review's rating (MEETS, OFFICE-ROSTER §3.5) and the
+ * phone's call (HELLO?, FAMILY-ROSTER §3.5). Keyed on the id because the word
+ * is the drawing; `SHOT_WORDS` holds the fixed ones, and the substitute's is
+ * the name.
  */
-const SHOT_WORDS: Readonly<Record<string, string>> = { registrar: 'HOLD', 'performance-review': 'MEETS' };
+const SHOT_WORDS: Readonly<Record<string, string>> = {
+  registrar: 'HOLD',
+  'performance-review': 'MEETS',
+  'phone-call': 'HELLO?',
+};
 const WORDED_SHOTS: ReadonlySet<string> = new Set(['substitute-teacher', ...Object.keys(SHOT_WORDS)]);
+/**
+ * The boss's shots drawn as a word, by the kind of boss that fired them: a
+ * boss's shot has no owner (it names the boss), so it is keyed on the act's
+ * boss kind. The Mortgage's statement is DUE (FAMILY-ROSTER §4). Every other
+ * kind's shot is the Egg's hostile dot, the Reorg's memo among them.
+ */
+const BOSS_SHOT_WORDS: Readonly<Partial<Record<BossDef['kind'], string>>> = { mortgage: 'DUE' };
 /**
  * The Loan's tape jerking on its interest tick: how long the jolt rings, in
  * world seconds, and how far it stretches the frame at its peak.
@@ -112,6 +124,29 @@ const REORG_SWAP = 0.12;
 const REORG_ROW_TOPS = [122 / 384, 226 / 384, 330 / 384];
 const REORG_GREY = 2 / 3;
 /**
+ * The Mortgage's door, its mouth (FAMILY-ROSTER §4): the rectangle
+ * boss-mortgage.svg's note for the renderer measures on the 384 sprite, frame
+ * included — x 160–223, y 266–351 — as shares of the frame. On the twelfth
+ * payment the door opens. PLACEHOLDER as a picture, as the Reorg's grey rows
+ * are (AUDIT seven, 55): one frame exists, so the open door is that rectangle
+ * filled in the act's deep tone, the carpet seen through the doorway, laid
+ * over the house for the absorb; when an open door is drawn and packed, the
+ * overlay wears that frame instead.
+ */
+const MORTGAGE_DOOR = { x0: 160 / 384, x1: 223 / 384, y0: 266 / 384, y1: 351 / 384 };
+/**
+ * A hold taking the player (an engulf: the white cell's, the toddler's,
+ * FAMILY-ROSTER §3.4): the grab is a squash, wider first, ringing down as the
+ * Reorg's landing does, and for as long as the hold runs the swim's wiggle
+ * runs at the hold's share of speed. Shape and motion, not tint (G-032, law
+ * 10). The toddler's hold does no damage, so without these nothing on screen
+ * said the player was held. PLACEHOLDER, watched by nobody yet.
+ */
+const HOLD_GRAB_SECONDS = 0.4;
+const HOLD_GRAB = 0.12;
+/** A body holding the player that is drawn smaller than them draws in front of them, between the player and what they wear. */
+const HOLDER_DEPTH = 10.5;
+/**
  * The boss's entrance (AUDIT 37). Every boss stands 420px above the player
  * and the view reaches 360, so on the boss's first frame the camera goes to
  * look: out to where the whole drawing is in view, a hold, and back to the
@@ -135,7 +170,8 @@ const DOCUMENT_MS = 4000;
 const INPUT_LOG_KEY = 'nc-input-log';
 /**
  * Every stack the player wears, whatever it costs (`World.wornBy`): the
- * antibody's drag, tuition's tax, the ping's attention. Acts one to four
+ * antibody's drag, tuition's tax, the ping's attention, the HOA letter's
+ * reach. Acts one to four
  * attach only things that drag, so there it equals `dragStacks`; in The
  * Office a ping adds to it and not to the drag.
  */
@@ -218,9 +254,10 @@ export class ActScene extends Phaser.Scene {
   private enemySprites: Phaser.GameObjects.Image[] = [];
   private projectileSprites: Phaser.GameObjects.Image[] = [];
   /**
-   * Shots drawn as words (`WORDED_SHOTS`): the substitute's, the player's name
-   * spelled wrong (SCHOOL-ROSTER §3.5), the registrar's HOLD (COLLEGE §3.5)
-   * and the review's MEETS (OFFICE §3.5).
+   * Shots drawn as words (`shotWord`): the substitute's, the player's name
+   * spelled wrong (SCHOOL-ROSTER §3.5), the registrar's HOLD (COLLEGE §3.5),
+   * the review's MEETS (OFFICE §3.5), the phone's HELLO? and the Mortgage's
+   * DUE (FAMILY §3.5, §4).
    */
   private nameShotTexts: Phaser.GameObjects.Text[] = [];
   /** The name on the form, read once per life; the sim never knows it. */
@@ -263,6 +300,17 @@ export class ActScene extends Phaser.Scene {
   private bossSwapAt = -Infinity;
   /** The Reorg's greyed rows: the chart's own frame, cropped from a row down (`REORG_ROW_TOPS`). */
   private bossGrey?: Phaser.GameObjects.Image;
+  /** The Mortgage's open door (`MORTGAGE_DOOR`), laid over the house while it absorbs. */
+  private bossDoor?: Phaser.GameObjects.Rectangle;
+  /**
+   * The hold's cues (`HOLD_GRAB`): last frame's `engulfTimer`, which rising is
+   * a new hold; the world time of that grab; and the swim's phase, advanced
+   * by the world time each frame covers at the hold's share of speed.
+   */
+  private heldFor = 0;
+  private grabAt = -Infinity;
+  private swimPhase = 0;
+  private swimAt = 0;
   /**
    * The boss's entrance (AUDIT 37): owed from the frame its sprite is made
    * until the camera goes to look, and the look while it runs. One per
@@ -422,7 +470,12 @@ export class ActScene extends Phaser.Scene {
     this.attachedSprites = [];
     delete this.bossSprite;
     delete this.bossGrey;
+    delete this.bossDoor;
     delete this.floorRing;
+    this.heldFor = 0;
+    this.grabAt = -Infinity;
+    this.swimPhase = this.world.time * 9;
+    this.swimAt = this.world.time;
     // The old scene's look went with its tweens, and startFollow below sets
     // the follow offset back to nothing; a new world has no boss to owe one.
     this.bossEntranceOwed = false;
@@ -573,6 +626,8 @@ export class ActScene extends Phaser.Scene {
     delete this.bossSprite;
     this.bossGrey?.destroy();
     delete this.bossGrey;
+    this.bossDoor?.destroy();
+    delete this.bossDoor;
     this.endBossEntrance();
     this.floorRing?.destroy();
     delete this.floorRing;
@@ -1393,10 +1448,27 @@ export class ActScene extends Phaser.Scene {
     const stun = this.world.stunTimer > 0 ? 0.14 : 0;
     // Growth Spurt: drawn as wide as it collides. Everyone can see you.
     const grown = this.world.playerRadius / PLAYER_RADIUS;
-    this.player.setDisplaySize(PLAYER_DISPLAY * grown * (1 + stun), PLAYER_DISPLAY * grown * (1 - stun));
+    // Held (`HOLD_GRAB`): the timer rising between two frames is a new hold,
+    // and the grab rings down from it; while the hold runs the swim slows to
+    // its share of speed (the toddler's 0.3), so being held reads without a
+    // hit to show it.
+    const held = this.world.engulfTimer > 0;
+    if (this.world.engulfTimer > this.heldFor) this.grabAt = this.world.time;
+    this.heldFor = this.world.engulfTimer;
+    const grabbed = this.world.time - this.grabAt;
+    const grab =
+      grabbed >= 0 && grabbed < HOLD_GRAB_SECONDS ? HOLD_GRAB * Math.exp(-grabbed * 10) * Math.cos(grabbed * 30) : 0;
+    this.player.setDisplaySize(
+      PLAYER_DISPLAY * grown * (1 + stun + grab),
+      PLAYER_DISPLAY * grown * (1 - stun - grab),
+    );
     // The swim: quick small wiggle. It is the player character in an act
-    // where the whole field is alive; a rigid sprite reads as a cursor.
-    this.player.setRotation(stun ? 0 : Math.sin(this.world.time * 9) * 0.09);
+    // where the whole field is alive; a rigid sprite reads as a cursor. Its
+    // phase follows the world clock (a held world holds it still), slowed by
+    // a hold as the walk is.
+    this.swimPhase += Math.max(0, this.world.time - this.swimAt) * 9 * (held ? this.world.engulfSlow : 1);
+    this.swimAt = this.world.time;
+    this.player.setRotation(stun ? 0 : Math.sin(this.swimPhase) * 0.09);
 
     // Passive cues (G-036): the invisible items get a presence. Membrane is a
     // ring — you can see the thicker skin. Midpiece is motion streaks behind
@@ -1447,13 +1519,31 @@ export class ActScene extends Phaser.Scene {
   }
 
   private syncEnemies(): void {
-    const list: EnemyState[] = this.world.enemies;
+    const w = this.world;
+    const list: EnemyState[] = w.enemies;
     this.fit(this.enemySprites, list.length, () =>
       this.add.image(0, 0, this.visuals.atlas.key).setDepth(5),
     );
+    // A hold (FAMILY-ROSTER §3.4): the toddler, 44px against the player's
+    // 56, walks onto the player's centre and would be drawn under them for
+    // the whole hold. So while a hold runs, anything that engulfs, touching
+    // the player and drawn smaller than them, draws in front of them: the bib
+    // at the leg. A larger one (the white cell) already shows round the
+    // player and stays under. Read off the touch, as the sim's contact is;
+    // the world keeps which body holds private.
+    const body = w.playerRadius;
+    const front = w.engulfTimer > 0 ? PLAYER_DISPLAY * (body / PLAYER_RADIUS) : 0;
     for (let i = 0; i < list.length; i++) {
       const e = list[i]!;
       const s = this.enemySprites[i]!;
+      const reach = e.radius + body;
+      const holding =
+        e.def.contact === 'engulf' &&
+        e.displaySize < front &&
+        (e.x - w.x) ** 2 + (e.y - w.y) ** 2 <= reach * reach;
+      // Only on a change: a depth set queues a sort of the whole display list.
+      const depth = holding ? HOLDER_DEPTH : 5;
+      if (s.depth !== depth) s.setDepth(depth);
       // G-032: no render tint. The sprite arrives in its final colours and
       // CHECK enforces the value ceiling, because a GPU multiply is invisible
       // to every check in the pipeline and was putting every enemy off-palette
@@ -1540,10 +1630,13 @@ export class ActScene extends Phaser.Scene {
     // same hand and the same pool: the aimed thing is not a hit but a hold.
     // The review's rating is the one word MEETS (OFFICE-ROSTER §3.5): the
     // number about the player, and the level bar slipping when it lands.
-    // The Reorg's memo has no owner, so it is the Egg's hostile dot.
+    // The phone's call is HELLO? (FAMILY-ROSTER §3.5): it wants nothing but
+    // you, over there. The Mortgage's statement is DUE (§4): the boss's shot,
+    // keyed on its kind. The Reorg's memo has no word, so it is the Egg's
+    // hostile dot.
     this.fit(this.projectileSprites, list.length, () => this.add.image(0, 0, 'nc-shot').setDepth(8));
     let named = 0;
-    for (const p of list) if (p.hostile && WORDED_SHOTS.has(p.owner?.id ?? '')) named++;
+    for (const p of list) if (this.shotWord(p) !== undefined) named++;
     this.fit(this.nameShotTexts, named, () =>
       this.add
         .text(0, 0, '', {
@@ -1561,11 +1654,9 @@ export class ActScene extends Phaser.Scene {
       const p = list[i]!;
       const s = this.projectileSprites[i]!;
       const heading = Math.atan2(p.vy, p.vx);
-      if (p.hostile && WORDED_SHOTS.has(p.owner?.id ?? '')) {
-        this.nameShotTexts[named++]!
-          .setText(SHOT_WORDS[p.owner!.id] ?? misspell(this.playerName, p.serial))
-          .setPosition(p.x, p.y)
-          .setVisible(true);
+      const word = this.shotWord(p);
+      if (word !== undefined) {
+        this.nameShotTexts[named++]!.setText(word).setPosition(p.x, p.y).setVisible(true);
         s.setVisible(false);
         continue;
       }
@@ -1585,6 +1676,20 @@ export class ActScene extends Phaser.Scene {
       }
       s.setPosition(p.x, p.y).setVisible(true);
     }
+  }
+
+  /**
+   * The word a hostile shot is drawn as, or undefined for the gold dot. An
+   * enemy's shot by its owner's id (`SHOT_WORDS`; the substitute's is the
+   * name, misspelled by the shot's serial so one shot keeps its spelling); the
+   * boss's, which has no owner, by the act's boss kind (`BOSS_SHOT_WORDS`).
+   */
+  private shotWord(p: ProjectileState): string | undefined {
+    if (!p.hostile) return undefined;
+    const owner = p.owner?.id;
+    if (owner === undefined) return BOSS_SHOT_WORDS[this.world.act.boss.kind];
+    if (!WORDED_SHOTS.has(owner)) return undefined;
+    return SHOT_WORDS[owner] ?? misspell(this.playerName, p.serial);
   }
 
   private syncGems(): void {
@@ -2029,6 +2134,7 @@ export class ActScene extends Phaser.Scene {
       // Value, not tint (G-032, law 10).
       .setAlpha(alpha);
     if (this.world.act.boss.kind === 'reorg') this.syncChartGrey(b, alpha);
+    if (this.world.act.boss.kind === 'mortgage') this.syncDoor(b, alpha);
     // Behind a card nobody would see the look, so it waits for the choice.
     if (this.bossEntranceOwed && !this.world.offers) this.lookAtBoss(b.phase === 'absorbing');
   }
@@ -2068,6 +2174,31 @@ export class ActScene extends Phaser.Scene {
       .setPosition(s.x, s.y)
       .setScale(s.scaleX, s.scaleY)
       .setAlpha(alpha * REORG_GREY)
+      .setVisible(true);
+  }
+
+  /**
+   * The Mortgage's door opening on the win (FAMILY-ROSTER §4): from the frame
+   * it begins to absorb, the door's rectangle (`MORTGAGE_DOOR`) is laid over
+   * the house in the act's deep tone, at the house's own place, size and
+   * alpha, so the mouth opens on the carpet behind it and fades with the
+   * house. Hidden before. A render overlay, PLACEHOLDER as the Reorg's grey
+   * rows are.
+   */
+  private syncDoor(b: NonNullable<World['boss']>, alpha: number): void {
+    if (b.phase !== 'absorbing') {
+      this.bossDoor?.setVisible(false);
+      return;
+    }
+    const s = this.bossSprite!;
+    if (!this.bossDoor) this.bossDoor = this.add.rectangle(0, 0, 1, 1).setOrigin(0, 0).setDepth(s.depth);
+    const left = s.x - s.displayWidth * s.originX;
+    const top = s.y - s.displayHeight * s.originY;
+    this.bossDoor
+      .setPosition(left + s.displayWidth * MORTGAGE_DOOR.x0, top + s.displayHeight * MORTGAGE_DOOR.y0)
+      .setSize(s.displayWidth * (MORTGAGE_DOOR.x1 - MORTGAGE_DOOR.x0), s.displayHeight * (MORTGAGE_DOOR.y1 - MORTGAGE_DOOR.y0))
+      .setFillStyle(this.visuals.background, 1)
+      .setAlpha(alpha)
       .setVisible(true);
   }
 
@@ -2367,12 +2498,20 @@ export class ActScene extends Phaser.Scene {
     // count is every stack worn, and the speed term is there only when one of
     // them drags: pings alone read `2 attached · attention −11%`.
     const attention = Math.round((1 - 1 / w.attentionFactor) * 100);
+    // The HOA letter's cost is on the reach (FAMILY-ROSTER §3.3): the radius
+    // gems start coming from is multiplied by `pickupFactor`, the sim's own
+    // product of each worn notice's `attach.pickup` (two letters, 0.93², read
+    // −14%). The radius itself shrinks by that share, so it is 1 − factor,
+    // not the cadence's 1 − 1/factor. Derived, as the tax is; there whenever
+    // a worn stack costs reach, whichever act it was worn in.
+    const reach = Math.round((1 - w.pickupFactor) * 100);
     const worn = wornCount(w);
     this.hudDrag.setText(
       [
         worn > 0 ? `${worn} attached${w.dragStacks > 0 ? `  −${drag}% speed` : ''}` : '',
         w.taxStacks > 0 ? `xp −${tax}%` : '',
         w.pingStacks > 0 ? `attention −${attention}%` : '',
+        w.pickupFactor < 1 ? `reach −${reach}%` : '',
       ]
         .filter((t) => t !== '')
         .join(' · '),
@@ -2409,6 +2548,19 @@ export class ActScene extends Phaser.Scene {
       const frac = w.boss.hp / w.boss.maxHp;
       if (frac > 0.02) {
         this.bars.fillStyle(UI_FILL, w.boss.shielded ? 0.35 : 1).fillRoundedRect(240, 68, width * frac, 8, 4);
+      }
+      // The Mortgage is paid on a schedule (FAMILY-ROSTER §4): its bar is cut
+      // into `instalments` cells by an ink notch at every instalment, over the
+      // fill, so the health reads as a schedule and each payment empties one
+      // cell (the sim steps its health by an instalment). The fill is still
+      // hp/maxHp. PLACEHOLDER as a picture: the smooth bar stays under the
+      // notches until a person has read them, as §4 says.
+      const owed = w.act.boss;
+      if (w.boss.kind === 'mortgage' && owed.kind === 'mortgage' && owed.instalments > 1) {
+        this.bars.fillStyle(INK, 0.9);
+        for (let k = 1; k < owed.instalments; k++) {
+          this.bars.fillRect(Math.round(240 + (width * k) / owed.instalments) - 1, 66, 2, 12);
+        }
       }
     }
     // The race (G-006): how close someone else is to getting there first.

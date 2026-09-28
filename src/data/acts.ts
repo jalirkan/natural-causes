@@ -568,10 +568,10 @@ export const ALL_ACTS: ActDef[] = [CONCEPTION, SCHOOL, ADOLESCENCE, COLLEGE, OFF
  * School joined when its authored SVG sprites landed (G-038); its boss is the
  * Gym Teacher, picture and behaviour (SCHOOL-ROSTER §9). College joined when
  * its seven drawings were packed (G-045); The Office joined when its seven
- * were (G-048), so the browser's life now ends at thirty-four. Family is in
- * `ALL_ACTS` and not here: it joins when its atlas, `player-family` and
- * `boss-mortgage` exist (FAMILY-ROSTER §5). A test asserts this list and `ACT_VISUALS`
- * agree, so moving an act in is a one-line change that fails loudly if the
- * art is not there.
+ * were (G-048); Family joined when its atlas, `player-family` and
+ * `boss-mortgage` were packed (FAMILY-ROSTER §5), so the browser's life now
+ * ends at fifty-five. A test asserts this list and `ACT_VISUALS` agree, so
+ * moving an act in is a one-line change that fails loudly if the art is not
+ * there.
  */
-export const ACTS: ActDef[] = [CONCEPTION, SCHOOL, ADOLESCENCE, COLLEGE, OFFICE];
+export const ACTS: ActDef[] = [CONCEPTION, SCHOOL, ADOLESCENCE, COLLEGE, OFFICE, FAMILY];
