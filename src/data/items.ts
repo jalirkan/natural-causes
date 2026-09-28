@@ -1933,8 +1933,6 @@ export const ITEMS: Record<string, ItemDef> = {
     nap: { threshold: 0.3, heal: 0.25 },
     maxLevel: 5,
     icon: 'nap',
-    iconPending:
-      'Drawn at tools/art/svg/conception/icon-nap.svg and through CONFORM and CHECK; retires when `pnpm art:pack` puts icon-nap.png in the icons atlas.',
     blurb: 'You fell asleep in the chair. You feel better. It is later.',
     levels: table(
       [

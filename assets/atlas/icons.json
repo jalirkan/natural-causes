@@ -479,6 +479,26 @@
         "w": 96,
         "h": 96
       }
+    },
+    "icon-nap.png": {
+      "frame": {
+        "x": 394,
+        "y": 198,
+        "w": 96,
+        "h": 96
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 96,
+        "h": 96
+      },
+      "sourceSize": {
+        "w": 96,
+        "h": 96
+      }
     }
   },
   "meta": {
