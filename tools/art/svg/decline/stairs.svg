@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <title>Stairs</title>
+  <desc>A flight of six flat purple steps rising from left to right, seen exactly side-on, the treads a little uneven, with the space under the upper steps left open. One straight dark rail runs above the flight on two dark posts, one standing on the bottom step and one on the top. On the riser of the top step, two small dark eyes with flat tops, lids low, and one short flat mouth, turned down the flight toward the bottom step. No carpet, no text, nobody on it.</desc>
+  <!--
+    Stairs (DECLINE-ROSTER section 3.4), the act's roadblock and its elite:
+    a hold that never ends, not a mover. Reserved silhouette (section 1):
+    the flight of stairs, six steps rising left to right seen side-on with
+    one rail above them. The only steps in the act and the only rail.
+
+    The sim draws this centred on the hold, at the hold's diameter, inside
+    its ring, and the player walks in and stands in the middle. So the
+    flight runs corner to corner through the middle of the frame and the
+    middle of the sprite falls between the rail and the fourth step: the
+    player stands on the stairs, under the rail. The space under the upper
+    steps is cut away along the flight's own slope, from the floor under
+    the fourth riser to the back of the top step. That keeps the mass on
+    the diagonal and out of the bottom-right corner, where it would stand
+    outside the ring, and it is what makes this a flight rather than a
+    stepped block. A block is also a bar chart; a sloped underside never is.
+    The cut starts under the fourth riser and no earlier. Ink sits 0.099
+    Oklab L from decline-deep, under the contrast floor, so the rail, the
+    posts and CONFORM's ring all count as vanishing, and a thinner flight
+    lets them outweigh the purple: measured, the cut from under the third
+    riser put 0.4067 of the sprite into the background and the cut from
+    under the second 0.5051, against a ceiling of 0.4. The solid block
+    passed at 0.3114; this passes at 0.3534.
+
+    Rail: straight, parallel to the flight, about two risers above the
+    nosings, on two posts: a newel standing on the bottom tread near its
+    front and one standing on the top tread near its back, the rail running
+    a little past each. Two grid units wide; CONFORM rings both sides, so it
+    lands at six pixels at 96 and three at 48, with the gap under it wider
+    than the rail at every size, so rail and steps never fuse.
+
+    Hand-cut (law 4): the treads run 15, 15, 16, 15, 16, 15 and the risers
+    10, 11, 10, 9, 10, 10. The rail is straight because the roster says so.
+
+    Face (law 5): on the riser of the top step, hugging its left edge, the
+    side the flight descends from. Two 3-by-3 ink eyes with flat tops (lids
+    low) and their bottom corners cut on the right, so their weight sits
+    down and to the left, and a flat 4-by-2 mouth under the left eye. It is
+    looking down the flight at where you would come from, not at the
+    viewer. Law 9 has no person to render: nobody is on the stairs.
+
+    Drawn on the finished sprite's pixel grid: one unit is one pixel of the
+    92px subject (96 less the 2px outline each side); the group puts the
+    92 units at the rasteriser's first density exactly, and crispEdges keeps
+    the face and the treads on whole pixels.
+
+    Colours are palette hex values: threat-elite #7C5C8A on every step, one
+    solid tone (the act's only purple, law 6); ink #2A2521 for the rail,
+    the posts and the face. No paper, no decline-light (the pickups', law
+    10), no red, no gold, no teal. CONFORM adds the outline; there is none
+    here.
+  -->
+  <g shape-rendering="crispEdges" transform="translate(2.0833333 2.0833333) scale(1.0416667)">
+    <!-- the flight: six steps up to the right, the space under the upper steps open -->
+    <path fill="#7C5C8A" d="M0,92 V82 H15 V71 H30 V61 H46 V52 H61 V42 H77 V32 H92 V62 L46,92 Z"/>
+    <!-- the rail, straight, on two posts: the newel on the bottom step, the post on the top -->
+    <g stroke="#2A2521" stroke-width="2" fill="none" stroke-linecap="butt">
+      <line x1="1" y1="59.65" x2="91" y2="1.24"/>
+      <line x1="4" y1="82" x2="4" y2="57.7"/>
+      <line x1="88" y1="32" x2="88" y2="3.2"/>
+    </g>
+    <!-- the face, on the riser of the top step: lids low, looking down the flight -->
+    <g fill="#2A2521">
+      <path d="M78,35 H81 V37 H80 V38 H78 Z"/>
+      <path d="M83,35 H86 V37 H85 V38 H83 Z"/>
+      <rect x="78" y="40" width="4" height="2"/>
+    </g>
+  </g>
+</svg>
