@@ -107,6 +107,44 @@ describe('the ancestor log, with storage', () => {
     expect(recentLives(6)).toHaveLength(1);
   });
 
+  it('records the name the scene held, and leaves a blank one out', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(3_000);
+    recordLife(death, 'Nobody');
+    recordLife(win, '  ');
+    const stored = JSON.parse(storage.getItem(ANCESTORS_KEY)!) as Ancestor[];
+    expect(stored).toEqual([
+      { outcome: 'died', actName: 'School', age: 9.7, cause: 'Homework', at: 3_000, name: 'Nobody' },
+      { outcome: 'won', actName: 'School', age: 12, cause: 'natural causes', at: 3_000 },
+    ]);
+    expect(recentLives(6).map(obituary)).toEqual([
+      'Age 12 · natural causes',
+      'Nobody · Age 9 · School · Homework',
+    ]);
+  });
+
+  it('still loads lives recorded before names, beside ones with a name', () => {
+    storage.setItem(
+      ANCESTORS_KEY,
+      JSON.stringify([
+        { outcome: 'died', actName: 'School', age: 9.7, cause: 'Homework', at: 1 },
+        { outcome: 'won', actName: 'School', age: 18, cause: 'natural causes', at: 2, name: 'Justin' },
+      ]),
+    );
+    expect(recentLives(6).map(obituary)).toEqual([
+      'Justin · Age 18 · natural causes',
+      'Age 9 · School · Homework',
+    ]);
+  });
+
+  it('drops an entry whose name is not a string', () => {
+    storage.setItem(
+      ANCESTORS_KEY,
+      JSON.stringify([{ outcome: 'died', actName: 'School', age: 9, cause: 'Homework', at: 1, name: 7 }]),
+    );
+    expect(recentLives(6)).toEqual([]);
+  });
+
   it('drops malformed entries rather than printing them', () => {
     storage.setItem(ANCESTORS_KEY, JSON.stringify([{ outcome: 'died' }, null, 3]));
     expect(recentLives(6)).toEqual([]);
@@ -160,5 +198,10 @@ describe('obituary', () => {
 
   it('reads the win as natural causes', () => {
     expect(obituary(as(win))).toBe('Age 12 · natural causes');
+  });
+
+  it('prints the name first when the life has one', () => {
+    expect(obituary({ ...as(death), name: 'Nobody' })).toBe('Nobody · Age 9 · School · Homework');
+    expect(obituary({ ...as(win), age: 18, name: 'Justin' })).toBe('Justin · Age 18 · natural causes');
   });
 });
