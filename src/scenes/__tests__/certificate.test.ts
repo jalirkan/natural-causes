@@ -7,6 +7,11 @@ import {
   effectLines,
   hudAge,
   lifeClock,
+  NARROW_SCREEN,
+  NARROW_TYPE,
+  NARROW_WIDTH,
+  narrowCanvas,
+  narrowRows,
 } from '../certificate';
 import { CONCEPTION, SCHOOL } from '../../data/acts';
 import { World, type Certificate } from '../../sim/world';
@@ -118,5 +123,46 @@ describe('effectLines', () => {
     expect(effectLines(['Reflex 1', 'Late Bloomer 1', 'Tail 3'], 30)).toEqual(['Reflex 1 · Late Bloomer 1', 'Tail 3']);
     expect(effectLines(['A very long entry indeed'], 10)).toEqual(['A very long entry indeed']);
     expect(effectLines([], 40)).toEqual([]);
+  });
+});
+
+describe('the narrow certificate', () => {
+  it('asks for a portrait canvas only when the screen is taller than wide', () => {
+    expect(narrowCanvas({ width: 1280, height: 720 })).toBeNull();
+    expect(narrowCanvas({ width: 844, height: 390 })).toBeNull();
+    expect(narrowCanvas({ width: 600, height: 600 })).toBeNull();
+    expect(narrowCanvas({ width: 0, height: 844 })).toBeNull();
+    expect(narrowCanvas({ width: 390, height: 844 })).toEqual({ width: NARROW_WIDTH, height: 1558 });
+  });
+
+  it('is as tall as the form when the screen is stubbier than it', () => {
+    expect(narrowCanvas({ width: 390, height: 664 }, 1400.2)).toEqual({ width: NARROW_WIDTH, height: 1401 });
+    expect(narrowCanvas({ width: 390, height: 844 }, 1400)).toEqual({ width: NARROW_WIDTH, height: 1558 });
+  });
+
+  it('reads on the narrowest phone it is sized for: print at 11 CSS px or more, values at 18', () => {
+    // FIT sets NARROW_WIDTH game px across NARROW_SCREEN CSS px.
+    const css = (px: number) => (px * NARROW_SCREEN) / NARROW_WIDTH;
+    for (const px of [NARROW_TYPE.print, NARROW_TYPE.receipt, NARROW_TYPE.effects, NARROW_TYPE.hint])
+      expect(css(px)).toBeGreaterThanOrEqual(11);
+    for (const px of [NARROW_TYPE.value, NARROW_TYPE.cause]) expect(css(px)).toBeGreaterThanOrEqual(18);
+  });
+
+  it('stacks the fields one per row, in reading order, none overlapping', () => {
+    const fields = certificateFields(base, { name: 'Justin', lived: 252.9 });
+    const { rows, bottom } = narrowRows(fields, 100);
+    expect(rows.map((r) => r.key)).toEqual(['name', 'age', 'act', 'time', 'cause']);
+    expect(rows[0]!.label).toBe(100);
+    let above = -Infinity;
+    for (const r of rows) {
+      expect(r.label).toBeGreaterThan(above);
+      expect(r.value - r.label).toBeGreaterThanOrEqual(NARROW_TYPE.print);
+      expect(r.rule - r.value).toBeGreaterThanOrEqual(r.size);
+      above = r.rule;
+    }
+    expect(rows.find((r) => r.key === 'cause')!.size).toBe(NARROW_TYPE.cause);
+    expect(rows.find((r) => r.key === 'age')!.size).toBe(NARROW_TYPE.value);
+    expect(bottom).toBe(rows[4]!.rule);
+    expect(narrowRows([], 50)).toEqual({ rows: [], bottom: 50 });
   });
 });
