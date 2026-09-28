@@ -77,6 +77,10 @@ export const POLICIES: BotPolicy[] = [
   { name: 'acrosome+midpiece', priorities: ['acrosome', 'midpiece', 'membrane', 'lash'] },
   { name: 'grudge+group-chat', priorities: ['grudge', 'group-chat', 'appetite', 'lash'] },
   { name: 'random', priorities: [], blindToShots: true, blindToShield: true },
+  // G-044: the three classic archetypes, each beside what its build wants.
+  { name: 'personal-space+membrane', priorities: ['personal-space', 'personal-space/boundaries', 'membrane', 'lash'] },
+  { name: 'backhand+midpiece', priorities: ['backhand', 'backhand/wingspan', 'midpiece', 'lash'] },
+  { name: 'judgement+appetite', priorities: ['judgement', 'judgement/docket', 'appetite', 'lash'] },
 ];
 
 export interface RunResult {
@@ -779,6 +783,9 @@ export function runOnce(
     const inCrowdPhase = world.actIndex === 0 && world.time < act.durationSeconds;
     const input = decideWithCadence(world, rng, state, DT);
     shots.look(world);
+    // Held from before the step: the crossing step also deals Precocity's
+    // unasked level (G-042), which is School's, not the first act's.
+    const itemsBeforeStep = stacksAtFirstActEnd === null ? Object.fromEntries(world.items) : null;
     world.step(DT, input);
     shots.settle(world, DT);
     steps++;
@@ -793,7 +800,7 @@ export function runOnce(
         stacksLastSeenInFirstAct = world.dragStacks;
       } else {
         stacksAtFirstActEnd = stacksLastSeenInFirstAct;
-        itemsAtFirstActEnd = Object.fromEntries(world.items);
+        itemsAtFirstActEnd = itemsBeforeStep;
       }
     }
 

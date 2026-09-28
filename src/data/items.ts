@@ -25,7 +25,8 @@ export type ItemKind = 'weapon' | 'control' | 'passive';
 
 /**
  * The offer-card glyph vocabulary. One per item today; categories if it grows.
- * Every one has authored art in the icon atlas (tools/art/svg/conception/icon-*).
+ * Every one has authored art in the icon atlas (tools/art/svg/conception/icon-*),
+ * or its item's `iconPending` says the drawing is on its way.
  */
 export type ItemIcon =
   | 'strike'
@@ -40,7 +41,10 @@ export type ItemIcon =
   | 'chain'
   | 'magnet'
   | 'grow'
-  | 'slow';
+  | 'slow'
+  | 'aura'
+  | 'sweep'
+  | 'bolt';
 
 interface ItemBase {
   id: string;
@@ -178,11 +182,19 @@ export interface ActiveItem extends ItemBase {
   cooldown: number;
   /** Damage per hit at level 1. Zero for control items. */
   damage: number;
-  /** How the effect is delivered. The sim switches on this. */
-  mode: 'seeking' | 'line' | 'burst' | 'trail' | 'attractor' | 'orbit' | 'field';
+  /**
+   * How the effect is delivered. The sim switches on this. `aura` never
+   * activates, like `orbit`: a ring of `radius` around the player hurts what
+   * stands in it, each enemy once per cooldown. `sweep` swings an arc of `arc`
+   * radians and `range` reach along the facing on its cooldown. `strike` picks
+   * a random enemy within `range` and, after a telegraph, lands a one-shot
+   * area of `radius` where it was (G-044).
+   */
+  mode: 'seeking' | 'line' | 'burst' | 'trail' | 'attractor' | 'orbit' | 'field' | 'aura' | 'sweep' | 'strike';
   /**
    * Pixels. Meaning depends on mode: travel range, burst radius, pull radius,
-   * orbit distance. Seconds for `trail` and `field`.
+   * orbit distance, a sweep's reach, a strike's targeting range. Seconds for
+   * `trail` and `field`. Unused by `aura`, whose ring is `radius`.
    */
   range: number;
   /** Pixels per second. For `orbit`, the orbiters' speed along the circle. */
@@ -199,6 +211,11 @@ export interface ActiveItem extends ItemBase {
   paths?: ItemPath[];
   /** Pixels a hit pushes a non-boss enemy away from the player. */
   knockback?: number;
+  /**
+   * `sweep` only: the arc's full width, in radians, centred on the direction
+   * it swings. Level bonuses do not widen it; `area` lengthens its reach.
+   */
+  arc?: number;
   /**
    * `field` only: the attractor's area with a hold instead of a pull. Inside
    * it enemies, every projectile and the player move at this fraction of
@@ -712,6 +729,265 @@ export const ITEMS: Record<string, ItemDef> = {
       'Builds that want the crowd held where it is: Baggage lays more trail over a crowd that crosses it at half speed, Temper and Grudge get twice as long with everything inside, and an aimed shot through the field arrives late enough to step round.',
     tradesAway:
       'Escaping. The field is dropped where the player stands and holds the player too, so the one thing it cannot do is get anyone out of a crowd; a player caught inside it walks out at half speed with everything else.',
+  },
+
+  // --- 4.5 The classic three (G-044) --------------------------------------
+  //
+  // The aura, the melee swing and the caster a survivors player reaches for
+  // in the first minute, each with one life-name (G-039), in the pool from
+  // conception. PLACEHOLDER NUMBERS, all of them: the cooldowns, damage,
+  // reaches, radii, the sweep's arc and knockback, every level table and
+  // every path were written to make the three playable and have not been
+  // played. They sit under Conception's `provisional` (its weapon level
+  // tables clause); a person playing them at the link is what moves them.
+
+  'personal-space': {
+    id: 'personal-space',
+    name: 'Personal Space',
+    kind: 'weapon',
+    mode: 'aura',
+    // Aura never activates; this is how often one enemy inside may be hit again.
+    cooldown: 0.6,
+    damage: 2,
+    // Unused: the ring is `radius`.
+    range: 0,
+    projectileSpeed: 0,
+    radius: 90,
+    pierce: 99,
+    maxLevel: 8,
+    icon: 'aura',
+    iconPending:
+      'The rope barrier is being drawn as tools/art/svg/conception/icon-aura.svg; its frame in the icon atlas retires this placeholder.',
+    blurb: 'Whatever stands too close gets hurt. You did ask nicely.',
+    levels: table(
+      [
+        'Whatever stands too close gets hurt. You did ask nicely.',
+        'A little more room. You need it.',
+        'More room again. People have started to notice.',
+        'It hurts more to be near you now.',
+        'Wider. You take both armrests.',
+        'Wider. Strangers cross the road.',
+        'It hurts more. Hugging is off the table.',
+        'As much room as it gets. Nobody sits next to you.',
+      ],
+      { 2: { area: 1.1 }, 3: { area: 1.1 }, 4: { damage: 1.2 }, 5: { area: 1.1 }, 6: { area: 1.1 }, 7: { damage: 1.2 }, 8: { area: 1.1 } },
+    ),
+    paths: [
+      {
+        id: 'boundaries',
+        name: 'Boundaries',
+        blurb: 'A wider ring. You have been reading about this.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Wider. You said it out loud this time.',
+            'Wider again. You have a therapist now.',
+            'As wide as it goes. It is healthy, apparently.',
+          ],
+          {},
+          each(1, 3, { area: 1.15 }),
+        ),
+      },
+      {
+        id: 'cold-shoulder',
+        name: 'Cold Shoulder',
+        blurb: 'It hurts more to be near you. You do not look up.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Hurts more. You answer in single words.',
+            'Hurts more again. You have stopped answering.',
+            'It hurts to be in the same room as you.',
+          ],
+          {},
+          each(1, 3, { damage: 1.3 }),
+        ),
+      },
+      {
+        id: 'hovering',
+        name: 'Hovering',
+        blurb: 'They hover. It costs them sooner every time.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Sooner. They are still standing there.',
+            'Sooner again. They read over your shoulder.',
+            'Sooner still. They have not taken the hint.',
+          ],
+          {},
+          each(1, 3, { cooldown: 0.85 }),
+        ),
+      },
+    ],
+    enables:
+      'A build that never aims and never stops: the ring hurts whatever stands in it, so it rewards being inside the crowd for exactly as long as the player can afford it, and pairs with Thick Skin, Charisma and Grudge.',
+    tradesAway:
+      'Reach and burst. It touches nothing further than arm’s length, it deals little to any one thing at a time, and a crowd it cannot kill fast enough is standing exactly where it also hurts the player.',
+  },
+
+  backhand: {
+    id: 'backhand',
+    name: 'Backhand',
+    kind: 'weapon',
+    mode: 'sweep',
+    cooldown: 1.0,
+    damage: 6,
+    // The arc's reach, in pixels.
+    range: 110,
+    projectileSpeed: 0,
+    radius: 0,
+    pierce: 99,
+    knockback: 20,
+    arc: (100 * Math.PI) / 180,
+    maxLevel: 8,
+    icon: 'sweep',
+    iconPending:
+      'The open hand is being drawn as tools/art/svg/conception/icon-sweep.svg; its frame in the icon atlas retires this placeholder.',
+    blurb: 'Swats whatever is in front of you. It was a compliment.',
+    levels: table(
+      [
+        'Swats whatever is in front of you. It was a compliment.',
+        'Harder. You are only being honest.',
+        'One behind you as well. You had eyes back there.',
+        'Longer reach. You mean it in the nicest way.',
+        'Harder. It is not a criticism, it is a note.',
+        'Longer reach again. It lands from across the room.',
+        'One to your left. That hand has opinions too.',
+        'Knocks them further. They will think about it later.',
+      ],
+      { 3: { projectiles: 1 }, 4: { area: 1.15 }, 5: { damage: 1.2 }, 6: { area: 1.15 }, 7: { projectiles: 1 }, 8: { knockback: 20 } },
+    ),
+    paths: [
+      {
+        id: 'wingspan',
+        name: 'Wingspan',
+        blurb: 'Longer reach. You were always going to grow into it.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Longer. Your arms caught up with your opinions.',
+            'Longer again. You can reach the top shelf.',
+            'As long as it gets. Nobody is out of range.',
+          ],
+          {},
+          each(1, 3, { area: 1.15 }),
+        ),
+      },
+      {
+        id: 'follow-through',
+        name: 'Follow-Through',
+        blurb: 'Sends them further. You always finish the thought.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Further. You meant every word.',
+            'Further again. You said it louder.',
+            'As far as it goes. They will not be back soon.',
+          ],
+          {},
+          each(1, 3, { knockback: 25 }),
+        ),
+      },
+      {
+        id: 'snap',
+        name: 'Snap',
+        blurb: 'Swats sooner. You have stopped counting first.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Sooner. You did not let them finish.',
+            'Sooner again. You started before they did.',
+            'Sooner still. There is no pause to regret it in.',
+          ],
+          {},
+          each(1, 3, { cooldown: 0.85 }),
+        ),
+      },
+    ],
+    enables:
+      'A melee build that aims by walking: the arc hits everything in front of the player at once and shoves it back, so it rewards facing the crowd and pushing into it, and it clears the flanks a Stubbornness line leaves open.',
+    tradesAway:
+      'Everything behind and beside the player until the extra swats arrive, and anything past arm’s reach. It swings on its cooldown whether or not anything is there, so a player walking away from the crowd is swatting the air.',
+  },
+
+  judgement: {
+    id: 'judgement',
+    name: 'Judgement',
+    kind: 'weapon',
+    mode: 'strike',
+    cooldown: 1.6,
+    damage: 9,
+    // How far away a target may be picked, in pixels.
+    range: 300,
+    projectileSpeed: 0,
+    // What the bolt hits where it lands.
+    radius: 48,
+    pierce: 99,
+    maxLevel: 8,
+    icon: 'bolt',
+    iconPending:
+      'The gavel is being drawn as tools/art/svg/conception/icon-bolt.svg; its frame in the icon atlas retires this placeholder.',
+    blurb: 'Something up there has opinions. It comes down on one of them.',
+    levels: table(
+      [
+        'Something up there has opinions. It comes down on one of them.',
+        'Harder. The opinions have hardened into views.',
+        'A second one, on someone else. There is a list.',
+        'Wider. It takes the neighbours with it.',
+        'Harder. It has read your file.',
+        'A third, on someone else again. The list is long.',
+        'Sooner. It no longer waits for all the facts.',
+        'As wide as it gets. Everyone nearby is implicated.',
+      ],
+      { 3: { projectiles: 1 }, 4: { area: 1.2 }, 5: { damage: 1.2 }, 6: { projectiles: 1 }, 7: { cooldown: 0.85 }, 8: { area: 1.2 } },
+    ),
+    paths: [
+      {
+        id: 'verdict',
+        name: 'Verdict',
+        blurb: 'Lands harder. The deliberation was brief.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Harder. Nobody else was consulted.',
+            'Harder again. The appeal was denied.',
+            'As hard as it gets. The ruling is not reviewed.',
+          ],
+          {},
+          each(1, 3, { damage: 1.3 }),
+        ),
+      },
+      {
+        id: 'docket',
+        name: 'Docket',
+        blurb: 'One more name on the list, every time.',
+        maxLevel: 2,
+        levels: table(
+          ['Another one. The list gets longer.', 'Another. You were on it once yourself.'],
+          {},
+          each(1, 2, { projectiles: 1 }),
+        ),
+      },
+      {
+        id: 'summary',
+        name: 'Summary',
+        blurb: 'Sooner. Nobody has time for a full hearing.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Sooner. The hearing was a formality.',
+            'Sooner again. It skips the hearing.',
+            'Sooner still. It decided before you arrived.',
+          ],
+          {},
+          each(1, 3, { cooldown: 0.85 }),
+        ),
+      },
+    ],
+    enables:
+      'A caster build for a player busy staying alive: it picks its own target anywhere in range, so it needs no aiming and no positioning, and a crowd packed tight takes the neighbours of whoever was picked.',
+    tradesAway:
+      'Choice and timing. It picks at random rather than what is dangerous, it lands where the target was a moment ago so anything fast has already left, and it never favours what is touching the player.',
   },
 };
 
