@@ -228,6 +228,43 @@ function monoWidth(chars: number, px: number, spacing = 0): number {
 }
 
 /**
+ * The HUD's worn line (`hudDrag`, 13px, right-aligned 16 in from the canvas's
+ * right edge): its terms joined by " · " on one line, as 1280×720 draws it —
+ * or, on an upright phone's canvas (a paper, the pause sheet or the narrow
+ * certificate holding it at `NARROW_WIDTH`), packed as `effectLines` packs the
+ * receipt into `NARROW_WORN_CHARS`, so it stays right of the clock and the
+ * boss's label, which stand at the canvas's middle there.
+ */
+export function wornText(terms: string[], narrow: boolean): string {
+  return narrow ? effectLines(terms, NARROW_WORN_CHARS).join('\n') : terms.join(' · ');
+}
+
+/**
+ * Characters of 13px monospace (0.6 em) from the worn line's anchor, 16 in on
+ * a `NARROW_WIDTH` canvas, to 12 clear of what is centred on it: the clock
+ * ("age 84", 24px letterspaced 3, 104 wide) and under it the boss's label
+ * ("time · 60 seconds" at 12px, 123 wide), each reaching at most 62 right of
+ * the middle.
+ */
+export const NARROW_WORN_CHARS = Math.floor((NARROW_WIDTH / 2 - 16 - 62 - 12) / (MONO * 13));
+
+/**
+ * The pause sheet's type (`buildPauseSheet`), as a multiple of its 1280 sizes,
+ * for a canvas shown at `cssPerGamePx` CSS px per game px: 1.7 on an upright
+ * phone's canvas (`narrow`), where its 13px lines come out at 11 CSS px on a
+ * `NARROW_SCREEN` phone; otherwise the least that sets those lines at
+ * `WIDE_FLOOR.print`, as the certificate's and the papers' type is raised on
+ * a landscape phone, and never less than 1. A sheet too long to stand whole
+ * at the raised size is set at 1 and scaled to fit, as it always was: raised
+ * and then scaled, it came out smaller than that.
+ */
+export function pauseTypeScale(cssPerGamePx: number, narrow: boolean): number {
+  if (narrow) return 1.7;
+  const r = cssPerGamePx > 0 ? Math.min(1, cssPerGamePx) : 1;
+  return Math.max(1, WIDE_FLOOR.print / (13 * r));
+}
+
+/**
  * The wide form's type for a canvas shown at `cssPerGamePx` CSS px per game px
  * (its displayed width over 1280): each size is its 1280 size or its
  * `WIDE_FLOOR` at that ratio, whichever is larger. Never smaller than 1280's.

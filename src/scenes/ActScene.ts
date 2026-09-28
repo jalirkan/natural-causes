@@ -24,8 +24,10 @@ import {
   narrowCanvas,
   narrowRows,
   effectsColumn,
+  pauseTypeScale,
   WIDE_SHEET,
   wideLayout,
+  wornText,
 } from './certificate';
 import { recordLife } from '../meta/ancestors';
 import { InputLog } from '../meta/input-log';
@@ -234,6 +236,8 @@ function wornCount(w: World): number {
 /** Arrival toasts stay below the HUD's top band (plate, boss bar, race bar) and this far off the edges. */
 const TOAST_TOP = 104;
 const TOAST_EDGE = 16;
+/** The touch pause button's plate, a circle this wide in radius at the view's bottom-right corner (createTouch). */
+const PAUSE_PLATE = 30;
 /** A palette number as the CSS string a Text wants. */
 const css = (n: number) => `#${n.toString(16).padStart(6, '0')}`;
 /** The certificate's typed ink and its printed labels: ink and shadow, the document register's two tones. */
@@ -425,6 +429,8 @@ export class ActScene extends Phaser.Scene {
   private hudClock!: Phaser.GameObjects.Text;
   private hudRight!: Phaser.GameObjects.Text;
   private hudDrag!: Phaser.GameObjects.Text;
+  /** The worn line's terms as drawHud last read them, so anchorHud can set them again for a new canvas. */
+  private wornTerms: string[] = [];
   private hudBossLabel!: Phaser.GameObjects.Text;
   private hudRaceLabel!: Phaser.GameObjects.Text;
   private bars!: Phaser.GameObjects.Graphics;
@@ -890,6 +896,7 @@ export class ActScene extends Phaser.Scene {
       cam.centerOn(this.player.x, this.player.y);
       this.events.off('shutdown', this.restoreCanvas, this).once('shutdown', this.restoreCanvas, this);
       this.paperNarrow = true;
+      this.anchorHud(shape.width);
       this.devBadge.setPosition(shape.width - 14, shape.height - 14 - this.devBadge.height);
     }
     return true;
@@ -909,6 +916,7 @@ export class ActScene extends Phaser.Scene {
       paper.destroy();
       if (this.restoreCanvas()) this.events.off('shutdown', this.restoreCanvas, this);
       this.cameras.main.centerOn(this.player.x, this.player.y);
+      this.anchorHud(VIEW_WIDTH);
       this.devBadge.setPosition(VIEW_WIDTH - 14, 58);
     } else {
       this.tweens.add({ targets: paper, alpha: 0, duration: 300, onComplete: () => paper.destroy() });
@@ -1003,6 +1011,12 @@ export class ActScene extends Phaser.Scene {
       cam,
       box,
     );
+    // On touch the bottom-right corner is the pause button's: a name pushed to
+    // that edge printed across its plate, so it stands clear above the plate.
+    const pause = this.pauseButton;
+    if (pause && Math.abs(at.x - pause.x) < PAUSE_PLATE + 8 + card.width / 2) {
+      at.y = Math.min(at.y, pause.y - PAUSE_PLATE - 8 - card.height / 2);
+    }
     // Two kinds arriving from one side a frame apart would print on top of
     // each other: step the newer one toward the middle until it clears.
     for (let n = 0; n < 4; n++) {
@@ -1062,8 +1076,8 @@ export class ActScene extends Phaser.Scene {
     if (this.touch) {
       const cam = this.cameras.main;
       const plate = this.add.graphics();
-      plate.fillStyle(INK, 0.4).fillCircle(0, 0, 30);
-      plate.lineStyle(2, UI_FILL, 0.45).strokeCircle(0, 0, 30);
+      plate.fillStyle(INK, 0.4).fillCircle(0, 0, PAUSE_PLATE);
+      plate.lineStyle(2, UI_FILL, 0.45).strokeCircle(0, 0, PAUSE_PLATE);
       plate.fillStyle(PAPER, 0.85).fillRect(-10, -12, 7, 24).fillRect(3, -12, 7, 24);
       // The hit area is larger than the plate: a thumb is not a cursor.
       this.pauseButton = this.add
@@ -1172,8 +1186,9 @@ export class ActScene extends Phaser.Scene {
       .setOrigin(1, 0)
       .setScrollFactor(0)
       .setDepth(100);
+    // Right-aligned: on an upright phone's canvas it breaks onto lines (wornText).
     this.hudDrag = this.add
-      .text(cam.width - 16, 34, '', style(13, '#D2C6AC'))
+      .text(cam.width - 16, 34, '', { ...style(13, '#D2C6AC'), align: 'right' })
       .setOrigin(1, 0)
       .setScrollFactor(0)
       .setDepth(100);
@@ -2725,16 +2740,13 @@ export class ActScene extends Phaser.Scene {
     // a worn stack costs reach, whichever act it was worn in.
     const reach = Math.round((1 - w.pickupFactor) * 100);
     const worn = wornCount(w);
-    this.hudDrag.setText(
-      [
-        worn > 0 ? `${worn} attached${w.dragStacks > 0 ? `  −${drag}% speed` : ''}` : '',
-        w.taxStacks > 0 ? `xp −${tax}%` : '',
-        w.pingStacks > 0 ? `attention −${attention}%` : '',
-        w.pickupFactor < 1 ? `reach −${reach}%` : '',
-      ]
-        .filter((t) => t !== '')
-        .join(' · '),
-    );
+    this.wornTerms = [
+      worn > 0 ? `${worn} attached${w.dragStacks > 0 ? `  −${drag}% speed` : ''}` : '',
+      w.taxStacks > 0 ? `xp −${tax}%` : '',
+      w.pingStacks > 0 ? `attention −${attention}%` : '',
+      w.pickupFactor < 1 ? `reach −${reach}%` : '',
+    ].filter((t) => t !== '');
+    this.hudDrag.setText(wornText(this.wornTerms, this.scale.width < VIEW_WIDTH));
 
     this.bars.clear();
     // The plate: one quiet ink surface holding both bars, so the corner reads
@@ -2888,10 +2900,13 @@ export class ActScene extends Phaser.Scene {
    * does, the sheet takes a canvas of the screen's shape, sets the type 1.7×
    * and the totals above the items; `destroyPauseSheet` gives 1280×720 back.
    */
-  private buildPauseSheet(): void {
+  private buildPauseSheet(typeScale?: number): void {
     const sheet = buildSheet(this.world);
     const narrow = narrowCanvas(this.scale.parentSize) !== null;
-    const px = (n: number) => Math.round(n * (narrow ? 1.7 : 1));
+    // A landscape phone raises the type to the certificate's floor (pauseTypeScale),
+    // rounded up so no line lands a fraction under it; 1280's sizes are whole already.
+    const k = typeScale ?? pauseTypeScale(this.scale.displaySize.width / this.scale.width, narrow);
+    const px = (n: number) => (narrow ? Math.round(n * k) : Math.ceil(n * k - 1e-9));
     const mono = (size: number, color: string, letterSpacing = 0): Phaser.Types.GameObjects.Text.TextStyle => ({
       fontFamily: 'monospace',
       fontSize: `${px(size)}px`,
@@ -2953,10 +2968,14 @@ export class ActScene extends Phaser.Scene {
     const shape = narrow ? narrowCanvas(this.scale.parentSize) : null;
     const view = shape ?? { width: cam.width, height: cam.height - (this.pauseButton ? 76 : 0) };
     const note = this.pauseNote.setFontSize(px(20));
-    // On the 1280×720 view the note starts under the HUD's clock, not over it.
-    const TOP = narrow ? MARGIN : 56;
+    // On the 1280×720 view the note starts under the HUD's clock, not over it;
+    // on a phone's canvas under the whole top band, which is centred there too
+    // (anchorHud). With a boss up the band reaches its bar and label, and the
+    // note of a long sheet (pushed up to TOP) stops under them (`FLOOR`).
+    const TOP = narrow ? TOAST_TOP : 56;
+    const FLOOR = this.world.boss ? TOAST_TOP : TOP;
     const maxW = view.width - 2 * MARGIN;
-    const maxH = view.height - TOP - MARGIN - note.height - NOTE_GAP;
+    const maxH = view.height - FLOOR - MARGIN - note.height - NOTE_GAP;
     const headH = header.height + px(14);
 
     // Columns: greedy under a height limit; for n columns, the shortest limit
@@ -3007,6 +3026,13 @@ export class ActScene extends Phaser.Scene {
       const next = measure(evenly(n));
       if (next.s > best.s) best = next;
     }
+    // Raised type that no longer fits would be scaled down past where 1280's
+    // stands (the note grows with it): a sheet that long is set at 1280's sizes.
+    if (k > 1 && !narrow && best.s < 1) {
+      for (const p of parts) p.destroy();
+      this.buildPauseSheet(1);
+      return;
+    }
     const { cols, colW, W, H, s } = best;
 
     const top = PAD + headH;
@@ -3043,9 +3069,10 @@ export class ActScene extends Phaser.Scene {
       this.events.off('shutdown', this.restoreCanvas, this).once('shutdown', this.restoreCanvas, this);
       this.pauseSheetNarrow = true;
       this.endScrim.setPosition(shape.width / 2, shape.height / 2).setSize(shape.width, shape.height);
+      this.anchorHud(shape.width);
       this.devBadge.setPosition(shape.width - 14, shape.height - 14 - this.devBadge.height);
     }
-    const y0 = TOP + Math.max(0, (view.height - TOP - MARGIN - (note.height + NOTE_GAP + H * s)) / 2);
+    const y0 = Math.max(FLOOR, TOP + Math.max(0, (view.height - TOP - MARGIN - (note.height + NOTE_GAP + H * s)) / 2));
     note.setPosition(view.width / 2, y0 + note.height / 2);
     this.pauseSheet = this.add
       .container((view.width - W * s) / 2, y0 + note.height + NOTE_GAP, parts)
@@ -3065,6 +3092,7 @@ export class ActScene extends Phaser.Scene {
     // Back where the run left it, not gliding there from the phone's view.
     this.cameras.main.centerOn(this.player.x, this.player.y);
     this.endScrim.setPosition(VIEW_WIDTH / 2, VIEW_HEIGHT / 2).setSize(VIEW_WIDTH, VIEW_HEIGHT);
+    this.anchorHud(VIEW_WIDTH);
     this.devBadge.setPosition(VIEW_WIDTH - 14, 58);
   }
 
@@ -3290,6 +3318,7 @@ export class ActScene extends Phaser.Scene {
     const dy = Math.floor((size.height - need) / 2);
     this.overlay.y += dy;
     // Off the sheet's header, into the scrim's bottom corner.
+    this.anchorHud(size.width);
     this.devBadge.setPosition(size.width - 14, size.height - 14 - this.devBadge.height);
     this.endScrim
       .setPosition(size.width / 2, size.height / 2)
@@ -3338,9 +3367,27 @@ export class ActScene extends Phaser.Scene {
     if (this.restoreCanvas()) {
       this.events.off('shutdown', this.restoreCanvas, this);
       this.endScrim.setPosition(VIEW_WIDTH / 2, VIEW_HEIGHT / 2).setSize(VIEW_WIDTH, VIEW_HEIGHT);
+      this.anchorHud(VIEW_WIDTH);
       this.devBadge.setPosition(VIEW_WIDTH - 14, 58);
       this.overlay.setFontSize(18).setLineSpacing(6).setWordWrapWidth(null);
     }
+  }
+
+  /**
+   * The HUD's texts on a canvas `width` wide, where createHud set them on
+   * 1280: the clock and the boss's label on its middle, the counts and the
+   * worn line 16 in from its right edge. An upright phone's canvas (a paper,
+   * the pause sheet, the narrow certificate) is `NARROW_WIDTH` wide, and at
+   * 1280's places the right-hand texts ran off it and the clock stood
+   * off-centre under the scrim. The bars follow the camera's width already.
+   */
+  private anchorHud(width: number): void {
+    this.hudClock.setX(width / 2);
+    this.hudBossLabel.setX(width / 2);
+    this.hudRaceLabel.setX(width / 2);
+    this.hudRight.setX(width - 16);
+    // Set again here: the paper holds the scene's steps, and drawHud with them.
+    this.hudDrag.setX(width - 16).setText(wornText(this.wornTerms, width < VIEW_WIDTH));
   }
 
   /**
