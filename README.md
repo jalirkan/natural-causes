@@ -5,11 +5,11 @@
 > **Play it: <https://jalirkan.github.io/natural-causes/>** — the current
 > `main`, published by [`deploy.yml`](./.github/workflows/deploy.yml) on every
 > push once a repository admin has pointed Pages at GitHub Actions (see CI,
-> below). One run is one life (D-024); today that life is Conception, School,
-> Adolescence, College, The Office and Family, about twenty-four minutes. Keyboard, or one thumb on a phone.
+> below). One run is one life (D-024); today that life is all seven acts, Conception to
+> Decline, about twenty-six minutes, and it ends of natural causes. Keyboard, or one thumb on a phone.
 >
-> **Status: a six-act life — Conception, School, Adolescence, College, The Office, Family — playable at
-> the link. Every sprite in it is authored SVG (D-025). Every number is a labelled placeholder.**
+> **Status: the whole life — Conception, School, Adolescence, College, The Office, Family, Decline — playable at
+> the link, and winnable: outlive Time and you die of natural causes at eighty-four. Every sprite in it is authored SVG (D-025). Every number is a labelled placeholder.**
 > Plan in [`PLAN.md`](./PLAN.md) (read its 2026-09-27 amendment first), art
 > spec in [`ART-DIRECTION.md`](./ART-DIRECTION.md) (binding), decisions in
 > [`DECISIONS.md`](./DECISIONS.md). Name is provisional.
@@ -176,14 +176,26 @@ from it and holds your leg for three seconds, delighted, and a phone rings
 and pulls you across the room to it. Its boss is The Mortgage, a house with
 a face: it is paid in twelve instalments, one a window, and no build pays it
 faster; every window a room lands and the house grows around you. Beat it
-and the act ends on EQUITY; outlive it and you die of natural causes, aged
-fifty-five. Between acts a paper from the life so far is put in your hands:
-a birth certificate, a report card with your name misspelled, a yearbook
-page, a diploma, a performance review. Dying earlier, the certificate names
-what did it. Press P at any point for the build sheet: what you hold, its
+and the act ends on EQUITY. Then Decline, fifty-five to eighty-four, on the
+shortest clock of all: medication chases you and hurts if it catches you
+first, and heals you if you catch it; the weather crosses the room and cannot
+be stopped; your own knees wait where you are going and cost you speed, the
+antibody's last costume; a flight of stairs lands and stays, slow inside and
+safe from the crowd; and an insurance form fires a DENIED that lowers what
+you can have. Its boss is Time, a clock with a face: it cannot be hurt, its
+hand sweeps the floor once every twelve seconds, and when its seconds run out
+the act ends on EVENTUALLY and the life is over, won: natural causes, aged
+eighty-four, the certificate the title promised. Along the way four habits
+are born in their acts and stay: a Highlighter at eighteen (everything hits
+what it marks), a Calendar Block at twenty-two (nothing gets in or out), a
+Strongly Worded Letter at thirty-four (it lands where the problem was), a
+Nap at fifty-five (you fell asleep in the chair). Between acts a paper from
+the life so far is put in your hands: a birth certificate, a report card
+with your name misspelled, a yearbook page, a diploma, a performance review,
+a mortgage statement. Dying earlier, the certificate names what did it. Press P at any point for the build sheet: what you hold, its
 paths, and the totals.
 
-#### After you play — sixteen things to say
+#### After you play — twenty things to say
 
 These replace the six calibration questions in `CONCEPTION-ROSTER.md` §12.4.
 Nothing here asks for a number; every one is about the run you just had.
@@ -226,6 +238,17 @@ Nothing here asks for a number; every one is about the run you just had.
 16. **The Mortgage: a fight or a wait?** It takes one instalment a window
     and no more, and a window you cannot meet pays nothing. Did the notches
     read; and if your build could not meet an instalment, what did you do?
+17. **Decline: did you feel the file?** Your knees are the antibody again,
+    and by then you have carried something since before you were a person.
+    Did the last act feel like the first, and was that the point or a bore?
+18. **Time: did the end feel like winning, and did you want it to?** Your
+    weapons go quiet on a boss they cannot hurt; the hand comes round; the
+    seconds run out. Say what you did for that minute.
+19. **The four habits: did one arrive, and did it change how you played?**
+    The Highlighter, the Calendar Block, the Strongly Worded Letter, the Nap:
+    name the one you took and whether its card told you what it would do.
+20. **The doorbell in Family rings about once a second.** Charming, or
+    grating? Say which, and whether any other sound wore on you.
 
 §12.4's sixth question — how long you hold a heading — is not asked, because
 the game answers it itself now: an input log records every heading you hold
@@ -255,7 +278,7 @@ mode was still on twenty minutes ago.
 | **1** | Art pipeline + test batch, art direction judged | done — `ART-DIRECTION.md` is binding |
 | **2** | Core loop, Conception act | **complete and unjudged** — title to Egg to certificate, sound, no known bugs, playable at the link; the drag curve and cadence are labelled placeholders until a person has played it |
 | **3** | The School act | **playable as the second act of the life** — five enemies, three behaviours, a **provisional** schedule (D-022), every sprite authored as SVG (D-025); the substitute's shot, homework's arrival point and the monitor's stop are built as labelled placeholders nobody has played; the Gym Teacher is designed (SCHOOL-ROSTER §9), drawn, and fights — every number in his fight is a placeholder too |
-| **4** | Adolescence, College, The Office and Family | **playable as the third to sixth acts** — Adolescence (ADOLESCENCE-ROSTER) with Prom; College (COLLEGE-ROSTER, G-045) with The Loan, tuition's tax, the group project's weak point and the registrar's hold; The Office (OFFICE-ROSTER, G-048) with The Reorg, the reply-all's split, the ping's cost to cadence, the meeting's hold and the review's cut of the level bar; Family (FAMILY-ROSTER, G-050) with The Mortgage paid on a schedule, bills that accrue, the letters' cost to reach, the toddler's hold and the phone's pull; a paper at every crossing (G-049); every sprite drawn; every number a placeholder under each act's `provisional` |
+| **4** | Adolescence to Decline | **the whole life is playable and winnable** — Decline (DECLINE-ROSTER, G-051) with Time, a clock that cannot be hurt, the medication's heal, the knees, the stairs' permanent hold and the form's cut to the maximum; four act-born habits (G-052);  Adolescence (ADOLESCENCE-ROSTER) with Prom; College (COLLEGE-ROSTER, G-045) with The Loan, tuition's tax, the group project's weak point and the registrar's hold; The Office (OFFICE-ROSTER, G-048) with The Reorg, the reply-all's split, the ping's cost to cadence, the meeting's hold and the review's cut of the level bar; Family (FAMILY-ROSTER, G-050) with The Mortgage paid on a schedule, bills that accrue, the letters' cost to reach, the toddler's hold and the phone's pull; a paper at every crossing (G-049); every sprite drawn; every number a placeholder under each act's `provisional` |
 
 The art pipeline (`tools/art/`) starts from a drawing: an SVG in
 `tools/art/svg/<act>/` is rasterised, conformed to the act's locked palette with
