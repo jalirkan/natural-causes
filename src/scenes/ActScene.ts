@@ -1325,8 +1325,8 @@ export class ActScene extends Phaser.Scene {
     // Shielded (the Gym Teacher with a ball still on the floor): the bar
     // dims and the label says why, because hitting him does nothing and the
     // bots showed a player who never learns that sits in the fight forever.
-    const bossLabel = w.boss?.shielded
-      ? `${w.act.bossName.toLowerCase()} \u00b7 put the equipment away`
+    const bossLabel = w.boss?.shielded && w.act.boss.shieldHint
+      ? `${w.act.bossName.toLowerCase()} \u00b7 ${w.act.boss.shieldHint}`
       : w.act.bossName.toLowerCase();
     this.hudBossLabel.setText(bossLabel).setVisible(!!w.boss);
     if (w.boss) {
