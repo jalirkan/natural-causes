@@ -1314,3 +1314,19 @@ causes, aged eighty-four. Every number a placeholder under `DECLINE.provisional`
 DECLINE-ROSTER.md is the spec.
 Rejected: a Reaper — the genre's thirty-minute clock ends in a monster you fight; this one ends in a clock you outlive, which is the premise.
 Rejected: Time with a health bar that empties with time — a bar that empties reads as a kill; a clock that runs down reads as a clock.
+
+## G-052 · 2026-09-28 · Habits are born in their act, and four are
+G-039 built for the acts after Adolescence: an item that enters the pool in
+its act (`from`) and stays for the life, so by the Office the cards are half
+your childhood and half your job. Four exist now, one per late act, each
+with G-043's paths and every number a placeholder under its act's
+`provisional`: **Highlighter** (College, weapon: a stroke marks what it hits,
+and everything then hits the marked thing harder), **Calendar Block** (The
+Office, control: the meeting's hold turned inside out and placed by the
+player — nothing gets in or out), **Strongly Worded Letter** (Family, weapon:
+a strike that lands five seconds later where the problem was), **Nap**
+(Decline, control: under a third of health the player falls asleep in the
+chair, cannot move, cannot be touched, heals, and the clock keeps running).
+Each is one registry entry, one drawn icon, and one verb in the sim at most.
+Rejected: the panel's Therapy, the one item that sheds stacks — the file is the spine (G-001), and the life is about carrying it, not a slot spent to set it down.
+Rejected: one item per act from Conception on — the early acts already hold the temperaments and the classic three (G-044); the late acts are the ones whose pools ran thin.

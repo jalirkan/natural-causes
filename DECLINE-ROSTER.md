@@ -311,6 +311,7 @@ left" where they read "boss left" (they cannot hurt it; their job is to live).
   heals a quarter; the clock keeps running — "you fell asleep in the chair").
 - **Service**, the other branch at eighteen; **the choice at Prom's crossing**.
 - **Sounds:** the pills rattling, the rain, the stairs' creak, the tick.
+- *2026-09-28:* **Nap exists** (G-052, `nap`, `from: 'decline'`): under a third of health the player falls asleep in the chair for a moment, untouchable but not unshootable, and heals; Time's hand still hits a sleeper (the clock keeps running). Paths Power Nap, Habit, Deep Sleep; an armchair on the card, never on the field.
 
 ## 7 · Open question
 
