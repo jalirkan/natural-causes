@@ -692,3 +692,17 @@ hand's, the wiring's and the other items' flags follow when they land.
 | 126 | **The smoke switches god off in Decline** so a decision can land; medication can hurt it meanwhile (no death in five runs); its `decline-boss` screenshot rarely shows the hand (taken as the entrance look begins; the state is asserted, 71's shape); and it reads more private scene fields (`hpTail`, `bossHand`, `holdRings`, `holdChairs`, `hudBossLabel`; 72's shape) | Every assertion is on state | Noted |
 | 127 | **The dev panel shows Time as 320/320 hp** and its −50% does nothing meaningful | Dev only | Noted |
 | 128 | **The smoke budget is thin**: 420s is about 1.2× the projected slowest CI run for 21 milestones (about 165s here on a quiet box, 170s under load), and past it on the shared four-core box when other work runs | Two clean runs at 165–170s | Open: raise it when CI's own timing says so, with the arithmetic |
+
+# Part ten — 2026-09-28, the placeholders retired, as the builders flagged it
+
+Not a read: the agents that drew the seven variant frames (D-029), the
+sounds, the instrument fixes, the HUD's honesty pass, the phone pass and the
+review mode (D-030) each reported what looked like the game working but
+might not. Collected at the round's integration branch.
+
+| # | What | Why it looks right | Status |
+|---|---|---|---|
+| 129 | **A variant frame lost its holder's teal in CONFORM and every CHECK row passed.** `heldThreats()` matched the threat table by the spec's own id, so a D-029 variant was quantised without boss teal: the Egg's corona, the whole chart, the house and the clock came out grey-brown, `palette-variety` sat at its floor, and the G-032 law test (an inline copy of the same lookup) passed the wrong sprite and failed the right one | Ten rows of CHECK passed; the drawing was fine | **Fixed** before any frame landed: the pipeline resolves the variant's holder, the law test reads the same list, and a new guard requires a variant to wear every threat colour its holder wears. Found independently by three drawers, who each rendered with the fix and committed the right sprite |
+| 130 | **The greyed rows' faces are bone, not grey.** With ink faces the three-row frame failed contrast coverage (0.4022 against 0.4: shadow sits 0.10 in Oklab L from the slate floor and ink 0.13, so the grain pushes ink under the floor); bone faces on grey boxes pass at 0.3976 with nothing weakened | G-004 wants the faces kept; the check is the check | By design: the spec now says bone faces and teal connectors, and the records were regenerated from the unchanged SVGs |
+| 131 | **The Egg's gap is down-right** (centred 53° clockwise from +x, a sixth of the circumference), where the face's displacement on the mass and the shadow's axis point, and where none of the rim's four outermost points fall — a gap straight down would have cut one and re-centred the whole egg in CONFORM, so the frames would jump on the swap | The three Egg frames share opaque bounds and density exactly | By design; the swap moves the eyes and the gap only |
+| 132 | **Nothing on the field is a threat colour's absence**: a holder may choose not to wear its colour (the dodgeball is grey-brown by its spec), so the general guard "every holder wears its class" was wrong and was narrowed to variants | The dodgeball has always been grey-brown | Noted: law 6's colour is a permission, not an obligation, for a holder |
