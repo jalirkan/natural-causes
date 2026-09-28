@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ACTS, ALL_ACTS, COLLEGE, OFFICE, spawnStreams } from '../../data/acts';
+import { ACTS, ALL_ACTS, COLLEGE, FAMILY, OFFICE, spawnStreams } from '../../data/acts';
 import { ENEMIES } from '../../data/enemies';
 import { OFFICE_ROSTER } from '../../../tools/art/batch';
 import { World } from '../world';
@@ -52,8 +52,12 @@ describe('The Office has a schedule, and it is provisional', () => {
     // and The Reorg's frame exist (content.test.ts ties ACTS to ACT_VISUALS
     // and checks every frame it draws is in the atlas).
     expect(ALL_ACTS.indexOf(OFFICE)).toBe(ALL_ACTS.indexOf(COLLEGE) + 1);
-    expect(ALL_ACTS[ALL_ACTS.length - 1]).toBe(OFFICE);
     expect(ACTS.indexOf(OFFICE)).toBe(ACTS.indexOf(COLLEGE) + 1);
+    // It was the last of ALL_ACTS until Family (FAMILY-ROSTER §5), which
+    // follows it there; the browser's life still ends here, at thirty-four,
+    // until Family's atlas exists (family-act.test.ts).
+    expect(ALL_ACTS[ALL_ACTS.indexOf(OFFICE) + 1]).toBe(FAMILY);
+    expect(ACTS[ACTS.length - 1]).toBe(OFFICE);
   });
 
   it('runs 180 seconds from twenty-two to thirty-four and ends on SYNERGY', () => {
@@ -281,7 +285,13 @@ describe('the life is five acts long now', () => {
   }
 
   it('The Loan falling crosses into The Office, and The Reorg falling is natural causes at thirty-four', () => {
-    const w = new World({ acts: ALL_ACTS, seed: 5, startingItems: [] });
+    // The life up to and including The Office. This was ALL_ACTS while The
+    // Office was the last act; Family follows it now (FAMILY-ROSTER §5), and
+    // in ALL_ACTS The Reorg falling is a crossing, not the end
+    // (family-act.test.ts). ACTS, the browser's life, still ends here.
+    const life = ALL_ACTS.slice(0, ALL_ACTS.indexOf(OFFICE) + 1);
+    expect(life).toEqual(ACTS);
+    const w = new World({ acts: life, seed: 5, startingItems: [] });
     for (let i = 0; i < ALL_ACTS.indexOf(OFFICE); i++) cross(w);
     expect(w.act).toBe(OFFICE);
     expect(w.won).toBe(false);

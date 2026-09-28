@@ -151,8 +151,36 @@ export interface ReorgBoss {
   shieldHint?: never;
 }
 
+/**
+ * The Mortgage (FAMILY-ROSTER §4): paid on a schedule, not in a hurry. Its
+ * health is BOSS_HP owed in `instalments` equal parts; time runs in windows of
+ * `instalmentSeconds`, damage in a window counts toward that window's
+ * instalment only and caps at one — no prepayment, the overflow is lost — so
+ * the fight lasts at least `instalments × instalmentSeconds` whatever the
+ * build. At every window's end a `roomId` (the act's static, solid, merging
+ * room) lands at the player's lead, and a missed window also sends one
+ * `feeId` (the act's bill) from the door. Its statement is one aimed shot on
+ * the Egg's timings. Never shields, never raced for, never moves. Every
+ * number is a placeholder.
+ *
+ * DECLARED, NOT YET BUILT: world.ts runs this kind as the Egg (its fan, its
+ * timings, BOSS_HP) until the instalments, the rooms and the fees exist.
+ */
+export interface MortgageBoss {
+  kind: 'mortgage';
+  /** Equal parts BOSS_HP is owed in; paid instalments over this is the bar. */
+  instalments: number;
+  /** Seconds in one window; damage past one instalment in a window is lost. */
+  instalmentSeconds: number;
+  /** What lands at the player's lead at every window's end: the act's room. */
+  roomId: string;
+  /** What a missed window sends from the door: the act's bill. */
+  feeId: string;
+  shieldHint?: never;
+}
+
 /** Which boss an act fights. world.ts branches on `kind`. */
-export type BossDef = EggBoss | GymTeacherBoss | PromBoss | LoanBoss | ReorgBoss;
+export type BossDef = EggBoss | GymTeacherBoss | PromBoss | LoanBoss | ReorgBoss | MortgageBoss;
 
 /**
  * Seconds between the Gym Teacher's whistles at this share of his health: the
@@ -469,6 +497,58 @@ export const OFFICE: ActDef = {
   ],
 };
 
+export const FAMILY: ActDef = {
+  id: 'family',
+  name: 'Family',
+  // The clock keeps shrinking: 300, 300, 240, 210, 180, 150 (the roster's
+  // header) — twenty-one years in two and a half minutes.
+  durationSeconds: 150,
+  bossName: 'The Mortgage',
+  // FAMILY-ROSTER §4: BOSS_HP owed in `instalments` windows of
+  // `instalmentSeconds`, capped at one instalment a window; a `roomId` lands
+  // at every window's end and a missed window sends a `feeId`. Every number
+  // is a PLACEHOLDER under `provisional`. Not built yet: world.ts runs the
+  // kind as the Egg (fan, timings, BOSS_HP) until the next agent builds the
+  // instalments, the rooms and the fees.
+  boss: { kind: 'mortgage', instalments: 12, instalmentSeconds: 5, roomId: 'room', feeId: 'bill' },
+  // The door opens, and the act ends on one word.
+  endWord: 'EQUITY',
+  age: { from: 34, to: 55 },
+  // No race: nobody else wants the house.
+  provisional:
+    "Every rate, time and enemy number here, the bill's late fees (`accrue`: one each 8s it is alive, 2 at most, each set down touching it across its line to the player), the HOA letter's cost to reach (`attach.pickup`, 0.93 of the pickup radius a notice, persisting), the toddler's coyness (`coy`: 1.6 while the player moves away, 0.5 while they approach) and its hold (`engulf`: 3s at 0.3 speed, no damage, every cooldown at `engulf.cooldownMultiplier` 1.4, then `releases`), the phone's pull (`ranged.pull`, 180px toward it, after its 0.3s `ranged.stun`), and The Mortgage's numbers (`boss.instalments` 12, `instalmentSeconds` 5) were written as placeholders before anyone played the act (FAMILY-ROSTER §3.6 and §4), and until its instalments, rooms and fees are built The Mortgage fights with the Egg's fan, telegraph, idle, shot and BOSS_HP, unplayed; a person playing it at the link is what moves them (D-022).",
+  // FAMILY-ROSTER.md §3.6, transcribed. The ORDER is the design and is under
+  // test (family-act.test.ts): age runs 34 to 55, a year every seven seconds.
+  // Bills from 0s, the first month; the flat-pack's stream at 20s (37), then
+  // about one every half minute; HOA letters at 30s (38); the toddler's at
+  // 45s (40); the phone's at 70s (44); the room's at 100s (48), which §3.6
+  // means as the house growing before the Mortgage arrives. Nothing new after
+  // 100s; the last fifty seconds are escalation, then The Mortgage.
+  //
+  // The rates are placeholders, and they are streams, not arrivals (AUDIT
+  // 44): a stream that opens at t with rate r first delivers when its
+  // accumulator fills, at t + 1/r. So the room's, opening at 100s at 0.02,
+  // first fills at 150s — the Mortgage's arrival, when spawning stops — and
+  // as transcribed no room lands before it (family-act.test.ts pins this;
+  // flagged, not moved). Bills chase and are never culled, toddlers let go
+  // and leave, the letters, the phones and the rooms are static, and the
+  // flat-pack crosses and leaves; bills are the density — before they
+  // accrue, which triples what the build leaves alone.
+  waves: [
+    { fromSeconds: 0, enemyId: 'bill', rate: 0.8 },
+    { fromSeconds: 20, enemyId: 'flat-pack', rate: 0.034 },
+    { fromSeconds: 30, enemyId: 'hoa-letter', rate: 0.12 },
+    { fromSeconds: 45, enemyId: 'toddler', rate: 0.034 },
+    { fromSeconds: 45, enemyId: 'bill', rate: 1.2 },
+    { fromSeconds: 70, enemyId: 'phone-call', rate: 0.05 },
+    { fromSeconds: 90, enemyId: 'bill', rate: 1.8 },
+    { fromSeconds: 90, enemyId: 'hoa-letter', rate: 0.25 },
+    { fromSeconds: 100, enemyId: 'room', rate: 0.02 },
+    { fromSeconds: 120, enemyId: 'phone-call', rate: 0.1 },
+    { fromSeconds: 120, enemyId: 'bill', rate: 2.4 },
+  ],
+};
+
 /**
  * Every act with a schedule, in life order. The content rules iterate THIS
  * list, so an act cannot escape them by not being startable yet (the
@@ -480,7 +560,7 @@ export const OFFICE: ActDef = {
  * `ACTS`, the prefix whose art exists, so the life gets longer as acts become
  * startable and nothing about the sim changes when one does.
  */
-export const ALL_ACTS: ActDef[] = [CONCEPTION, SCHOOL, ADOLESCENCE, COLLEGE, OFFICE];
+export const ALL_ACTS: ActDef[] = [CONCEPTION, SCHOOL, ADOLESCENCE, COLLEGE, OFFICE, FAMILY];
 
 /**
  * The life the browser plays, in order: the prefix of `ALL_ACTS` with an
@@ -488,8 +568,9 @@ export const ALL_ACTS: ActDef[] = [CONCEPTION, SCHOOL, ADOLESCENCE, COLLEGE, OFF
  * School joined when its authored SVG sprites landed (G-038); its boss is the
  * Gym Teacher, picture and behaviour (SCHOOL-ROSTER §9). College joined when
  * its seven drawings were packed (G-045); The Office joined when its seven
- * were (G-048), so the browser's life now ends at thirty-four, and every act
- * in `ALL_ACTS` is startable. A test asserts this list and `ACT_VISUALS`
+ * were (G-048), so the browser's life now ends at thirty-four. Family is in
+ * `ALL_ACTS` and not here: it joins when its atlas, `player-family` and
+ * `boss-mortgage` exist (FAMILY-ROSTER §5). A test asserts this list and `ACT_VISUALS`
  * agree, so moving an act in is a one-line change that fails loudly if the
  * art is not there.
  */
