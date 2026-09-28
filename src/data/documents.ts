@@ -69,8 +69,9 @@ const doc = <C>(d: DocumentDef<C>): DocumentDef<C> => d;
 
 /**
  * One document per act id: the only list of them (CONCEPTION-ROSTER §5.3).
- * The Office, the Family and Decline have none yet (their acts do not exist);
- * the obituary is the death certificate, which `certificate.ts` already is.
+ * Family and Decline have none yet (their acts do not exist); the obituary is
+ * the death certificate, which `certificate.ts` already is. The Office's is
+ * seen only once an act follows it (AUDIT seven, 52).
  */
 export const DOCUMENTS = {
   conception: doc({
@@ -235,6 +236,73 @@ export const DOCUMENTS = {
         [c.degree, (weapon && own(c.degrees, weapon.id)) ?? c.general],
         [c.honours, path ?? c.attendance],
         [c.balance, `${owed} ${owed === 1 ? c.invoice : c.invoices}`],
+      ];
+    },
+  }),
+
+  office: doc({
+    kind: 'performance-review',
+    title: 'Performance Review',
+    line: 'HUMAN RESOURCES',
+    stamp: 'MEETS',
+    copy: {
+      name: 'NAME OF EMPLOYEE',
+      title: 'TITLE',
+      rating: 'OVERALL RATING',
+      growth: 'AREAS FOR GROWTH',
+      /**
+       * By the weapon held at the highest level: the job the build turned
+       * into. An evolution has been promoted, which is the same job with
+       * "Head of" in front of it.
+       */
+      titles: {
+        lash: 'Rapid Response',
+        motility: 'Compliance',
+        acrosome: 'Facilities',
+        wake: 'Logistics',
+        grudge: 'Grievances',
+        'group-chat': 'Internal Communications',
+        'personal-space': 'Culture',
+        backhand: 'Operations',
+        judgement: 'Legal',
+        tantrum: 'Head of Facilities',
+        vendetta: 'Head of Grievances',
+        jumpiness: 'Head of Rapid Response',
+        reach: 'Head of Culture',
+        hindsight: 'Head of Legal',
+        rut: 'Head of Compliance',
+      } as Record<string, string>,
+      /** A weapon nobody has written a title for, or none held. */
+      general: 'General Services',
+      /**
+       * PLACEHOLDER: the level as a rating. The bots reach The Reorg at
+       * level 36–51 (PLAYTEST-FINDINGS 2026-09-28, the five-act life); the
+       * bands are written around that and measured on nobody.
+       */
+      ratings: [
+        [50, 'Exceeds expectations'],
+        [40, 'Meets expectations'],
+        [30, 'Developing'],
+        [0, 'Needs improvement'],
+      ] as Bands,
+      /**
+       * PLACEHOLDER: the reviewer's note, by how many paths the build has
+       * taken. Whichever it is, it is a criticism.
+       */
+      growths: [
+        [3, 'Spreads self thin.'],
+        [1, 'Could show more initiative.'],
+        [0, 'Shows little interest in growth.'],
+      ] as Bands,
+    },
+    fields: (w, f, c) => {
+      const weapon = ranked(w.items).find((e) => e.kind === 'weapon');
+      const taken = [...w.pathLevels.values()].filter((level) => level > 0).length;
+      return [
+        [c.name, nameOf(f)],
+        [c.title, (weapon && own(c.titles, weapon.id)) ?? c.general],
+        [c.rating, band(c.ratings, w.level)],
+        [c.growth, band(c.growths, taken)],
       ];
     },
   }),

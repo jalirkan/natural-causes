@@ -72,7 +72,7 @@ describe('actDocument', () => {
   });
 
   it('issues nothing for an act it has no paper for', () => {
-    expect(actDocument(world(), 'Justin', { id: 'office' }, 300)).toBeNull();
+    expect(actDocument(world(), 'Justin', { id: 'family' }, 300)).toBeNull();
     expect(actDocument(world(), 'Justin', { id: '' }, 300)).toBeNull();
     expect(actDocument(world(), 'Justin', { id: 'toString' }, 300)).toBeNull();
   });
