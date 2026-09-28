@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <title>Flat-pack</title>
+  <desc>A long flat closed carton seen exactly side-on, twice as wide as it is tall, one strip of red tape down its middle, pulled tight enough that the carton pinches in under it. The face is printed on the front half as an assembly diagram would print it: two bolt-head dots for eyes, set at the leading end and looking along the box at where it is going, and a short dashed line for a mouth. No lettering, no arrows, nobody.</desc>
+  <!--
+    Flat-pack (FAMILY-ROSTER §3.2), the act's velocity: it enters on a
+    heading and never steers, because it cannot turn the corner. Reserved
+    silhouette: the flat box, the only box, the only tape and the widest
+    thing in the act. The length is the read, so the carton fills the canvas
+    edge to edge at exactly twice as wide as it is tall (100 by 50), one
+    flat bone tone.
+    The tape is one band down its middle, top edge to bottom edge, pulled
+    tight enough that the carton pinches in two pixels under it, top and
+    bottom: a band biting into a carton is what makes it a parcel and not a
+    plank (a stripe along its length) or a carriage (wheels, windows).
+    Hand-cut, not ruled (law 4, G-013: the ruler is the Reorg's alone): no
+    two corners are cut to the same radius, and the carton sags into the
+    tape on shoulders rather than stepping.
+    The carton spans the viewBox exactly, so at targetSize 104 one unit is
+    one pixel; the face is drawn on that grid so the bolt heads come out
+    whole and alike instead of as two different blobs.
+    The face is printed on the front half as the instructions would print
+    it: two bolt heads for eyes and a dashed fold line for a mouth, set at
+    the leading end with the mouth a step further forward, so it is looking
+    along the box at where it is going, not at the player. No lettering, no
+    arrows, no numbers, nothing with skin (D-007, law 9).
+    Contact red is on the tape alone, the act's only red: the heaviest hit
+    in the act is something the player carried in. The renderer flips it to
+    face its heading.
+    Colours are palette hex values: threat-contact #C4472E, bone #D2C6AC,
+    ink #2A2521.
+    CONFORM adds the outline; there is none here.
+  -->
+  <!-- the carton: one flat tone, edge to edge, pinched where the tape bites -->
+  <path d="M 1.8 25 L 41 25.1 Q 43 25.2 44 27 L 56 27 Q 57 25.2 59 25.1 L 98 25 Q 100 25 100 27 L 100 73.4 Q 100 75 98.4 75 L 59 75 Q 57 74.8 56 73 L 44 73 Q 43 74.8 41 75 L 2.2 75 Q 0 75 0 72.8 L 0 26.8 Q 0 25 1.8 25 Z" fill="#D2C6AC"/>
+  <!-- the tape, down the middle, pulled tight -->
+  <rect x="44" y="27" width="12" height="46" fill="#C4472E"/>
+  <!-- the face, printed on the front half: bolt heads for eyes, set at
+       the leading end, on where it is going -->
+  <g fill="#2A2521">
+    <path d="M 80 40 H 84 V 41 H 85 V 45 H 84 V 46 H 80 V 45 H 79 V 41 H 80 Z"/>
+    <path d="M 89 40 H 93 V 41 H 94 V 45 H 93 V 46 H 89 V 45 H 88 V 41 H 89 Z"/>
+  </g>
+  <!-- the mouth: a short dashed fold line, set a little further forward -->
+  <g fill="#2A2521">
+    <rect x="82" y="51" width="3" height="2"/>
+    <rect x="87" y="51" width="3" height="2"/>
+    <rect x="92" y="51" width="3" height="2"/>
+  </g>
+</svg>
