@@ -189,3 +189,16 @@ looks like stops being a local art question.
 D-022: numbers nobody has played are built, labelled provisional in the data,
 and moved in response to play. The five questions above are unchanged and
 still open.
+
+## Note — 2026-09-28: paths (G-043)
+
+| Weapon | Path | Mechanic per level (placeholder) |
+|---|---|---|
+| Reflex | Twitch · Overreaction · Nerves | cooldown ×0.85 · damage ×1.25 · +1 shot (two levels) |
+| Stubbornness | Conviction · Momentum · Broadside | damage ×1.25 · shot speed ×1.3 · +1 shot |
+| Temper | Short Fuse · Blast Radius · Slammed Door | cooldown ×0.85 · area ×1.15 · knockback +25px |
+| Baggage | Hoarding · Dead Weight · Sprawl | duration ×1.25 · damage ×1.25 · area ×1.15 |
+| Grudge | Company · Spiralling · Weight | +1 fist · spin ×1.3 · damage ×1.3 |
+| Gossip | Mutuals · Screenshots · Notifications | chain +1 · damage ×1.25 · cooldown ×0.85 |
+
+Each path is its own card ("Grudge · Company") once its weapon reaches level two (`PATH_OPENS_AT`), levels apart from the weapon, and folds into the same bonus total the sim reads. Paths do not count toward a weapon's max level, so they neither bring an evolution closer nor stand in for it. Tantrum takes Temper's paths with Temper, because the evolution is a new item. Every value above, each path's length and the opening level are placeholders; the copy carries no numbers, because the card prints them from the data. The open question: does choosing a direction feel like shaping the weapon, or like three more cards in the way of the one you wanted?

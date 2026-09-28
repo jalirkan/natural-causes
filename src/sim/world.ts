@@ -3,13 +3,19 @@ import { ALL_ACTS, rateAt, spawnStreams, whistleInterval } from '../data/acts';
 import { enemyDef, type EnemyDef } from '../data/enemies';
 import {
   ITEMS,
+  OFFER_PATH_SEPARATOR,
+  PATH_OPENS_AT,
   cooldownScale,
   damageScale,
+  foldBonus,
   isActive,
   itemDef,
   levelBonus,
+  offerIdFor,
+  parseOfferId,
   type ActiveItem,
   type ItemDef,
+  type LevelBonus,
   type PassiveItem,
 } from '../data/items';
 import { INHERITANCES, INHERITANCE_IDS, type InheritanceDef, type StatLine } from '../data/inheritances';
@@ -313,6 +319,20 @@ export interface ProjectileState {
 }
 
 /**
+ * One weapon's merged bonus (`World.bonusFor`) and the levels it was folded
+ * at, which every read compares against the live ones.
+ */
+interface MergedBonus {
+  def: ActiveItem;
+  level: number;
+  /** The offer id of each of `def.paths`, in order. Made once, never per read. */
+  keys: string[];
+  /** Each path's level when `bonus` was folded, in the same order. */
+  at: number[];
+  bonus: Required<LevelBonus>;
+}
+
+/**
  * Something circling the player. Recomputed from `time` every step, so it is
  * deterministic and has no state of its own; the renderer reads positions.
  */
@@ -560,6 +580,14 @@ export class World {
   private readonly orbitBossHits = new Map<string, Map<number, number>>();
   /** Orbiter objects, reused across steps; `orbiters` holds this step's. */
   private readonly orbiterPool: OrbiterState[] = [];
+  /**
+   * `bonusFor`'s cache, per weapon id. Validated on every read by comparing
+   * the weapon's level and each path's level with the ones it was folded at
+   * (numbers; the offer ids are made once), not by a version counter: the dev
+   * panel and tests write `items` and `pathLevels` directly, and a counter
+   * only sees writes that go through the sim.
+   */
+  private readonly mergedBonus = new Map<string, MergedBonus>();
   /** Where each trail item last dropped an area, for WAKE_MIN_SPACING. Per act. */
   private readonly trailDrops = new Map<string, { x: number; y: number }>();
 
@@ -631,6 +659,13 @@ export class World {
   /** Non-null while a level-up is waiting. The world does not advance. */
   offers: string[] | null = null;
   readonly items = new Map<string, number>();
+  /**
+   * G-043: each weapon path's level, keyed by its offer id (`grudge/company`),
+   * levelled apart from the weapon and folded into its bonus by `bonusFor`.
+   * Read-only outside the sim (the renderer draws pips from it); the dev
+   * panel and tests may write it, and the next read of the bonus sees that.
+   */
+  readonly pathLevels = new Map<string, number>();
   /**
    * The Egg's drop (G-017, G-042): dealt once, from `rng`, at the first
    * crossing, and kept for every act after it. Null in Conception. Its stat
@@ -837,12 +872,51 @@ export class World {
 
   private activeDamage(def: ItemDef, level: number): number {
     if (!isActive(def)) return 0;
-    return def.damage * damageScale(level) * levelBonus(def, level).damage * this.damageDealt;
+    return def.damage * damageScale(level) * this.bonusFor(def, level).damage * this.damageDealt;
   }
 
   private activeCooldown(def: ItemDef, level: number): number {
     if (!isActive(def)) return Infinity;
-    return def.cooldown * cooldownScale(level) * levelBonus(def, level).cooldown * this.cooldownFactor;
+    return def.cooldown * cooldownScale(level) * this.bonusFor(def, level).cooldown * this.cooldownFactor;
+  }
+
+  /**
+   * Everything a weapon's own levels and its paths' levels add, as one total
+   * (G-043): the sim's only reading of a weapon's bonus. It runs every step
+   * for an orbit and on every shot otherwise, so it allocates only when a
+   * level has changed (AUDIT part three, 21) and otherwise returns the object
+   * it returned last time. A weapon with no paths, or none taken, gets
+   * `levelBonus` itself. Callers read it and never mutate it.
+   */
+  private bonusFor(def: ActiveItem, level: number): Required<LevelBonus> {
+    const paths = def.paths;
+    if (!paths || paths.length === 0) return levelBonus(def, level);
+    let m = this.mergedBonus.get(def.id);
+    if (!m || m.def !== def) {
+      const keys = paths.map((p) => offerIdFor(def, p));
+      m = { def, level: NaN, keys, at: keys.map(() => NaN), bonus: levelBonus(def, level) };
+      this.mergedBonus.set(def.id, m);
+    }
+    let fresh = m.level === level;
+    for (let i = 0; fresh && i < m.keys.length; i++) fresh = (this.pathLevels.get(m.keys[i]!) ?? 0) === m.at[i];
+    if (fresh) return m.bonus;
+
+    m.level = level;
+    let bonus = levelBonus(def, level);
+    let copied = false;
+    for (let i = 0; i < paths.length; i++) {
+      const owned = this.pathLevels.get(m.keys[i]!) ?? 0;
+      m.at[i] = owned;
+      if (owned <= 0) continue;
+      // `levelBonus` is shared by every World: copy before the first fold.
+      if (!copied) {
+        bonus = { ...bonus };
+        copied = true;
+      }
+      for (const l of paths[i]!.levels.slice(0, owned)) foldBonus(bonus, l);
+    }
+    m.bonus = bonus;
+    return bonus;
   }
 
   // --- the step ---------------------------------------------------------
@@ -1372,9 +1446,9 @@ export class World {
   /** Returns false if the item had nothing to do, so it retries sooner. */
   private fireOne(def: ItemDef, level: number, damage: number): boolean {
     if (!isActive(def)) return false;
-    // What the levels owned add (items.ts `levels`). Generic: no item is
-    // named below, only the bonus fields.
-    const bonus = levelBonus(def, level);
+    // What the levels owned add (items.ts `levels`, and its paths' levels).
+    // Generic: no item is named below, only the bonus fields.
+    const bonus = this.bonusFor(def, level);
     const radius = def.radius * bonus.area;
     const pierce = def.pierce + bonus.pierce;
     // Growth Spurt. A shot's range, a pull's or a field's radius; the burst
@@ -1516,7 +1590,7 @@ export class World {
 
   /** One burst at the player, sized by the item's level bonuses. */
   private burst(def: ActiveItem, level: number, damage: number): void {
-    const bonus = levelBonus(def, level);
+    const bonus = this.bonusFor(def, level);
     const area: AreaState = {
       x: this.x,
       y: this.y,
@@ -1560,7 +1634,7 @@ export class World {
     for (const [id, level] of this.items) {
       const def = ITEMS[id];
       if (!def || !isActive(def) || def.mode !== 'orbit') continue;
-      const bonus = levelBonus(def, level);
+      const bonus = this.bonusFor(def, level);
       const count = 1 + bonus.projectiles;
       const distance = def.range * bonus.area * this.reach;
       // `speed` (a path's spin) multiplies the angular rate, not the distance.
@@ -2133,7 +2207,8 @@ export class World {
       if (!id) return;
       this.level++;
       this.xpToNext = this.xpCost(this.level);
-      this.items.set(id, (this.items.get(id) ?? 0) + 1);
+      // A path card is as dealable as an item (G-043); `take` levels either.
+      this.take(id);
     }
   }
 
@@ -2210,7 +2285,10 @@ export class World {
     return null;
   }
 
-  /** Three choices: upgrades to what you have, and things you do not. */
+  /**
+   * Three choices: upgrades to what you have, things you do not, and (G-043)
+   * the paths of every weapon that has opened.
+   */
   private rollOffers(): string[] {
     // Evolutions are never rolled, and a weapon an owned evolution replaced
     // is not offered again as if it were new.
@@ -2230,6 +2308,22 @@ export class World {
       if (def.from !== undefined && ALL_ACTS.findIndex((a) => a.id === def.from) > here) return false;
       return (this.items.get(id) ?? 0) < def.maxLevel;
     });
+    // G-043: each path of an owned weapon at PATH_OPENS_AT or above, until the
+    // path is at its own max. Appended after the items, in registry order, so
+    // a life with no weapon opened rolls the pool, and draws the rng, exactly
+    // as it did before paths existed; once one opens, the pool is longer and
+    // every later draw moves. A replaced weapon's paths stay out with it.
+    // PLACEHOLDER: no cap on how many path cards one offer may hold, so three
+    // directions of one weapon is a legal offer.
+    for (const id of Object.keys(ITEMS)) {
+      const def = ITEMS[id]!;
+      if (!isActive(def) || !def.paths || replaced.has(id)) continue;
+      if ((this.items.get(id) ?? 0) < PATH_OPENS_AT) continue;
+      for (const path of def.paths) {
+        const offer = offerIdFor(def, path);
+        if ((this.pathLevels.get(offer) ?? 0) < path.maxLevel) pool.push(offer);
+      }
+    }
     const picked: string[] = [];
     while (picked.length < 3 && picked.length < pool.length) {
       const candidate = pool[Math.floor(this.rng() * pool.length)]!;
@@ -2242,13 +2336,7 @@ export class World {
   choose(id: string): void {
     if (!this.offers || !this.offers.includes(id)) return;
     const before = this.maxHp;
-    const def = itemDef(id);
-    if (isActive(def) && def.evolvesFrom) {
-      // The weapon becomes the evolution; it does not sit beside it.
-      this.items.delete(def.evolvesFrom.weapon);
-      this.cooldowns.delete(def.evolvesFrom.weapon);
-    }
-    this.items.set(id, (this.items.get(id) ?? 0) + 1);
+    this.take(id);
     // No passive lowers max health any more (G-038), but the clamp costs
     // nothing and a future one would need it: keep current health inside the
     // new ceiling without silently healing past it.
@@ -2257,6 +2345,32 @@ export class World {
     else this.hp += after - before;
     this.offers = null;
     this.presentOffers();
+  }
+
+  /**
+   * One level of what an offer id names, asked (`choose`) or not
+   * (`takeUnaskedLevels`): a path's own level (G-043), or an item's, where an
+   * evolution replaces its weapon.
+   */
+  private take(id: string): void {
+    const { item, path } = parseOfferId(id);
+    if (path) {
+      this.pathLevels.set(id, (this.pathLevels.get(id) ?? 0) + 1);
+      return;
+    }
+    if (isActive(item) && item.evolvesFrom) {
+      // The weapon becomes the evolution; it does not sit beside it.
+      const weapon = item.evolvesFrom.weapon;
+      this.items.delete(weapon);
+      this.cooldowns.delete(weapon);
+      // PLACEHOLDER decision: its paths go with it. The evolution is a new
+      // item, not the weapon grown, and Tantrum's card already says it
+      // replaces Temper; a directed Temper is still replaced.
+      const prefix = weapon + OFFER_PATH_SEPARATOR;
+      for (const key of this.pathLevels.keys()) if (key.startsWith(prefix)) this.pathLevels.delete(key);
+      this.mergedBonus.delete(weapon);
+    }
+    this.items.set(id, (this.items.get(id) ?? 0) + 1);
   }
 
   // --- the boss ---------------------------------------------------------

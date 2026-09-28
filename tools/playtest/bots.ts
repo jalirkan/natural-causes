@@ -1,5 +1,5 @@
 import { CONCEPTION, type ActDef, type BossDef } from '../../src/data/acts';
-import { ITEMS, isActive } from '../../src/data/items';
+import { ITEMS, OFFER_PATH_SEPARATOR, isActive } from '../../src/data/items';
 import type { EnemyDef } from '../../src/data/enemies';
 import {
   World,
@@ -68,14 +68,19 @@ export interface BotPolicy {
  * intended policies has not been tested.
  */
 export const POLICIES: BotPolicy[] = [
-  { name: 'midpiece+wake', priorities: ['midpiece', 'wake', 'capacitation', 'lash'] },
-  { name: 'membrane+acrosome', priorities: ['membrane', 'acrosome', 'chemotaxis', 'lash'] },
-  { name: 'motility', priorities: ['motility', 'midpiece', 'lash', 'capacitation'] },
-  { name: 'greedy-capacitation', priorities: ['capacitation', 'membrane', 'acrosome', 'lash'] },
+  // G-043: each build names one path right after its weapon, so the report
+  // exercises paths (a path is offered once its weapon is at PATH_OPENS_AT).
+  { name: 'midpiece+wake', priorities: ['midpiece', 'wake', 'wake/hoarding', 'capacitation', 'lash'] },
+  { name: 'membrane+acrosome', priorities: ['membrane', 'acrosome', 'acrosome/blast-radius', 'chemotaxis', 'lash'] },
+  { name: 'motility', priorities: ['motility', 'motility/broadside', 'midpiece', 'lash', 'capacitation'] },
+  { name: 'greedy-capacitation', priorities: ['capacitation', 'membrane', 'acrosome', 'acrosome/short-fuse', 'lash'] },
   // G-038: exercises the evolution. Temper to max beside Restlessness makes
-  // the next level-up a one-card Tantrum offer.
-  { name: 'acrosome+midpiece', priorities: ['acrosome', 'midpiece', 'membrane', 'lash'] },
-  { name: 'grudge+group-chat', priorities: ['grudge', 'group-chat', 'appetite', 'lash'] },
+  // the next level-up a one-card Tantrum offer, which takes Temper's paths too.
+  { name: 'acrosome+midpiece', priorities: ['acrosome', 'acrosome/slammed-door', 'midpiece', 'membrane', 'lash'] },
+  {
+    name: 'grudge+group-chat',
+    priorities: ['grudge', 'grudge/company', 'group-chat', 'group-chat/mutuals', 'appetite', 'lash'],
+  },
   { name: 'random', priorities: [], blindToShots: true, blindToShield: true },
 ];
 
@@ -650,12 +655,18 @@ export class ShotLog {
   }
 }
 
-function chooseOffer(
+/**
+ * The bot's pick from one offer. `world` supplies the levels already owned: an
+ * item's from `items`, a path's (`grudge/company`, G-043) from `pathLevels`.
+ */
+export function chooseOffer(
   policy: BotPolicy,
   offers: string[],
-  levels: Map<string, number>,
+  world: Pick<World, 'items' | 'pathLevels'>,
   rng: () => number,
 ): string {
+  const owned = (id: string): number =>
+    (id.includes(OFFER_PATH_SEPARATOR) ? world.pathLevels.get(id) : world.items.get(id)) ?? 0;
   // An evolution is offered alone and is not a choice (G-038).
   if (offers.length === 1) return offers[0]!;
   // Two passes. A single pass down the priority list sinks every level into
@@ -665,7 +676,7 @@ function chooseOffer(
   // describing its own greed. Spreading until each pick is established
   // approximates a player without pretending to be a good one.
   for (const want of policy.priorities) {
-    if (offers.includes(want) && (levels.get(want) ?? 0) < SPREAD_BELOW) return want;
+    if (offers.includes(want) && owned(want) < SPREAD_BELOW) return want;
   }
   for (const want of policy.priorities) {
     if (offers.includes(want)) return want;
@@ -773,7 +784,7 @@ export function runOnce(
       enemiesAt300 = world.enemies.length;
     }
     if (world.offers) {
-      world.choose(chooseOffer(policy, world.offers, world.items, rng));
+      world.choose(chooseOffer(policy, world.offers, world, rng));
       continue;
     }
     const inCrowdPhase = world.actIndex === 0 && world.time < act.durationSeconds;
