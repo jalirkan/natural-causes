@@ -551,6 +551,7 @@ Gossip): the renderer tests `hostile` before `source` and the tallies key on
   ball the two neighbours both threaten and their pushes sum to ≤0.39,
   outward along the spots): 133 steps over 42 fights with death off, no hit in
   any of them; 7 spot hits in ~256s of Prom overall.
+  *Fixed 2026-09-28:* between two shot paths, inside the nearer one's reach, with a gap that fits a player, the sidestep takes the nearer path's push alone (`intoTheGap` in bots.ts); where no gap fits it is unchanged. It reads paths, not who fired them, so the Egg's fan and the memo column get the same rule (4 of 480 replayed runs change). Hits did not fall: the bot decides every 0.2s at full speed and walks through a gap a few px wide, and a single spot's sidestep still cancels the orbit — the instrument's cadence, not the design (`ring-spots.test.ts`).
 - **The trail is off screen going vertically**: 484–488px behind at base
   speed (part three) against a 360px half-height; §3.1 says "on screen".
   `TRAIL_SECONDS`'s label covers it.
