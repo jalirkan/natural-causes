@@ -335,6 +335,7 @@ is a whole bill, which accrues fees of its own. The boss state carries `paid`,
 
 - **The document at the crossing:** the mortgage statement, from the run's
   stats (the review's successor), seen once Decline exists.
+- *2026-09-28:* **The statement exists** (`documents.ts`: THE LENDER, stamped SETTLED; the term as the level in years, the notices on file, a remark from the kills) and has nowhere to show until Decline. **Built and playable** the same day: every enemy, every verb, The Mortgage, every drawing; a weak build may never pay (AUDIT eight, 79) — the first number a person's play moves.
 - **Family's items.** What enters the pool at 34 (G-039's `from`): the
   panel's Strongly Worded Letter is a strike with a longer delay, so a path
   on Judgement before a new weapon.
