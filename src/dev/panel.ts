@@ -3,6 +3,7 @@ import { offerTitle } from '../data/item-text';
 import { ITEMS, OFFER_PATH_SEPARATOR, isActive, offerIdFor, type ItemDef } from '../data/items';
 import type { InputLog } from '../meta/input-log';
 import type { World } from '../sim/world';
+import { bossCheats, bossReadout } from './boss-cheats';
 import type { DevState } from './state';
 
 /**
@@ -293,24 +294,23 @@ export function attachDevPanel(host: DevPanelHost): () => void {
         ),
     );
 
-    if (w.boss) {
-      // Named by the act (AUDIT 42): every act has a boss now, and only one is the Egg.
+    const boss = w.boss;
+    if (boss) {
+      // Named by the act (AUDIT 42): every act has a boss now, and only one is
+      // the Egg. The readout and the buttons are chosen per kind in
+      // boss-cheats.ts (Time's clock, the Mortgage's window); each button is
+      // a cheat through `act`, so it taints, and its hover says what it writes.
       section(
         w.act.bossName,
-        // Rounded both sides: the Loan's cap is its opening times `cap`, a float.
-        line(document.createTextNode(`${Math.ceil(w.boss.hp)} / ${Math.round(w.boss.maxHp)} hp`)),
+        line(document.createTextNode(bossReadout(boss, w.act.boss))),
         line(
-          button('−50%', act(() => (w.boss!.hp = Math.max(1, w.boss!.hp - w.boss!.maxHp / 2)))),
-          button(
-            'kill',
-            act(() => {
-              // The same transition the damage paths make, so the absorb and
-              // the win both run for real.
-              w.boss!.hp = 0;
-              w.boss!.phase = 'absorbing';
-              w.boss!.timer = 1.8;
-            }),
-          ),
+          ...bossCheats(boss).map((cheat) => {
+            // Only on the boss it was drawn for: a click in the half second
+            // after a crossing must not write a Mortgage cheat into Time.
+            const b = button(cheat.label, act(() => w.boss === boss && cheat.apply(boss)));
+            b.title = cheat.hint;
+            return b;
+          }),
         ),
       );
     }
