@@ -1,4 +1,4 @@
-import type { ActDef, BossDef, GymTeacherBoss, LoanBoss, PromBoss, SpawnWave } from '../data/acts';
+import type { ActDef, BossDef, GymTeacherBoss, LoanBoss, PromBoss, ReorgBoss, SpawnWave } from '../data/acts';
 import { ALL_ACTS, rateAt, spawnStreams, whistleInterval } from '../data/acts';
 import { enemyDef, type EnemyDef } from '../data/enemies';
 import {
@@ -196,6 +196,27 @@ export const WHISTLE_HOLD_SECONDS = 0.35;
  */
 export const LOAN_OPENING_PER_STACK = 0.1;
 export const LOAN_INVOICE_SPREAD = 0.16;
+
+/**
+ * The Reorg (OFFICE-ROSTER §4, G-004). PLACEHOLDERS under `OFFICE.provisional`,
+ * beside the five on `ReorgBoss` (thresholds [2/3, 1/3], lateralMove 220,
+ * memoShots 5, memoSpacing 36). None has been played:
+ *   REORG_MIN_DISTANCE 300 — §4's "at least 300 px from the player": how near
+ *     a restructure may set the chart down, measured from where the player
+ *     stands before their own box is moved. At the Egg's shot speed a memo
+ *     from here arrives in just over a second;
+ *   REORG_MARGIN — how far inside the walls the chart lands: spawnBoss's
+ *     margin (BOSS_RADIUS + 40), for spawnBoss's reason: the camera is held
+ *     inside the arena and a boss past its edge is a bar over an empty screen.
+ * REORG_RELOCATE_TRIES is a resolution, not a dial: rolls before the farthest
+ * is taken. In a 3200×2200 field a roll lands within 300 px of the player at
+ * most ~6% of the time, so eight misses in a row is ~1e-10 and the fallback
+ * exists only so the loop is bounded.
+ * The memo is the Egg's shot (EGG_SHOT) on the Egg's timings; both are read.
+ */
+export const REORG_MIN_DISTANCE = 300;
+export const REORG_MARGIN = BOSS_RADIUS + 40;
+export const REORG_RELOCATE_TRIES = 8;
 
 /**
  * How long ago "recently" is, for an enemy that lands where the player has
@@ -545,7 +566,9 @@ export interface BossState {
    * `idle` → `telegraph` → `attack`, then back. For the Gym Teacher the
    * telegraph is the whistle rising and `attack` begins on the step it blows;
    * for Prom it is the lights going down and `attack` begins on the ring;
-   * for the Loan it is the tape jerking and `attack` begins on the statement.
+   * for the Loan it is the tape jerking and `attack` begins on the statement;
+   * for the Reorg it is the memo drafted and `attack` begins on the memo, and
+   * a restructure sets it back to `idle`.
    * The exit, for every kind, is `absorbing`: the word is the Egg's, and it
    * means the outcome has latched (G-033) and `finishAct` follows the timer —
    * the Gym Teacher's stopwatch click and `ActDef.endWord` play in it.
@@ -557,8 +580,8 @@ export interface BossState {
    * True while it cannot be damaged: the Gym Teacher with any of his
    * `enemyId` alive on the field (§9); Prom with the player farther than its
    * `floorRadius` from the ball (ADOLESCENCE-ROSTER §4). Always false for the
-   * Egg and the Loan. Plain state for the renderer and the bots; the sim reads
-   * the field and the player itself.
+   * Egg, the Loan and the Reorg. Plain state for the renderer and the bots;
+   * the sim reads the field and the player itself.
    */
   shielded: boolean;
   /**
@@ -577,6 +600,14 @@ export interface BossState {
    * the kinds that never compound.
    */
   interestIn: number;
+  /**
+   * How many of its `thresholds` the Reorg has restructured at this act, in
+   * order: 0 until its health first reaches two thirds, then 1, then 2, and
+   * never more than there are thresholds. Read-only outside the sim; the
+   * renderer greys the chart's rows from it. Zero for the kinds that never
+   * restructure.
+   */
+  restructures: number;
 }
 
 export interface Input {
@@ -2938,6 +2969,7 @@ export class World {
       shielded: false,
       rings: 0,
       interestIn: 0,
+      restructures: 0,
     };
     // The Loan opens at what the player carried in (COLLEGE-ROSTER §4): a
     // tenth more per invoice worn, and its cap is `cap` times that, so the bar
@@ -3062,6 +3094,8 @@ export class World {
 
     // Above the phase timer: interest runs every step, not on phase changes.
     if (this.act.boss.kind === 'loan') return this.loanPhase(b, this.act.boss, dt);
+    // Above it too: a threshold is read off the health every step, not on a timer.
+    if (this.act.boss.kind === 'reorg') return this.reorgPhase(b, this.act.boss, dt);
 
     // It does not move from where it is. It has already decided.
     b.timer -= dt;
@@ -3289,5 +3323,153 @@ export class World {
     }
     this.facingX = fx;
     this.facingY = fy;
+  }
+
+  /**
+   * The Reorg's step (OFFICE-ROSTER §4, G-004), called every step it is not
+   * absorbing, after the damage passes: a kill this step latched `absorbing`
+   * and returned before this, so the blow that empties the chart never
+   * restructures it.
+   *
+   * The threshold watcher: health over the opening (`maxHp`, which for the
+   * Reorg never moves) against the next of `thresholds` not yet passed, in
+   * order — `restructures` is its index. At or below it, the chart
+   * restructures and the step ends there. One restructure a step: a blow that
+   * crosses two thresholds restructures on this step and the next, so each
+   * threshold is one restructure, once, and `restructures` counts it.
+   *
+   * The memo is the Egg's machine at the Egg's timings, carried as the Loan's
+   * is: idle; the memo drafted (telegraph); the memo (attack). It never
+   * shields (`shieldUp` has no branch for it) and is never raced for (`race`
+   * reads only the Egg and Prom). Nothing in it reads the health left: the
+   * same monster and the same memo at every threshold, everything moved.
+   *
+   * Nothing of it runs once the player has died this step (resolveHits comes
+   * first): a restructure then would shove the body away from what killed it
+   * and seat a meeting round the death.
+   */
+  private reorgPhase(b: BossState, boss: ReorgBoss, dt: number): void {
+    if (this.dead) return;
+    const next = boss.thresholds[b.restructures];
+    if (next !== undefined && b.hp / b.maxHp <= next) {
+      this.restructure(b, boss);
+      return;
+    }
+
+    b.timer -= dt;
+    if (b.timer > 0) return;
+    if (b.phase === 'idle') {
+      b.phase = 'telegraph';
+      b.timer += EGG_TELEGRAPH_SECONDS;
+    } else if (b.phase === 'telegraph') {
+      b.phase = 'attack';
+      b.timer += EGG_ATTACK_SECONDS;
+      this.memo(b, boss);
+    } else {
+      b.phase = 'idle';
+      b.timer += EGG_IDLE_SECONDS;
+    }
+  }
+
+  /**
+   * The memo: `memoShots` of the Egg's shot in a column across the line from
+   * the chart to the player, `memoSpacing` apart and centred on that line,
+   * every one with the same velocity — at where the player is now, at the
+   * Egg's speed — so the column travels as one rank and only its middle shot
+   * is aimed. The bearing is the Egg's (atan2, so a player on the boss point
+   * is fired at along +x, as the Egg's fan is). No owner: a death to one
+   * names the boss (`bossName`), and it would thin a race if there were one.
+   *
+   * Between two shots is open only when `memoSpacing` exceeds twice the
+   * shot's radius plus the player's — 2 × (10 + 16) = 52 px at base size.
+   * At the roster's 36 the rank is solid: it is dodged around, not through.
+   * Flagged, not moved (D-022).
+   */
+  private memo(b: BossState, boss: ReorgBoss): void {
+    const bearing = Math.atan2(this.y - b.y, this.x - b.x);
+    const ux = Math.cos(bearing);
+    const uy = Math.sin(bearing);
+    for (let i = 0; i < boss.memoShots; i++) {
+      const offset = (i - (boss.memoShots - 1) / 2) * boss.memoSpacing;
+      this.projectiles.push({
+        x: b.x - uy * offset,
+        y: b.y + ux * offset,
+        vx: ux * EGG_SHOT.speed,
+        vy: uy * EGG_SHOT.speed,
+        life: EGG_SHOT.life,
+        damage: EGG_SHOT.damage,
+        pierce: 1,
+        radius: EGG_SHOT.radius,
+        hostile: true,
+        source: 'boss',
+        serial: this.nextSerial++,
+      });
+    }
+  }
+
+  /**
+   * One restructure (§4), in this order:
+   *   1. The chart moves. Up to REORG_RELOCATE_TRIES points rolled inside the
+   *      arena, REORG_MARGIN in from every wall; the first at least
+   *      REORG_MIN_DISTANCE from the player is taken, else the farthest
+   *      rolled.
+   *   2. The player's box moves sideways: `lateralMove` px across the line
+   *      from the player to where the chart now is, the side rolled, then
+   *      held inside the arena (`clampPlayer`), with i-frames. Across and
+   *      never along, so short of a wall it takes the player no nearer the
+   *      chart — the distance becomes hypot(d, lateralMove) — which is
+   *      "never up". At a wall the clamp takes the part of the move that
+   *      points out, and what is left can be nearer.
+   *   3. A meeting closes around them: one `meetingId` through `spawnEnemy`,
+   *      the act's own arrival, so where it lands is its def's `spawnAt`, and
+   *      what it does there is its def's. Capped by MAX_ACTIVE_ENEMIES like
+   *      any spawn.
+   *   4. The memo starts over: idle, a fresh EGG_IDLE_SECONDS, a memo in its
+   *      telegraph dropped. Memos already fired fly on.
+   * Nothing is added: the same health, the same memo.
+   *
+   * Dice, in order: two per roll (x, then y), then one for the side. The
+   * meeting draws what its placement draws: a lead or player arrival none,
+   * the edge override (`spawnOverride`) one.
+   */
+  private restructure(b: BossState, boss: ReorgBoss): void {
+    b.restructures++;
+
+    let best = -1;
+    let bestX = b.x;
+    let bestY = b.y;
+    for (let i = 0; i < REORG_RELOCATE_TRIES; i++) {
+      const x = REORG_MARGIN + this.rng() * (ARENA_WIDTH - 2 * REORG_MARGIN);
+      const y = REORG_MARGIN + this.rng() * (ARENA_HEIGHT - 2 * REORG_MARGIN);
+      const d = Math.hypot(x - this.x, y - this.y);
+      if (d > best) {
+        best = d;
+        bestX = x;
+        bestY = y;
+      }
+      // Every earlier roll was nearer than REORG_MIN_DISTANCE, so the first
+      // roll far enough is also the farthest yet.
+      if (d >= REORG_MIN_DISTANCE) break;
+    }
+    b.x = bestX;
+    b.y = bestY;
+
+    const dx = b.x - this.x;
+    const dy = b.y - this.y;
+    const d = Math.hypot(dx, dy);
+    // Never zero in practice (the fallback is the farthest of
+    // REORG_RELOCATE_TRIES rolls); the guard is for the arithmetic.
+    const ax = d < 0.001 ? 1 : dx / d;
+    const ay = d < 0.001 ? 0 : dy / d;
+    const side = this.rng() < 0.5 ? -1 : 1;
+    this.x += -ay * side * boss.lateralMove;
+    this.y += ax * side * boss.lateralMove;
+    this.clampPlayer();
+    this.invulnerable = Math.max(this.invulnerable, IFRAMES);
+
+    if (this.enemies.length < MAX_ACTIVE_ENEMIES) this.spawnEnemy(boss.meetingId);
+
+    b.phase = 'idle';
+    b.timer = EGG_IDLE_SECONDS;
   }
 }
