@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <title>Player at thirty-four</title>
+  <desc>The same face and single cowlick as in every act: the same small round-headed figure as at twenty-two, no taller, in the same shirt and belt with the tie gone, a flat tote bag hanging from one shoulder and a small ring of keys held in the other hand.</desc>
+  <!--
+    The player at thirty-four (G-003, FAMILY-ROSTER §5). The same drawing as
+    player-office with the props changed: the head, eyes, mouth, cowlick,
+    legs, the shirt's outline, the belt, the pocketed arm's inside edge and
+    the holding arm's contour and hand are that file's geometry unchanged,
+    and the figure spans the same height, so the head is drawn at the same
+    size and height; the bag widens the frame on the right, never its height.
+    Not taller: taller is Growth Spurt's. The face does not change.
+    What went: the tie, and the mug. With the tie gone the collar's two
+    leaves meet under the chin (on their own, with a gap between, they read
+    as two ticks), so the collar is the one line of the costume that moved.
+    What came: over the shoulder on the pocketed side, the tote's handles
+    as one flat strap in shadow, laid over that arm's inside edge, down to a
+    flat bag a little wider at its foot, an ink hem under its mouth, hanging
+    at the hip beside the leg. In the hand where the mug was, a ring of keys:
+    an ink ring under the fist, one key held out the way the face is looking,
+    its bow beside the knuckles, and a second hanging from the ring against
+    the hip. Both keys are shadow with the shirt through their bows; held on
+    the paper shirt rather than out against the floor, so the outline does
+    not swallow their teeth. Head, shirt, collar and hand stay paper, which
+    is the player's and nothing else's (law 10); the bag and keys take the
+    shadow, the only second tone. Nothing is written on anything; the bag
+    carries no stripe (the tape is the flat-pack's) and nothing on the
+    player is folded, coiled or gabled (law 11).
+    CONFORM adds the outline; there is none here.
+    Colours are palette hex values: paper #EFE7D6, shadow #6E6353, ink #2A2521.
+  -->
+  <!-- The cowlick: one hair, always. -->
+  <path d="M54 12 C52 4 58 0 62 3 C58 4 57 8 58 12 Z" fill="#2A2521"/>
+  <!-- legs, as at five -->
+  <path d="M40 84 L47 84 L47 98 L40 98 Z M53 84 L60 84 L60 98 L53 98 Z" fill="#EFE7D6"/>
+  <!-- the shirt, as at twenty-two -->
+  <path d="M31 65 C31 60 36 58 42 58 L58 58 C64 58 69 60 69 65 C71 70 72.5 74 72 78 C71.5 81 69 82 67 82 L67.5 86 C67.5 87.5 66.5 88 65 88 L35 88 C33.5 88 32.5 87.5 32.5 86 L33 82 C31 82 28.5 81 28 78 C27.5 74 29 70 31 65 Z" fill="#EFE7D6"/>
+  <!-- the belt, as at twenty-two -->
+  <path d="M33.5 81.2 L66.5 81.2 L66.5 83.4 L33.5 83.4 Z" fill="#2A2521"/>
+  <!-- the right arm, inside edge, down to the hip: the hand is in the pocket -->
+  <path d="M65.5 64 C65.2 70 64.7 75.5 63.8 81.2 L65.6 81.2 C66.4 75.5 66.9 70 67.4 64.4 Z" fill="#2A2521"/>
+  <!-- the collar: the same two ink-edged leaves, meeting where the knot was -->
+  <path d="M38.8 58.4 L50 59.6 L50 63.4 L44.6 67.6 Z" fill="#EFE7D6" stroke="#2A2521" stroke-width="1.4" stroke-linejoin="round"/>
+  <path d="M61.2 58.4 L50 59.6 L50 63.4 L55.4 67.6 Z" fill="#EFE7D6" stroke="#2A2521" stroke-width="1.4" stroke-linejoin="round"/>
+  <!-- the tote's handles: one flat strap from behind the head, over the
+       shoulder and the arm's inside edge, down to the bag -->
+  <path d="M64.4 58.4 L68.2 58.8 L67.9 64.2 L67.4 72 L64.2 72 Z" fill="#6E6353"/>
+  <!-- the tote: flat, a little wider at its foot, an ink hem under its mouth -->
+  <path d="M61.4 71.2 L75.2 71.2 L76.8 87.4 C76.9 88.3 76.4 88.8 75.5 88.8 L61.1 88.8 C60.2 88.8 59.7 88.3 59.8 87.4 Z" fill="#6E6353"/>
+  <path d="M61.25 73 L75.4 73 L75.5 74.1 L61.15 74.1 Z" fill="#2A2521"/>
+  <!-- the head: player-school's, unchanged -->
+  <circle cx="50" cy="36" r="26" fill="#EFE7D6"/>
+  <ellipse cx="57" cy="34" rx="3.4" ry="6" fill="#2A2521"/>
+  <ellipse cx="68" cy="34" rx="3.4" ry="6" fill="#2A2521"/>
+  <rect x="58" y="46" width="9" height="2.8" rx="1.3" fill="#2A2521"/>
+  <!-- the key ring, under the fist -->
+  <circle cx="31.6" cy="75.8" r="2.6" fill="none" stroke="#2A2521" stroke-width="1.3"/>
+  <!-- the keys: each a round bow with the shirt through it and a blade with
+       two teeth. One hangs from the ring against the hip; one is held out
+       the way the face is looking. -->
+  <g fill="#6E6353">
+    <g transform="translate(31.6 77.6) rotate(62)">
+      <path fill-rule="evenodd" d="M4.6 0 A2.2 2.2 0 1 0 0.2 0 A2.2 2.2 0 1 0 4.6 0 Z M3.3 0 A0.9 0.9 0 1 1 1.5 0 A0.9 0.9 0 1 1 3.3 0 Z"/>
+      <path d="M4 -1 L9.5 -1 L10.4 -0.1 L10.4 1 L4 1 Z M5 1 L6.5 1 L6.5 2.8 L5 2.8 Z M7.4 1 L8.8 1 L8.8 2.3 L7.4 2.3 Z"/>
+    </g>
+    <g transform="translate(36 72.6)">
+      <path fill-rule="evenodd" d="M2.7 0 A2.7 2.7 0 1 0 -2.7 0 A2.7 2.7 0 1 0 2.7 0 Z M1.1 0 A1.1 1.1 0 1 1 -1.1 0 A1.1 1.1 0 1 1 1.1 0 Z"/>
+      <path d="M2.1 -1.15 L10 -1.15 L10.9 -0.25 L10.9 1.15 L2.1 1.15 Z M5.5 1.15 L7 1.15 L7 2.95 L5.5 2.95 Z M7.9 1.15 L9.3 1.15 L9.3 2.45 L7.9 2.45 Z"/>
+    </g>
+  </g>
+  <!-- the left arm, as at twenty-two: one ink contour down its inside edge
+       and on round the hand, which now holds the ring -->
+  <ellipse cx="29.6" cy="72" rx="3.8" ry="3.4" fill="#EFE7D6"/>
+  <path d="M33.6 63.8 C34.5 67 34.2 69.6 32.95 72 A3.35 2.95 0 1 1 29.6 69.05" fill="none" stroke="#2A2521" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
