@@ -19,7 +19,7 @@ import {
  * to the dance. The floor is the Gym Teacher's untouchability pointed at the
  * player: no damage while they are farther than `floorRadius` from the ball.
  * The light is the Egg's machine firing a full ring of `spots`, each ring
- * turned half a spacing from the last. At zero the act ends on SMILE.
+ * turned a third of a spacing from the last. At zero the act ends on SMILE.
  *
  * The floor radius and the spot count are read off `ADOLESCENCE.boss`, never
  * written here: they are placeholders under the act's `provisional` label,
@@ -265,18 +265,22 @@ describe('(d) the light: a ring in every direction, turned each time', () => {
     at.forEach((a, i) => expect(a).toBeCloseTo(at[0]! + i * SPACING, 9));
   });
 
-  it('the next ring is turned half a spacing from the last', () => {
+  it('the next ring is turned a third of a spacing from the last (AUDIT 36)', () => {
     const w = atProm();
     const first = bearings(fireRing(w));
     w.projectiles.length = 0;
     const second = bearings(fireRing(w));
     expect(second).toHaveLength(PROM.spots);
-    // Every spot of the second ring sits halfway between two of the first.
-    for (const a of second) expect(fold(a - first[0]!) % SPACING).toBeCloseTo(SPACING / 2, 9);
-    // And the one after turns another half, back onto the first ring's lines.
+    // Every spot of the second ring sits a third of the way between two of
+    // the first; the third ring two thirds; the fourth is back on the first's
+    // lines. Half a spacing retraced itself every other ring (AUDIT 36).
+    for (const a of second) expect(fold(a - first[0]!) % SPACING).toBeCloseTo(SPACING / 3, 9);
     w.projectiles.length = 0;
     const third = bearings(fireRing(w));
-    third.forEach((a, i) => expect(a).toBeCloseTo(first[i]!, 9));
+    for (const a of third) expect(fold(a - first[0]!) % SPACING).toBeCloseTo((2 * SPACING) / 3, 9);
+    w.projectiles.length = 0;
+    const fourth = bearings(fireRing(w));
+    fourth.forEach((a, i) => expect(a).toBeCloseTo(first[i]!, 9));
   });
 
   it('is aimed at nobody: the ring is the same wherever the player stands', () => {

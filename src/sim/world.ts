@@ -964,6 +964,12 @@ export class World {
       // made literal: the record was opened before they arrived.
       x = this.x + this.facingX * ANTIBODY_LEAD;
       y = this.y + this.facingY * ANTIBODY_LEAD;
+      // What stays where it lands is held inside the arena (AUDIT 31): acne
+      // spawned past a wall the player faced was never reachable again.
+      if (def.movement === 'static') {
+        x = clamp(x, def.radius, ARENA_WIDTH - def.radius);
+        y = clamp(y, def.radius, ARENA_HEIGHT - def.radius);
+      }
     } else if ((this.spawnOverride ?? def.spawnAt) === 'trail') {
       // SCHOOL-ROSTER §3.3: where the player has recently been. Merging below
       // happens on this point, so paper dropped behind a player who keeps
@@ -971,6 +977,20 @@ export class World {
       const at = this.trailPosition();
       x = at.x;
       y = at.y;
+      // An arrival inside the player's reach lands at its edge instead
+      // (AUDIT 35): 95% of hormone hits were the hormone's first step, drawn
+      // under the player. It still chases from there, so standing still is
+      // still standing where it arrives — one step later, and seen.
+      const reach = this.playerRadius + def.radius + 2;
+      const ddx = x - this.x;
+      const ddy = y - this.y;
+      const dd = Math.hypot(ddx, ddy);
+      if (dd < reach) {
+        const nx = dd < 0.001 ? -this.facingX || 1 : ddx / dd;
+        const ny = dd < 0.001 ? -this.facingY : ddy / dd;
+        x = this.x + nx * reach;
+        y = this.y + ny * reach;
+      }
     } else {
       const angle = this.rng() * Math.PI * 2;
       x = this.x + Math.cos(angle) * SPAWN_RADIUS;
@@ -1264,7 +1284,8 @@ export class World {
       let bestD = limit;
       for (const e of this.near) {
         // Not at what it cannot hurt: a shot spent on an antibody passes
-        // through it and is gone (AUDIT part three, 22).
+        // through it and is gone (AUDIT part three, 22), and acne never
+        // leaves, so one spot on the floor blocked Prom (AUDIT 32).
         if (e.def.invulnerable || out.includes(e)) continue;
         const d2 = (e.x - this.x) ** 2 + (e.y - this.y) ** 2;
         if (d2 < bestD) {
@@ -1618,6 +1639,8 @@ export class World {
    * boss is never in `enemies`, so it is never pushed.
    */
   private knockBack(e: EnemyState, distance: number): void {
+    // The crowd, not the room (AUDIT 33; 28's rule for the pull).
+    if (e.def.merge === true || e.def.patrol === true) return;
     const dx = e.x - this.x;
     const dy = e.y - this.y;
     const d = Math.hypot(dx, dy);
@@ -2466,7 +2489,11 @@ export class World {
    */
   private ring(b: BossState, boss: PromBoss): void {
     const spacing = (Math.PI * 2) / boss.spots;
-    const turn = (b.rings * spacing) / 2;
+    // A third of a spacing, not half: half retraced itself every other ring
+    // (32 lanes for the whole fight, and a still spot between two of them
+    // took nothing — AUDIT 36); a third gives 48 and the safest still spot on
+    // the floor takes six a minute.
+    const turn = (b.rings * spacing) / 3;
     for (let i = 0; i < boss.spots; i++) {
       const angle = turn + i * spacing;
       this.projectiles.push({

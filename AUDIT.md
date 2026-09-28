@@ -445,3 +445,113 @@ and walk through every aimed shot, the Egg's and the substitute's.
 | 30 | From PLAYTEST-FINDINGS' newest entry: 12 of 31 "someone else" deaths came 0.02s after the Egg appeared, a crowd of 60+ already inside its corona | `spawnBoss` sets every racer inside the corona outside it on its own bearing (0 on the boss point), 1–2 `RACE_PARTING_SECONDS` (PLACEHOLDER, 1) of its swim out in the same radial order | same 84 lives (`--runs=12 --life`), 30 alone toggled: 9 of 21 at 0.02s before, 0 of 20 after; min 0.40s, median 1.58s |
 
 "Just outside" by a pixel would have moved the death to 0.03s; the band is what makes the Egg visible before the certificate. Both placeholders are labelled in `world.ts` under Conception's `provisional` classes; `acts.ts` was not edited in this pass, so its sentence does not yet name them.
+
+
+---
+
+# Part five — 2026-09-28, the third act
+
+Adolescence read against ADOLESCENCE-ROSTER §3–§4 at `fe9a1ad` (the Egg's
+inheritance, Growth Spurt and Snooze in), every suspicion driven in a
+scratchpad script before it was written down. Bot figures are Adolescence
+alone, `runOnce` over the seven policies × seeds 1000–1005 (42 runs) unless
+said; "death off" means health refilled each step so the bot reaches Prom.
+Numbers are the shipped placeholders; nothing was tuned. Regressions:
+`src/sim/__tests__/audit-five.test.ts`, all four failing today. The patches
+are below, not applied: with all four applied to a copy of the tree, 532
+tests pass and `tsc -b` is clean.
+
+## Fixed — patch in the entry
+
+| # | Defect | Why it looked right | Fix |
+|---|---|---|---|
+| 31 | **Acne lands past the wall the player faces.** `spawnAt: 'lead'` is `ANTIBODY_LEAD` along the facing, unclamped, and acne is static and never culled: 107 of 988 spawns (11%) landed off the arena, 91 out of reach for good | The antibody shares the line and drifts back in; the "culls nothing" test counts an off-field spot as still there at Prom | Clamp a static lead spawn inside the arena. With it: 0 of 1030 off; 16 (1.6%) land on a player pressed into a wall and attach at once — the heading was the wall; median stacks 7 → 8 |
+| 32 | **The starting weapon cannot reach Prom past acne.** `nearestEnemies` counts acne, which cannot be hurt and never leaves; the ball is only a target when no enemy is in range. One spot 120px from a player on the floor: 37 Lash shots at it, 0 at the ball, Prom 0 damage in 20s (72 without it). Death off (28 runs; the life, 21), Prom arrives on 31–52 acne; of 945 seeking picks during Prom 816 were acne, in the life 212 of 212, and the ball was eligible in 0 of 554 volleys | Lash fires on cadence and the manicules fly; bots win Prom on other weapons and on shots that happen to cross the ball. §4 says the floor sits in Reflex's reach "so the starting weapon works from its edge" | Skip what is invulnerable and static. Narrow on purpose: 18's own line (`e.def.invulnerable`) also frees the antibody's share and moves Conception — with it, `report.test.ts`'s greedy-capacitation seed 1001 dies in Conception instead of crossing. That half stays with 18 |
+| 33 | **A knockback moves the room.** 28 took piles and patrol lines out of Chemotaxis's pull; Tantrum's push is the other door. One burst moved a car's road 61px, a hall monitor's line 69px, a homework pile 70px, each for the rest of the act | The burst scatters the crowd, which is Tantrum's card | `knockBack` returns for `merge` and `patrol`, 28's rule. Not `static`: `upgrades.test`'s Tantrum dummy is a static rival, and the only other static is acne, which is invulnerable and never reaches it |
+| 34 | **Prom is drawn off its hitbox.** `boss-prom.svg` hangs the ball on a chain (centre 62.5%, radius 37%); drawn centred at `BOSS_RADIUS * 2`, the packed ball sits 36px below the sim's and 113px across a 150px hitbox. Shots stop about 75px above its drawn top and 35–45px beside it; racers vanish about 50px out. The floor the HUD names ("get on the floor") is not drawn at all | `setDisplaySize(BOSS_RADIUS * 2)` is right for the Egg, which fills its frame (0.997 wide) | Declare the body in `act-visuals.ts` and anchor on it (below). Drawing the floor — a ring at `floorRadius` beside `bossSprite`, destroyed with it — is an art-law call (law 3, law 10) and the session's |
+
+```ts
+// 31 — world.ts, spawnEnemy, the 'lead' branch, after the two assignments:
+      // What stays where it lands is held inside the arena (AUDIT 31).
+      if (def.movement === 'static') {
+        x = clamp(x, def.radius, ARENA_WIDTH - def.radius);
+        y = clamp(y, def.radius, ARENA_HEIGHT - def.radius);
+      }
+// 32 — world.ts, nearestEnemies, the first line of the inner loop becomes:
+        // Not acne, which cannot be hurt and never leaves (AUDIT 32).
+        if (out.includes(e) || (e.def.invulnerable && e.def.movement === 'static')) continue;
+// 33 — world.ts, knockBack, first line:
+    // The crowd, not the room (AUDIT 33; 28's rule for the pull).
+    if (e.def.merge === true || e.def.patrol === true) return;
+// 34 — act-visuals.ts, ActVisuals, after bossFrame:
+  /** The boss's round body in its frame, as fractions of it (AUDIT 34). Absent: centred, filling it. */
+  bossBody?: { cy: number; r: number };
+//      and in ACT_VISUALS.adolescence, after bossFrame:
+    // boss-prom.svg: the ball hangs on its chain, <circle cy="62.5" r="37">.
+    bossBody: { cy: 0.625, r: 0.37 },
+//      ActScene.syncBoss, replacing setDisplaySize(BOSS_RADIUS * 2, BOSS_RADIUS * 2):
+      const body = this.visuals.bossBody ?? { cy: 0.5, r: 0.5 };
+      this.bossSprite.setOrigin(0.5, body.cy).setDisplaySize(BOSS_RADIUS / body.r, BOSS_RADIUS / body.r);
+```
+
+## Open — a judgement, not a correction
+
+| # | Finding | Measured | Options |
+|---|---|---|---|
+| 35 | **A hormone's hit is its arrival.** "Hormones kill 67 of 84" (PLAYTEST-FINDINGS) reads as a crowd. The chase at 58 never catches a mover at 190; what hurts is a hormone landing inside the player's reach on the step it spawns, drawn (48px, depth 5) under the player's sprite (56px, depth 10) on the frame it hits | 1171 hormone hurts: the youngest hormone touching was 0.02s old at the median (its first step), under 0.25s in 95%. At those hurts the bot had walked 474px of path in 2.5s and stood 19px from where it had been: it circles back over its own trail. Probes: standing still, a hit every i-frame (99/min); circling at r=300, none; back and forth every second, 77, one on arrival | (a) an arrival inside reach lands at its edge, seen, then chases; (b) no contact for a telegraph's length after arriving; (c) §3.1's "standing where it arrives" means this, and it stays. Ask: "did a hormone ever hit you that you did not see arrive?" |
+| 36 | **Prom's light has 32 fixed lanes, not a sweep.** Each ring is turned half a spacing from the last (§4's number; `prom.test.ts` (d) pins it), so ring n+2 retraces ring n. §4's prose: "so the spots sweep the room" | 21 rings a minute leave on 32 bearings, ever. Standing still on the floor 300–350px out, between lanes: 0 spots in a minute; on a lane, 10–11. At 200–265px the lanes overlap and nothing is safe | (a) turn a third of a spacing: 48 lanes, and the safest still spot on the floor takes 6 spots a minute; (b) an irrational fraction, never repeating; (c) keep half and cut "sweep" |
+
+**Taken the same day:** 35 as (a) — an arrival inside reach lands at its edge and is seen before it hurts; regression 35 in `audit-five.test.ts`. 36 as (a) — a third of a spacing, 48 lanes; `prom.test.ts` pins it and §4 says so.
+
+## Checked and clean
+
+**The crossing School → Adolescence**, driven through a three-act life with
+state planted on both sides: `actTime` 0, age 13 (the card and the HUD both
+read `act.age.from`), no enemy, shot, area or ring; stun, engulf, `engulfBy`,
+drag, `raceAbsorbed` and `trailDrops` zero or empty; no boss; offers only if
+owed. The trail is deliberately not reset: the player's position is
+continuous across the threshold, and the first hormone lands 357px behind at
+0.83s. The ancestor log is written once (`endedAt` latches). Drag is zeroed at
+every crossing (Adolescence is last, so an acne stack has none to come off
+at yet), and `crossThreshold` rebuilds the attach pool from `attachFrame`,
+so the stack is drawn as acne. **The group chat** moves 3.5s of every 4.3s (consult, then
+cooldown, then the walk), fired from under 30px in none of 589 bot shots (5th
+percentile 168px); owned shots thin no racer. **The standardised test**
+engulfs one at a time (the timer is single, renewed on expiry); at the drag
+floor the player walks out at 43.3 against 18 in 2.4s for 24 health, the same
+with one, two or three tests; the bots' longest continuous engulf is 1.2s;
+`engulfBy` clears. Snooze keeps the order (21.6 against 9 inside, 18 outside).
+**Driver's ed** never stops: no path writes its velocity but the patrol
+reversal, knockback moves position, Snooze halves the step (2px of 4) and it
+still reverses. **The test and the car kill nobody** because of presence,
+not a defect: 27 of 28 bots die, at a median 135s, before the first car (144s); with
+death off, 71 of 84 cars are shot within a median 3.1s of spawning, closest
+approach median 125px, 4 hurts; 80 of 140 tests die, closest approach median
+241px. **Prom**: the floor is read off the sim's position, centre to centre
+as documented, so Growth Spurt does not widen it; no ring fires in the absorb
+(40 absorbs entered at every point of the machine); `rings` and
+`raceAbsorbed` start at zero for each boss and each act. **Growth Spurt and
+Snooze**: every player-contact path reads `playerRadius` (enemies, hostile
+shots, rings, piles, gems); a hostile shot at 32.5px hits a grown 23.5px
+player; nothing in either boss's shield reads a radius. A shot through a
+field is held, not shortened, and still hits: a player's at 1.30s against
+0.65s, a notification at 1.60s against 1.07s. **Frame rate**, 30/60/144Hz:
+every Adolescence spawn count identical over 200s; group chat 28 shots in
+120s; Prom 21 rings a minute. **The shared id** `group-chat` (enemy and
+Gossip): the renderer tests `hostile` before `source` and the tallies key on
+`owner`, so neither is drawn or counted as the other.
+
+## Left, minor
+
+- **A car's reversal drops its overshoot**, like the hall monitor's: same
+  line and speed at every rate, but after 96s the car is 43px further along
+  it at 144Hz than at 30 and 60Hz.
+- **The bots' sidestep cancels between two ring spots** (inside ~175px of the
+  ball the two neighbours both threaten and their pushes sum to ≤0.39,
+  outward along the spots): 133 steps over 42 fights with death off, no hit in
+  any of them; 7 spot hits in ~256s of Prom overall.
+- **The trail is off screen going vertically**: 484–488px behind at base
+  speed (part three) against a 360px half-height; §3.1 says "on screen".
+  `TRAIL_SECONDS`'s label covers it.
+- **The car is never flipped or turned**: `setFlipX` is for chasers, so a car
+  driving left, up or down is drawn side-on facing right.

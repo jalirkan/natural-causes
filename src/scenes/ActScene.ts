@@ -122,6 +122,8 @@ export class ActScene extends Phaser.Scene {
   private orbiterSprites: Phaser.GameObjects.Image[] = [];
   private attachedSprites: Phaser.GameObjects.Image[] = [];
   private bossSprite?: Phaser.GameObjects.Image;
+  /** Prom's dance floor, drawn as a ring at floorRadius; only while its boss stands. */
+  private floorRing?: Phaser.GameObjects.Graphics;
   /** Scale the boss frame sits at when idle. The telegraph pulses around it. */
   private bossBaseScale = 1;
 
@@ -240,6 +242,7 @@ export class ActScene extends Phaser.Scene {
     this.orbiterSprites = [];
     this.attachedSprites = [];
     delete this.bossSprite;
+    delete this.floorRing;
 
     this.puffs = [];
     this.areaIcons = [];
@@ -366,6 +369,8 @@ export class ActScene extends Phaser.Scene {
     this.attachedSprites = [];
     this.bossSprite?.destroy();
     delete this.bossSprite;
+    this.floorRing?.destroy();
+    delete this.floorRing;
     this.absorbZoomed = false;
     // `force`: the Egg's 1.5s lean-in may still be tweening at the crossing
     // (it always is at dev speed), and Phaser drops a zoomTo while one runs.
@@ -1309,8 +1314,20 @@ export class ActScene extends Phaser.Scene {
       this.bossSprite = this.add
         .image(b.x, b.y, this.visuals.atlas.key, this.visuals.bossFrame)
         .setDepth(6);
-      this.bossSprite.setDisplaySize(BOSS_RADIUS * 2, BOSS_RADIUS * 2);
+      // Anchored on the body the drawing actually has (AUDIT 34), so the
+      // hitbox and the picture agree: shots stop at its edge, not above it.
+      const body = this.visuals.bossBody ?? { cy: 0.5, r: 0.5 };
+      this.bossSprite.setOrigin(0.5, body.cy).setDisplaySize(BOSS_RADIUS / body.r, BOSS_RADIUS / body.r);
       this.bossBaseScale = this.bossSprite.scaleX;
+      // Prom's floor (ADOLESCENCE-ROSTER §4): the HUD says get on it, so it is
+      // drawn — a thin paper ring at floorRadius, chrome not threat (law 10),
+      // under everything that moves. Destroyed with the boss sprite.
+      const boss = this.world.act.boss;
+      if (boss.kind === 'prom') {
+        this.floorRing?.destroy();
+        this.floorRing = this.add.graphics().setDepth(2);
+        this.floorRing.lineStyle(2, PAPER, 0.28).strokeCircle(b.x, b.y, boss.floorRadius);
+      }
     }
     // The telegraph has to be legible from across the arena. With one authored
     // frame it is carried by scale and value rather than by a drawn frame —
