@@ -203,10 +203,13 @@ describe('law 10 — a field-riding icon wears nothing reserved on the field', (
     // are drawn in code, not with the icon); every weapon and control item draws
     // its card's icon on the field (ActScene: syncProjectiles, syncAreas,
     // syncOrbiters, syncAuras, syncSweeps). A new weapon that forgets the flag
-    // would skip this law silently.
+    // would skip this law silently. The one exception is a nap (Decline's,
+    // G-051): it puts nothing on the field — its cue is the player's own stop,
+    // the stun's squash — so its armchair stays on the card, and the day a
+    // nap draws its icon on the field this line goes and the flag comes on.
     const flagged = new Set(riders.map((s) => s.id));
     for (const def of Object.values(ITEMS)) {
-      if (!isActive(def)) continue;
+      if (!isActive(def) || def.mode === 'nap') continue;
       expect(flagged.has(`icon-${def.icon}`), `${def.name} (icon-${def.icon})`).toBe(true);
     }
   });
