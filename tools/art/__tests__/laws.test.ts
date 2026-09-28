@@ -12,7 +12,7 @@ import {
   reservedColourViolations,
   threatColourViolations,
 } from '../check';
-import { thresholdsFor } from '../pipeline';
+import { heldThreats, thresholdsFor } from '../pipeline';
 import {
   FIELD_RESERVED_COLOURS,
   PICKUP_SILHOUETTE,
@@ -88,13 +88,8 @@ describe('G-032 — the sprite arrives dark; nothing is corrected on the GPU', (
 
       // Reserved colours: paper is the player's, the act light tone is the
       // pickups', and a threat colour belongs only to an asset that holds it.
-      const held = RESERVATIONS[spec.act];
-      const holds = held
-        ? (Object.entries(held.reservedThreat)
-            .filter(([, who]) => who === spec.id)
-            .map(([cls]) => cls) as Parameters<typeof reservedColourViolations>[2])
-        : [];
-      expect(reservedColourViolations(bmp, spec.act, holds)).toEqual([]);
+      // The same list CONFORM quantised against, a D-029 variant's holder's.
+      expect(reservedColourViolations(bmp, spec.act, heldThreats(spec))).toEqual([]);
     });
   }
 });
