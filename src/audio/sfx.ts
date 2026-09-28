@@ -524,6 +524,75 @@ class Sfx {
     this.tone(5320, { gain: 0.005, attack: 0.001, decay: 0.08, delay: 0.04 });
   }
 
+  // --- Decline -----------------------------------------------------------
+
+  /**
+   * A medication arriving (DECLINE-ROSTER §3.1, §6): the pills rattling. One
+   * dry shake of a bottle — two high band-passed ticks of noise 55ms apart,
+   * nothing pitched under them, each wandering a little; ~75ms. Medications
+   * arrive the whole act, 0.7 a second from the start and 1.6 by the end, so
+   * the rattle is near-constant: the quietest thing in the act and floored at
+   * a second, as the doorbell is — a pharmacy shelf, never maracas.
+   */
+  rattle(): void {
+    if (!this.due('rattle', 1000)) return;
+    const first = 3400 + Math.random() * 500;
+    const second = 2800 + Math.random() * 500;
+    this.noise({ gain: 0.016, decay: 0.012, cutoff: first, band: { q: 2.5, glideTo: first * 0.85 } });
+    this.noise({ gain: 0.013, decay: 0.016, cutoff: second, delay: 0.055, band: { q: 2.5, glideTo: second * 0.85 } });
+  }
+
+  /**
+   * The weather entering (§3.2): the rain. A soft wash of wide band-passed
+   * noise swelling in over half a second and sighing away over a second as
+   * its centre falls an octave — a front going over, not a storm; ~1.5s, the
+   * longest of the act's own sounds and quieter than the train. About one a
+   * half minute, so the floor only keeps a pair from stacking.
+   */
+  rain(): void {
+    if (!this.due('rain', 1500)) return;
+    this.noise({ gain: 0.022, attack: 0.5, decay: 1.0, cutoff: 2600, band: { q: 0.8, glideTo: 1300 } });
+  }
+
+  /**
+   * A flight of stairs landing (§3.4): the stairs' creak. A low sine bent down
+   * as the weight goes onto the tread, a stick-slip judder on it for the wood,
+   * and a narrow band of noise dragged down with it for the rasp; ~450ms, and
+   * slow where the chairs scrape. Once a flight: it never adjourns, so it
+   * never creaks again.
+   */
+  creak(): void {
+    if (!this.due('creak', 600)) return;
+    this.tone(200, { gain: 0.034, attack: 0.07, hold: 0.1, decay: 0.28, bend: 150, glideTo: 128, wobble: { rate: 26, depth: 12 } });
+    this.noise({ gain: 0.016, attack: 0.07, decay: 0.34, cutoff: 950, band: { q: 6, glideTo: 560 } });
+  }
+
+  /**
+   * The insurance form consulting (§3.5): the decision stamped. A rubber
+   * stamp's thump — the registrar's `stamp`, drier: a softer, lower pad of
+   * noise and a short falling body, both gone in 40ms, where the stamp's ring
+   * out to 60; ~45ms, and quieter. It sounds on the consult, so the DENIED it
+   * decides lands silent, as the phone's HELLO? does.
+   */
+  denied(): void {
+    if (!this.due('denied', 300)) return;
+    this.noise({ gain: 0.022, decay: 0.02, cutoff: 600 });
+    this.tone(120, { wave: 'triangle', gain: 0.038, attack: 0.004, decay: 0.035, glideTo: 82 });
+  }
+
+  /**
+   * Time (§4): the clock's tick. A small dry escapement — a bright click of
+   * narrow noise over a short, faintly falling triangle for the case; ~35ms.
+   * Once a quarter turn of the hand, then once a second for the last five;
+   * never at zero, where the act's word says it. Lower than the group chat's
+   * typing, and one tick where that is three.
+   */
+  tick(): void {
+    if (!this.due('tick', 400)) return;
+    this.noise({ gain: 0.018, decay: 0.006, cutoff: 4200, band: { q: 4, glideTo: 3800 } });
+    this.tone(1050, { wave: 'triangle', gain: 0.02, attack: 0.001, decay: 0.03, glideTo: 990 });
+  }
+
   // --- G-044's weapons ---------------------------------------------------
 
   /**

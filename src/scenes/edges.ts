@@ -7,9 +7,9 @@ import type { BossState, EnemyState, HoldState } from '../sim/world';
  * knows; these only read it. No Phaser here, so they run under the unit
  * tests against a real World (src/scenes/__tests__/edges.test.ts).
  *
- * Every Office and Family edge is gated on a def id or a boss kind, never an
- * act index, so a sound follows its thing wherever the schedule puts it and
- * nowhere else.
+ * Every Office, Family and Decline edge is gated on a def id or a boss kind,
+ * never an act index, so a sound follows its thing wherever the schedule puts
+ * it and nowhere else.
  */
 
 /**
@@ -38,20 +38,22 @@ export function holdArrived(now: readonly HoldState[], before: readonly HoldStat
 }
 
 /** A vehicle's arrival sound: the crossing engine's defs, and nothing else. */
-export type VehicleSound = 'carPass' | 'carriage' | 'tape';
+export type VehicleSound = 'carPass' | 'carriage' | 'tape' | 'rain';
 
 /**
  * Every def that pulls onto the field on the crossing engine, and what its
  * arrival sounds like. Driver's ed and College's deadline are a car; The
  * Office's commute is a train; Family's flat-pack (FAMILY-ROSTER §3.2) is
- * the tape torn off the box it came in. One map, so a commute is never also
- * a car and a flat-pack is never either.
+ * the tape torn off the box it came in; Decline's weather (DECLINE-ROSTER
+ * §3.2) is the rain, a front coming in. One map, so a commute is never also
+ * a car, a flat-pack is never either, and the weather is none of them.
  */
 const VEHICLES: ReadonlyMap<string, VehicleSound> = new Map<string, VehicleSound>([
   ['drivers-ed', 'carPass'],
   ['deadline', 'carPass'],
   ['commute', 'carriage'],
   ['flat-pack', 'tape'],
+  ['weather', 'rain'],
 ]);
 
 /**
@@ -196,4 +198,62 @@ export function statementDrafted(boss: Pick<BossState, 'kind' | 'phase'> | null,
  */
 export function instalmentPaid(boss: Pick<BossState, 'kind' | 'paid'> | null, paidBefore: number): boolean {
   return boss?.kind === 'mortgage' && boss.paid > paidBefore;
+}
+
+// --- Decline --------------------------------------------------------------
+//
+// Four of the act's five sounds are the Family patterns on Decline's ids,
+// read in hearWorld: a medication arriving is `newestAbove(…, 'medication')`
+// (the rattle), the weather entering is `vehiclesEntered`'s 'rain', a flight
+// of stairs landing is `holdArrived(…, 'stairs')` (the creak), the insurance
+// form consulting is `consulting(…, 'insurance-form')` (the stamp, DENIED).
+// Time's tick is its own edge, below.
+
+/**
+ * The ranged defs whose shot has a sound of its own, or a silence, rather
+ * than the substitute's ah-hem: the group chat's notification, the
+ * substitute's own, the registrar's stamp, and the phone's and the form's
+ * shots, which land silent because the consult already spoke (the ring;
+ * DENIED's stamp). Any ranged def missing here borrows the ah-hem, so a new
+ * aimed thing is never mute by accident — and a form's DENIED is never an
+ * ah-hem by one.
+ */
+const OWN_VOICE: ReadonlySet<string> = new Set(['group-chat', 'substitute-teacher', 'registrar', 'phone-call', 'insurance-form']);
+
+/** True for a ranged def whose shot borrows the substitute's ah-hem (`OWN_VOICE`). */
+export function borrowsAhem(id: string): boolean {
+  return !OWN_VOICE.has(id);
+}
+
+/**
+ * The seconds Time counts aloud at its end (DECLINE-ROSTER §4, §6): the last
+ * five of `secondsLeft`, one tick each.
+ */
+export const TIME_COUNTDOWN = 5;
+
+/** The boss fields Time's tick reads. */
+type ClockView = Pick<BossState, 'kind' | 'filed' | 'secondsLeft'> | null;
+
+/**
+ * Time's tick (DECLINE-ROSTER §4, §6): true on a frame the clock ticks. Two
+ * edges, never two ticks:
+ *
+ *   - a quarter turn of the long hand: `filed` rising, the file read, one a
+ *     quarter (the knee it lands is heard later, if worn, as the stamp);
+ *   - the last TIME_COUNTDOWN seconds: the whole part of `secondsLeft`
+ *     falling, 5 to 4 as five seconds are left through 1 to 0 as one is.
+ *
+ * Inside the countdown only the seconds tick. The quarter that falls there
+ * (57s of a 60s clock) and the second it shares are summed on two clocks
+ * (`handSeconds` up, `secondsLeft` down) and can land a step apart; heard as
+ * both, they would be a double tick. The run-out — `secondsLeft` reaching 0
+ * from a fraction — is no fall of the whole part and ticks nothing: the act's
+ * end word and the certificate carry it. Time's arrival reads 60 against the
+ * 0 heard before it, a rise. Gated on the kind, so no other boss's counter —
+ * the Mortgage's `paid`, the Reorg's `restructures` — and no phase ever ticks.
+ */
+export function timeTicks(boss: ClockView, before: { filed: number; secondsLeft: number }): boolean {
+  if (boss?.kind !== 'time') return false;
+  if (boss.secondsLeft < TIME_COUNTDOWN) return Math.floor(boss.secondsLeft) < Math.floor(before.secondsLeft);
+  return boss.filed > before.filed;
 }
