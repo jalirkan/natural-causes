@@ -5,6 +5,7 @@ import { sfx } from '../audio/sfx';
 import { INK, VIEW_HEIGHT, VIEW_WIDTH } from '../config';
 import { addVignette, ensureFieldTile } from './dressing';
 import { obituary, recentLives } from '../meta/ancestors';
+import { NAME_MAX, isNameChar, readPlayerName, writePlayerName } from '../meta/name';
 
 /**
  * The front door. Until this existed the game booted straight into the field,
@@ -88,8 +89,35 @@ export class TitleScene extends Phaser.Scene {
       ease: 'Sine.easeInOut',
     });
 
+    // The name on the form, under the face it belongs to. Typed, not chosen:
+    // the substitute misspells it (SCHOOL-ROSTER §3.5) and the certificate
+    // prints it (G-002). A remembered name is already written in; Enter keeps
+    // it. On a phone nobody types, and a tap starts the life as "Nobody" —
+    // which the substitute misspells too. That is the joke, not a gap.
+    let typed = readPlayerName() ?? '';
+    let caretOn = true;
+    const nameStyle = { fontFamily: 'monospace', fontSize: '18px', color: '#EFE7D6' };
+    const label = this.add.text(0, 470, 'Name on the form: ', nameStyle).setOrigin(0, 0.5).setAlpha(0.85);
+    const field = this.add.text(0, 470, '', nameStyle).setOrigin(0, 0.5);
+    // Laid out for the longest name, so the line stays put while it is typed.
+    field.setText('M'.repeat(NAME_MAX + 1));
+    const left = cx - (label.displayWidth + field.displayWidth) / 2;
+    label.setX(left);
+    field.setX(left + label.displayWidth);
+    this.add.rectangle(field.x, 470 + 13, field.displayWidth, 1, 0xefe7d6, 0.28).setOrigin(0, 0.5);
+    const showName = () => field.setText(typed + (caretOn ? '_' : ''));
+    showName();
+    this.time.addEvent({
+      delay: 530,
+      loop: true,
+      callback: () => {
+        caretOn = !caretOn;
+        showName();
+      },
+    });
+
     const controls = text(
-      520,
+      530,
       'WASD or arrows (or drag anywhere) to move   ·   you fire automatically\n1/2/3 or tap a card to upgrade   ·   P pauses   ·   M mutes',
       15,
       0.8,
@@ -114,16 +142,48 @@ export class TitleScene extends Phaser.Scene {
         .setAlpha(0.6);
       promptY = Math.min(VIEW_HEIGHT - 20, Math.max(promptY, top + obits.displayHeight + 22));
     }
-    const prompt = text(promptY, 'press any key or tap', 18);
+    const prompt = text(promptY, 'Enter or tap to begin', 18);
     this.tweens.add({ targets: prompt, alpha: 0.35, duration: 900, yoyo: true, repeat: -1 });
 
+    let begun = false;
     const begin = () => {
+      if (begun) return;
+      begun = true;
+      // Whatever is on the form. An empty one is Nobody, and is not
+      // remembered as a name, so the next visit asks again.
+      writePlayerName(typed);
       // The gesture the audio unlock has been waiting for.
       sfx.unlock();
       sfx.choose();
       this.scene.start('act', { acts: ACTS });
     };
-    this.input.keyboard?.once('keydown', begin);
-    this.input.once('pointerdown', begin);
+    // Phaser 3.90 replays its whole key queue on every DOM key event until the
+    // frame ends, and only drops a replay that matches the event just before
+    // it — so two keys typed inside one frame arrive as "MMa". Harmless for
+    // "press any key"; for typing, each event is taken once, by identity.
+    const taken = new WeakSet<KeyboardEvent>();
+    this.input.keyboard?.on('keydown', (e: KeyboardEvent) => {
+      if (taken.has(e)) return;
+      taken.add(e);
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key === 'Enter') {
+        begin();
+        return;
+      }
+      if (e.key === 'Backspace') {
+        typed = [...typed].slice(0, -1).join('');
+      } else if ([...e.key].length === 1 && isNameChar(e.key)) {
+        // Twelve at most, and no space where a name cannot start or has one.
+        if ([...typed].length >= NAME_MAX || (e.key === ' ' && (typed === '' || typed.endsWith(' ')))) return;
+        typed += e.key;
+      } else {
+        return;
+      }
+      // Space would scroll, Backspace navigate, an apostrophe open Firefox's find bar.
+      e.preventDefault();
+      caretOn = true;
+      showName();
+    });
+    this.input.on('pointerdown', begin);
   }
 }

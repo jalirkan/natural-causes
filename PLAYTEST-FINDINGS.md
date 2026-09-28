@@ -24,6 +24,45 @@ Running record of what the automated bots measured and what it means for design.
 
 ---
 
+# 2026-09-28 · After the shield-reading bots and AUDIT five — endings, inheritance, two shields. Presence only.
+
+`pnpm playtest -- --runs=16 --life` (seeds 1000–1015, 112 lives), `--runs=12 --act=school` and
+`--runs=12 --act=adolescence` (84 runs each), all at `f28f45d`, sim clean (the tree's only edits
+are scene files the bots do not import). The life's per-boss splits come from a scratch replay
+probe that matched all 112 lives.
+
+| policy | outlived Adolescence (95% CI) | Conception deaths | School · Adolescence deaths | inherited C·P·S | School alone, deaths of 12 | Adolescence alone, deaths of 12 |
+|---|---|---|---|---|---|---|
+| midpiece+wake | 56% [33–77] | Rival sperm 5, Someone else 2 | none | 3·4·2 | none | Hormones 2, Group chat 1 |
+| membrane+acrosome | 63% [39–82] | Someone else 6 | none | 2·2·6 | none | Hormones 10, Prom 1 |
+| motility | 100% [81–100] | none | none | 7·5·4 | none | Hormones 11, Group chat 1 |
+| greedy-capacitation | 69% [44–86] | Someone else 2, Rival sperm 2 | 0 · Hormones 1 | 4·3·5 | Clique 1 | Hormones 6, Group chat 1 |
+| acrosome+midpiece | 69% [44–86] | Someone else 5 | none | 3·4·4 | none | Hormones 7, Group chat 1 |
+| grudge+group-chat | 81% [57–93] | Someone else 2 | 0 · Hormones 1 | 4·4·6 | none | Hormones 11, Group chat 1 |
+| random | 81% [57–93] | Rival sperm 2, Someone else 1 | none | 6·3·4 | Clique 1 | Hormones 6, Group chat 4 |
+| **all** | 74% [65–81] | Someone else 18, Rival sperm 9 | 0 · Hormones 2 | 29·25·31 | Clique 2 (of 84) | Hormones 53, Group chat 9, Prom 1 (of 84) |
+
+Lives end in Conception (27 of 112) or at eighteen: no life with a carried build dies in School
+(0 of the 85 that crossed, [0–4%]) and 83 of the 85 outlive Adolescence, the other two dying of
+Hormones at 17.0 and 17.2, while alone School kills 2 of 84 and Adolescence 63 of 84. All three
+rolls are dealt and no ordering shows: all 29 Constitution lives reach eighteen, but so do 24 of
+25 Precocity and 30 of 31 Sensitivity, so with nearly every crossed life at the ceiling its end
+cannot tell the rolls apart. Every shielded fight ends and none reaches the 120s cap: alone the
+Gym Teacher's shield is up 1421 of 1712 fight-seconds (78–90% for the hunters, 95% for the blind
+control; median fights 12.6–29.0s), in the life 423 of 518s (median fight 2.8s), and Prom's is
+up 10 of 58s over the 22 fights Adolescence alone reached and 25 of 68s over the life's 83
+(median fight 0.7s). Growth Spurt and Snooze are taken by every policy wherever Adolescence is
+reached (35 and 36 of 84 alone, 41 and 43 of the 85 crossed lives), rarest after Tantrum by the
+priority lists; Prom's light is seen alone, where 'boss' shoots at four policies (4 hits of 20)
+and kills one bot, but in the life it fired one ring in 83 fights, the build dropping Prom before
+the lights go down. At the link, live to Prom: did it fall before the lights went down, and did
+SMILE land as the ending you earned or as a fight you skipped?
+
+**INSTRUMENT.** The life's shield table pools the Gym Teacher with Prom and its aimed-shot 'boss'
+pools the Egg's volley with Prom's light; both were split here by the probe, not the report.
+
+---
+
 # 2026-09-28 · The first three-act life — Conception, School, Adolescence. Presence only.
 
 `pnpm playtest -- --runs=16 --life` (seeds 1000–1015, 112 lives) at `9bfabc6`, sim clean;
