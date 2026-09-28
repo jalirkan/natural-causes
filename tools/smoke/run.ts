@@ -173,13 +173,13 @@ interface Probe {
     /** The HUD's worn line (`hudDrag`): `2 attached · reach −14%`. */
     wornLine: string;
     /**
-     * The health bar's empty tail in HUD px (`hpTail`): the share of the act's
-     * opening maximum the insurance form's decisions took (AUDIT 90). Zero
-     * with nothing taken. With the world's two maxima it was drawn from.
+     * The health bar's empty tail in HUD px (`hpTail`): the share of the
+     * items' maximum the insurance form's decisions took (AUDIT 90, 122).
+     * Zero with nothing taken. With the world's two maxima it was drawn from.
      */
     hpTail: number;
     maxHp: number;
-    openingMaxHp: number;
+    itemsMaxHp: number;
     /** The label over the boss's bar (`hudBossLabel`), while it shows: Time's reads its seconds. */
     bossLabel: string | null;
     /**
@@ -292,7 +292,7 @@ const PROBE = String.raw`(() => {
       wornLine: s.hudDrag.text,
       hpTail: s.hpTail,
       maxHp: w.maxHp,
-      openingMaxHp: w.openingMaxHp,
+      itemsMaxHp: w.itemsMaxHp,
       bossLabel: s.hudBossLabel.visible ? s.hudBossLabel.text : null,
       hand:
         s.bossHand && s.bossHand.visible
@@ -959,7 +959,7 @@ async function main(): Promise<void> {
     'decline-play',
     p,
     `${actLine(p)}  worn knees ${decline.worn}  "${p.act!.wornLine}"  stairs seen  DENIED landed  ` +
-      `max ${Math.round(p.act!.maxHp)}/${Math.round(p.act!.openingMaxHp)}, tail ${decline.tail}px`,
+      `max ${Math.round(p.act!.maxHp)}/${Math.round(p.act!.itemsMaxHp)}, tail ${decline.tail}px`,
   );
 
   // Time (§4): its sprite in its frame, and its minute hand drawn as its own

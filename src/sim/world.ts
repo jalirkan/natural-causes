@@ -1334,6 +1334,18 @@ export class World {
   }
 
   /**
+   * The maximum health the items give now, with no decision applied: the
+   * base times every passive's `healthMultiplier` and the inheritance's, with
+   * no `maxHpLoss` taken. What `maxHp` would be if nothing had decided, so a
+   * HUD drawing the maximum against it shows a decision's loss even after a
+   * later Thick Skin (AUDIT 122). Moves with the items; never with a
+   * decision. Read-only.
+   */
+  get itemsMaxHp(): number {
+    return this.itemMaxHp;
+  }
+
+  /**
    * The maximum health this act began with, before any decision: the length a
    * HUD can draw the maximum's bar against, so a shrinking maximum shows as a
    * shrinking bar rather than as a full one (DECLINE-ROSTER §5). Read-only.
@@ -1543,6 +1555,19 @@ export class World {
    */
   get engulfCooldownFactor(): number {
     return this.engulfTimer > 0 ? this.engulfCooldown : 1;
+  }
+
+  /**
+   * The body holding the player while a hold's window runs (an engulf: the
+   * white cell's, the toddler's), else null. The one the sim chose at the
+   * touch, not whichever engulfer is touching now, so a renderer or a sound
+   * need not guess between two (AUDIT 81, 112); its `def` is what holds.
+   * Null once the window is over, or zeroed from outside (dev god mode). A
+   * body killed mid-hold is still the holder until the window ends, and is
+   * no longer in `enemies`. Read-only.
+   */
+  get heldBy(): Readonly<EnemyState> | null {
+    return this.engulfTimer > 0 ? this.engulfer : null;
   }
 
   /**

@@ -319,6 +319,25 @@ describe('the insurance form decides how much of you there is (ranged.maxHpLoss,
     expect(w.maxHp).toBeGreaterThan(decided);
   });
 
+  it('the items’ maximum (itemsMaxHp, AUDIT 122) moves with a Thick Skin and never with a decision', () => {
+    const w = empty(18);
+    expect(w.itemsMaxHp).toBe(PLAYER_BASE_HP);
+    decision(w);
+    decision(w);
+    expect(w.maxHp).toBeLessThan(PLAYER_BASE_HP);
+    expect(w.itemsMaxHp, 'a decision moved the items’ maximum').toBe(PLAYER_BASE_HP);
+    w.items.set('membrane', 1);
+    expect(w.itemsMaxHp).toBeCloseTo(PLAYER_BASE_HP * 1.06, 9);
+    expect(w.maxHp).toBeCloseTo(w.itemsMaxHp * (1 - LOSS) ** 2, 9);
+    // Down at the floor it still reads what the items give, not the floor.
+    for (let i = 0; i < 200 && w.maxHp > w.maxHpFloor + 1e-9; i++) {
+      w.hp = w.maxHp;
+      decision(w);
+    }
+    expect(w.maxHp).toBeCloseTo(w.maxHpFloor, 9);
+    expect(w.itemsMaxHp).toBeCloseTo(PLAYER_BASE_HP * 1.06, 9);
+  });
+
   it('the pause sheet prints the lowered maximum', () => {
     const w = empty(17);
     decision(w);

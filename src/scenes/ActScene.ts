@@ -12,6 +12,7 @@ import { buildSheet, pipString } from '../data/build-sheet';
 import { actDocument, PAPER_NARROW_TITLE, PAPER_SHEET, paperType } from '../data/documents';
 import { sfx } from '../audio/sfx';
 import { combineMoves, stickVector, type Move } from './touch';
+import { healthBar } from './health-bar';
 import { oncePerEvent } from './keys';
 import {
   certificateFields,
@@ -190,12 +191,20 @@ const TIME_CAP_R = 33 / 384;
 const TIME_BAKED_HAND = { from: 30 / 384, to: 131 / 384, width: 31 / 384 };
 /**
  * A Highlighter mark (College's first item): a flat level band with square
- * ends laid under the marked body, as the icon's own stroke is, in the pen's
- * rose (conception-mid, the colour the field-riding icons already wear; never
- * the ranged gold, G-031, and never a threat colour, law 10). It fades over
- * the mark's last `MARK_FADE` seconds. PLACEHOLDER, watched by nobody yet.
+ * ends at the foot of the marked body, as the icon's own stroke lies under
+ * its pen: the stroke's bone (`MARK_BONE`, the ink the pen lays) edged in the
+ * pen's rose (`MARK_ROSE`, conception-mid) — both colours the field-riding
+ * icons already wear; never the ranged gold, G-031, and never a threat
+ * colour, law 10. Rose alone on College's burgundy was low contrast (AUDIT
+ * 123). `MARK_BAND` is the band as shares of the body across: its width, its
+ * height (held between `min` and `max` px; a boss's is `max`), how far below
+ * the centre an enemy's sits (`at`), the edge's px, and how far a boss's
+ * tucks under the foot of its frame (`tuck`, px). It fades over the mark's
+ * last `MARK_FADE` seconds. PLACEHOLDER, every number, watched by nobody yet.
  */
+const MARK_BONE = BONE;
 const MARK_ROSE = 0xa86a63;
+const MARK_BAND = { width: 1.2, height: 0.22, min: 6, max: 24, at: 0.38, edge: 1.5, tuck: 6 };
 const MARK_FADE = 0.5;
 /**
  * The boss's entrance (AUDIT 37). Every boss stands 420px above the player
@@ -429,10 +438,10 @@ export class ActScene extends Phaser.Scene {
   private hudRaceLabel!: Phaser.GameObjects.Text;
   private bars!: Phaser.GameObjects.Graphics;
   /**
-   * The health bar's empty tail this frame, in HUD px: the part of the act's
-   * opening maximum the insurance form's decisions have taken (DECLINE-ROSTER
-   * §3.5, AUDIT 90). Zero with nothing taken. Kept for the smoke's probe
-   * (tools/smoke/run.ts), which cannot read a Graphics.
+   * The health bar's empty tail this frame, in HUD px: the part of the
+   * items' maximum (`itemsMaxHp`) the insurance form's decisions have taken
+   * (DECLINE-ROSTER §3.5, AUDIT 90, 122). Zero with nothing taken. Kept for
+   * the smoke's probe (tools/smoke/run.ts), which cannot read a Graphics.
    */
   private hpTail = 0;
   /**
@@ -566,8 +575,9 @@ export class ActScene extends Phaser.Scene {
     this.playerFx = this.add.graphics().setDepth(9);
     // Under the crowd, so what the swing hits is drawn on top of it.
     this.sweepFx = this.add.graphics().setDepth(4);
-    // Under the crowd too, so the marked thing is drawn on its stroke.
-    this.markFx = this.add.graphics().setDepth(4.5);
+    // Over the crowd, so a marked enemy's hit flash does not dim its band, and
+    // under the boss (6), whose band lies under its drawing (`syncMarks`).
+    this.markFx = this.add.graphics().setDepth(5.5);
     this.player = this.add
       .image(this.world.x, this.world.y, this.visuals.atlas.key, this.visuals.playerFrame)
       .setDepth(10);
@@ -1629,21 +1639,18 @@ export class ActScene extends Phaser.Scene {
     );
     // A hold (FAMILY-ROSTER §3.4): the toddler, 44px against the player's
     // 56, walks onto the player's centre and would be drawn under them for
-    // the whole hold. So while a hold runs, anything that engulfs, touching
-    // the player and drawn smaller than them, draws in front of them: the bib
-    // at the leg. A larger one (the white cell) already shows round the
-    // player and stays under. Read off the touch, as the sim's contact is;
-    // the world keeps which body holds private.
-    const body = w.playerRadius;
-    const front = w.engulfTimer > 0 ? PLAYER_DISPLAY * (body / PLAYER_RADIUS) : 0;
+    // the whole hold. So while a hold runs, the body holding the player
+    // (`World.heldBy`, the one the sim chose at the touch), if it is drawn
+    // smaller than them, draws in front of them: the bib at the leg. A
+    // second toddler touching them waits its turn under them (AUDIT 81). A
+    // larger holder (the white cell) already shows round the player and
+    // stays under.
+    const holder = w.heldBy;
+    const front = holder ? PLAYER_DISPLAY * (w.playerRadius / PLAYER_RADIUS) : 0;
     for (let i = 0; i < list.length; i++) {
       const e = list[i]!;
       const s = this.enemySprites[i]!;
-      const reach = e.radius + body;
-      const holding =
-        e.def.contact === 'engulf' &&
-        e.displaySize < front &&
-        (e.x - w.x) ** 2 + (e.y - w.y) ** 2 <= reach * reach;
+      const holding = e === holder && e.displaySize < front;
       // Only on a change: a depth set queues a sort of the whole display list.
       const depth = holding ? HOLDER_DEPTH : 5;
       if (s.depth !== depth) s.setDepth(depth);
@@ -1716,27 +1723,50 @@ export class ActScene extends Phaser.Scene {
   }
 
   /**
-   * The Highlighter's marks (College): a rose band (`MARK_ROSE`) under every
-   * enemy whose mark is still running on the world's clock, fading over its
-   * last `MARK_FADE` seconds. Before this a mark changed what every hit was
-   * worth and nothing on screen said which things were marked. Read off the
-   * enemy's own `markedUntil`; a mark past its time is not drawn, as the sim
-   * does not read it. The band's size is the body's as drawn.
+   * The Highlighter's marks (College): a bone band with a rose edge
+   * (`MARK_BONE`, `MARK_ROSE`) at the foot of every enemy whose mark is still
+   * running on the world's clock, and of the boss, fading over its last
+   * `MARK_FADE` seconds. Before this a mark changed what every hit was worth
+   * and nothing on screen said which things were marked. Read off the
+   * target's own `markedUntil` (the boss carries the same field, which
+   * `bossTakes` pays); a mark past its time is not drawn, as the sim does not
+   * read it. An enemy's band is sized by its body as drawn and lies over the
+   * foot of its sprite, so the hit that marks it, which dims the sprite, does
+   * not dim the band (AUDIT 123). The boss's is sized by its round body (the
+   * sim's) and lies under its drawing, tucked under the foot of its frame
+   * (`bossBody`): a band at its body's foot, as an enemy's is, sat under the
+   * Loan's base and did not show. `markFx`'s depth sits between the two.
    */
   private syncMarks(): void {
     const w = this.world;
     this.markFx.clear();
     for (const e of w.enemies) {
-      if (e.markedUntil === undefined) continue;
-      const left = e.markedUntil - w.time;
-      if (!(left > 0)) continue;
-      const alpha = 0.85 * Math.min(1, left / MARK_FADE);
-      const width = e.displaySize * 1.2;
-      const height = Math.max(6, e.displaySize * 0.36);
-      this.markFx
-        .fillStyle(MARK_ROSE, alpha)
-        .fillRect(e.x - width / 2, e.y + e.displaySize * 0.2 - height / 2, width, height);
+      const size = e.displaySize;
+      const height = Phaser.Math.Clamp(size * MARK_BAND.height, MARK_BAND.min, MARK_BAND.max);
+      this.markBand(e.markedUntil, e.x, e.y + size * MARK_BAND.at, size * MARK_BAND.width, height);
     }
+    const b = w.boss;
+    if (b) {
+      const body = this.visuals.bossBody ?? { cy: 0.5, r: 0.5 };
+      const foot = (BOSS_RADIUS / body.r) * (1 - body.cy);
+      const height = MARK_BAND.max;
+      const y = b.y + foot + height / 2 - MARK_BAND.tuck;
+      this.markBand(b.markedUntil, b.x, y, BOSS_RADIUS * 2 * MARK_BAND.width, height);
+    }
+  }
+
+  /** One mark's band, `width` × `height` px centred on (x, y), while `until` is ahead of the clock. */
+  private markBand(until: number | undefined, x: number, y: number, width: number, height: number): void {
+    if (until === undefined) return;
+    const left = until - this.world.time;
+    if (!(left > 0)) return;
+    const alpha = Math.min(1, left / MARK_FADE);
+    const top = y - height / 2;
+    this.markFx
+      .fillStyle(MARK_BONE, 0.9 * alpha)
+      .fillRect(x - width / 2, top, width, height)
+      .lineStyle(MARK_BAND.edge, MARK_ROSE, alpha)
+      .strokeRect(x - width / 2, top, width, height);
   }
 
   private syncProjectiles(): void {
@@ -2740,26 +2770,29 @@ export class ActScene extends Phaser.Scene {
     // The plate: one quiet ink surface holding both bars, so the corner reads
     // as an instrument instead of two floating rectangles.
     this.bars.fillStyle(INK, 0.4).fillRoundedRect(12, 8, 236, 46, 7);
-    // Health. The track is the act's opening maximum (`openingMaxHp`), or the
-    // maximum now if the items have raised it past that since, so a decision
-    // that lowers the maximum (DECLINE-ROSTER §3.5, AUDIT 90) visibly
-    // shortens what you have: the live track ends at the maximum and the
-    // part taken stays as an empty tail — an outline with nothing in it,
-    // value only and never a threat colour (law 10). Every other act's
-    // maximum is its opening one or more, and the tail is never drawn.
-    const track = Math.max(w.openingMaxHp > 0 ? w.openingMaxHp : w.maxHp, w.maxHp);
-    const live = Math.round((216 * w.maxHp) / track);
-    this.hpTail = 216 - live;
-    this.bars.fillStyle(INK, 0.55).fillRect(22, 30, live, 9);
+    // Health (`healthBar`, AUDIT 90, 122, 123). The track is the maximum the
+    // items give (`itemsMaxHp`), so a decision that lowers the maximum
+    // (DECLINE-ROSTER §3.5) visibly shortens what you have, and still does
+    // after a Thick Skin taken later: the live track ends at the maximum and
+    // the part taken stays as an empty tail — an outline with nothing in it,
+    // value only and never a threat colour (law 10). While a tail shows, the
+    // floor the cuts stop at (`maxHpFloor`) is a thin ink tick across the
+    // bar, over the fill. Every other act's maximum is the items', and
+    // neither is drawn. PLACEHOLDER weights (the tail's outline at 0.85, the
+    // tick 2px standing 2px proud of the bar), watched by nobody yet.
+    const bar = healthBar(216, w);
+    this.hpTail = bar.tail;
+    this.bars.fillStyle(INK, 0.55).fillRect(22, 30, bar.live, 9);
     if (this.hpTail > 0) {
-      this.bars.lineStyle(1, BONE, 0.5).strokeRect(22 + live + 0.5, 30.5, this.hpTail - 1, 8);
+      this.bars.lineStyle(1, BONE, 0.85).strokeRect(22 + bar.live + 0.5, 30.5, this.hpTail - 1, 8);
     }
     // Law 10 names this case directly: damage feedback goes to value, never to
     // tint, because a player flashing contact-red makes the colour mean
     // "someone is being hurt" instead of "this hurts". The player sprite
     // already dims on i-frames, which is the value channel doing the job.
     this.bars.fillStyle(PAPER, w.invulnerable > 0 ? 0.45 : 1);
-    this.bars.fillRect(22, 30, (216 * Math.min(w.maxHp, Math.max(0, w.hp))) / track, 9);
+    this.bars.fillRect(22, 30, bar.fill, 9);
+    if (bar.floorAt !== null) this.bars.fillStyle(INK, 1).fillRect(22 + bar.floorAt - 1, 28, 2, 13);
     // Experience.
     this.bars.fillStyle(INK, 0.55).fillRect(22, 43, 216, 4);
     this.bars.fillStyle(UI_FILL, 1).fillRect(22, 43, (216 * w.xp) / w.xpToNext, 4);

@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, it } from 'vitest';
 import { ITEMS, isActive, offerIdFor, type ActiveItem } from '../items';
-import { STAT_LINE_MAX, offerPips, offerTitle, statLines } from '../item-text';
+import { STAT_LINE_MAX, heldLines, offerPips, offerTitle, statLines } from '../item-text';
 
 /**
  * G-043: the card prints what a level is worth, derived from the data by one
@@ -154,6 +154,26 @@ describe('the coming modes, and a mode nobody taught it', () => {
     });
     expect(joined(strike.id)).toBe('damage 9 · every 1.6s · range 300 · radius 48');
     expect(joined(strike.id, at(2))).toContain('+1 bolt');
+  });
+
+  it('a strike’s landings go by its noun: Judgement’s bolts, the letter’s letters (AUDIT 104)', () => {
+    const judgement = ITEMS['judgement'] as ActiveItem;
+    const letter = ITEMS['strongly-worded-letter'] as ActiveItem;
+    expect(judgement.noun).toBeUndefined();
+    expect(letter.noun).toEqual({ one: 'letter', many: 'letters' });
+    // Level three is a second one on each (items.ts); level five or six a third.
+    expect(judgement.levels[2]!.projectiles).toBe(1);
+    expect(letter.levels[2]!.projectiles).toBe(1);
+    expect(joined('judgement', at(2))).toContain('+1 bolt');
+    expect(joined('strongly-worded-letter', at(2))).toContain('+1 letter');
+    expect(joined('strongly-worded-letter', at(2))).not.toContain('bolt');
+    expect(heldLines('judgement', 6, new Map()).join(' · ')).toContain('3 bolts');
+    const held = heldLines('strongly-worded-letter', 5, new Map()).join(' · ');
+    expect(held).toContain('3 letters');
+    expect(held).not.toContain('bolt');
+    // Cc, the letter's copies path, is one more letter too.
+    const cc = letter.paths!.find((p) => p.id === 'cc')!;
+    expect(joined(offerIdFor(letter, cc), at(letter.maxLevel))).toContain('+1 letter');
   });
 
   it('an unknown mode falls back to the generic figures without throwing', () => {
