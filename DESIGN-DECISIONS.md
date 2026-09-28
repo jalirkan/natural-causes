@@ -1297,3 +1297,20 @@ every window and a bill for every missed one. Every number is a placeholder
 under `FAMILY.provisional`; FAMILY-ROSTER.md is the spec.
 Rejected: a toddler that can be hurt — law 9's whole point is that the player never aims at a person; invulnerable, it is a hold that loves you.
 Rejected: The Loan again with a bigger number — the Loan compounds while you hit it; the Mortgage refuses to be hurried, which is the different joke.
+
+## G-051 · 2026-09-28 · The seventh act is Decline, and its boss cannot be hurt
+PLAN.md's last act, built now that six are playable: **Decline**, ages 55 to
+84 on a 120-second clock, whose line is *the record is read back to you*. The
+accumulator (Your knees) is the antibody's final costume, drag again,
+persisting into nothing; the crowd (Medication) hurts when it catches you and
+heals when you catch it (`killHeal`); the velocity thing (Weather) crosses and
+cannot be stopped; the roadblock (Stairs) is the meeting's hold that never
+ends, a refuge the crowd cannot enter at the cost of being slow in it; the
+ranged thing (Insurance form) lowers the maximum (`ranged.maxHpLoss`, floored).
+The boss is **Time**: no health, only a clock; a hand that sweeps once every
+twelve seconds; a knee at every quarter; and when its seconds run out the life
+ends won, on EVENTUALLY, with the certificate the title promised: natural
+causes, aged eighty-four. Every number a placeholder under `DECLINE.provisional`;
+DECLINE-ROSTER.md is the spec.
+Rejected: a Reaper — the genre's thirty-minute clock ends in a monster you fight; this one ends in a clock you outlive, which is the premise.
+Rejected: Time with a health bar that empties with time — a bar that empties reads as a kill; a clock that runs down reads as a clock.
