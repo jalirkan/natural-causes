@@ -1,4 +1,4 @@
-import { ACT_IDS, THREAT, type ActId, type ThreatClass } from './palette';
+import { ACT_IDS, PAPER, THREAT, actLight, type ActId, type ThreatClass } from './palette';
 import type { AssetRole } from './types';
 
 /**
@@ -281,6 +281,25 @@ export const RESERVATIONS: Partial<Record<ActId, ActReservations>> = {
  */
 export const PICKUP_SILHOUETTE = 'lozenge';
 
+/**
+ * The colours an icon that also rides the field keeps off (law 10, G-036), by
+ * name, for the verdict to print: every threat colour (threats), paper (the
+ * player) and every act's light tone (pickups). Every act's, because items
+ * are not act-scoped — Reflex fires the same manicule in School as in
+ * Conception.
+ *
+ * `laws.test.ts` reads the sprites against this through the enemy scan
+ * (`reservedColourViolations`, once per act), which inherits that scan's one
+ * blind spot: service-light sits inside the grain tolerance of bone, so a
+ * service-light pixel cannot be told from a legal bone one. A palette
+ * collision, recorded in check.ts, not a licence.
+ */
+export const FIELD_RESERVED_COLOURS: readonly string[] = [
+  ...Object.values(THREAT).map((c) => c.name),
+  PAPER.name,
+  ...ACT_IDS.map((a) => actLight(a).name),
+];
+
 export class ReservationError extends Error {
   constructor(message: string) {
     super(message);
@@ -308,7 +327,15 @@ export type ReservationVerdict =
   | { status: 'holds-threat'; act: ActId; assetId: string; threat: ThreatClass }
   | { status: 'pickup'; act: ActId; assetId: string; silhouette: string }
   | { status: 'player'; act: ActId; assetId: string }
-  | { status: 'icon'; act: ActId; assetId: string }
+  | {
+      status: 'icon';
+      act: ActId;
+      assetId: string;
+      /** Also drawn on the field (G-036); card-only when false. */
+      fieldRiding: boolean;
+      /** What it keeps off on the field: FIELD_RESERVED_COLOURS, or none. */
+      keepsOff: readonly string[];
+    }
   | { status: 'unlisted'; act: ActId; assetId: string; reason: string }
   | { status: 'no-list'; act: ActId; assetId: string; reason: string };
 
@@ -340,6 +367,7 @@ export function reservationVerdict(
   act: ActId,
   assetId: string,
   role: AssetRole = 'swarm',
+  fieldRiding = false,
 ): ReservationVerdict {
   const reserved = RESERVATIONS[act];
   if (!reserved) return { status: 'no-list', act, assetId, reason: NO_LIST(act) };
@@ -351,13 +379,28 @@ export function reservationVerdict(
   }
 
   // Icons are exempt one step before either of those: law 11 reserves FIELD
-  // silhouettes — the vocabulary a player reads threat from at a glance — and
-  // card-surface art never reaches the field. An offer card appears with the
-  // world stopped, on an ink panel; a manicule there cannot be misread as a
+  // silhouettes — the vocabulary a player reads threat from at a glance. A
+  // card-only icon never reaches the field: an offer card appears with the
+  // world stopped, on an ink panel; an umbrella there cannot be misread as a
   // swarm object, and putting it on the act's silhouette list would claim a
   // field shape it does not occupy. (G-035/G-037; the same surface boundary
   // CHECK draws with its 'card' thresholds.)
-  if (role === 'icon') return { status: 'icon', act, assetId };
+  //
+  // A field-riding icon DOES reach the field — Reflex's shot is the manicule,
+  // Baggage's stamps are the footprint (G-036) — so "never on the field" is false
+  // for it and the verdict says so. It stays off the silhouette list for the
+  // player's reason below (it is the player's weapon, and the list answers
+  // "how does this hurt me"), but law 10 applies to it in full: the verdict
+  // names the colours it keeps off, and laws.test.ts reads its sprite for them.
+  if (role === 'icon') {
+    return {
+      status: 'icon',
+      act,
+      assetId,
+      fieldRiding,
+      keepsOff: fieldRiding ? FIELD_RESERVED_COLOURS : [],
+    };
+  }
 
   // So is the player, and for the same reason one step further along.
   //
