@@ -27,7 +27,13 @@ import { createServer, type ViteDevServer } from 'vite';
  * The Office's paper, the performance review, was drawn, and in Family walks
  * into an HOA letter (the HUD's `reach` term with it) and within range of a
  * phone's HELLO?, waits for a toddler on screen, sees The Mortgage's DUE, and
- * sees its door open on the kill (FAMILY-ROSTER §3–§5) — and at every
+ * sees its door open on the kill (FAMILY-ROSTER §3–§5); at the crossing
+ * into Decline it asks that Family's paper, the mortgage statement, was
+ * drawn, and in Decline walks into your knees (the HUD's speed term with
+ * them), sees the stairs' ring, and lets an insurance form's DENIED land with
+ * god off so the health bar's lost maximum is drawn (AUDIT 90); at Time it
+ * asks for the hand drawn on the face and the bar in seconds (AUDIT 96), and
+ * then waits Time out, which is the win (DECLINE-ROSTER §3–§5) — and at every
  * milestone asserts: no console error, no page error, no failed request, no
  * Phaser texture warning, nothing visible drawn from `__MISSING`, no
  * NaN/undefined in any text on screen, and after the crossing the screen
@@ -40,6 +46,8 @@ import { createServer, type ViteDevServer } from 'vite';
  * one is running — so the crossing's zoom back to 1 never happens and School
  * plays at 1.1x with the HUD clipped. That is dev-speed only (at 1x the
  * lean-in ends first), so the smoke steps around it rather than failing on it.
+ * Time is not killed: its clock is waited out at 4x, because that is the win
+ * path, and no crossing follows the last act for the lean-in to spoil.
  *
  * The cheats are clicked in the panel, exactly as a person would, so the run
  * is tainted and records no ancestor. Level-up cards are answered with "1",
@@ -84,6 +92,17 @@ const OUT = resolve(ROOT, 'tools/smoke/out');
 // once The Mortgage's own sim landed, ended at 106.0s and 102.6s); thin on
 // that box, so if it runs out there again, raise this before skipping an
 // act's milestones.
+//
+// And for the seventh (2026-09-28, the same box, four runs at 8–25 fps):
+// decline, decline-play, decline-boss and Decline's certificate took the
+// place of Family's kill-to-certificate step (about 6s), and took 50s, 57s,
+// 54s and 66s; the runs ended at 146s, 162s, 170s and 165s, where Family's
+// would have ended near 98–119s: +45–60%. Most of it is Time's clock, which
+// cannot be skipped (60s of act time at 4x: 26–32s here, about 37s at CI's
+// 8 fps; its own limit is 150s). At +60% the slowest CI run seen becomes
+// about 350s, and 420s is 1.2 times it; the shared box's ~400s becomes about
+// 640s, past it. Kept, because no run here came near it; if CI's slowest
+// does, raise it to 1.5 times that run before cutting a milestone.
 const MILESTONE_MS = 60_000;
 const BUDGET_MS = 420_000;
 const VIEW = { width: 1280, height: 720 };
@@ -154,6 +173,26 @@ interface Probe {
     /** The HUD's worn line (`hudDrag`): `2 attached · reach −14%`. */
     wornLine: string;
     /**
+     * The health bar's empty tail in HUD px (`hpTail`): the share of the act's
+     * opening maximum the insurance form's decisions took (AUDIT 90). Zero
+     * with nothing taken. With the world's two maxima it was drawn from.
+     */
+    hpTail: number;
+    maxHp: number;
+    openingMaxHp: number;
+    /** The label over the boss's bar (`hudBossLabel`), while it shows: Time's reads its seconds. */
+    bossLabel: string | null;
+    /**
+     * Time's minute hand as drawn (`bossHand`, visible): where its pivot is, its
+     * rotation in Phaser's convention (clockwise from +x), and its size. Null
+     * for every other boss.
+     */
+    hand: { x: number; y: number; rotation: number; length: number; width: number } | null;
+    /** Holds drawn inside the camera's view, by source: the ring visible and the source's frame on it (the stairs). */
+    holds: Record<string, number>;
+    /** The act's `endWord` is drawn across the middle this frame (`announceWord`): EVENTUALLY. */
+    endWord: boolean;
+    /**
      * The act's document at a crossing, while it is up (`paper`): every text
      * drawn on it, in order, run together — the title's small-caps runs join
      * back into its words (PERFORMANCE REVIEW). Null with no paper up.
@@ -161,6 +200,14 @@ interface Probe {
     paper: string | null;
     /** The nearest enemy of each kind, from the player, in world pixels. For steering only. */
     nearest: Record<string, { dx: number; dy: number }>;
+    /**
+     * As `nearest`, counting only enemies inside the arena (the camera's
+     * bounds): a static enemy spawned on the edge ring from a player near a
+     * wall lands outside it and can never be reached. For steering only.
+     */
+    reachable: Record<string, { dx: number; dy: number }>;
+    /** From the player to the middle of the arena, in world pixels. For steering only. */
+    centre: { dx: number; dy: number };
     /**
      * Enemies of each kind drawn inside the camera's view: the sprite in the
      * enemy's slot visible and in the enemy's own frame. A sighting, where
@@ -243,8 +290,20 @@ const PROBE = String.raw`(() => {
       worn: {},
       words: [...new Set(s.nameShotTexts.filter((t) => t.visible).map((t) => t.text))],
       wornLine: s.hudDrag.text,
+      hpTail: s.hpTail,
+      maxHp: w.maxHp,
+      openingMaxHp: w.openingMaxHp,
+      bossLabel: s.hudBossLabel.visible ? s.hudBossLabel.text : null,
+      hand:
+        s.bossHand && s.bossHand.visible
+          ? { x: s.bossHand.x, y: s.bossHand.y, rotation: s.bossHand.rotation, length: s.bossHand.width, width: s.bossHand.height }
+          : null,
+      holds: {},
+      endWord: !!w.act.endWord && s.children.list.some((o) => o.visible && o.text === w.act.endWord),
       paper: null,
       nearest: {},
+      reachable: {},
+      centre: { dx: 0, dy: 0 },
       seen: {},
     };
     if (s.paper) {
@@ -258,11 +317,27 @@ const PROBE = String.raw`(() => {
       act.paper = texts.join('');
     }
     for (const a of s.attachedSprites) if (a.visible) act.worn[a.frame.name] = (act.worn[a.frame.name] || 0) + 1;
+    // syncHolds draws hold i with ring i and its frame on sprite i.
+    for (let i = 0; i < w.holds.length; i++) {
+      const h = w.holds[i];
+      const ring = s.holdRings[i];
+      const chairs = s.holdChairs[i];
+      if (!ring || !ring.visible || !chairs || !chairs.visible) continue;
+      // An enemy's hold wears its def's frame, <id>.png; a player's, its card's icon.
+      if (!h.owner && chairs.frame.name !== h.source + '.png') continue;
+      if (!s.cameras.main.worldView.contains(h.x, h.y)) continue;
+      act.holds[h.source] = (act.holds[h.source] || 0) + 1;
+    }
+    const arena = s.cameras.main.getBounds();
+    act.centre = { dx: arena.centerX - w.x, dy: arena.centerY - w.y };
     for (const e of w.enemies) {
       const dx = e.x - w.x;
       const dy = e.y - w.y;
       const n = act.nearest[e.def.id];
       if (!n || dx * dx + dy * dy < n.dx * n.dx + n.dy * n.dy) act.nearest[e.def.id] = { dx, dy };
+      if (!arena.contains(e.x, e.y)) continue;
+      const r = act.reachable[e.def.id];
+      if (!r || dx * dx + dy * dy < r.dx * r.dx + r.dy * r.dy) act.reachable[e.def.id] = { dx, dy };
     }
     // syncEnemies draws enemy i with sprite i, after the frame's steps; a panel
     // spawn between frames has no sprite yet and is simply not counted.
@@ -319,7 +394,8 @@ async function probe(): Promise<Probe> {
   return (await page!.evaluate(PROBE)) as Probe;
 }
 
-const deadline = () => Math.min(since + MILESTONE_MS, started + BUDGET_MS);
+/** When the milestone being waited for fails: its limit (MILESTONE_MS unless it says) or the run's budget. */
+const deadline = (limit = MILESTONE_MS) => Math.min(since + limit, started + BUDGET_MS);
 
 /**
  * Polls until `ready` holds, answering any level-up offer with "1" on the way
@@ -332,9 +408,10 @@ async function waitFor(
   milestone: string,
   ready: (p: Probe) => boolean,
   each?: (p: Probe) => Promise<void>,
+  limit = MILESTONE_MS,
 ): Promise<Probe> {
   let last: Probe | undefined;
-  while (Date.now() < deadline()) {
+  while (Date.now() < deadline(limit)) {
     last = await probe();
     if (problems.length > 0 || last.bad.length > 0) {
       throw new SmokeFailure(milestone, [...problems, ...last.bad].join('\n  '), last);
@@ -347,7 +424,7 @@ async function waitFor(
   const why =
     Date.now() >= started + BUDGET_MS
       ? `the run's ${seconds(BUDGET_MS)} budget ran out`
-      : `did not arrive within ${seconds(MILESTONE_MS)}`;
+      : `did not arrive within ${seconds(limit)}`;
   throw new SmokeFailure(milestone, why, last);
 }
 
@@ -738,7 +815,14 @@ async function main(): Promise<void> {
     async (q) => {
       if (!q.act || q.act.index !== 5) return;
       const kind = family.worn === 0 ? 'hoa-letter' : !family.hello ? 'phone-call' : 'toddler';
-      const target = q.act.nearest[kind];
+      // The phone lands on the edge ring and never moves, so from under a
+      // wall it can land outside the arena for good: a run stood under the
+      // top wall for 60s steering at a phone 446px beyond it while another
+      // stood 779px away inside. So the smoke steers to the nearest phone
+      // inside the arena; one asked for every 10s from a wall lands inside
+      // about half the time. (Not walked to the middle first, as Decline's
+      // form is: Family's rooms are solid and can stand in the way.)
+      const target = kind === 'phone-call' ? q.act.reachable[kind] : q.act.nearest[kind];
       const waited = Date.now() - familyAsked[kind];
       const again =
         kind === 'hoa-letter' ? !target && waited > 4000 : kind === 'phone-call' ? waited > 10_000 : waited > 6000;
@@ -768,16 +852,175 @@ async function main(): Promise<void> {
   });
   await milestone('family-boss', p, `${actLine(p)}  DUE drawn`);
 
-  // The door opens on the win (§4): drawn from the frame the house begins to
-  // absorb, latched at any poll through the absorb, which runs 1.8s at 1x.
+  // The door opens on the payoff (§4): drawn from the frame the house begins
+  // to absorb, latched at any poll through the absorb, which runs 1.8s at 1x.
+  // The Mortgage paid off crosses into Decline (DECLINE-ROSTER §5), and
+  // Family's paper, the mortgage statement, is drawn for the first time: a
+  // life that ended at The Mortgage never crossed with it. Latched as the
+  // performance review is above.
+  const decline = { paper: false, worn: 0, drag: false, denied: false, tail: 0, stairs: false, word: false };
+  const readStatement = (q: Probe) => (decline.paper ||= q.act?.paper?.includes('MORTGAGE STATEMENT') ?? false);
   await press('family-boss', '1x');
   await press('family-boss', 'kill');
-  p = await waitFor('certificate', (q) => {
+  p = await waitFor('decline', (q) => {
     family.door ||= q.act?.boss?.door ?? false;
-    return !!q.act?.won && !!q.act.overlay?.includes('Natural causes.') && q.act.overlay.includes('Age 55.');
+    readStatement(q);
+    return q.act?.index === 6 && q.act.shown === 6 && q.act.zoom === 1 && hudAge(q);
   });
-  if (!family.door) throw new SmokeFailure('certificate', 'The Mortgage fell and its door was never drawn open', p);
-  await milestone('certificate', p, `${p.act!.overlay!.split('\n').slice(0, 2).join(' ')}  door opened`);
+  if (!family.door) throw new SmokeFailure('decline', 'The Mortgage fell and its door was never drawn open', p);
+  await press('decline', '4x');
+  p = await waitFor('decline', (q) => {
+    readStatement(q);
+    return q.act?.index === 6 && q.act.timeScale === 4 && populated(q);
+  });
+  if (!decline.paper) {
+    throw new SmokeFailure('decline', "the crossing into Decline never drew Family's paper, MORTGAGE STATEMENT", p);
+  }
+  await milestone('decline', p, `${actLine(p)}  door opened  paper MORTGAGE STATEMENT`);
+
+  // Decline's own drawings (DECLINE-ROSTER §3), as Family's above and at the
+  // same 4x: your knees worn on the player with the HUD's speed term that
+  // names their cost (§3.3: drag, the antibody's, so `−x% speed`), the stairs'
+  // ring on screen with the flight drawn on it (§3.4), and an insurance form's
+  // DENIED in flight (§3.5) that LANDS, so the HUD's health bar shows the
+  // maximum it took as an empty tail (AUDIT 90). The knees wait at the lead
+  // as the letter does, so the smoke walks into the nearest; the stairs land
+  // at the lead too and stay for the act, so the player stands and they are
+  // latched on any poll that finds their ring drawn in view, asked for again
+  // every 6s; the form is a counter that fires inside 440px, so the smoke then
+  // walks to within 300px of the nearest it can reach. A form lands on the
+  // edge ring, 780px out, and never moves, so one asked for from near a wall
+  // can land outside the arena for good (the first run of this milestone
+  // stood under the top wall for 60s with its form 527px beyond it): the
+  // form is asked for only from within 200px of the arena's middle, walking
+  // there first, and the smoke steers to the nearest one inside the arena.
+  // God mode holds the i-frames up, and a decision lands only outside them,
+  // so once the player is in range god goes off until the tail is drawn, and
+  // back on (the medications are what can hurt meanwhile, a few points a
+  // touch). The knees and the stairs are spawned from the panel at once and
+  // the form when the player is placed for it, rather than waited on (the
+  // act's first stairs and form land near 63s and 80s, AUDIT 91). Each
+  // sighting latches.
+  const declineAsked = { 'your-knees': 0, stairs: 0, 'insurance-form': 0 };
+  const declineButton = { 'your-knees': '1x Your knees', stairs: '1x Stairs', 'insurance-form': '1x Insurance form' };
+  for (const kind of ['your-knees', 'stairs'] as const) {
+    await press('decline-play', declineButton[kind]);
+    declineAsked[kind] = Date.now();
+  }
+  p = await waitFor(
+    'decline-play',
+    (q) => {
+      decline.worn = Math.max(decline.worn, q.act?.worn['your-knees.png'] ?? 0);
+      decline.drag ||= /\battached\s+−\d+% speed/.test(q.act?.wornLine ?? '');
+      decline.stairs ||= (q.act?.holds['stairs'] ?? 0) > 0;
+      decline.denied ||= q.act?.words.includes('DENIED') ?? false;
+      decline.tail = Math.max(decline.tail, q.act?.hpTail ?? 0);
+      return (
+        q.act?.index === 6 &&
+        decline.worn > 0 &&
+        decline.drag &&
+        decline.stairs &&
+        decline.denied &&
+        decline.tail > 0 &&
+        q.act.god
+      );
+    },
+    async (q) => {
+      if (!q.act || q.act.index !== 6) return;
+      // God back on the moment the decision has landed and been drawn.
+      if (decline.denied && decline.tail > 0) {
+        if (!q.act.god) await press('decline-play', 'god');
+        return steer(0, 0, 0);
+      }
+      const kind = decline.worn === 0 ? 'your-knees' : !decline.stairs ? 'stairs' : 'insurance-form';
+      const target = kind === 'insurance-form' ? q.act.reachable[kind] : q.act.nearest[kind];
+      const waited = Date.now() - declineAsked[kind];
+      const again =
+        kind === 'your-knees' ? !target && waited > 4000 : kind === 'stairs' ? waited > 6000 : waited > 10_000;
+      if (again && kind === 'insurance-form' && Math.hypot(q.act.centre.dx, q.act.centre.dy) > 200) {
+        // Not from here: to the middle first, god on while walking.
+        if (!q.act.god) await press('decline-play', 'god');
+        return steer(q.act.centre.dx, q.act.centre.dy, 0);
+      }
+      if (again) {
+        await press('decline-play', declineButton[kind]);
+        declineAsked[kind] = Date.now();
+      }
+      if (kind === 'stairs' || !target) return steer(0, 0, 0);
+      await steer(target.dx, target.dy, kind === 'your-knees' ? 0 : 300);
+      // In range: the next decision has to be able to land.
+      if (kind === 'insurance-form' && q.act.god && Math.hypot(target.dx, target.dy) <= 320) {
+        await press('decline-play', 'god');
+      }
+    },
+  );
+  await steer(0, 0, 0);
+  await milestone(
+    'decline-play',
+    p,
+    `${actLine(p)}  worn knees ${decline.worn}  "${p.act!.wornLine}"  stairs seen  DENIED landed  ` +
+      `max ${Math.round(p.act!.maxHp)}/${Math.round(p.act!.openingMaxHp)}, tail ${decline.tail}px`,
+  );
+
+  // Time (§4): its sprite in its frame, and its minute hand drawn as its own
+  // shape, pivoted on the clock's face (the pivot is within a pixel of the
+  // sprite's anchor, bossBody's cy; 4px is the tolerance), with the bar over
+  // it labelled in seconds, never health.
+  await press('decline-boss', 'skip to boss');
+  const handOnFace = (q: Probe) =>
+    !!q.act?.hand &&
+    !!q.act.bossSprite &&
+    Math.hypot(q.act.hand.x - q.act.bossSprite.x, q.act.hand.y - q.act.bossSprite.y) <= 4;
+  p = await waitFor(
+    'decline-boss',
+    (q) =>
+      !!q.act?.boss &&
+      q.act.bossSprite?.frame === q.act.bossFrame &&
+      handOnFace(q) &&
+      /\bseconds?\b/.test(q.act.bossLabel ?? ''),
+  );
+  const hand = p.act!.hand!;
+  const fromTwelve = ((((hand.rotation + Math.PI / 2) * 180) / Math.PI) % 360 + 360) % 360;
+  await milestone(
+    'decline-boss',
+    p,
+    `${actLine(p)}  "${p.act!.bossLabel}"  hand ${Math.round(hand.length)}×${Math.round(hand.width)} at ${fromTwelve.toFixed(1)}° from twelve`,
+  );
+
+  // Time cannot be killed (§4): the life ends, won, when its clock runs out,
+  // so the smoke waits it out at 4x — the win path itself, not the panel's
+  // kill. That is `seconds` of act time (60, a placeholder): 15s of wall time
+  // at 60 fps, but a frame's step is clamped to 50ms, so below 20 fps 4x runs
+  // slower than 4x: about 37s at CI's 8 fps, 75s at the shared box's 4. Its
+  // limit is 150s for that (twice the slowest), not MILESTONE_MS; a hang is
+  // still caught, later. The act's end word, EVENTUALLY, is latched as the
+  // clock stops, and then the certificate.
+  // The hand drawn is the sim's (`boss.hand`): it is seen turning — a tenth of
+  // a turn, 36°, from where decline-boss saw it — before the clock stops.
+  const waited = Date.now();
+  let turned = 0;
+  p = await waitFor(
+    'certificate',
+    (q) => {
+      decline.word ||= q.act?.endWord ?? false;
+      if (q.act?.hand) {
+        const d = Math.abs(q.act.hand.rotation - hand.rotation) % (2 * Math.PI);
+        turned = Math.max(turned, Math.min(d, 2 * Math.PI - d));
+      }
+      return !!q.act?.won && !!q.act.overlay?.includes('Natural causes.') && q.act.overlay.includes('Age 84.');
+    },
+    undefined,
+    150_000,
+  );
+  if (!decline.word) throw new SmokeFailure('certificate', 'Time ran out and EVENTUALLY was never drawn', p);
+  if (turned < Math.PI / 5) {
+    throw new SmokeFailure('certificate', `Time's hand was drawn but never seen to turn (at most ${((turned * 180) / Math.PI).toFixed(1)}°)`, p);
+  }
+  await milestone(
+    'certificate',
+    p,
+    `${p.act!.overlay!.split('\n').slice(0, 2).join(' ')}  EVENTUALLY drawn  hand turned  Time waited out in ${seconds(Date.now() - waited)}`,
+  );
 }
 
 let code = 0;

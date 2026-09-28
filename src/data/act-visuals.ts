@@ -10,6 +10,8 @@ import officeAtlasPng from '../../assets/atlas/office.png';
 import officeAtlasJson from '../../assets/atlas/office.json';
 import familyAtlasPng from '../../assets/atlas/family.png';
 import familyAtlasJson from '../../assets/atlas/family.json';
+import declineAtlasPng from '../../assets/atlas/decline.png';
+import declineAtlasJson from '../../assets/atlas/decline.json';
 
 export interface AtlasJson {
   frames: Record<string, unknown>;
@@ -47,7 +49,8 @@ export interface ActVisuals {
    * it has no frame the scene can find: the antibody in Conception, acne in
    * Adolescence (ADOLESCENCE-ROSTER §5), the invoice in College
    * (COLLEGE-ROSTER §3.3), the ping in The Office (OFFICE-ROSTER §3.3), the
-   * HOA letter in Family (FAMILY-ROSTER §3.3).
+   * HOA letter in Family (FAMILY-ROSTER §3.3), your knees in Decline
+   * (DECLINE-ROSTER §3.3).
    * A FALLBACK since AUDIT six's 38: the scene draws each worn stack
    * (`World.wornBy`) in its own def's frame from its own act's atlas, so
    * tuition's invoices, which persist through the crossing, still draw as
@@ -158,6 +161,25 @@ export const ACT_VISUALS: Record<string, ActVisuals> = {
     attachFrame: 'hoa-letter.png',
     // family-light: butter, the fridge light, pickups only.
     pickup: 0xf3e3a6,
+  },
+  decline: {
+    // decline-deep: the ward's floor (DECLINE-ROSTER §1).
+    background: 0x34433c,
+    atlas: { key: 'decline', png: declineAtlasPng, json: declineAtlasJson },
+    // The same figure, a cardigan and a cane (§5).
+    playerFrame: 'player-decline.png',
+    // The clock face, standing on its feet (DECLINE-ROSTER §4).
+    bossFrame: 'boss-time.png',
+    // MEASURED by the drawer (boss-time.svg's note for the renderer): the
+    // face out to the rim's teal edge, centred on the pivot where the hands
+    // turn (0.499, 0.472 of the frame), so shots stop on the edge the player
+    // sees. The feet stay outside it; the bone dial alone would be r 0.35.
+    bossBody: { cy: 0.47, r: 0.45 },
+    // The worn knees (§3.3); a fallback only (see `attachFrame`): tuition and
+    // the HOA's notices carried in draw as themselves.
+    attachFrame: 'your-knees.png',
+    // decline-light: mint, pickups only.
+    pickup: 0xcde5d2,
   },
 };
 

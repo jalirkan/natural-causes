@@ -81,11 +81,17 @@ describe('actDocument', () => {
     expect(actDocument(world(), 'Justin', { id: 'toString' }, 300)).toBeNull();
   });
 
-  it('has an entry for every act in the life, and only for acts that exist', () => {
+  it('has an entry for every act the life crosses out of, and only for acts that exist', () => {
     // Every act with a schedule: an act's paper can be written before the browser starts the act.
     const ids = ALL_ACTS.map((a) => a.id);
     for (const id of Object.keys(DOCUMENTS)) expect(ids).toContain(id);
-    for (const act of ACTS) expect(actDocument(world(), 'Justin', act, 0), act.id).not.toBeNull();
+    // A paper is handed over at a crossing, so every act the browser plays
+    // but the last has one. The last, Decline, crosses into nothing: its
+    // paper is the death certificate (DECLINE-ROSTER §4, G-049).
+    const last = ACTS[ACTS.length - 1]!;
+    expect(last.id).toBe('decline');
+    for (const act of ACTS.slice(0, -1)) expect(actDocument(world(), 'Justin', act, 0), act.id).not.toBeNull();
+    expect(actDocument(world(), 'Justin', last, 0)).toBeNull();
   });
 
   it('prints Nobody for a player who gave no name', () => {
