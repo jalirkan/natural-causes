@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ENEMIES } from '../enemies';
-import { ITEMS, isActive } from '../items';
+import { ITEMS, OFFER_PATH_SEPARATOR, emptyBonus, isActive, offerIdFor, parseOfferId } from '../items';
 import { itemIconFrame } from '../item-visuals';
 import iconsAtlas from '../../../assets/atlas/icons.json';
 import { World } from '../../sim/world';
@@ -300,6 +300,52 @@ describe('upgrades gain (G-038)', () => {
       expect(def.iconPending!.length).toBeGreaterThan(30);
     }
   });
+});
+
+describe('weapon paths (G-043)', () => {
+  const pathed = Object.values(ITEMS).filter((d) => isActive(d) && d.paths !== undefined);
+  // Every field a level may carry, from the fold's own identity: a new field
+  // is covered the day it is added to `LevelBonus`.
+  const fields = Object.keys(emptyBonus());
+  // The card prints the number from the data (G-043); copy that claims one
+  // drifts from it.
+  const NUMBER = /[0-9%]/;
+
+  it('at least one weapon branches, so the rules below are not vacuous', () => {
+    expect(pathed.length).toBeGreaterThan(0);
+  });
+
+  for (const def of pathed) {
+    it(`${def.id}`, () => {
+      if (!isActive(def)) return;
+      const paths = def.paths!;
+      expect(paths.length, `"${def.id}" branches fewer than two ways`).toBeGreaterThanOrEqual(2);
+      expect(new Set(paths.map((p) => p.id)).size, `"${def.id}" path ids repeat`).toBe(paths.length);
+      expect(new Set(paths.map((p) => p.name)).size, `"${def.id}" path names repeat`).toBe(paths.length);
+      for (const path of paths) {
+        const where = `"${def.id}" path "${path.id}"`;
+        expect(path.id, `${where} id holds the separator`).not.toContain(OFFER_PATH_SEPARATOR);
+        expect(path.id.length, `${where} has no id`).toBeGreaterThan(0);
+        expect(path.name.length, `${where} has no name`).toBeGreaterThan(0);
+        expect(path.blurb.length, `${where} blurb too short`).toBeGreaterThanOrEqual(10);
+        expect(path.blurb.length, `${where} blurb overflows the card`).toBeLessThanOrEqual(63);
+        expect(path.blurb, `${where} blurb must be one line`).not.toContain(String.fromCharCode(10));
+        expect(path.blurb, `${where} blurb claims a number`).not.toMatch(NUMBER);
+        expect(path.levels.length, `${where} levels vs maxLevel`).toBe(path.maxLevel);
+        path.levels.forEach((level, i) => {
+          const at = `${where} level ${i + 1}`;
+          expect(level.text.length, `${at} text too short`).toBeGreaterThanOrEqual(10);
+          expect(level.text.length, `${at} text overflows the card`).toBeLessThanOrEqual(63);
+          expect(level.text, `${at} must be one line`).not.toContain(String.fromCharCode(10));
+          expect(level.text, `${at} claims a number`).not.toMatch(NUMBER);
+          const carried = fields.filter((f) => (level as unknown as Record<string, unknown>)[f] !== undefined);
+          expect(carried.length, `${at} adds nothing`).toBeGreaterThanOrEqual(1);
+        });
+        const id = offerIdFor(def, path);
+        expect(parseOfferId(id), `${where} does not round-trip as "${id}"`).toEqual({ item: def, path });
+      }
+    });
+  }
 });
 
 describe('the locked palette', () => {

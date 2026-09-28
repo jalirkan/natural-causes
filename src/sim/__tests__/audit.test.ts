@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ARENA_HEIGHT, ARENA_WIDTH, BOSS_RADIUS, World, xpToNextLevel } from '../world';
 import { CONCEPTION, type ActDef } from '../../data/acts';
 import { ENEMIES } from '../../data/enemies';
-import { ITEMS } from '../../data/items';
+import { ITEMS, isActive, offerIdFor } from '../../data/items';
 
 /**
  * Regressions from the 2026-08-01 audit. Each of these was reachable in normal
@@ -14,6 +14,11 @@ describe('a level-up always has something to choose, or does not block', () => {
   it('a level reached with every item maxed does not freeze the world', () => {
     const w = new World({ act: CONCEPTION, seed: 1 });
     for (const id of Object.keys(ITEMS)) w.items.set(id, ITEMS[id]!.maxLevel);
+    // And every weapon path (G-043): an opened weapon's paths are offers too.
+    for (const def of Object.values(ITEMS)) {
+      if (!isActive(def)) continue;
+      for (const path of def.paths ?? []) w.pathLevels.set(offerIdFor(def, path), path.maxLevel);
+    }
     w.gems.push({ x: w.x, y: w.y, value: 999 });
     w.step(1 / 60, { moveX: 0, moveY: 0 });
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ADOLESCENCE, CONCEPTION, SCHOOL, type ActDef } from '../../data/acts';
 import { INHERITANCES, INHERITANCE_IDS } from '../../data/inheritances';
-import { ITEMS, isActive } from '../../data/items';
+import { isActive, parseOfferId } from '../../data/items';
 import { MAGNET_RADIUS, PLAYER_BASE_HP, World, xpToNextLevel } from '../world';
 
 /**
@@ -69,6 +69,14 @@ function seedsDealing(id: string, count: number, startingItems = ['lash']): numb
   }
   expect(out.length, `no seed under 500 deals ${id}`).toBe(count);
   return out;
+}
+
+/**
+ * Every level the life owns, by offer id: items' and (G-043) paths'. A dealt
+ * level may be either, since `takeUnaskedLevels` deals from the offer pool.
+ */
+function owned(world: World): Map<string, number> {
+  return new Map([...world.items, ...world.pathLevels]);
 }
 
 function totalLevels(items: ReadonlyMap<string, number>): number {
@@ -186,30 +194,30 @@ describe('each roll gives and costs, measured', () => {
     for (const seed of seeds) {
       const world = new World({ acts: FIXTURES, seed });
       const level = world.level;
-      const before = new Map(world.items);
+      const before = owned(world);
       cross(world);
       expect(world.inheritance!.id).toBe('precocity');
 
       // Gives: a level, before the act's first step, at no XP.
       expect(world.level).toBe(level + 1);
-      expect(totalLevels(world.items)).toBe(totalLevels(before) + 1);
+      expect(totalLevels(owned(world))).toBe(totalLevels(before) + 1);
       expect(world.xp).toBe(0);
 
       // Costs: nobody was asked. No card was shown, and what rose is whatever
       // the pool dealt — an offerable item, never an evolution.
       expect(world.offers).toBeNull();
-      const [id] = [...world.items].find(([k, n]) => n !== (before.get(k) ?? 0))!;
-      const def = ITEMS[id]!;
+      const [id] = [...owned(world)].find(([k, n]) => n !== (before.get(k) ?? 0))!;
+      const def = parseOfferId(id).item;
       expect(isActive(def) && def.evolvesFrom).toBeFalsy();
       taken.add(id);
 
       // And again at the next act.
       alive(world, 2);
-      const again = totalLevels(world.items);
+      const again = totalLevels(owned(world));
       const levelAgain = world.level;
       cross(world);
       expect(world.level).toBe(levelAgain + 1);
-      expect(totalLevels(world.items)).toBe(again + 1);
+      expect(totalLevels(owned(world))).toBe(again + 1);
     }
     // At random from the pool: six lives did not all get the same thing.
     expect(taken.size).toBeGreaterThan(1);

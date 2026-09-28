@@ -308,6 +308,58 @@ export const ITEMS: Record<string, ItemDef> = {
       ],
       { 3: { projectiles: 1 }, 4: { pierce: 1 }, 5: { projectiles: 1 }, 7: { projectiles: 1 }, 8: { pierce: 1 } },
     ),
+    // G-043 paths. PLACEHOLDER VALUES, every one: each path level's single
+    // bonus field, each path's maxLevel and PATH_OPENS_AT were written to
+    // make the branch playable, not measured, and a person playing at the
+    // link moves them. They fold into the same total as the weapon's own
+    // levels. The copy carries no numbers: the card prints them from these
+    // fields (G-043).
+    paths: [
+      {
+        id: 'twitch',
+        name: 'Twitch',
+        blurb: 'Flinches sooner every time. It saw that coming.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Flinches sooner. You were already braced.',
+            'Sooner again. You flinch at your own shadow.',
+            'Before anything happens. Jumpy is a lifestyle.',
+          ],
+          {},
+          each(1, 3, { cooldown: 0.85 }),
+        ),
+      },
+      {
+        id: 'overreaction',
+        name: 'Overreaction',
+        blurb: 'Every flinch hits harder than the thing deserved.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Harder than it needed to be. Much harder.',
+            'Harder again. Someone brushed past you.',
+            'Wildly out of proportion. It felt justified.',
+          ],
+          {},
+          each(1, 3, { damage: 1.25 }),
+        ),
+      },
+      {
+        id: 'nerves',
+        name: 'Nerves',
+        blurb: 'More flinches at once. Everything is a threat now.',
+        maxLevel: 2,
+        levels: table(
+          [
+            'One more flinch at once. You are on edge.',
+            'Another. You have not relaxed since conception.',
+          ],
+          {},
+          each(1, 2, { projectiles: 1 }),
+        ),
+      },
+    ],
     enables:
       'The default build. Fires at whatever is nearest, so it rewards nothing and asks nothing — the baseline every other weapon is measured against.',
     tradesAway:
@@ -341,6 +393,53 @@ export const ITEMS: Record<string, ItemDef> = {
       ],
       { 3: { projectiles: 1 }, 5: { projectiles: 2 }, 7: { area: 1.35 } },
     ),
+    paths: [
+      {
+        id: 'conviction',
+        name: 'Conviction',
+        blurb: 'Hits harder. You are not changing your mind.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Harder. You have never once been wrong.',
+            'Harder again. Evidence only makes it worse.',
+            'Unshakeable. You would die on this hill.',
+          ],
+          {},
+          each(1, 3, { damage: 1.25 }),
+        ),
+      },
+      {
+        id: 'momentum',
+        name: 'Momentum',
+        blurb: 'Faster shots. Stopping was never the plan.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Faster. You decided before you left.',
+            'Faster again. Brakes are for people with doubts.',
+            'Nothing slows it down. Nothing ever has.',
+          ],
+          {},
+          each(1, 3, { speed: 1.3 }),
+        ),
+      },
+      {
+        id: 'broadside',
+        name: 'Broadside',
+        blurb: 'More shots at once. Stubborn in several directions.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'One more shot. Still forward, just more of it.',
+            'Another. You are right in more directions now.',
+            'Another. A whole front of being right.',
+          ],
+          {},
+          each(1, 3, { projectiles: 1 }),
+        ),
+      },
+    ],
     enables:
       'A positioning build: line the crowd up along one axis and the whole column dies at once, which turns the act’s density from a threat into the reason the weapon works.',
     tradesAway:
@@ -375,6 +474,53 @@ export const ITEMS: Record<string, ItemDef> = {
       { 4: { echo: true } },
       each(2, 8, { area: 1.1 }),
     ),
+    paths: [
+      {
+        id: 'short-fuse',
+        name: 'Short Fuse',
+        blurb: 'Goes off sooner. It never took much.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Sooner. It does not take much any more.',
+            'Sooner again. Breakfast was enough.',
+            'Goes off at nothing. Everyone walks on eggshells.',
+          ],
+          {},
+          each(1, 3, { cooldown: 0.85 }),
+        ),
+      },
+      {
+        id: 'blast-radius',
+        name: 'Blast Radius',
+        blurb: 'Wider. The bystanders are involved now.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Wider. The next table can hear it.',
+            'Wider again. The neighbours can hear it.',
+            'The whole street heard. Nobody mentions it.',
+          ],
+          {},
+          each(1, 3, { area: 1.15 }),
+        ),
+      },
+      {
+        id: 'slammed-door',
+        name: 'Slammed Door',
+        blurb: 'Throws them back. You needed the room anyway.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Pushes them away. The frame rattles.',
+            'Further. The pictures fall off the wall.',
+            'Further still. The door will not close again.',
+          ],
+          {},
+          each(1, 3, { knockback: 25 }),
+        ),
+      },
+    ],
     enables:
       'A body-check build that wants to be inside the crowd rather than away from it, and the only weapon in the act that scales with how bad the player’s position is. Maxed beside Restlessness, it becomes Tantrum.',
     tradesAway:
@@ -409,6 +555,53 @@ export const ITEMS: Record<string, ItemDef> = {
       { 5: { area: 1.2 }, 8: { area: 1.2 } },
       each(2, 8, { duration: 1.15 }),
     ),
+    paths: [
+      {
+        id: 'hoarding',
+        name: 'Hoarding',
+        blurb: 'Lingers longer. You never throw anything away.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Lingers longer. You kept the receipts.',
+            'Longer again. The boxes have boxes.',
+            'It never goes. You might need it someday.',
+          ],
+          {},
+          each(1, 3, { duration: 1.25 }),
+        ),
+      },
+      {
+        id: 'dead-weight',
+        name: 'Dead Weight',
+        blurb: 'Hurts more. Some of it was always heavy.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Heavier. It hurts whoever steps in it.',
+            'Heavier again. You feel it in your back.',
+            'The heaviest thing you own. You still own it.',
+          ],
+          {},
+          each(1, 3, { damage: 1.25 }),
+        ),
+      },
+      {
+        id: 'sprawl',
+        name: 'Sprawl',
+        blurb: 'A wider trail. Your things are everywhere.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Wider. It spills into the next lane.',
+            'Wider again. It needs a room of its own.',
+            'Wider still. It takes up the whole hallway.',
+          ],
+          {},
+          each(1, 3, { area: 1.15 }),
+        ),
+      },
+    ],
     enables:
       'A kiting build where the player never faces the crowd at all and kills by having already been somewhere, which is the only build in the act that rewards retreating.',
     tradesAway:
@@ -469,6 +662,53 @@ export const ITEMS: Record<string, ItemDef> = {
       ],
       { 3: { projectiles: 1 }, 4: { area: 1.15 }, 5: { projectiles: 1 }, 7: { projectiles: 1 }, 8: { area: 1.15 } },
     ),
+    paths: [
+      {
+        id: 'company',
+        name: 'Company',
+        blurb: 'More fists. A grudge loves company.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'One more fist. It found an old friend.',
+            'Another. They meet on Thursdays.',
+            'Another. It is a support group now.',
+          ],
+          {},
+          each(1, 3, { projectiles: 1 }),
+        ),
+      },
+      {
+        id: 'spiralling',
+        name: 'Spiralling',
+        blurb: 'Faster round. You cannot stop thinking about it.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Faster. You went over it again last night.',
+            'Faster again. You replay it in the shower.',
+            'It never stops. You win the argument every time.',
+          ],
+          {},
+          each(1, 3, { speed: 1.3 }),
+        ),
+      },
+      {
+        id: 'weight',
+        name: 'Weight',
+        blurb: 'Hits harder. It gets heavier every year.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Heavier. You add to it every day.',
+            'Heavier again. It is accruing interest.',
+            'It weighs a ton. You would never put it down.',
+          ],
+          {},
+          each(1, 3, { damage: 1.3 }),
+        ),
+      },
+    ],
     enables:
       'A build that stands its ground: the orbiters work at a fixed short distance whatever the player does, so it pairs with anything that brings the crowd close — Charisma, Thick Skin, Temper.',
     tradesAway:
@@ -504,6 +744,53 @@ export const ITEMS: Record<string, ItemDef> = {
       ],
       { 1: { chain: 2 }, 4: { chain: 1 }, 7: { chain: 1 } },
     ),
+    paths: [
+      {
+        id: 'mutuals',
+        name: 'Mutuals',
+        blurb: 'Jumps to more of them. Everyone knows someone.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Reaches one more. You have a friend in common.',
+            'Another. They were in the same year.',
+            'Another. Nobody here is a stranger.',
+          ],
+          {},
+          each(1, 3, { chain: 1 }),
+        ),
+      },
+      {
+        id: 'screenshots',
+        name: 'Screenshots',
+        blurb: 'Hits harder. There is proof, and it is cropped.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Harder. Somebody took a screenshot.',
+            'Harder again. It was cropped for context.',
+            'It will outlive you. Nothing is ever deleted.',
+          ],
+          {},
+          each(1, 3, { damage: 1.25 }),
+        ),
+      },
+      {
+        id: 'notifications',
+        name: 'Notifications',
+        blurb: 'Sends sooner. Nobody has their phone on silent.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Sooner. Someone is always typing.',
+            'Sooner again. The badge never clears.',
+            'Constant. You check it in your sleep.',
+          ],
+          {},
+          each(1, 3, { cooldown: 0.85 }),
+        ),
+      },
+    ],
     enables:
       'A crowd-clearing build for a seeking player: one shot becomes three in a dense crowd, so it scales with exactly the density that ends a Reflex run.',
     tradesAway:
