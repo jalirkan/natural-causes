@@ -1083,6 +1083,10 @@ export class World {
 
       // Snooze holds the walk and nothing else: fuses and consults keep time.
       const mdt = fields.length === 0 ? dt : dt * this.slowAt(e.x, e.y, fields);
+      // Where it stood before this step's walk: a reversal below reflects at
+      // most this step's travel past the edge, never distance it came in with.
+      const fromX = e.x;
+      const fromY = e.y;
       const ranged = e.def.ranged;
       if (ranged && this.consultClipboard(e, ranged, dt)) {
         // Standing still with the clipboard up. The consult is the telegraph
@@ -1110,16 +1114,40 @@ export class World {
         const outX = (e.x < 0 && e.vx < 0) || (e.x > ARENA_WIDTH && e.vx > 0);
         const outY = (e.y < 0 && e.vy < 0) || (e.y > ARENA_HEIGHT && e.vy > 0);
         if (outX || outY) {
+          // The overshoot is carried, not dropped (AUDIT part five, minor; part
+          // four's 16 is the same rule for a cooldown): the enemy ends the step
+          // as far inside the edge as it would have gone past it. Turning round
+          // wherever the frame left it drove the overshoot twice, a lag of up
+          // to two steps' travel per reversal, so a car's place on its line
+          // depended on the frame rate. Capped at this step's travel, so an
+          // enemy already outside is turned, never pulled in.
+          const edgeX = e.vx > 0 ? ARENA_WIDTH : 0;
+          const edgeY = e.vy > 0 ? ARENA_HEIGHT : 0;
+          const pastX = outX ? Math.min(Math.abs(e.x - edgeX), Math.abs(e.x - fromX)) : 0;
+          const pastY = outY ? Math.min(Math.abs(e.y - edgeY), Math.abs(e.y - fromY)) : 0;
           if (e.def.patrol === true) {
             // Reverse BOTH components: it comes back along the line it went
             // out on, which is what makes a patrol a line rather than a path.
+            // The time since it first crossed, back along the line.
+            const t = Math.max(
+              pastX === 0 ? 0 : pastX / Math.abs(e.vx),
+              pastY === 0 ? 0 : pastY / Math.abs(e.vy),
+            );
+            e.x -= 2 * e.vx * t;
+            e.y -= 2 * e.vy * t;
             e.vx = -e.vx;
             e.vy = -e.vy;
           } else {
             // Reflect only the component that crossed, which is what makes a
             // bounce go somewhere new.
-            if (outX) e.vx = -e.vx;
-            if (outY) e.vy = -e.vy;
+            if (outX) {
+              e.x -= 2 * Math.sign(e.vx) * pastX;
+              e.vx = -e.vx;
+            }
+            if (outY) {
+              e.y -= 2 * Math.sign(e.vy) * pastY;
+              e.vy = -e.vy;
+            }
           }
         }
       }
