@@ -147,15 +147,6 @@ describe('law 10 — a field-riding icon wears nothing reserved on the field', (
           'whole sole (2095 of 2746 px), conception-light (1 px).',
       },
     ],
-    [
-      'icon-burst',
-      {
-        colours: ['conception-light', 'threat-contact', 'threat-ranged'],
-        reason:
-          "Temper's and Tantrum's starburst, popped at burst radius: contact red outer star " +
-          '(3766 of 5465 px), conception-light (30 px), ranged gold (1 px).',
-      },
-    ],
   ]);
 
   /** The reserved colours a sprite wears on the field, by colour name, sorted. */
