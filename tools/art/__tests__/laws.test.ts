@@ -599,14 +599,18 @@ describe('the Adolescence roster is in the batch (ADOLESCENCE-ROSTER.md §3, §4
     for (const spec of adolescence) expect(spec.source, spec.id).toBe('svg');
   });
 
-  it('no Adolescence description asks for gold or blush on a body (G-031, law 10)', () => {
-    // Gold is the notification's and Prom's light, both drawn in code; blush
-    // is the pickups'. The only legal mention of either in a clause is an
-    // exclusion of it.
+  it('no Adolescence description asks for gold or the pickups\' pink on a body (G-031, law 10)', () => {
+    // Gold is the notification's and Prom's light, both drawn in code; the
+    // act's light tone (a pink) is the pickups'. The only legal mention of
+    // either in a clause is an exclusion of it — except the cheeks: since
+    // D-031 "blush" also names the universal cheek tone (#EBA39C), which every
+    // face in the greeting-card register wears, so a clause that names blush
+    // as a cheek, or by its hex, is asking for the cheek tone and is legal.
     const asked = /\b(gold|golden|yellow|mustard|amber|pink|blush)\b/i;
+    const cheek = /\bblush\b[^,]*\b(cheek|cheeks)\b|\b(cheek|cheeks)\b[^,]*\bblush\b|#EBA39C/i;
     for (const spec of adolescence) {
       for (const clause of spec.subject.split(',').map((c) => c.trim())) {
-        if (!asked.test(clause)) continue;
+        if (!asked.test(clause) || cheek.test(clause)) continue;
         expect(clause, `${spec.id} asks for a reserved colour rather than excluding it`).toMatch(
           /^(no|not)\b/,
         );
