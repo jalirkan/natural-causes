@@ -213,6 +213,61 @@ export const RESERVATIONS: Partial<Record<ActId, ActReservations>> = {
       boss: 'boss-prom',
     },
   },
+
+  // Lifted from COLLEGE-ROSTER.md §1, consequences verbatim. Five shapes and
+  // the boss's: the act adds a pressure (cost) rather than a verb. The square
+  // is the one most at risk — a form and a screen would both be square — and
+  // it is what put tuition into an envelope and the registrar behind a counter.
+  college: {
+    silhouettes: [
+      {
+        silhouette: 'stack',
+        heldBy: 'reading',
+        consequence: 'The only pile in the act. Nothing else is paper on paper.',
+      },
+      {
+        silhouette: 'calendar leaf',
+        heldBy: 'deadline',
+        consequence:
+          'The only square in the act. A form and a screen would both be square, so neither is drawn.',
+      },
+      {
+        silhouette: 'windowed envelope',
+        heldBy: 'tuition',
+        consequence: 'The only rectangle wider than tall, and the only window.',
+      },
+      {
+        silhouette: 'cluster',
+        heldBy: 'group-project',
+        consequence:
+          'The only silhouette with more than one face. Nothing else is a fused mass. (School holds a cluster too; the list is per act.)',
+      },
+      {
+        silhouette: 'counter',
+        heldBy: 'registrar',
+        consequence: 'The only architecture in the act, and the only bell.',
+      },
+      {
+        silhouette: 'tape',
+        heldBy: 'boss-loan',
+        consequence:
+          'The only curl in the act, and the only thing taller than the player by a multiple.',
+      },
+    ],
+    reservedThreat: {
+      // The act's heaviest hit is its only red thing. The invoice, which
+      // anyone would print in red, is bone and ink.
+      contact: 'deadline',
+      // The test's colour on the test's successor: the slow, heavy thing that
+      // costs the most to get past. On the whole body, never on one head.
+      elite: 'group-project',
+      // G-031: the registrar's gold is on the form it fires, never its body;
+      // The Loan's figures are the only other gold.
+      ranged: PROJECTILE_HOLDER,
+      // The adding machine's body.
+      boss: 'boss-loan',
+    },
+  },
 };
 
 /**

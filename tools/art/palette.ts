@@ -82,6 +82,14 @@ const ACT_TONES = {
     c('adolescence-mid', '#5E95C3'), // a screen in that room
     c('adolescence-light', '#D6AEBB'), // blush; pickups only (law 10, G-030)
   ],
+  // COLLEGE-ROSTER.md §1, lifted. College colours: burgundy and old gold. The
+  // light tone is 0.044 from service-light, above the tolerance; no enemy
+  // wears it (law 10, G-030). The catalogue is 26 of D-028's 32.
+  college: [
+    c('college-deep', '#4E2233'), // burgundy; the act background
+    c('college-mid', '#8E4A5C'), // wine; the lecture-hall seats
+    c('college-light', '#E6C98F'), // old gold; pickups only (law 10, G-030)
+  ],
   service: [
     c('service-deep', '#6E6248'),
     c('service-mid', '#A2946F'),

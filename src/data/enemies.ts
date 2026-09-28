@@ -88,8 +88,22 @@ export interface EnemyDef {
   contact: Contact;
   /** `engulf` only. */
   engulf?: { seconds: number; slow: number; damagePerSecond: number };
-  /** `attach` only. Fraction of movement speed removed per stack. */
-  attach?: { drag: number };
+  /**
+   * `attach` only. `drag`: fraction of movement speed removed per stack.
+   * `tax` (COLLEGE-ROSTER §3.3): the share of every gem's value each worn
+   * stack takes, compounding. `persists`: the stacks stay on through the
+   * crossing instead of coming off with the act, so the next act inherits
+   * them. Both absent everywhere but tuition.
+   */
+  attach?: { drag: number; tax?: number; persists?: boolean };
+  /**
+   * COLLEGE-ROSTER §3.4: all the hp sits in one of four quadrants about the
+   * centre, rolled at spawn from the world's dice. A hit counts only when it
+   * lands there — a shot by where it strikes, an orbiter or a sweep by where
+   * it is, an area by covering the centre — and a hit elsewhere neither hurts
+   * nor flashes. The drawing does not say which.
+   */
+  weakPoint?: boolean;
   /**
    * Weapons do not affect it (G-018). Shots pass through, areas ignore it, it
    * is never a kill and drops nothing.
@@ -154,6 +168,12 @@ export interface EnemyDef {
     cooldownSeconds: number;
     projectileSpeed: number;
     damage: number;
+    /**
+     * COLLEGE-ROSTER §3.5: seconds the player's input is ignored when the shot
+     * lands — the hall monitor's stop, delivered by post. Its i-frames run
+     * from the end of the stop, as `contactStun`'s do.
+     */
+    stun?: number;
   };
   /**
    * Seconds the player's input is ignored after this enemy's contact damage

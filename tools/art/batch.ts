@@ -155,6 +155,7 @@ const ACT_DEFAULT_GEOMETRY: Record<ActId, Geometry> = {
   conception: 'hand-cut',
   school: 'hand-cut',
   adolescence: 'hand-cut',
+  college: 'hand-cut',
   service: 'hand-cut',
   office: 'hand-cut',
 };
@@ -1074,10 +1075,164 @@ export const ADOLESCENCE_ROSTER: AssetSpec[] = [
   },
 ];
 
+/**
+ * The College roster (COLLEGE-ROSTER.md §1, §3, §4, §5). Five swarm-tier
+ * enemies (one elite), The Loan and the player at eighteen, all authored SVG
+ * (G-038) and none drawn yet: every spec here is the written description a
+ * drawing is owed against, so D-007 and law 11 run on it before a line exists.
+ * whyThisStage strings lift the roster's verbatim; enemies.ts carries the same.
+ */
+export const COLLEGE_ROSTER: AssetSpec[] = [
+  {
+    id: 'reading',
+    name: 'Reading',
+    act: 'college',
+    role: 'swarm',
+    tests: 'the stack — the only pile in the act, read by its fanned edges',
+    targetSize: 48,
+    seed: 23023,
+    source: 'svg',
+    whyThisStage:
+      'College is the first stage where the work arrives faster than it can be done and nobody checks whether it was.',
+    subject: [
+      'a short pile of three or four pages seen from a low angle, their edges fanned out at one side, the top corner turned up',
+      'pale muted tan (#D2C6AC) pages with warm near-black (#2A2521) edge lines, the only pile in the act',
+      'two small dark dots for eyes on the top page, half-shut, and one short flat line for a mouth',
+      'it has been on the pile a while',
+      'no text, no letters, no lines of writing, no desk',
+      'no red, no purple, no gold, no yellow anywhere',
+    ].join(', '),
+  },
+  {
+    id: 'deadline',
+    name: 'Deadline',
+    act: 'college',
+    role: 'swarm',
+    tests: 'the calendar leaf — the only square in the act, and its only red thing',
+    targetSize: 84,
+    seed: 24024,
+    source: 'svg',
+    whyThisStage:
+      'College is where the date first crosses the room on its own schedule and does not slow down for anyone standing in it.',
+    subject: [
+      'a square calendar leaf seen flat on, its top edge curled over in a short roll, two round ring holes along the top',
+      'flat muted red (#C4472E), the contact threat colour, one solid tone, the only square in the act',
+      'the curl and the ring holes in muted tan (#D2C6AC)',
+      'two small dark dots for eyes low on the sheet and one straight flat line for a mouth',
+      'no date, no numbers, no letters, no month name, nothing printed',
+      'no purple, no gold, no yellow anywhere',
+    ].join(', '),
+  },
+  {
+    id: 'tuition',
+    name: 'Tuition',
+    act: 'college',
+    role: 'swarm',
+    tests: 'the windowed envelope — the only rectangle wider than tall, read by its window',
+    targetSize: 44,
+    seed: 25025,
+    source: 'svg',
+    whyThisStage:
+      'College is the first stage that takes a share of everything the player earns from then on, and the share does not come off at the end of the act.',
+    subject: [
+      'a landscape envelope seen flat on, wider than tall, with a darker address window low on its left side',
+      'muted tan (#D2C6AC) paper, the window and the flap lines in warm near-black (#2A2521), nothing legible in the window',
+      'the flap folded down across the top with a face on it: two closed eye arcs and one short flat line for a mouth',
+      'it does not need to look at you, it has your address',
+      'no stamp, no text, no numbers, no red anywhere',
+      'no purple, no gold, no yellow anywhere',
+    ].join(', '),
+  },
+  {
+    id: 'group-project',
+    name: 'Group project',
+    act: 'college',
+    role: 'swarm',
+    tests: 'the cluster — four lumps, four faces, one awake, and the drawing does not say which one matters',
+    targetSize: 100,
+    seed: 26026,
+    source: 'svg',
+    whyThisStage:
+      'College is where the player is first graded on something four were assigned and one did, and finding out which one costs more than doing the work.',
+    subject: [
+      'four rounded lumps fused into one uneven mass, the only fused mass in the act',
+      'flat muted purple (#7C5C8A), the elite threat colour, on all four lumps, one solid tone with one darker flat tone as the only shadow',
+      'four faces, one per lump: three with closed eye arcs and flat mouths, one with two open dark dots for eyes and a flat mouth',
+      'nothing in the drawing marks any lump as different beyond the one open face',
+      'no arms, no legs, no books, no laptops, no text',
+      'no red, no gold, no yellow anywhere',
+    ].join(', '),
+  },
+  {
+    id: 'registrar',
+    name: 'Registrar',
+    act: 'college',
+    role: 'swarm',
+    tests: 'the counter — the only architecture in the act, read by its bell; nobody behind it',
+    targetSize: 80,
+    seed: 27027,
+    source: 'svg',
+    whyThisStage:
+      'College is the first stage where the aimed thing is not a hit but a hold, placed by a window that has never seen the player and has the file.',
+    subject: [
+      'a low service counter seen straight on, a wide front panel under a ledge, a slot cut in the panel',
+      'a small round desk bell standing on the ledge, the only bell in the act',
+      'flat warm grey-brown (#6E6353) counter, the ledge and the bell in muted tan (#D2C6AC), the slot in warm near-black (#2A2521)',
+      'two small dark dots for eyes on the front panel looking down at the slot and one short flat line for a mouth',
+      'nobody behind the counter, no window glass, no sign, no text',
+      'no red, no purple, no gold, no yellow anywhere',
+    ].join(', '),
+  },
+  {
+    id: 'boss-loan',
+    name: 'The Loan',
+    act: 'college',
+    role: 'boss',
+    tests: 'the tape — boss teal at boss scale, a paper tape curling off the top of the frame, gold only on its figures',
+    targetSize: 384,
+    seed: 28028,
+    source: 'svg',
+    // COLLEGE-ROSTER §4: the only boss in the life that wants nothing from the
+    // player. It wants the balance. Law 9 and D-007: a machine and its tape.
+    whyThisStage:
+      'College is the first stage that ends on a number the player will still be paying when the act is long over.',
+    subject: [
+      'a boxy adding machine seen from the front at boss scale, a wide flat body with a row of round keys, the only curl in the act rising out of its top',
+      'flat muted deep teal (#2F7370), the boss colour, one solid tone with warm near-black (#2A2521) key rims',
+      'a paper tape in muted tan (#D2C6AC) rising from a slot in the top, curling once and running off the top edge of the frame',
+      'short flat marks in muted gold (#D69A3C) down the tape as figures, never legible digits',
+      'a face on the front panel above the keys: two open dark dots for eyes and one short flat line for a mouth, patient',
+      'no hands, no desk, no coins, no dollar signs, no text',
+      'no red, no purple anywhere',
+    ].join(', '),
+  },
+  {
+    id: 'player-college',
+    name: 'The player — eighteen',
+    act: 'college',
+    role: 'player',
+    tests: 'G-003 at eighteen: the same face and cowlick, one frame, a lanyard and a paper cup',
+    source: 'svg',
+    targetSize: 112,
+    seed: 29029,
+    // COLLEGE-ROSTER §5: the face at eighteen, a lanyard, a paper cup. No taller
+    // (Growth Spurt's joke is Growth Spurt's).
+    subject: [
+      'the player at eighteen: the same small round-headed figure as every act, standing, no taller',
+      'the same face as every act: two flat eyes and one short flat line for a mouth',
+      'the same single asymmetric cowlick sticking up above the left eye, one tuft and no other hair',
+      'a thin lanyard loop around the neck with a small blank card at its end, and a small paper cup held in one hand',
+      'paper coloured (#EFE7D6) head and body, warm grey-brown (#6E6353) as the only second tone',
+      'no threat colour anywhere, no phone, no backpack, no lettering on the card',
+    ].join(', '),
+  },
+];
+
 export const ALL_ASSETS: AssetSpec[] = [
   ...TEST_BATCH,
   ...CONCEPTION_ROSTER,
   ...SCHOOL_ROSTER,
   ...ADOLESCENCE_ROSTER,
+  ...COLLEGE_ROSTER,
   ...ITEM_ICONS,
 ];

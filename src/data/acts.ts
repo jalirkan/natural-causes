@@ -113,7 +113,27 @@ export interface PromBoss {
 }
 
 /** Which boss an act fights. world.ts branches on `kind`. */
-export type BossDef = EggBoss | GymTeacherBoss | PromBoss;
+/**
+ * The Loan (COLLEGE-ROSTER §4): never attacks, never moves, never shields. Its
+ * health compounds — every `interestSeconds` it grows by `interestRate` of
+ * what it has, up to `cap` times where it started — and the fight is a
+ * deadline with a number in it; at the cap it forecloses and the certificate
+ * names it. Its attack drops `invoices` tuition envelopes at the player's
+ * lead. It opens at BOSS_HP plus a tenth of that per invoice the player is
+ * wearing when it appears. Every number is a placeholder.
+ */
+export interface LoanBoss {
+  kind: 'loan';
+  /** What its statement drops at the player's lead: the act's attach enemy (tuition). */
+  enemyId: string;
+  interestSeconds: number;
+  interestRate: number;
+  cap: number;
+  invoices: number;
+  shieldHint?: never;
+}
+
+export type BossDef = EggBoss | GymTeacherBoss | PromBoss | LoanBoss;
 
 /**
  * Seconds between the Gym Teacher's whistles at this share of his health: the
