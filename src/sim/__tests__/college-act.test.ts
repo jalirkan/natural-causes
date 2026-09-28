@@ -202,7 +202,7 @@ describe('a College run', () => {
   }, LONG);
 });
 
-describe('the life is four acts long now', () => {
+describe('a life that ends at College', () => {
   /** Runs an act's clock out and fells its boss, skipping the exit (life.test.ts). */
   function cross(w: World): void {
     w.actTime = w.act.durationSeconds;
@@ -215,7 +215,11 @@ describe('the life is four acts long now', () => {
   }
 
   it('Prom falling crosses into College, and The Loan falling is natural causes at twenty-two', () => {
-    const w = new World({ acts: ALL_ACTS, seed: 5, startingItems: [] });
+    // The life up to and including College. This was ALL_ACTS while College
+    // was the last act; The Office follows it now (G-048), and in ALL_ACTS
+    // The Loan falling is a crossing, not the end (office-act.test.ts).
+    const life = ALL_ACTS.slice(0, ALL_ACTS.indexOf(COLLEGE) + 1);
+    const w = new World({ acts: life, seed: 5, startingItems: [] });
     for (let i = 0; i < ALL_ACTS.indexOf(COLLEGE); i++) cross(w);
     expect(w.act).toBe(COLLEGE);
     expect(w.won).toBe(false);

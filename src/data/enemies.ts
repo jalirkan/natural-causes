@@ -725,6 +725,156 @@ export const ENEMIES: Record<string, EnemyDef> = {
     whyThisStage:
       'College is the first stage where the aimed thing is not a hit but a hold, placed by a window that has never seen the player and has the file.',
   },
+
+  // --- The Office (OFFICE-ROSTER §3) ---
+  //
+  // Five enemies, four swarm-tier and one elite (the meeting). Four behaviours
+  // are new, each a field rather than a system: `split` (reply-all, §3.1),
+  // `attach.cooldownMultiplier` (the ping, §3.3), `hold` with `spawnAt:
+  // 'player'` (the meeting, §3.4) and `ranged.xpLoss` (the review, §3.5).
+  // Everything else is a field an earlier act already needed.
+  //
+  // EVERY NUMBER BELOW IS A PLACEHOLDER under `OFFICE.provisional` (acts.ts,
+  // D-022): §3.6's table transcribed, nothing chosen here and nothing played.
+  // The relationships are the roster's — the crowd multiplies when it is
+  // killed, the commute is the act's heaviest hit on a timetable, the ping
+  // costs cadence and never speed, the meeting touches nobody, the review
+  // costs progress and never a level — and a person at the link moves the
+  // figures, never the bots.
+  //
+  // The act's costume of the life script: you are being measured. Nothing in
+  // it is a person (D-007, law 9), and nothing in it is paying attention to
+  // the player (law 8): the review is looking at the file.
+  'reply-all': {
+    id: 'reply-all',
+    name: 'Reply-all',
+    act: 'office',
+    frame: 'reply-all.png',
+    hp: 6,
+    speed: 48,
+    contactDamage: 4,
+    radius: 14,
+    displaySize: 48,
+    // Dropped by the last generation only (World.reapDead): a whole reply-all
+    // is four of these.
+    xp: 2,
+    // The rivals, the hormones and the reading again, from the edge: slow and
+    // weak. The difference is what happens when it is dealt with.
+    movement: 'chase',
+    contact: 'damage',
+    // Dying, it becomes `children` of itself at `scale` of its hp, radius and
+    // size, `generations` deep (World.reapDead): the same def with a
+    // `generation` on the state, never a second entry. A build that clears
+    // the screen fills it.
+    split: { children: 2, generations: 3, scale: 0.75 },
+    whyThisStage: 'The Office is the first stage where dealing with a thing is precisely what makes more of it.',
+  },
+
+  commute: {
+    id: 'commute',
+    name: 'Commute',
+    act: 'office',
+    frame: 'commute.png',
+    hp: 40,
+    // Faster than the deadline and heavier: the act's heaviest hit, and its
+    // only red thing. The deadline with wheels.
+    speed: 320,
+    contactDamage: 18,
+    radius: 26,
+    displaySize: 104,
+    xp: 8,
+    // Enters aimed at where the player stands and patrols that line for good,
+    // on the schedule's cadence of about twice a minute (§3.2): morning and
+    // evening.
+    movement: 'cross',
+    contact: 'damage',
+    patrol: true,
+    whyThisStage:
+      'The Office is the first stage where the same thing crosses the room twice a day at a speed set by nobody in it.',
+  },
+
+  ping: {
+    id: 'ping',
+    name: 'Ping',
+    act: 'office',
+    frame: 'ping.png',
+    // hp is inert: it cannot be damaged. Kept at 1 so nothing divides by zero.
+    hp: 1,
+    invulnerable: true,
+    speed: 0,
+    // It costs cadence, never health, and it is not a kill, so no XP.
+    contactDamage: 0,
+    radius: 12,
+    displaySize: 40,
+    xp: 0,
+    // Acne's and tuition's arrival: already where the player is going, and it
+    // stays. The only way off the floor is to wear it.
+    movement: 'static',
+    spawnAt: 'lead',
+    contact: 'attach',
+    // No drag, so no drag stack (World.wear): it costs attention, never speed.
+    // Each worn ping multiplies every active item's cooldown by
+    // `cooldownMultiplier` (World.cooldownFactor), and the pings come off at
+    // the crossing like acne's (no `persists`): pings are not debt, they are
+    // the day.
+    attach: { drag: 0, cooldownMultiplier: 1.06 },
+    whyThisStage:
+      'The Office is the first stage where every small thing that wants a second of the player gets it, and the seconds add up to the day.',
+  },
+
+  meeting: {
+    id: 'meeting',
+    name: 'Meeting',
+    act: 'office',
+    frame: 'meeting.png',
+    // The elite, and it has no body: hp is inert (it cannot be damaged, kept
+    // at 1 so nothing divides by zero) and the radius is 0, because what it
+    // occupies is its hold, not a point. It touches nobody and drops nothing.
+    hp: 1,
+    invulnerable: true,
+    speed: 0,
+    contactDamage: 0,
+    radius: 0,
+    // The ring at spawn; the renderer scales it to the hold's live radius.
+    displaySize: 96,
+    xp: 0,
+    movement: 'static',
+    contact: 'none',
+    // Centred on the player where they stand (World.spawnEnemy), then a hold:
+    // it contracts from `from` px to `to` over `seconds`, holds for
+    // `holdSeconds`, and ends. Inside it everything moves at `slow`; its edge
+    // is a wall for enemies both ways and never for the player.
+    spawnAt: 'player',
+    hold: { from: 260, to: 120, seconds: 30, holdSeconds: 12, slow: 0.6 },
+    // The batch's string, curly apostrophe and all: the two must be one
+    // sentence (office-act.test.ts), and the roster's is a straight one.
+    whyThisStage: 'The Office is the first stage that takes the player’s time without touching them.',
+  },
+
+  'performance-review': {
+    id: 'performance-review',
+    name: 'Performance review',
+    act: 'office',
+    frame: 'performance-review.png',
+    hp: 16,
+    speed: 0,
+    contactDamage: 0,
+    radius: 26,
+    displaySize: 88,
+    xp: 8,
+    // A strip on the floor that never touches anyone. Zero damage AND `none`,
+    // for the reason `Contact` gives.
+    movement: 'static',
+    contact: 'none',
+    // The registrar's consult (G-010). In range and off cooldown it consults
+    // the file — the filled star blinks — and fires one gold rating at where
+    // the player is (G-031: the gold is the rating's, never the strip's). A
+    // hit does small damage and takes `xpLoss` of the progress toward the
+    // next level (World.resolveContact): never a level already reached.
+    ranged: { range: 460, consultSeconds: 1, cooldownSeconds: 5, projectileSpeed: 220, damage: 5, xpLoss: 0.15 },
+    whyThisStage:
+      'The Office is the first stage where the aimed thing is a number about the player, and the number takes something back.',
+  },
 };
 
 export function enemyDef(id: string): EnemyDef {

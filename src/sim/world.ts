@@ -376,6 +376,14 @@ export interface EnemyState {
    * other enemy, which every hit reads as "anywhere counts" (`hitsWeakPoint`).
    */
   weakQuadrant?: number;
+  /**
+   * `def.split` only (reply-all, OFFICE-ROSTER §3.1): how many splits deep
+   * this one is. 0 for anything the schedule or a boss put on the field;
+   * each child is its parent's plus one, and at `split.generations − 1` it
+   * dies as any enemy does (`reapDead`). Set to 0 on every enemy by
+   * `addEnemy`; optional so hand-built states need not carry it.
+   */
+  generation?: number;
 }
 
 export interface ProjectileState {
@@ -877,6 +885,25 @@ export class World {
   private persistentTaxedStacks = 0;
   private persistentTaxFactor = 1;
   /**
+   * Worn stacks whose attach carries a `cooldownMultiplier` (the ping,
+   * OFFICE-ROSTER §3.3), and the product of their multipliers, which
+   * `cooldownFactor` multiplies in. Read through `pingStacks` and
+   * `attentionFactor`. They come off at the crossing unless the attach
+   * `persists`, as the drag does; the ping's does not.
+   */
+  private cooldownStacks = 0;
+  private attention = 1;
+  private persistentCooldownStacks = 0;
+  private persistentAttention = 1;
+  /**
+   * Stacks worn, by the id of the def that attached them (AUDIT six, 38): the
+   * persisting ones through every crossing, the rest until the next. For
+   * drawing each stack in its own act's frame; `dragStacks` stays the
+   * number the sim moves the player by. Read through `wornBy`.
+   */
+  private readonly worn = new Map<string, number>();
+  private readonly persistentWorn = new Map<string, number>();
+  /**
    * Seconds left of a `contactStun` (the hall monitor, §3.4). While it runs
    * `movePlayer` ignores input. Refreshed by a touch, never extended past it.
    */
@@ -1059,6 +1086,33 @@ export class World {
     this.dragStacks = 0;
     this.taxedStacks = 0;
     this.xpTaxFactor = 1;
+    // The pings and the by-def record go with them (OFFICE-ROSTER §3.3; AUDIT 42).
+    this.cooldownStacks = 0;
+    this.attention = 1;
+    this.worn.clear();
+  }
+
+  /**
+   * What the pings worn do to every cooldown: the product of their
+   * `cooldownMultiplier`s (two pings, 1.06²), 1 with none. Already inside
+   * `cooldownFactor`; exposed for the HUD.
+   */
+  get attentionFactor(): number {
+    return this.attention;
+  }
+
+  /** Worn stacks that carry a cooldown multiplier (pings), for the HUD. */
+  get pingStacks(): number {
+    return this.cooldownStacks;
+  }
+
+  /**
+   * Stacks worn, by the def id that attached them — `{ tuition: 2, ping: 1 }`
+   * — so a renderer can draw a College invoice in The Office (AUDIT six, 38).
+   * Read-only; `dragStacks` is the sim's number.
+   */
+  get wornBy(): ReadonlyMap<string, number> {
+    return this.worn;
   }
 
   /**
@@ -1170,9 +1224,12 @@ export class World {
     return out;
   }
 
-  /** Restlessness: every active item's cooldown, multiplied. */
+  /**
+   * Restlessness: every active item's cooldown, multiplied. And the pings
+   * worn (`attentionFactor`, OFFICE-ROSTER §3.3), which are 1 until one is.
+   */
   get cooldownFactor(): number {
-    return this.passiveProduct((d) => d.cooldownMultiplier);
+    return this.passiveProduct((d) => d.cooldownMultiplier) * this.attention;
   }
 
   /** Appetite: how far away a gem starts coming to the player. */
@@ -1391,6 +1448,11 @@ export class World {
         x = this.x + nx * reach;
         y = this.y + ny * reach;
       }
+    } else if ((this.spawnOverride ?? def.spawnAt) === 'player') {
+      // OFFICE-ROSTER §3.4: the meeting is called where the player stands,
+      // and the hold is centred on them. No dice: nothing about it is chosen.
+      x = this.x;
+      y = this.y;
     } else {
       const angle = this.rng() * Math.PI * 2;
       x = this.x + Math.cos(angle) * SPAWN_RADIUS;
@@ -1475,6 +1537,7 @@ export class World {
       xp: def.xp,
       consult: 0,
       reload: 0,
+      generation: 0,
     };
     // Rolled for a weak point and for nothing else, so no other enemy draws
     // from the dice and every seed without one replays exactly as it did.
@@ -2609,9 +2672,51 @@ export class World {
     for (let i = this.enemies.length - 1; i >= 0; i--) {
       const e = this.enemies[i]!;
       if (e.hp > 0) continue;
-      this.gems.push({ x: e.x, y: e.y, value: e.xp });
+      // Removed first: the last element moves into `i` and has been visited;
+      // any children are pushed past it and are alive, so none is reaped here.
       swapRemove(this.enemies, i);
       this.kills++;
+      const split = e.def.split;
+      const generation = e.generation ?? 0;
+      if (split && generation < split.generations - 1) this.splitFrom(e, split, generation + 1);
+      else this.gems.push({ x: e.x, y: e.y, value: e.xp });
+    }
+  }
+
+  /**
+   * Reply-all (OFFICE-ROSTER §3.1): a killed `split` enemy short of its last
+   * generation becomes `children` of itself where it died, each at
+   * `scale ** generation` of the def's hp, radius and drawn size, and drops
+   * nothing — only the last generation drops the XP. The same def: one
+   * registry, a generation on the state.
+   *
+   * Spread by index, not by the dice, so no seed's later rolls move: evenly
+   * about the parent, starting across the line to the player (two children
+   * land side by side, one each side of that line), each its own radius from
+   * the centre, so two touch and do not stack. They carry the parent's
+   * hit serials, so the shot or burst that killed it does not also land on
+   * them — each split is one kill's worth of work, not a chain in one hit.
+   * Capped by MAX_ACTIVE_ENEMIES like any spawn: at the cap a split is short
+   * of children, and still drops nothing.
+   */
+  private splitFrom(parent: EnemyState, split: NonNullable<EnemyDef['split']>, generation: number): void {
+    const def = parent.def;
+    const k = split.scale ** generation;
+    const radius = def.radius * k;
+    const across = Math.atan2(this.y - parent.y, this.x - parent.x) + Math.PI / 2;
+    for (let c = 0; c < split.children && this.enemies.length < MAX_ACTIVE_ENEMIES; c++) {
+      const angle = across + (c * 2 * Math.PI) / split.children;
+      const x = parent.x + Math.cos(angle) * radius;
+      const y = parent.y + Math.sin(angle) * radius;
+      const e = this.addEnemy(def, x, y, parent.vx, parent.vy);
+      // A hold def never splits and addEnemy returns null for one (§3.4).
+      if (!e) continue;
+      e.hp = def.hp * k;
+      e.radius = radius;
+      e.displaySize = def.displaySize * k;
+      e.generation = generation;
+      e.hitBySerial = parent.hitBySerial;
+      e.hitByAreaSerial = parent.hitByAreaSerial;
     }
   }
 
@@ -2681,6 +2786,11 @@ export class World {
       swapRemove(this.projectiles, i);
       if (this.invulnerable > 0) continue;
       this.hurt(p.damage, p.owner ?? 'boss');
+      // The review's rating (OFFICE-ROSTER §3.5): a share of the bar to the
+      // next level, taken from the progress along it and never below it, so
+      // a level already reached is never taken back.
+      const xpLoss = p.owner?.ranged?.xpLoss;
+      if (xpLoss !== undefined) this.xp = Math.max(0, this.xp - xpLoss * this.xpToNext);
       // The registrar's hold (COLLEGE-ROSTER §3.5): the monitor's stop, by
       // post, and its i-frames run from the END of the stop for the reason the
       // contact branch above gives (AUDIT part three, 18).
@@ -2703,24 +2813,45 @@ export class World {
   }
 
   /**
-   * One attach stack on the player: a drag stack, always; for tuition, a
-   * share of every gem from now on (`attach.tax`) and a stack that stays on
-   * through the crossing (`attach.persists`, COLLEGE-ROSTER §3.3).
+   * One attach stack on the player: a drag stack for any attach with a drag;
+   * for tuition, a share of every gem from now on (`attach.tax`) and a stack
+   * that stays on through the crossing (`attach.persists`, COLLEGE-ROSTER
+   * §3.3); for the ping, a multiplier on every cooldown
+   * (`attach.cooldownMultiplier`, OFFICE-ROSTER §3.3). Every stack is also
+   * counted by the kind that attached it (`wornBy`), so a renderer can draw
+   * each in its own frame (AUDIT six, 38).
+   *
+   * The ping's drag is 0 and it adds no drag stack: the drag is one curve
+   * over `dragStacks` (`antibodyDrag`), not a per-def figure, so a stack
+   * counted there costs speed whatever its def says.
    */
   private wear(def: EnemyDef): void {
-    this.dragStacks++;
-    const tax = def.attach?.tax ?? 0;
-    const persists = def.attach?.persists === true;
+    const attach = def.attach;
+    const drags = (attach?.drag ?? 0) > 0;
+    const tax = attach?.tax ?? 0;
+    const cooldown = attach?.cooldownMultiplier;
+    const persists = attach?.persists === true;
+    if (drags) this.dragStacks++;
     if (tax > 0) {
       this.taxedStacks++;
       this.xpTaxFactor *= 1 - tax;
     }
+    if (cooldown !== undefined) {
+      this.cooldownStacks++;
+      this.attention *= cooldown;
+    }
+    this.worn.set(def.id, (this.worn.get(def.id) ?? 0) + 1);
     if (!persists) return;
-    this.persistentStacks++;
+    if (drags) this.persistentStacks++;
     if (tax > 0) {
       this.persistentTaxedStacks++;
       this.persistentTaxFactor *= 1 - tax;
     }
+    if (cooldown !== undefined) {
+      this.persistentCooldownStacks++;
+      this.persistentAttention *= cooldown;
+    }
+    this.persistentWorn.set(def.id, (this.persistentWorn.get(def.id) ?? 0) + 1);
   }
 
   private hurt(amount: number, cause: Cause): void {
@@ -2917,6 +3048,11 @@ export class World {
     this.dragStacks = this.persistentStacks;
     this.taxedStacks = this.persistentTaxedStacks;
     this.xpTaxFactor = this.persistentTaxFactor;
+    // The pings are the day, not debt (OFFICE-ROSTER §3.3): off at the door.
+    this.cooldownStacks = this.persistentCooldownStacks;
+    this.attention = this.persistentAttention;
+    this.worn.clear();
+    for (const [id, n] of this.persistentWorn) this.worn.set(id, n);
     this.engulfTimer = 0;
     this.engulfSlow = 1;
     this.engulfDps = 0;

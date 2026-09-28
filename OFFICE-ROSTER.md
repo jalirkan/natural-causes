@@ -225,7 +225,7 @@ Each has `act: 'office'`, `frame: '<id>.png'` and its §3 heading as `name`.
 ```ts
 export const OFFICE: ActDef = {
   id: 'office', name: 'The Office', durationSeconds: 180, bossName: 'The Reorg',
-  boss: { kind: 'reorg', thresholds: [2 / 3, 1 / 3], lateralMove: 220, memoShots: 5, memoSpacing: 36 },
+  boss: { kind: 'reorg', thresholds: [2 / 3, 1 / 3], lateralMove: 220, memoShots: 5, memoSpacing: 64 },
   endWord: 'SYNERGY', age: { from: 22, to: 34 },
   provisional: '...',
   waves: [
@@ -277,7 +277,7 @@ the act ends on one word: **SYNERGY.** A death to its memo prints *Cause of
 death: The Reorg. Age 34.* Until Family exists, beating it ends the life, and
 the certificate says natural causes at thirty-four.
 
-**Numbers.** Two thresholds; `lateralMove` 220; five memo shots 36 px apart on
+**Numbers.** Two thresholds; `lateralMove` 220; five memo shots 64 px apart (36 left no gap: a shot hits within 26 px) on
 the Egg's telegraph, idle, speed and damage; health `BOSS_HP`. All placeholders.
 
 **Sim cost.** A fifth boss kind (`ReorgBoss`), a column shot in `updateBoss`,
