@@ -2,6 +2,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { ANTIBODY_FLOOR, PLAYER_RADIUS, antibodyDragFor } from '../../src/sim/world';
 import { ALL_ACTS, CONCEPTION, spawnStreams } from '../../src/data/acts';
+import { RULES, RULE_IDS, type RuleId } from '../../src/sim/rules';
 import { ENEMIES } from '../../src/data/enemies';
 import {
   ITEMS,
@@ -77,6 +78,18 @@ const cadence = cadenceArg === undefined ? 0.2 : Number(cadenceArg);
 const threat = threatArg === undefined ? true : threatArg !== '0';
 setInstrument(cadence, threat);
 
+// `--rules=couch-potato,one-trick` plays every life under those rules
+// (G-055), in the World, as the title's choice does. Presence only: does a
+// ruled life run, and how does it end.
+const rulesArg = argv.find((a) => a.startsWith('--rules='))?.slice(8);
+const rulesGiven = rulesArg === undefined ? [] : rulesArg.split(',').map((r) => r.trim()).filter((r) => r !== '');
+const unknownRule = rulesGiven.find((r) => !(RULE_IDS as readonly string[]).includes(r));
+if (unknownRule !== undefined) {
+  process.stderr.write(`No rule "${unknownRule}". Known: ${RULE_IDS.join(', ')}\n`);
+  process.exit(1);
+}
+const rules = RULE_IDS.filter((id: RuleId) => rulesGiven.includes(id));
+
 const policies = onlyPolicy ? POLICIES.filter((p) => p.name === onlyPolicy) : POLICIES;
 if (policies.length === 0) {
   process.stderr.write(`No policy named "${onlyPolicy}"\n`);
@@ -87,7 +100,7 @@ const started = Date.now();
 const results: RunResult[] = [];
 for (const policy of policies) {
   for (let i = 0; i < runsPerPolicy; i++) {
-    results.push(runOnce(policy, 1000 + i, bossPull, spawnOverride, acts));
+    results.push(runOnce(policy, 1000 + i, bossPull, spawnOverride, acts, rules));
   }
 }
 const elapsed = (Date.now() - started) / 1000;
@@ -101,6 +114,16 @@ for (const a of acts) {
 }
 if (acts.some((a) => a.provisional)) {
   out.push('Read presence and ordering below. Nothing here is a calibration.');
+  out.push('');
+}
+if (rules.length > 0) {
+  out.push(`UNDER RULES (G-055): ${rules.map((id) => `${RULES[id].name} ("${RULES[id].certificate}")`).join(' · ')}`);
+  // The dodge table's speeds are `world.speed`, the walk the items and the
+  // drag allow; under Couch Potato the sim refuses that walk, and a column
+  // named "realised speed" would read as movement that never happened.
+  if (rules.includes('couch-potato')) {
+    out.push('  Couch Potato: every speed below is the walk the player is refused; the player moves only when moved.');
+  }
   out.push('');
 }
 const lifeName = acts.length === 1 ? act.name : `A life: ${acts.map((a) => a.name).join(' → ')}`;
@@ -483,6 +506,6 @@ const file = resolve(process.cwd(), 'tools/playtest/runs/latest.json');
 mkdirSync(dirname(file), { recursive: true });
 writeFileSync(
   file,
-  `${JSON.stringify({ acts: acts.map((a) => a.id), runsPerPolicy, elapsed, results }, null, 2)}\n`,
+  `${JSON.stringify({ acts: acts.map((a) => a.id), rules, runsPerPolicy, elapsed, results }, null, 2)}\n`,
 );
 writeFileSync(resolve(process.cwd(), 'tools/playtest/runs/latest.txt'), `${report}\n`);
