@@ -1321,8 +1321,6 @@ export const ITEMS: Record<string, ItemDef> = {
     knockback: 40,
     maxLevel: 1,
     icon: 'vendetta',
-    iconPending:
-      'Drawn in a later wave as tools/art/svg/conception/icon-vendetta.svg; its frame in the icon atlas retires this placeholder.',
     blurb: 'Nobody remembers what started it. Everyone gets shoved.',
     levels: table(['Nobody remembers what started it. Everyone gets shoved.'], { 1: { projectiles: 3 } }),
     evolvesFrom: { weapon: 'grudge', with: 'membrane' },
@@ -1345,8 +1343,6 @@ export const ITEMS: Record<string, ItemDef> = {
     pierce: 1,
     maxLevel: 1,
     icon: 'jump',
-    iconPending:
-      'Drawn in a later wave as tools/art/svg/conception/icon-jump.svg; its frame in the icon atlas retires this placeholder.',
     blurb: 'Flinches at everything, all the time. It is not a phase.',
     levels: table(['Flinches at everything, all the time. It is not a phase.'], { 1: { projectiles: 2 } }),
     evolvesFrom: { weapon: 'lash', with: 'midpiece' },
@@ -1373,8 +1369,6 @@ export const ITEMS: Record<string, ItemDef> = {
     arc: Math.PI * 2,
     maxLevel: 1,
     icon: 'reach',
-    iconPending:
-      'Drawn in a later wave as tools/art/svg/conception/icon-reach.svg; its frame in the icon atlas retires this placeholder.',
     blurb: 'You grew into it. There is no behind you any more.',
     levels: table(['You grew into it. There is no behind you any more.']),
     evolvesFrom: { weapon: 'backhand', with: 'growth-spurt' },
@@ -1401,8 +1395,6 @@ export const ITEMS: Record<string, ItemDef> = {
     strikeDelay: 0,
     maxLevel: 1,
     icon: 'hindsight',
-    iconPending:
-      'Drawn in a later wave as tools/art/svg/conception/icon-hindsight.svg; its frame in the icon atlas retires this placeholder.',
     blurb: 'No warning. It was obvious afterwards.',
     levels: table(['No warning. It was obvious afterwards.'], { 1: { projectiles: 2 } }),
     evolvesFrom: { weapon: 'judgement', with: 'capacitation' },
@@ -1428,8 +1420,6 @@ export const ITEMS: Record<string, ItemDef> = {
     slow: 0.6,
     maxLevel: 1,
     icon: 'rut',
-    iconPending:
-      'Drawn in a later wave as tools/art/svg/conception/icon-rut.svg; its frame in the icon atlas retires this placeholder.',
     blurb: 'Everything behind you gets stuck in it. You keep going.',
     levels: table(['Everything behind you gets stuck in it. You keep going.'], { 1: { duration: 1.2 } }),
     evolvesFrom: { weapon: 'wake', with: 'snooze' },

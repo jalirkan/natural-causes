@@ -353,11 +353,11 @@ describe('the registry holds its evolutions to the rules (content)', () => {
     expect(new Set(froms).size).toBe(froms.length);
   });
 
-  it('the five have no frame yet, so all five carry iconPending', () => {
+  it('the five are drawn: each has its frame in the icon atlas and no pending note', () => {
     for (const { id } of FIVE) {
       const def = weapon(id);
-      expect(itemIconFrame(def.icon) in frames, `${id} "${def.icon}"`).toBe(false);
-      expect(def.iconPending!.length).toBeGreaterThan(30);
+      expect(itemIconFrame(def.icon) in frames, `${id} "${def.icon}"`).toBe(true);
+      expect(def.iconPending, id).toBeUndefined();
     }
   });
 
