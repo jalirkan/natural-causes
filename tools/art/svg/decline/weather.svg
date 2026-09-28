@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <title>Weather</title>
+  <desc>A long low bank of cloud seen side-on, twice as wide as it is tall, flat underneath and heaped along the top in five puffs of different sizes, the tallest near the middle. Five short straight rain lines fall plumb from under it, staggered, clear of the cloud. The face sits low in the cloud over the middle line: two dots for eyes with the lids down, looking at its own rain, and one short flat mouth. It is not looking at anyone. No sun, no lightning, no lettering, nobody.</desc>
+  <!--
+    Weather (DECLINE-ROSTER section 3.2), the act's velocity: a front that
+    enters on a heading, never steers and leaves. Reserved silhouette
+    (section 1): the front, the only cloud and the widest thing in the act,
+    and the only thing with lines falling from it. The width is the read,
+    so the cloud fills the canvas edge to edge at exactly twice as wide as
+    it is tall (108 by 54), one flat bone tone, and the rain hangs inside
+    that width, never past it.
+
+    Drawn on the finished sprite's own pixel grid: 108 units is targetSize
+    112 less CONFORM's 2px outline each side, and the group scales 108 to
+    the viewBox's 100, so one unit is one pixel and the eyes come out whole.
+
+    The cloud: a flat underside and five puffs, no two the same radius
+    (13, 17, 19, 15, 11) and the two lower corners rounded to different
+    radii (law 4: hand-cut). It is the cloud a weather map draws, which is
+    what makes it a cloud at 48px and not a hat (a hat has one crown) or a
+    sheep (a sheep has a head at one end and legs). The underside reaches
+    up to y 30 inside the puffs: at y 36 the lower crossing of two puffs
+    sat above it, the valley left a pinhole, and CONFORM ringed it in ink
+    as two flecks beside the eyes.
+
+    The rain: five short straight lines, 5 units wide so that the red
+    survives CONFORM's ring on both sides and does not close into an ink
+    bar. They fall plumb, not slanted: the renderer does not turn the
+    weather to its heading, and plumb rain reads the same whichever way
+    the front crosses. They start clear of the cloud and are staggered in
+    two rows of uneven lengths, so they read as falling rather than as
+    legs standing on a floor.
+
+    The face: low in the cloud, over the middle line. Two 6-unit eyes with
+    flat tops and stepped points underneath, the lids down, looking at its
+    own rain, and a flat 10-by-3 mouth. It is not raining on anyone in
+    particular (law 9); nothing in this act is paying attention (law 8).
+    No sun, no lightning, no lettering, nothing with skin (D-007, law 9).
+
+    Contact red is on the rain alone, the act's only red (law 6, law 11):
+    the heaviest hit in the act is the one nobody can do anything about.
+    No shadow tone: a dark band along the underside is a hatband.
+    Colours are palette hex values: bone #D2C6AC, ink #2A2521,
+    threat-contact #C4472E.
+    CONFORM adds the outline; there is none here.
+  -->
+  <g transform="translate(0 12.96) scale(0.9259259)">
+    <!-- the cloud: one flat tone, edge to edge, flat underneath, five puffs on top -->
+    <g fill="#D2C6AC">
+      <path d="M 0 44 Q 0 54 10 54 L 97 54 Q 108 54 108 43 L 108 38 L 100 30 L 8 30 L 0 38 Z"/>
+      <circle cx="13" cy="38" r="13"/>
+      <circle cx="32" cy="24" r="17"/>
+      <circle cx="58" cy="19" r="19"/>
+      <circle cx="82" cy="27" r="15"/>
+      <circle cx="97" cy="40" r="11"/>
+    </g>
+    <!-- the face, low in the cloud over the middle line: lids down, on its own rain -->
+    <g fill="#2A2521" shape-rendering="crispEdges">
+      <path d="M 48 33 H 54 V 37 H 53 V 38 H 52 V 39 H 50 V 38 H 49 V 37 H 48 Z"/>
+      <path d="M 60 33 H 66 V 37 H 65 V 38 H 64 V 39 H 62 V 38 H 61 V 37 H 60 Z"/>
+      <rect x="52" y="45" width="10" height="3"/>
+    </g>
+    <!-- the rain: five short lines, plumb, staggered, clear of the cloud -->
+    <g fill="#C4472E" shape-rendering="crispEdges">
+      <rect x="14" y="62" width="5" height="16"/>
+      <rect x="32" y="66" width="5" height="14"/>
+      <rect x="50" y="62" width="5" height="17"/>
+      <rect x="67" y="66" width="5" height="14"/>
+      <rect x="85" y="62" width="5" height="15"/>
+    </g>
+  </g>
+</svg>
