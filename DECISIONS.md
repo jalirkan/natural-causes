@@ -420,3 +420,16 @@ lands. Time's hand stays a drawn strip: a hand alone is too thin a sprite to
 pass the swarm silhouette floor, and the strip is the hazard's true size.
 Rejected: tinting or masking the one frame at render time for good — G-032 retired render correction for sprites, and a greyed row that is a tint is a lie about what was drawn.
 Rejected: a frames array on the AssetSpec — one spec per drawing keeps the provenance one record per SVG (D-010, D-025), which a multi-frame spec would fold.
+
+## D-030 · 2026-09-28 · Review mode: the dev panel ships behind `?review`, tainting as it always has
+The dev panel never shipped (`import.meta.env.DEV` drops it from the Pages
+build), so the one person who needs to move across seven acts to review them
+could not, at the link, without a local checkout. Now the panel mounts at the
+link when the URL carries `?review` (a lazily loaded chunk, never loaded
+without the flag), the title screen says so, and everything else holds: any
+control taints the run, the HUD says REVIEW · RUN TAINTED, and a tainted life
+is never recorded as an ancestor. The panel gains review controls — start at
+any act, next act, preview the act's paper, level up in fives, every habit —
+and README says how. `src/dev/` stays outside `World`.
+Rejected: a separate review build or branch — two links drift, and the review would not be of the thing that ships.
+Rejected: a key combination instead of a URL flag — a link is what Justin is handed; a chord is one more thing to remember.
