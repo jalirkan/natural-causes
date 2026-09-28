@@ -851,6 +851,26 @@ export const ITEM_ICONS: AssetSpec[] = [
       'nothing else: no sign, no carpet, no queue, no figure, no text',
     ].join(', '),
   },
+  // Judgement (G-044) is drawn too. Its gavel also comes down on the target
+  // during the telegraph and sits at the impact point (~36px), so it keeps to
+  // rose, bone and ink like Grudge, Gossip and Snooze.
+  {
+    id: 'icon-bolt',
+    name: 'Judgement icon',
+    act: 'conception',
+    role: 'icon',
+    source: 'svg',
+    targetSize: 96,
+    seed: 61027,
+    tests: 'a gavel about to land, read at 52px on a card and 36px dropping onto the field, never a hammer',
+    subject: [
+      'a gavel seen from the side, its head a thick horizontal cylinder with a flat pale face at each end, no claw',
+      'a short handle leaving the middle of the head and running down-left at about forty degrees, a round knob at its end',
+      'held just above a small round sound block seen at a slight angle, its near rim one dark line',
+      'three tiny flat impact ticks fanned up off the block in the gap under the head',
+      'flat muted dusty rose head and handle, pale warm end faces, block and ticks, dark lines where the head meets the handle and the faces meet the head',
+    ].join(', '),
+  },
 ];
 
 /**

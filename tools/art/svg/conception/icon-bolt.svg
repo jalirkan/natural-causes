@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <title>Judgement icon</title>
+  <desc>A gavel seen from the side, its head a thick cylinder with two pale end caps and its handle running down-left, held just above a round sound block with three small impact ticks between them.</desc>
+  <!--
+    Judgement (items.ts, icon "bolt"; G-044, mode "strike"). A card icon, and
+    also what comes down on the target during the telegraph and sits at the
+    impact point on the field (~36px), so it keeps off the field's reserved
+    colours: no threat colour, no paper, no conception-light.
+    The verdict arrives from above and was reached before you got here; the
+    gap under the head is the moment's warning.
+    A gavel, never a hammer: two flat pale faces and no claw, and the sound
+    block under it is what makes it a bench's rather than a workshop's. Seen
+    from the side and upright, never lying flat.
+    The handle leaves the middle of the head at forty degrees down-left.
+    Where it does, rose meets rose and has no edge, so the ink line there is
+    drawn here, as are the seams between the caps and the head and the rim of
+    the block. CONFORM adds only the outer outline.
+    The ticks fan up off the block toward the head: an impact, not steam.
+    Colours: conception-mid #A86A63, bone #D2C6AC, ink #2A2521.
+  -->
+  <g shape-rendering="crispEdges">
+    <!-- the handle, behind the head: down-left at 40 degrees, a round knob at its end -->
+    <g transform="translate(57 38) rotate(140)" fill="#A86A63">
+      <rect x="0" y="-5" width="44" height="10"/>
+      <circle cx="44" cy="0" r="6.5"/>
+    </g>
+    <!-- where the handle leaves the head: the head's lower edge, across the handle only -->
+    <polygon points="46.84,40 62.39,40 59.29,42.6 43.76,42.6" fill="#2A2521"/>
+
+    <!-- the head: a thick rose cylinder with a flat bone face at each end -->
+    <rect x="33" y="14" width="48" height="26" rx="3" fill="#A86A63"/>
+    <rect x="27" y="13" width="7" height="28" rx="2.5" fill="#D2C6AC"/>
+    <rect x="80" y="13" width="7" height="28" rx="2.5" fill="#D2C6AC"/>
+    <!-- the seams between the faces and the head -->
+    <g stroke="#2A2521" stroke-width="2">
+      <line x1="35" y1="14" x2="35" y2="40"/>
+      <line x1="79" y1="14" x2="79" y2="40"/>
+    </g>
+
+    <!-- the sound block: a round bone disc seen at a slight angle, under the head -->
+    <g fill="#D2C6AC">
+      <ellipse cx="64" cy="72" rx="17" ry="5.5"/>
+      <rect x="47" y="64" width="34" height="8"/>
+      <ellipse cx="64" cy="64" rx="17" ry="5.5"/>
+    </g>
+    <!-- the near rim of its top face -->
+    <path d="M47 64 A17 5.5 0 0 0 81 64" fill="none" stroke="#2A2521" stroke-width="2.2"/>
+
+    <!-- three impact ticks in the gap, fanned up off the block toward the head -->
+    <g stroke="#D2C6AC" stroke-width="3.6" stroke-linecap="butt">
+      <line x1="64.00" y1="51.00" x2="64.00" y2="45.00"/>
+      <line x1="57.45" y1="54.41" x2="52.94" y2="51.26"/>
+      <line x1="70.55" y1="54.41" x2="75.06" y2="51.26"/>
+    </g>
+  </g>
+</svg>
