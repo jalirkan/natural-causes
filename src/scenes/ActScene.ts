@@ -1716,9 +1716,11 @@ export class ActScene extends Phaser.Scene {
     // Cards, not a text panel. drawHud runs every frame; the key turns
     // build-vs-teardown into a string comparison instead of a state machine.
     // Owned levels are part of the key: two queued level-ups can roll the
-    // same three items, and the pips must not show the pre-choice level.
+    // same three items, and the pips must not show the pre-choice level. A
+    // path card's level lives in `pathLevels` (G-043); an id is in one map or
+    // the other, never both.
     const offerKey = w.offers
-      ? `${w.level}:${w.offers.map((id) => `${id}@${w.items.get(id) ?? 0}`).join(',')}`
+      ? `${w.level}:${w.offers.map((id) => `${id}@${w.pathLevels.get(id) ?? w.items.get(id) ?? 0}`).join(',')}`
       : '';
     if (offerKey !== this.shownOffers) {
       this.destroyOfferUi();
