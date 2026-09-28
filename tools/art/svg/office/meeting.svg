@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="512" height="512">
+  <title>Meeting</title>
+  <desc>Eight small purple chairs on one circle, seen from above and behind, every one turned to face the empty middle. Each shows its back: a broad flat purple chair-back, the edge of an empty seat beyond it, and two short dark legs toward the outside. Nothing in the middle and nobody in any chair.</desc>
+  <!--
+    Meeting (OFFICE-ROSTER §3.4), the act's roadblock and its elite: a hold,
+    not a mover. The sim spawns it centred on the player as a ring that
+    contracts from 260 to 120; the renderer scales this sprite to about
+    twice the live radius, so the chairs sit on the ring and the middle of
+    the sprite is where the player stands. The middle is left transparent
+    for that reason and for law 11: the ring of chairs is the only ring in
+    the act and the only thing drawn around an empty middle.
+    Law 9: the meeting is the chairs, not the people. Nobody sits in them,
+    no table is drawn (the room is the ring, not a piece of furniture) and
+    no chair has a face: the chairs are the role.
+    One chair is drawn once, at six o'clock, and placed eight times at
+    forty-five degree steps around the centre. Seen from above and behind,
+    so reading outward from the middle: the far edge of an empty seat, a
+    dark seam where the back meets it, the chair-back itself (the largest
+    shape, and the one the name is about), then the two back legs at its
+    corners, a little splayed, pointing away from the middle. The legs run
+    well past the back: shorter, CONFORM's outline swallowed them into two
+    nubs that read as ears on the upturned chair. The chair at six o'clock
+    is the upright one; the others are the same chair turned, the way a
+    floor plan turns them.
+    Each chair is about a sixth of the ring's diameter across and no deeper
+    than it is wide, so eight of them read as separate seats with room
+    between them rather than as petals or the teeth of a wheel, and no line
+    joins them.
+    Colours are palette hex values: threat-elite #7C5C8A on every seat and
+    chair-back, ink #2A2521 for the seams and legs. Nothing else.
+    CONFORM adds the outline; there is none here.
+  -->
+  <defs>
+    <g id="chair">
+      <!-- the back legs, toward the outside -->
+      <g fill="none" stroke="#2A2521" stroke-width="5" stroke-linecap="butt">
+        <path d="M104,222 L100.5,244"/>
+        <path d="M136,222 L139.5,244"/>
+      </g>
+      <!-- the seat beyond the back, toward the middle: empty -->
+      <rect x="103" y="184" width="34" height="18" rx="5" fill="#7C5C8A"/>
+      <!-- the seam where the back meets the seat -->
+      <rect x="103" y="195" width="34" height="5" fill="#2A2521"/>
+      <!-- the chair-back -->
+      <path fill="#7C5C8A" d="M99,226 V205 Q99,200 104,200 H136 Q141,200 141,205 V226 Q141,228 139,228 H101 Q99,228 99,226 Z"/>
+    </g>
+  </defs>
+  <use href="#chair"/>
+  <use href="#chair" transform="rotate(45 120 120)"/>
+  <use href="#chair" transform="rotate(90 120 120)"/>
+  <use href="#chair" transform="rotate(135 120 120)"/>
+  <use href="#chair" transform="rotate(180 120 120)"/>
+  <use href="#chair" transform="rotate(225 120 120)"/>
+  <use href="#chair" transform="rotate(270 120 120)"/>
+  <use href="#chair" transform="rotate(315 120 120)"/>
+</svg>
