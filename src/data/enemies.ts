@@ -1086,10 +1086,10 @@ export const ENEMIES: Record<string, EnemyDef> = {
     name: 'Room',
     act: 'family',
     frame: 'room.png',
-    // The Mortgage's (§4), and on the schedule from 100s too, so the house
-    // can start growing before it arrives — though at §3.6's placeholder rate
-    // the stream first fills at 150s, the Mortgage's arrival, and no room
-    // lands before it (FAMILY in acts.ts). Unkillable: hp is inert, kept at 1
+    // The Mortgage's (§4), and on the schedule from 90s too, so the house
+    // starts growing before it arrives: at §3.6's placeholder rate the first
+    // room lands at 110s and the second at 130s (FAMILY in acts.ts).
+    // Unkillable: hp is inert, kept at 1
     // so nothing divides by zero, and merging sums it without meaning anything.
     hp: 1,
     invulnerable: true,

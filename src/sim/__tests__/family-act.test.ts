@@ -289,20 +289,22 @@ describe('a Family run', () => {
     expect(world.boss).toBeNull();
     expect(fees, 'no bill ever issued a fee').toBeGreaterThan(0);
     expect(released, 'no toddler ever let go').toBeGreaterThan(0);
-    for (const id of ['bill', 'flat-pack', 'hoa-letter', 'toddler', 'phone-call']) {
+    for (const id of ['bill', 'flat-pack', 'hoa-letter', 'toddler', 'phone-call', 'room']) {
       const ever = seen.get(id)?.size ?? 0;
       expect(ever, `no "${id}" was ever seen`).toBeGreaterThan(0);
-      if (id === 'flat-pack' || id === 'toddler') continue;
+      // The flat-pack crosses and leaves, the toddler lets go and leaves, and
+      // rooms merge on arrival (a room landing on a room is one bigger room).
+      if (id === 'flat-pack' || id === 'toddler' || id === 'room') continue;
       const standing = world.enemies.filter((e) => e.def.id === id).length;
       expect(standing, `"${id}" was culled`).toBe(ever);
     }
-    // The room is not among them, and that is the transcribed schedule, not
-    // the design (AUDIT 44's class). §3.6 opens its stream at 100s at 0.02 a
-    // second, so it first fills at 150s — the Mortgage's arrival, when the
-    // schedule stops — and the house §3.6 says "starts growing before the
-    // Mortgage arrives" never does. Pinned so it cannot pass unread: when the
-    // rate or the opening moves, this fails, and the room joins the list above.
-    expect(seen.has('room'), 'the room now arrives before The Mortgage: add it to the presence list').toBe(false);
+    // A room lands before The Mortgage (§3.6: the house starts growing before
+    // it arrives), at 110s: the stream opens at 90s at 0.05. The second, at
+    // 130s, lands at the same lead when the player has not moved and merges
+    // into the first without a uid of its own, so one is what a still player
+    // sees; a moving one gets two.
+    const rooms = seen.get('room')?.size ?? 0;
+    expect(rooms, 'no room landed before The Mortgage').toBeGreaterThanOrEqual(1);
   }, LONG);
 });
 

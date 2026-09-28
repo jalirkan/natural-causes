@@ -521,16 +521,17 @@ export const FAMILY: ActDef = {
   // test (family-act.test.ts): age runs 34 to 55, a year every seven seconds.
   // Bills from 0s, the first month; the flat-pack's stream at 20s (37), then
   // about one every half minute; HOA letters at 30s (38); the toddler's at
-  // 45s (40); the phone's at 70s (44); the room's at 100s (48), which §3.6
-  // means as the house growing before the Mortgage arrives. Nothing new after
-  // 100s; the last fifty seconds are escalation, then The Mortgage.
+  // 45s (40); the phone's at 70s (44); the room's at 90s (47), the house
+  // growing before the Mortgage arrives. Nothing new after 90s; the last
+  // sixty seconds are escalation, then The Mortgage.
   //
   // The rates are placeholders, and they are streams, not arrivals (AUDIT
   // 44): a stream that opens at t with rate r first delivers when its
-  // accumulator fills, at t + 1/r. So the room's, opening at 100s at 0.02,
-  // first fills at 150s — the Mortgage's arrival, when spawning stops — and
-  // as transcribed no room lands before it (family-act.test.ts pins this;
-  // flagged, not moved). Bills chase and are never culled, toddlers let go
+  // accumulator fills, at t + 1/r. The room's, opening at 90s at 0.05, first
+  // lands at 110s and again at 130s: two rooms before the Mortgage (it was
+  // transcribed at 100s and 0.02, which first filled at 150s, the Mortgage's
+  // own arrival, so no room ever landed; family-act.test.ts pins that rooms
+  // do). Bills chase and are never culled, toddlers let go
   // and leave, the letters, the phones and the rooms are static, and the
   // flat-pack crosses and leaves; bills are the density — before they
   // accrue, which triples what the build leaves alone.
@@ -543,7 +544,7 @@ export const FAMILY: ActDef = {
     { fromSeconds: 70, enemyId: 'phone-call', rate: 0.05 },
     { fromSeconds: 90, enemyId: 'bill', rate: 1.8 },
     { fromSeconds: 90, enemyId: 'hoa-letter', rate: 0.25 },
-    { fromSeconds: 100, enemyId: 'room', rate: 0.02 },
+    { fromSeconds: 90, enemyId: 'room', rate: 0.05 },
     { fromSeconds: 120, enemyId: 'phone-call', rate: 0.1 },
     { fromSeconds: 120, enemyId: 'bill', rate: 2.4 },
   ],

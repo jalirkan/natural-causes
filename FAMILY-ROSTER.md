@@ -217,9 +217,10 @@ any of it; `FAMILY.provisional` carries the sentence (D-022).
 **The order is the design.** Age runs 34 to 55, a year every seven seconds.
 Bills from 0s: the first month. The first flat-pack at 20s (37), then one
 every half minute. HOA letters at 30s (38). The first toddler at 45s (40),
-then one every 30s. The phone at 70s (44). Rooms at 100s (48): the house
-starts growing before the Mortgage arrives. Nothing new after 100s; the last
-fifty seconds are escalation, then The Mortgage.
+then one every 30s. The phone at 70s (44). Rooms at 90s (47): the first
+lands at 110s and the house starts growing before the Mortgage arrives.
+Nothing new after 90s; the last sixty seconds are escalation, then The
+Mortgage.
 
 | id | movement | contact | other fields | hp | speed | contactDamage | radius | displaySize | xp |
 |---|---|---|---|---|---|---|---|---|---|
@@ -248,7 +249,7 @@ export const FAMILY: ActDef = {
     { fromSeconds: 70, enemyId: 'phone-call', rate: 0.05 },
     { fromSeconds: 90, enemyId: 'bill', rate: 1.8 },
     { fromSeconds: 90, enemyId: 'hoa-letter', rate: 0.25 },
-    { fromSeconds: 100, enemyId: 'room', rate: 0.02 },
+    { fromSeconds: 90, enemyId: 'room', rate: 0.05 },
     { fromSeconds: 120, enemyId: 'phone-call', rate: 0.1 },
     { fromSeconds: 120, enemyId: 'bill', rate: 2.4 },
   ],
