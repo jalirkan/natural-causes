@@ -326,7 +326,8 @@ async function main(): Promise<void> {
   let p = await waitFor('title', (q) => q.ready && q.scenes.includes('title'));
   await milestone('title', p, `renderer ${p.renderer}`);
 
-  // "press any key or tap"
+  // "Enter or tap to begin": Enter accepts the name on the form (empty means
+  // Nobody) and starts the run.
   await page.keyboard.press('Enter');
   p = await waitFor('conception', (q) => q.act?.index === 0 && hudAge(q));
   // The panel is a dynamic import in dev builds only (src/dev/panel.ts).
