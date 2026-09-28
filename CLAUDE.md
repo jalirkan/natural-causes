@@ -97,8 +97,9 @@ pnpm art:batch -- --set=<name>          # generate (needs FAL_KEY; drawing needs
 pnpm art:pack                           # rebuild atlases from conformed sprites
 ```
 
-CI (`.github/workflows/ci.yml`, ubuntu) runs typecheck, test, build and the
-dry art run on every push and PR to `main`. If it fails, the check is right.
+CI (`.github/workflows/ci.yml`, ubuntu) runs typecheck, test, build, the
+browser smoke (`pnpm smoke`) and the dry art run on every push and PR to
+`main`. If it fails, the check is right.
 `deploy.yml` publishes `main` to Pages independently of CI.
 
 ## Secrets

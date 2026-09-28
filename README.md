@@ -79,6 +79,7 @@ Other tasks:
 
 ```bash
 pnpm test                 # the whole suite: the sim, the content rules, the art pipeline
+pnpm smoke                # headless Chromium plays a whole life; fails on any console error or missing texture
 pnpm playtest -- --runs=40 # the bots, with intervals
 pnpm playtest -- --runs=16 --act=school   # any act with a schedule
 pnpm playtest -- --runs=16 --life         # the whole life, act after act
@@ -92,8 +93,8 @@ pnpm art:batch -- --dry   # the retired generator's prompts through the content 
 ### CI
 
 [`.github/workflows/ci.yml`](./.github/workflows/ci.yml) runs `pnpm typecheck`,
-`pnpm test`, `pnpm build` and `pnpm art:batch -- --dry` on every push and pull
-request against `main`. Those are the same four commands above, on a machine
+`pnpm test`, `pnpm build`, `pnpm smoke` and `pnpm art:batch -- --dry` on every
+push and pull request against `main`. Those are the same commands above, on a machine
 nobody here owns — the point being that "the tests pass" stops being something
 you have to take on trust from one person's terminal.
 
