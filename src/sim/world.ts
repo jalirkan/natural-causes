@@ -259,9 +259,11 @@ export const MAX_HP_FLOOR = 1 / 5;
  * Time's long hand at rest (DECLINE-ROSTER §4, AUDIT 96), in radians: 60.6°
  * clockwise from twelve, pointing at two. Measured, not chosen: the drawer
  * measured it on `boss-time` (tools/art/svg/decline/boss-time.svg, "ten past
- * ten"), where the pose is baked into the sprite. `BossState.hand` is this at
- * Time's arrival, so the drawn pose and the sim's hazard agree on the first
- * frame. If the drawing's rest pose moves, this follows it.
+ * ten"), the holder frame, where the pose is baked in. In play Time is drawn
+ * in its face frame without the long hand (D-029, AUDIT 148) and the
+ * renderer draws the hand from `BossState.hand`, which is this at Time's
+ * arrival, so the first frame's hand stands where the drawing's would. If
+ * the drawing's rest pose moves, this follows it.
  */
 export const TIME_HAND_REST = (60.6 * Math.PI) / 180;
 
