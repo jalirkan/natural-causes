@@ -302,7 +302,7 @@ describe('upgrades gain (G-038)', () => {
   });
 });
 
-describe('weapon paths (G-043)', () => {
+describe('active item paths (G-043): weapons and controls', () => {
   const pathed = Object.values(ITEMS).filter((d) => isActive(d) && d.paths !== undefined);
   // Every field a level may carry, from the fold's own identity: a new field
   // is covered the day it is added to `LevelBonus`.
