@@ -1,9 +1,39 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
   <title>Dodgeball</title>
-  <desc>A rubber ball with a blank face. The only circle in the act; nothing breaks its symmetry.</desc>
-  <circle cx="50" cy="50" r="48" fill="#6E6353"/>
-  <circle cx="50" cy="50" r="38" fill="#D2C6AC"/>
-  <ellipse cx="38" cy="46" rx="5" ry="7.5" fill="#2A2521"/>
-  <ellipse cx="62" cy="46" rx="5" ry="7.5" fill="#2A2521"/>
-  <rect x="42" y="63" width="16" height="4.5" rx="2" fill="#2A2521"/>
+  <desc>A red rubber playground ball with a pleased little face: two big ink eyes with one bone glint each, blush cheeks, a small smile, and one bone glint on the ball. The only perfect circle in the act.</desc>
+  <!--
+    Dodgeball (SCHOOL-ROSTER section 3.2), in the greeting-card register
+    (ART-DIRECTION section 2026-09-28, G-053).
+
+    Silhouette (law 11): the circle. One circle, nothing on its rim, so the
+    outline stays the only perfect circle among the act's enemies; the face
+    and the glint sit inside it and never touch its edge.
+
+    Colour (law 6): contact red, which School's reservation holds for the
+    dodgeball alone. Cute is not safe: the round pleased thing is still the
+    thing wearing red, and it still takes a third of your health.
+
+    The face is dead centre and pleased about nothing in particular; whoever
+    threw it is not in the picture (law 9: the object is the role). Eyes are
+    more than a sixth of the ball across. Glints are bone, never paper (law
+    10: paper is the player's); the ball's own glint is upper left and a
+    tenth of the ball across. Blush sits under the enemy value ceiling
+    (D-031).
+    CONFORM adds the outline; there is none here, and no strokes.
+    Colours: threat-contact #C4472E, ink #2A2521, bone #D2C6AC,
+    blush #EBA39C.
+  -->
+  <circle cx="50" cy="50" r="48" fill="#C4472E"/>
+  <!-- the ball's one glint -->
+  <ellipse cx="23" cy="24" rx="4.6" ry="3.2" transform="rotate(-40 23 24)" fill="#D2C6AC"/>
+  <!-- eyes, each with one glint upper left -->
+  <ellipse cx="34" cy="45" rx="9" ry="11" fill="#2A2521"/>
+  <ellipse cx="66" cy="45" rx="9" ry="11" fill="#2A2521"/>
+  <circle cx="30.8" cy="40.2" r="3.3" fill="#D2C6AC"/>
+  <circle cx="62.8" cy="40.2" r="3.3" fill="#D2C6AC"/>
+  <!-- blush -->
+  <ellipse cx="21.5" cy="61" rx="8" ry="4.8" fill="#EBA39C"/>
+  <ellipse cx="78.5" cy="61" rx="8" ry="4.8" fill="#EBA39C"/>
+  <!-- a small pleased mouth -->
+  <path d="M41.5,60 Q50,74 58.5,60 Q50,65.5 41.5,60 Z" fill="#2A2521"/>
 </svg>

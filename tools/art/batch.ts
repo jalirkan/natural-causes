@@ -260,7 +260,7 @@ export const TEST_BATCH: AssetSpec[] = [
     act: 'school',
     role: 'swarm',
     source: 'svg',
-    tests: 'faces, humour, human characters — THE REAL TEST',
+    tests: 'the bright hard rectangle in the greeting-card register: a clipboard with rounded corners and straight sides, carried by a cute figure that is still the role',
     targetSize: 96,
     seed: 4004,
     whyThisStage:
@@ -276,21 +276,26 @@ export const TEST_BATCH: AssetSpec[] = [
     // by it is funnier and colder than one who is sorry about it.
     //
     // Drawn 2026-09-27 (G-038), the last generated sprite to go. The subject
-    // is now the drawing's description: the idle pose from §3.5 — stopped,
+    // is the drawing's description: the idle pose from §3.5 — stopped,
     // consulting the clipboard — with the clipboard in bone (§6.2) and no gold
     // on the body (§6.1, G-031).
+    //
+    // Redrawn 2026-09-28 in the greeting-card register (G-053): kid
+    // proportions, the face, blush and bone glints. The clipboard keeps its
+    // straight sides with rounded corners (the register's first rule names it), and
+    // it is still the role: pleased with the clipboard, not with you.
     subject: [
-      'a substitute schoolteacher drawn as a plain mid-century institutional pictogram, standing and facing forward',
-      'an ordinary adult figure of average unremarkable build, a simplified geometric body, plain and generic, more diagram than portrait',
-      'a flat muted sage green cardigan (#6B7F53, the act mid tone) with two small dark buttons, the head a rounded lump in the same green, no hair',
-      'warm grey-brown trousers (#6E6353) and warm near-black shoes (#2A2521)',
-      'a plain dark lanyard loop around the neck with a small dark round-cornered badge hanging from it',
-      'holding a large clipboard up in front of the chest in one hand and off to one side, so its square corners make that edge of the outline',
-      'the clipboard is the brightest and hardest-edged shape in the picture, a flat muted tan (#D2C6AC) and never white',
-      'a dark clip on its top edge and three short ruled lines on the sheet, no text',
+      'a substitute schoolteacher drawn in the greeting-card register, standing and reading a clipboard',
+      'kid proportions, as every sprite in the register has them: a big round head, a small round body, stubby legs, mitten hands, plain and generic, the role and not a portrait',
+      'the head a rounded lump in flat muted sage green (#6B7F53, the act mid tone), wider than tall, no hair, the mitten hands in the same green',
+      'a warm grey-brown cardigan (#6E6353) and warm near-black stubby legs and shoes (#2A2521)',
+      'a dark lanyard on a soft curved cord with a small dark round-cornered badge hanging from it',
+      'holding a big clipboard out in front and to one side, so its straight right side and straight bottom make that part of the outline, its corners rounded and its sides straight',
+      'the clipboard is the brightest shape in the picture, a flat muted tan (#D2C6AC) and never white, with a dark clip on its top edge and three short rounded ruled lines, no text',
       'the other arm hanging at the side',
-      'the head tipped toward the clipboard, reading it: two half-lidded eyes and one short straight line for a mouth, set low and to one side, no eyebrows',
-      'no expression whatsoever, completely indifferent, unbothered, looking down at the clipboard and not at the viewer',
+      'the face set low and to one side and cast down at the clipboard: two big dark eyes with one small tan glint each, a soft pink blush (#EBA39C) under each eye, a small pleased smile',
+      'one small tan glint on the head and one on the cardigan, upper left, never white',
+      'pleased with the clipboard and unbothered, indifferent to the viewer and not looking at them',
       'institutional and anonymous, not sad, not nervous, not sympathetic',
       'no yellow, no gold, no olive green anywhere on the figure',
     ].join(', '),
@@ -496,9 +501,9 @@ export const CONCEPTION_ROSTER: AssetSpec[] = [
 /**
  * The School roster (SCHOOL-ROSTER.md §3). Four swarm-tier assets; the fifth,
  * `substitute-teacher`, is in the test batch above and already passed, and the
- * roster was written around it rather than over it. The four swarm assets, the
- * school-age player and the Gym Teacher are authored SVG (G-038, `art:svg`);
- * the substitute stays generated.
+ * roster was written around it rather than over it. All five swarm assets,
+ * the school-age player and the Gym Teacher are authored SVG (G-038,
+ * `art:svg`), redrawn in the greeting-card register (G-053).
  *
  * Every silhouette here is what it is because the clipboard took the bright
  * hard rectangle (§1). Homework is a wedge and the hall monitor's sash runs
@@ -523,7 +528,7 @@ export const SCHOOL_ROSTER: AssetSpec[] = [
     name: 'Clique',
     act: 'school',
     role: 'swarm',
-    tests: 'the cluster — one enemy that must not read as four',
+    tests: 'the cluster — one enemy that must not read as four, the same cute face four times',
     targetSize: 88,
     seed: 10010,
     source: 'svg',
@@ -536,13 +541,14 @@ export const SCHOOL_ROSTER: AssetSpec[] = [
     // outline" — and the identical repeated face, which is both the joke and
     // cheaper to author than four faces.
     subject: [
-      'a single wide lumpy mass with four heads growing out of the top of it, fused together into one body at the shoulders',
+      'a single soft round mass with four big round heads on top of it, fused together into one body at the shoulders, drawn in the greeting-card register',
       'one continuous outline around the whole group, no gaps between them and no space to pass through',
-      'the heads at slightly different heights, all turned the same way and all looking off to one side',
-      'every head has exactly the same face: two small flat dots for eyes and one short straight line for a mouth, no eyebrows',
-      'no arms, no legs, no hands, no bags, no clothing detail of any kind',
-      'flat muted olive-grey green with one darker tone as the only shadow',
-      'completely blank and unbothered, not looking at the viewer, not reacting to anything',
+      'the heads at slightly different heights, each rimmed in dark where it meets the next, all turned the same way and all looking off to one side',
+      'every head has exactly the same face: two big dark eyes with one small tan glint each, a soft pink blush (#EBA39C) under each eye, a small pleased smile',
+      'no arms, no hands, no bags, no clothing detail, a row of little dark feet underneath, a pair under each head',
+      'flat muted sage green heads and body (#6B7F53), one warm grey-brown tone (#6E6353) across the lower third as the only shadow',
+      'one small tan glint on each head and one on the body, upper left, never white',
+      'content and unbothered, not looking at the viewer, not reacting to anything',
       'no yellow, no gold, no pale yellow-green anywhere',
     ].join(', '),
   },
@@ -551,23 +557,28 @@ export const SCHOOL_ROSTER: AssetSpec[] = [
     name: 'Dodgeball',
     act: 'school',
     role: 'swarm',
-    tests: 'the circle — the only radially symmetric thing in the act',
+    tests: 'the circle — the only perfect circle in the act, cute and still contact red',
     targetSize: 44,
     seed: 11011,
     source: 'svg',
     whyThisStage:
       'School is where the player is first hurt by something that was aimed at the room rather than at them.',
-    // A perfect circle at 44px carries nothing but its own edge, so every
-    // interior mark is a liability: a seam or a highlight would break the
-    // radial symmetry that is the whole read at speed. The face is dead
-    // centre and does nothing, because whoever threw it is not in the
-    // picture (law 9) and it has no opinion about arriving.
+    // A perfect circle at 44px carries nothing but its own edge, so nothing
+    // touches the rim: a seam or a stripe would break the radial symmetry
+    // that is the whole read at speed. The register's one glint and the face
+    // sit inside it. Whoever threw it is not in the picture (law 9).
+    //
+    // Redrawn 2026-09-28 (G-053) in contact red, which the reservation holds
+    // for it (SCHOOL-ROSTER §3.2): the grey-brown ball wore no threat colour
+    // (AUDIT 132), and in the cute register the thing that hurts you is
+    // still the thing wearing red.
     subject: [
-      'a single perfectly round rubber ball seen straight on, one flat circle',
-      'flat warm grey-brown (#6E6353), one solid colour across the whole ball, with a muted tan (#D2C6AC) face disc',
-      'absolutely no seam, no panel lines, no stripe, no highlight, no shine, no texture',
-      'one small face dead centre: two small dark dots for eyes and one short straight horizontal line for a mouth',
-      'completely blank and expressionless, not excited, not angry, not moving its face at all',
+      'a single perfectly round rubber playground ball seen straight on, one flat circle, drawn in the greeting-card register',
+      'flat contact red (#C4472E), the threat colour School holds for the dodgeball alone, one solid colour across the whole ball',
+      'no seam, no panel lines, no stripe, no texture, nothing on its rim, so the outline stays a perfect circle',
+      'one small flat tan glint (#D2C6AC) at the upper left, a tenth of the ball across, never white',
+      'a face dead centre: two big dark eyes more than a sixth of the ball across, one small tan glint in each, a soft pink blush (#EBA39C) under each eye, a small pleased smile',
+      'pleased about nothing in particular, not angry, not menacing, aimed at the room rather than at the viewer',
       'nothing else in the picture, no hands, no arms, no motion lines, no impact marks',
       'no yellow, no gold, no olive green anywhere',
     ].join(', '),
@@ -577,7 +588,7 @@ export const SCHOOL_ROSTER: AssetSpec[] = [
     name: 'Homework',
     act: 'school',
     role: 'swarm',
-    tests: 'the wedge — paper that is deliberately not a rectangle',
+    tests: 'the wedge — paper that is deliberately not a rectangle, with a face (law 5)',
     targetSize: 72,
     seed: 12012,
     source: 'svg',
@@ -588,14 +599,21 @@ export const SCHOOL_ROSTER: AssetSpec[] = [
     // shadow separates from the clipboard on shape, edge and value at once.
     // "Dull" is the brief, not a compromise — it is the only enemy in the act
     // that cannot hurt anyone and it should look like it.
+    //
+    // Drawn in bone with shadow strata since the first SVG pass: shadow alone
+    // sits 0.09 L from school-deep and CHECK sent it back on contrast, so the
+    // wedge and its rounded top carry the separation from the clipboard.
+    // Redrawn 2026-09-28 (G-053) with the register's face; law 5 gives it a
+    // mouth the roster's two dots did not have.
     subject: [
-      'a leaning stack of paper sheets seen from the side, triangular in profile, wider at the bottom and tapering toward the top',
-      'the whole stack tilts to one side, the corners soft and rounded, the edges uneven where the sheets do not line up',
-      'flat dull grey-brown, one solid colour, no white paper, no bright paper, no cream',
+      'a leaning stack of paper sheets seen from the side, triangular in profile, wide at the bottom and tapering to a soft rounded top that leans to one side, drawn in the greeting-card register',
+      'every corner rounded, the sheets in flat muted tan (#D2C6AC) with three warm grey-brown (#6E6353) strata between them, tilting with the lean',
+      'one loose sheet poking out of each side so the sheets never line up',
       'no straight rectangle, not a neat block, not a squared-off slab, not a folder, not a book',
-      'one small face near the top of the stack: two small dark dots for eyes and no mouth at all',
-      'completely inert and uninteresting, doing nothing, not looking at anything',
-      'no text, no handwriting, no ruled lines, no yellow, no gold, no olive green',
+      'a content little face on the front of the stack: two big dark eyes with one small tan glint each, a soft pink blush (#EBA39C) under each eye, a small pleased smile',
+      'no glint on the stack itself, because a tan glint on tan paper is no glint',
+      'doing nothing to anyone, not looking at anything',
+      'no text, no handwriting, no ruled lines, no yellow, no gold, no olive green, never white',
     ].join(', '),
   },
   {
@@ -603,7 +621,7 @@ export const SCHOOL_ROSTER: AssetSpec[] = [
     name: 'Hall monitor',
     act: 'school',
     role: 'swarm',
-    tests: 'the sash — one hard diagonal that must not read as a badge',
+    tests: 'the sash — one hard diagonal that must not read as a badge, on a cute round figure',
     targetSize: 88,
     seed: 13013,
     source: 'svg',
@@ -615,13 +633,13 @@ export const SCHOOL_ROSTER: AssetSpec[] = [
     // have been the natural read and would have put a second bright hard
     // rectangle in an act that has exactly one.
     subject: [
-      'an upright figure standing squarely and facing forward, drawn as a plain mid-century institutional pictogram',
-      'one wide hard-edged diagonal band crossing the whole body from shoulder to hip, running all the way off both sides of the body and cut off by them',
-      'the band is a flat single tone with straight parallel edges and no writing on it',
-      'a simplified geometric body, plain and generic, more diagram than portrait',
-      'the face is two small flat dots for eyes and one short straight line for a mouth, no eyebrows',
-      'looking along its own route off to one side, not at the viewer, completely indifferent and unbothered',
-      'flat muted sage green body (#6B7F53, the act mid tone, never the pale pickup tone) with the band in flat muted tan (#D2C6AC)',
+      'an upright figure standing squarely and facing forward, drawn in the greeting-card register\'s kid proportions: a big round head, a small round body, stubby arms and legs, mitten hands',
+      'one wide hard-edged diagonal band crossing the body from the left shoulder to the right hip, running all the way off both sides of the body and cut off by them',
+      'the band is a flat muted tan (#D2C6AC) with straight parallel edges and no writing on it',
+      'the sweater and sleeves in flat elite purple (#7C5C8A), the threat colour School holds for the hall monitor alone',
+      'the head a rounded lump in flat muted sage green (#6B7F53, the act mid tone, never the pale pickup tone), wider than tall, no hair, the mitten hands in the same green, warm near-black stubby legs (#2A2521)',
+      'the face turned along its own route off to one side: two big dark eyes with one small tan glint each, a soft pink blush (#EBA39C) under each eye, a small pleased smile, not looking at the viewer',
+      'one small tan glint on the head and one on the sweater, upper left, never white',
       'no badge, no name tag, no lettering, no armband, no rectangle on the chest, no clipboard, no lanyard',
       'no yellow, no gold, no olive green anywhere on the figure',
     ].join(', '),
@@ -659,13 +677,21 @@ export const SCHOOL_ROSTER: AssetSpec[] = [
     whyThisStage:
       'School is where the player is first organised into a crowd by someone who never touches them, and the whistle is how it is done.',
     // Law 9: the whistle and the shorts are the character, the figure is what
-    // carries them. Nothing about the body is described but its height.
+    // carries them. Nothing about the body is described but its height and
+    // the register's kid proportions (G-053). Redrawn 2026-09-28 with empty
+    // hands: the reservation says the whistle is the only thing it carries,
+    // so the stopwatch the 2026-09-27 drawing held is gone.
     subject: [
-      'the tallest thing in the act: a standing figure in gym shorts with a whistle on a cord, eight times the player\'s height',
-      'shirt in flat muted deep teal (#2F7370), the boss colour, as Conception\'s Egg holds it',
-      'shorts in warm grey-brown (#6E6353), head, legs and whistle in muted tan (#D2C6AC), cord and face marks in warm near-black (#2A2521)',
-      'the face is two small flat dots for eyes and one short straight line for a mouth, not looking at the viewer',
-      'the role, not a person: no clipboard, no lettering, no badge, no build described',
+      'the tallest thing in the act: a standing figure in gym shorts with a whistle on a cord, eight times the player\'s height, drawn in the greeting-card register\'s kid proportions: a big round head, a round body, stubby arms and legs, mitten fists',
+      'both fists on the hips with the elbows out and the hands empty: the whistle is the only thing it carries',
+      'shirt and sleeves in flat muted deep teal (#2F7370), the boss colour, as Conception\'s Egg holds it',
+      'round gym shorts in flat muted tan (#D2C6AC) with a teal stripe down each side, soft and never a hard rectangle',
+      'knee-high tan tube socks with two teal stripes each, warm near-black sneakers (#2A2521) with tan soles, toes turned out',
+      'the head, forearms and fists in flat muted sage green (#6B7F53, the act mid tone), no hair',
+      'a tan whistle, a barrel and a mouthpiece, on a soft dark curved cord around the neck',
+      'the face looking off to one side, not at the viewer: two big dark eyes with one small tan glint each, a soft pink blush (#EBA39C) under each eye, a small pleased smile',
+      'one small tan glint on the head and one on the shirt, upper left, never white',
+      'the role, not a person: no clipboard, no stopwatch, no lettering, no badge',
       'no yellow, no gold anywhere on the figure',
     ].join(', '),
   },
