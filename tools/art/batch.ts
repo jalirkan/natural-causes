@@ -757,17 +757,23 @@ export const ITEM_ICONS: AssetSpec[] = [
   },
   {
     id: 'icon-pull',
-    name: 'Chemotaxis icon',
+    name: 'Candy icon',
     act: 'conception',
     role: 'icon',
     fieldRiding: true,
     source: 'svg',
     targetSize: 96,
     seed: 61015,
-    tests: 'the classroom magnet, instantly legible',
+    // G-054: the kid's thing. Planted at the pull's centre on the field
+    // (ActScene syncAreas, 40px), so it keeps to rose, deep, blush, bone and
+    // ink: its glint is bone, since paper is the player's (law 10).
+    tests: 'one wrapped sweet everything comes over for, read at 52px on a card and 40px at the centre of the pull',
     subject: [
-      'a classic horseshoe magnet with two clean parallel arms of even width and a smooth semicircular bend, pole tips pointing downward, seen perfectly flat, filling most of the frame',
-      'flat muted dusty rose horseshoe with flat pale warm rectangular tips, one dark line where each tip meets its arm',
+      'one wrapped sweet seen flat and straight on, a plump round middle twisted tight at each side into a crimped fan of wrapper, a bow-tie silhouette',
+      'a pleased little face on the middle: two big dark eyes with one small pale glint each, a blush oval under each eye, a small smile',
+      'the middle in flat muted dusty rose (#A86A63) with one small pale warm (#D2C6AC) glint at its upper left and one deep wine (#6B3A44) shadow along its lower right, the twists deep wine',
+      'the fans in flat soft blush pink (#EBA39C) with two dusty rose pleats in each, cheeks blush pink, eyes and smile warm near-black (#2A2521)',
+      'round masses, kid proportions, flat fills, no stripes, no text, no brand, no stick',
     ].join(', '),
   },
   {
@@ -837,18 +843,24 @@ export const ITEM_ICONS: AssetSpec[] = [
   },
   {
     id: 'icon-chain',
-    name: 'Gossip icon',
+    name: 'Telephone icon',
     act: 'conception',
     role: 'icon',
     fieldRiding: true,
     source: 'svg',
     targetSize: 96,
     seed: 61020,
-    tests: 'one hit passed on to two more, read at 52px on a card and 30px in flight',
+    // G-054: the whispering game, as a toy. The shot itself on the field
+    // (ActScene syncProjectiles, 30px, turned to its heading), so it keeps to
+    // rose, deep, blush, shadow, bone and ink: its glints are bone, since
+    // paper is the player's (law 10). Generic, nothing brand-shaped.
+    tests: 'a toy telephone passing it on, read at 52px on a card and 30px in flight; the handset says telephone, never a car',
     subject: [
-      'three plain round dots joined by one bent line, like a diagram of who told whom',
-      'the first dot larger with a pale mark at its centre where it landed, the other two equal',
-      'flat muted dusty rose dots on a pale warm line, no tails on any dot',
+      'a toy telephone on two little round wheels, seen straight on: a plump dome of a body with a fat curved handset lying across its top, each end of the handset resting on a shoulder of the body',
+      'a pleased face on the body: two big dark eyes with one small pale glint each, a blush oval under each eye, a small smile',
+      'the body in flat muted dusty rose (#A86A63) with one deep wine (#6B3A44) shadow along its right side and underneath and one small pale warm (#D2C6AC) glint high on its left',
+      'the handset in flat soft blush pink (#EBA39C) with one small pale warm glint, the wheels warm grey-brown (#6E6353) with pale warm hubs, eyes and smile warm near-black (#2A2521)',
+      'no dial on its front, no eyes on stalks, no cord, no text, no brand, no rectangle',
     ].join(', '),
   },
   {
@@ -925,69 +937,71 @@ export const ITEM_ICONS: AssetSpec[] = [
       'no text, no numbers, no figure, no clock, no purple',
     ].join(', '),
   },
-  // Personal Space (G-044) is drawn. Its icon also rides the aura ring on the
-  // field (about 32px), so it keeps to rose, bone and ink as Grudge does.
+  // Cooties (G-054; personal-space) is drawn. Its icon also rides the aura
+  // ring on the field (about 32px), so it keeps to rose, deep, blush, bone
+  // and ink: its glint is bone, since paper is the player's (law 10).
   {
     id: 'icon-aura',
-    name: 'Personal Space icon',
+    name: 'Cooties icon',
     act: 'conception',
     role: 'icon',
     fieldRiding: true,
     source: 'svg',
     targetSize: 96,
     seed: 61025,
-    tests: 'a rope barrier that says keep your distance, read at 52px on a card and 32px riding the ring',
+    tests: 'the playground cootie shot, circle, circle, dot, dot, read at 52px on a card and 32px riding the ring',
     subject: [
-      'a velvet rope barrier seen straight on: two short stanchion posts, each with a round ball finial on a cap and a flat round base',
-      'one thick rope hooked to the inner face of each post just under the cap, drooping between them in a single sag',
-      'pale warm posts, finials, bases and rope ends, flat muted dusty rose rope, dark interior lines under the finials and caps, at the bases and where the rope meets each post',
-      'nothing else: no sign, no carpet, no queue, no figure, no text',
+      'the playground cootie shot seen flat: one fat round ring with two big round dots inside it, and the two dots are the eyes of a pleased little face',
+      'each dot with one small pale glint, a blush oval under each, a small smile under them',
+      'the ring in flat muted dusty rose (#A86A63) with one small pale warm (#D2C6AC) glint at its upper left and one deep wine (#6B3A44) shadow along its lower right',
+      'inside the ring flat pale warm (#D2C6AC), dots and smile warm near-black (#2A2521), cheeks soft blush pink (#EBA39C)',
+      'nothing else: no bug, no arm, no pen, no text',
     ].join(', '),
   },
-  // Judgement (G-044) is drawn too. Its gavel also comes down on the target
-  // during the telegraph and sits at the impact point (~36px), so it keeps to
-  // rose, bone and ink like Grudge, Gossip and Snooze.
+  // Tattle (G-054; judgement) is drawn too. Its bubble comes down on the
+  // target during the telegraph (36px) and sits at the impact point (40px),
+  // never turned, so it keeps to blush, rose, bone and ink: its glint is
+  // bone, since paper is the player's (law 10). No face: Adolescence's group
+  // chat is the speech bubble with a face.
   {
     id: 'icon-bolt',
-    name: 'Judgement icon',
+    name: 'Tattle icon',
     act: 'conception',
     role: 'icon',
     fieldRiding: true,
     source: 'svg',
     targetSize: 96,
     seed: 61027,
-    tests: 'a gavel about to land, read at 52px on a card and 36px dropping onto the field, never a hammer',
+    tests: 'somebody telling on somebody, read upright at 52px on a card and 36px dropping onto the field',
     subject: [
-      'a gavel seen from the side, its head a thick horizontal cylinder with a flat pale face at each end, no claw',
-      'a short handle leaving the middle of the head and running down-left at about forty degrees, a round knob at its end',
-      'held just above a small round sound block seen at a slight angle, its near rim one dark line',
-      'three tiny flat impact ticks fanned up off the block in the gap under the head',
-      'flat muted dusty rose head and handle, pale warm end faces, block and ticks, dark lines where the head meets the handle and the faces meet the head',
+      'one round speech bubble seen flat and upright, with one small tail at its lower left pointing down at whoever it is about',
+      'one fat exclamation mark in the middle of it, a tapering bar and a round dot, and nothing else written',
+      'the bubble in flat soft blush pink (#EBA39C) with one small pale warm (#D2C6AC) glint at its upper left and one dusty rose (#A86A63) shadow along its lower right',
+      'the exclamation mark warm near-black (#2A2521)',
+      'no face, no words, no letters, no second bubble, no phone',
     ].join(', '),
   },
-  // Backhand (G-044, mode sweep) is drawn like the five above. Its icon also
-  // rides the leading edge of each sweep on the field (~36px, rotated to the
-  // sweep's angle), so it keeps to rose, bone and ink as Grudge does. It is a
-  // hand with a cuff, as Reflex's manicule is, so everything else about it
-  // differs: leaning diagonally where that one lies level, every finger out
-  // where that one points one, and moving where that one aims.
+  // Rattle (G-054; backhand, mode sweep) is drawn like the five above. Its
+  // icon also rides each sweep across its arc on the field (~36px, turned to
+  // the swing's radial angle), so it lies along +x with the handle toward the
+  // player and the head swinging out, and keeps to rose, deep, blush, bone
+  // and ink: its glint is bone, since paper is the player's (law 10).
   {
     id: 'icon-sweep',
-    name: 'Backhand icon',
+    name: 'Rattle icon',
     act: 'conception',
     role: 'icon',
     fieldRiding: true,
     source: 'svg',
     targetSize: 96,
     seed: 61026,
-    tests: 'a backhand mid-swing, unmistakably a slap and never the manicule, read at 52px on a card and 36px on the field',
+    tests: 'a baby rattle swung at the crowd, read at 52px on a card and 36px turning through the sweep, head out and handle in',
     subject: [
-      'an open hand seen from the back, four fingers held together and only slightly fanned, the thumb out on the leading side',
-      'leaning well over into a swing to the right, as if caught halfway through it',
-      'three short flat motion arcs trailing off its heel, pieces of the swing\'s own curve, none at the fingertips',
-      'a simple shirt cuff with one button at the wrist, as on the printed pointing hand, and no forearm past it',
-      'no finger pointing, no palm showing, never a wave',
-      'flat muted dusty rose hand, pale warm cuff and motion arcs, dark interior lines between the fingers',
+      'a baby rattle lying on its side: a big round head on the right, a short fat handle running left from a little collar, and a round ring on the end of the handle',
+      'a pleased face on the head: two big dark eyes with one small pale glint each, a blush oval under each eye, a small smile',
+      'the head in flat muted dusty rose (#A86A63) with one small pale warm (#D2C6AC) glint at its upper left and one deep wine (#6B3A44) shadow along its lower right',
+      'the handle and ring flat pale warm (#D2C6AC), the collar soft blush pink (#EBA39C), eyes and smile warm near-black (#2A2521)',
+      'kid proportions, stubby handle, no hand holding it, no motion lines, no text',
     ].join(', '),
   },
   // G-046's five evolutions, each an object from the life that the weapon
