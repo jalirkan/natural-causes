@@ -31,7 +31,7 @@ adds a pressure (cost) rather than a verb. The consequence strings lift verbatim
 |---|---|---|
 | **Contact `#C4472E`** | `deadline` | The act's heaviest hit is its only red thing. The invoice, which anyone would print in red, is bone and ink. |
 | **Elite `#7C5C8A`** | `group-project` | The test's colour on the test's successor: the slow, heavy thing that costs the most to get past. On the whole body, never on one head (§3.4). |
-| **Ranged `#D69A3C`** | `registrar` — **on the form it fires, never its body** (`G-031`); in data, `PROJECTILE_HOLDER` | The Loan's tape is the only other gold, on its figures. |
+| **Ranged `#D69A3C`** | `registrar` — **on the form it fires, never its body** (`G-031`); in data, `PROJECTILE_HOLDER` | The only gold in the act. The Loan's figures were to be gold and are ink: one holder per colour, and the form holds it (as the Gym Teacher's whistle and Prom's glints found). |
 | **Boss `#2F7370`** | `boss-loan` | The adding machine's body. |
 
 **The act's tones**, for `ACT_TONES` in `tools/art/palette.ts`:
@@ -261,7 +261,7 @@ export const COLLEGE: ActDef = {
 
 **What it is.** An adding machine at boss scale, teal, with a paper tape
 curling up out of it and off the top of the frame; the figures on the tape are
-the act's only other gold, drawn as marks, never as digits. A face on the
+ink marks, never digits (gold is the form's alone, §1). A face on the
 machine's front, eyes open, patient. It is the only boss in the life that
 does not want anything from the player. It wants the balance.
 

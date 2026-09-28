@@ -261,8 +261,8 @@ export const RESERVATIONS: Partial<Record<ActId, ActReservations>> = {
       // The test's colour on the test's successor: the slow, heavy thing that
       // costs the most to get past. On the whole body, never on one head.
       elite: 'group-project',
-      // G-031: the registrar's gold is on the form it fires, never its body;
-      // The Loan's figures are the only other gold.
+      // G-031: the registrar's gold is on the form it fires, never its body,
+      // and it is the act's only gold: The Loan's figures are ink.
       ranged: PROJECTILE_HOLDER,
       // The adding machine's body.
       boss: 'boss-loan',
