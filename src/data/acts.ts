@@ -487,8 +487,10 @@ export const ALL_ACTS: ActDef[] = [CONCEPTION, SCHOOL, ADOLESCENCE, COLLEGE, OFF
  * atlas, a player frame and a boss frame registered in `act-visuals.ts`.
  * School joined when its authored SVG sprites landed (G-038); its boss is the
  * Gym Teacher, picture and behaviour (SCHOOL-ROSTER §9). College joined when
- * its seven drawings were packed (G-045), so the browser's life now ends at
- * twenty-two. A test asserts this list and `ACT_VISUALS` agree, so moving an
- * act in is a one-line change that fails loudly if the art is not there.
+ * its seven drawings were packed (G-045); The Office joined when its seven
+ * were (G-048), so the browser's life now ends at thirty-four, and every act
+ * in `ALL_ACTS` is startable. A test asserts this list and `ACT_VISUALS`
+ * agree, so moving an act in is a one-line change that fails loudly if the
+ * art is not there.
  */
-export const ACTS: ActDef[] = [CONCEPTION, SCHOOL, ADOLESCENCE, COLLEGE];
+export const ACTS: ActDef[] = [CONCEPTION, SCHOOL, ADOLESCENCE, COLLEGE, OFFICE];

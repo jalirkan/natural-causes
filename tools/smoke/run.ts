@@ -19,7 +19,8 @@ import { createServer, type ViteDevServer } from 'vite';
  * It starts the Vite dev server, drives headless Chromium through one whole
  * life with the dev panel — god, 4x, skip to boss, kill, once an act; in
  * College it also walks the player into a tuition and a registrar's HOLD, the
- * act's own drawings (AUDIT 39) — and at every
+ * act's own drawings (AUDIT 39), and in The Office it asks that the tuition
+ * still draws as tuition (AUDIT 38) — and at every
  * milestone asserts: no console error, no page error, no failed request, no
  * Phaser texture warning, nothing visible drawn from `__MISSING`, no
  * NaN/undefined in any text on screen, and after the crossing the screen
@@ -474,9 +475,27 @@ async function main(): Promise<void> {
 
   await press('college-boss', '1x');
   await press('college-boss', 'kill');
+  p = await waitFor('office', (q) => q.act?.index === 4 && q.act.shown === 4 && q.act.zoom === 1 && hudAge(q));
+  await press('office', '4x');
+  // Tuition persists (COLLEGE-ROSTER §3.3) and the invoices worn in College
+  // cross with the player: in The Office they must still draw as tuition from
+  // College's atlas, not as the act's ping (AUDIT six, 38).
+  p = await waitFor('office', (q) => q.act?.index === 4 && q.act.timeScale === 4 && populated(q));
+  const carried = p.act!.worn['tuition.png'] ?? 0;
+  if (carried < 1) {
+    throw new SmokeFailure('office', `the tuition worn in College is not drawn in The Office: worn ${JSON.stringify(p.act!.worn)}`, p);
+  }
+  await milestone('office', p, `${actLine(p)}  worn tuition ${carried}`);
+
+  await press('office-boss', 'skip to boss');
+  p = await waitFor('office-boss', (q) => !!q.act?.boss && q.act.bossSprite?.frame === q.act.bossFrame);
+  await milestone('office-boss', p, actLine(p));
+
+  await press('office-boss', '1x');
+  await press('office-boss', 'kill');
   p = await waitFor(
     'certificate',
-    (q) => !!q.act?.won && !!q.act.overlay?.includes('Natural causes.') && q.act.overlay.includes('Age 22.'),
+    (q) => !!q.act?.won && !!q.act.overlay?.includes('Natural causes.') && q.act.overlay.includes('Age 34.'),
   );
   await milestone('certificate', p, p.act!.overlay!.split('\n').slice(0, 2).join(' '));
 }

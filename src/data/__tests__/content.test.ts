@@ -174,7 +174,7 @@ describe("law 10 / G-030 — pickups take the act's light tone", () => {
     // earlier, where it is enforceable today: the palette an enemy in each act
     // is allowed to be quantised INTO excludes paper (the player's) and the
     // act's light tone (the pickups').
-    for (const act of ['conception', 'school', 'adolescence', 'college'] as const) {
+    for (const act of ['conception', 'school', 'adolescence', 'college', 'office'] as const) {
       const allowed = enemyPalette(act).map((c) => c.name);
       expect(allowed, `act "${act}" lets an enemy be paper`).not.toContain('paper');
       expect(allowed, `act "${act}" lets an enemy take the pickup tone`).not.toContain(
