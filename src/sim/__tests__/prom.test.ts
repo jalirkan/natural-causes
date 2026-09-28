@@ -341,9 +341,14 @@ describe('(e) at zero the act ends, the way any act ends', () => {
     expect(ADOLESCENCE.endWord).toBe('SMILE');
   });
 
-  it('the same at the end of the whole life', () => {
-    const w = new World({ acts: ALL_ACTS, seed: 9, startingItems: [] });
-    for (const act of ALL_ACTS.slice(0, -1)) {
+  it('the same at the end of a life that ends at Prom', () => {
+    // The life up to and including Adolescence. This was ALL_ACTS while
+    // Adolescence was the last act; College follows it now (G-045), and in
+    // ALL_ACTS Prom falling is a crossing, not the end (college-act.test.ts).
+    // The life got longer, which is the point.
+    const life = ALL_ACTS.slice(0, ALL_ACTS.indexOf(ADOLESCENCE) + 1);
+    const w = new World({ acts: life, seed: 9, startingItems: [] });
+    for (const act of life.slice(0, -1)) {
       expect(w.act).toBe(act);
       w.actTime = act.durationSeconds;
       alive(w, DT);
@@ -364,7 +369,7 @@ describe('(e) at zero the act ends, the way any act ends', () => {
     shoot(w, BOSS_HP);
     alive(w, 5);
     expect(w.won).toBe(true);
-    expect(w.certificate).toEqual({ ...WON_AT_EIGHTEEN, actIndex: ALL_ACTS.indexOf(ADOLESCENCE) });
+    expect(w.certificate).toEqual({ ...WON_AT_EIGHTEEN, actIndex: life.indexOf(ADOLESCENCE) });
   });
 });
 
