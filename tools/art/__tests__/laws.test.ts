@@ -26,7 +26,7 @@ import {
 import type { AssetSpec } from '../types';
 import { UI_FILL } from '../../../src/config';
 import { ITEMS, isActive } from '../../../src/data/items';
-import { ACT_IDS, FULL_PALETTE, PAPER, actLight, rgbToOklab } from '../palette';
+import { ACT_IDS, FULL_PALETTE, PAPER, actLight, rgbToOklab, type ActId } from '../palette';
 import { THREAT } from '../palette';
 
 /**
@@ -256,6 +256,28 @@ describe('law 11 — each act reserves its silhouettes, before generation', () =
     // moved to the thing that does the reaching.
     expect(RESERVATIONS['conception']!.reservedThreat.ranged).toBe(PROJECTILE_HOLDER);
     expect(RESERVATIONS['conception']!.reservedThreat.boss).toBe('boss-egg');
+  });
+
+  it('D-029: every variant frame is a boss-role spec in its act and holds its holder\'s reservation', () => {
+    let variants = 0;
+    for (const [act, reserved] of Object.entries(RESERVATIONS)) {
+      for (const [holder, ids] of Object.entries(reserved!.variants ?? {})) {
+        for (const id of ids) {
+          variants++;
+          const spec = ALL_ASSETS.find((a) => a.id === id);
+          expect(spec, `${act}: variant "${id}" of "${holder}" has no spec`).toBeDefined();
+          expect(spec!.act, id).toBe(act);
+          expect(spec!.role, id).toBe('boss');
+          const v = reservationVerdict(act as ActId, id, 'boss');
+          expect(v.status === 'holds' || v.status === 'holds-threat', `${id}: ${v.status}`).toBe(true);
+          expect((v as { variantOf?: string }).variantOf, id).toBe(holder);
+          expect(() => assertReserved(act as ActId, [id], 'boss')).not.toThrow();
+        }
+        // The holder itself is not its own variant.
+        expect(ids, holder).not.toContain(holder);
+      }
+    }
+    expect(variants).toBeGreaterThanOrEqual(7);
   });
 
   it('no two assets in an act share a silhouette', () => {
