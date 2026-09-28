@@ -278,10 +278,13 @@ describe('born at thirteen: neither is offered before Adolescence', () => {
     }
   });
 
-  it('every other item is in the pool from conception', () => {
+  it('every other item is in the pool from conception, or born after Adolescence', () => {
+    // Later acts have items of their own (the Letter at Family, G-050); what
+    // this pins is that nothing else arrives at thirteen or before it.
+    const adolescence = ALL_ACTS.indexOf(ADOLESCENCE);
     for (const def of Object.values(ITEMS)) {
-      if (born.includes(def.id)) continue;
-      expect(def.from, def.id).toBeUndefined();
+      if (born.includes(def.id) || def.from === undefined) continue;
+      expect(ALL_ACTS.findIndex((a) => a.id === def.from), def.id).toBeGreaterThan(adolescence);
     }
     // A sanity line: the field mode is Snooze's alone today.
     expect(Object.values(ITEMS).filter((d) => isActive(d) && d.mode === 'field').map((d) => d.id)).toEqual([

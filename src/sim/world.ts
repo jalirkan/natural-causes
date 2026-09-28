@@ -13,6 +13,7 @@ import {
   levelBonus,
   offerIdFor,
   parseOfferId,
+  strikeDelayAt,
   type ActiveItem,
   type ItemDef,
   type LevelBonus,
@@ -575,6 +576,12 @@ export interface AreaState {
    * other area.
    */
   delay?: number;
+  /**
+   * A strike: the seconds `delay` started from, so the renderer can draw the
+   * telegraph as a fraction of its own wait (the Letter's five seconds, not
+   * Judgement's STRIKE_DELAY). Presentation metadata, like `source`.
+   */
+  telegraph?: number;
   /** The item that made this area, where one did and the renderer needs it. Presentation metadata. */
   source?: string;
 }
@@ -2199,8 +2206,11 @@ export class World {
         // with the world's own dice so a seed replays them, and after
         // STRIKE_DELAY a one-shot area where each one WAS. With fewer
         // enemies than bolts the boss takes one, as a seeking weapon's
-        // spare shot does. Nothing in range: retry sooner.
+        // spare shot does. Nothing in range: retry sooner. The Letter
+        // (`strikeNearest`, G-050) marks the nearest instead and draws no
+        // dice; every strike's wait divides by its `speed` bonus.
         const bolts = 1 + bonus.projectiles;
+        const delay = strikeDelayAt(def.strikeDelay ?? STRIKE_DELAY, bonus.speed);
         const range = def.range * reach;
         const limit = range * range;
         const pool = this.strikeCandidates;
@@ -2213,19 +2223,19 @@ export class World {
         }
         let aimed = 0;
         while (aimed < bolts && pool.length > 0) {
-          const pick = Math.floor(this.rng() * pool.length);
+          const pick = def.strikeNearest ? this.nearestIndex(pool) : Math.floor(this.rng() * pool.length);
           const e = pool[pick]!;
           swapRemove(pool, pick);
           // A bolt with no delay (Hindsight) has already landed: not at what it killed.
           if (e.hp <= 0) continue;
-          this.strikeAt(def, e.x, e.y, radius, damage);
+          this.strikeAt(def, e.x, e.y, radius, damage, delay);
           aimed++;
         }
         pool.length = 0;
         if (aimed < bolts) {
           const boss = this.bossAsTarget(range);
           if (boss) {
-            this.strikeAt(def, boss.x, boss.y, radius, damage);
+            this.strikeAt(def, boss.x, boss.y, radius, damage, delay);
             aimed++;
           }
         }
@@ -2258,13 +2268,34 @@ export class World {
   }
 
   /**
-   * One strike, telegraphed: it lands after its item's `strikeDelay`, or
-   * STRIKE_DELAY (updateAreas → landStrike). A delay of zero (Hindsight,
-   * G-046) lands here, on the fire step. `fireItems` runs before
-   * `updateAreas`, but `updateStrike` reads a delay of zero as already landed
-   * and only ages the flash, so waiting for it would never land at all.
+   * The index in `pool` of the enemy nearest the player; the first on a tie,
+   * so the pick is the grid's order and never the dice (`strikeNearest`).
    */
-  private strikeAt(def: ActiveItem, x: number, y: number, radius: number, damage: number): void {
+  private nearestIndex(pool: readonly EnemyState[]): number {
+    let best = 0;
+    let bestD = Infinity;
+    for (let i = 0; i < pool.length; i++) {
+      const e = pool[i]!;
+      const d2 = (e.x - this.x) ** 2 + (e.y - this.y) ** 2;
+      if (d2 < bestD) {
+        bestD = d2;
+        best = i;
+      }
+    }
+    return best;
+  }
+
+  /**
+   * One strike, telegraphed: it lands after `delay` — its item's
+   * `strikeDelay`, or STRIKE_DELAY, divided by its `speed` bonus
+   * (`strikeDelayAt`) — through updateAreas → landStrike, at (x, y) whatever
+   * has moved since. A delay of zero (Hindsight, G-046) lands here, on the
+   * fire step. `fireItems` runs before `updateAreas`, but `updateStrike`
+   * reads a delay of zero as already landed and only ages the flash, so
+   * waiting for it would never land at all.
+   */
+  private strikeAt(def: ActiveItem, x: number, y: number, radius: number, damage: number, delay: number): void {
+    const wait = Math.max(0, delay);
     const a: AreaState = {
       x,
       y,
@@ -2275,7 +2306,8 @@ export class World {
       pull: false,
       tick: false,
       serial: this.nextSerial++,
-      delay: Math.max(0, def.strikeDelay ?? STRIKE_DELAY),
+      delay: wait,
+      telegraph: wait,
       source: def.id,
     };
     this.areas.push(a);
