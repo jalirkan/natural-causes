@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <title>Toddler</title>
+  <desc>A round purple bib seen straight on, one flat tone, with a face printed in its middle: two small dots for eyes and one wide flat mouth turned up at both ends, looking straight out. Two short bone sleeves are raised up and out beside it, each with a darker stripe just below its open cuff. Nothing above the bib, and nothing at the end of either sleeve.</desc>
+  <!--
+    Toddler (FAMILY-ROSTER §3.4), the act's roadblock and its elite: it holds
+    the player's leg for three seconds, does no damage, and is the one thing
+    in the life that is pleased to see them. The act's reserved bib with arms
+    (§1): the only thing in the act reaching up, and the smallest mover.
+    Law 9, and D-007 on its face: the person is drawn as what it is wearing.
+    It is seen from the height of the leg it is about to hold, so nothing is
+    above the bib and nothing comes out of the sleeves: no head, no hands, no
+    hair, no skin. The face belongs to the bib, as a print.
+
+    Drawn on the finished sprite's own pixel grid, like acne and tuition. The
+    group maps one unit to one pixel of the 44px sprite: 42 units wide (44
+    less the 1px outline each side) and 37 tall, so at the rasteriser's first
+    density a unit is four supersampled pixels and every edge lands where it
+    is written.
+    The bib is a disc 28 across, stated as its stair, the whole of it one
+    tone of elite purple: the act's only purple (law 6). One sleeve is drawn
+    once and placed twice, mirrored about the middle: 7 wide, stepping out one
+    pixel every two rows, its root tucked behind the bib at the upper side,
+    two rows past the last row it shows so none of it appears below. The
+    one-pixel dent where its outer edge meets the disc is the underarm.
+    The cuff is cut level, not square to the sleeve: a square-cut end on a
+    diagonal comes to a point, and pointed things on a round top are ears.
+    The hem is a shadow stripe two rows below the opening, not at it: a dark
+    tip on a pale sleeve read as a hand coming out of it.
+    The face sits on the disc's centre, where a print sits on a bib; placed
+    high it made the disc a head. Eyes are 2 by 3. The mouth is one flat line
+    12 wide and 2 thick with each end turned up one step: dead flat, it read
+    bored at 48px, and this thing is thrilled.
+    Tried and dropped: a neck scoop in the top of the bib (it left two lobes,
+    ears again), short flared sleeves off the bib's shoulders (ears), sleeves
+    at a wider angle (wings), a plain sleeve with no hem (a bare arm).
+    Colours are palette hex values: threat-elite #7C5C8A, bone #D2C6AC,
+    shadow #6E6353, ink #2A2521. Nothing else. CONFORM adds the outline;
+    there is none here.
+  -->
+  <defs>
+    <g id="sleeve">
+      <!-- the sleeve, cuff at the top, root at the bottom behind the bib -->
+      <path fill="#D2C6AC" d="M0,0 H7 V2 H8 V4 H9 V6 H10 V8 H11 V10 H12 V12 H13 V14 H14 V16 H15 V18 H16 V19 H9 V18 H8 V16 H7 V14 H6 V12 H5 V10 H4 V8 H3 V6 H2 V4 H1 V2 H0 Z"/>
+      <!-- the hem: a stripe two rows below the opening -->
+      <path fill="#6E6353" d="M1,2 H8 V4 H1 Z"/>
+    </g>
+  </defs>
+  <g shape-rendering="crispEdges" transform="scale(2.2727273) translate(1 3)">
+  <!-- the sleeves, raised, behind the bib -->
+  <use href="#sleeve"/>
+  <use href="#sleeve" transform="matrix(-1 0 0 1 42 0)"/>
+  <!-- the bib: a disc 28 across, one solid tone -->
+  <path fill="#7C5C8A" d="M17,9 H25 V10 H27 V11 H29 V12 H30 V13 H31 V14 H32 V15 H33 V17 H34 V19 H35 V27 H34 V29 H33 V31 H32 V32 H31 V33 H30 V34 H29 V35 H27 V36 H25 V37 H17 V36 H15 V35 H13 V34 H12 V33 H11 V32 H10 V31 H9 V29 H8 V27 H7 V19 H8 V17 H9 V15 H10 V14 H11 V13 H12 V12 H13 V11 H15 V10 H17 Z"/>
+  <!-- the print: two eyes straight out -->
+  <rect x="15" y="19" width="2" height="3" fill="#2A2521"/>
+  <rect x="25" y="19" width="2" height="3" fill="#2A2521"/>
+  <!-- one wide flat mouth, each end turned up one step -->
+  <path fill="#2A2521" d="M13,23 h2 v2 h-2 Z M27,23 h2 v2 h-2 Z M15,25 h12 v2 h-12 Z"/>
+  </g>
+</svg>
