@@ -1,5 +1,7 @@
 # Natural Causes
 
+[![CI](https://github.com/jalirkan/natural-causes/actions/workflows/ci.yml/badge.svg)](https://github.com/jalirkan/natural-causes/actions/workflows/ci.yml)
+
 > **Status: phases 0 and 1 built, awaiting art review.** Plan in
 > [`PLAN.md`](./PLAN.md), art spec in [`ART-DIRECTION.md`](./ART-DIRECTION.md)
 > (**still a draft** — it does not become binding until Justin has judged the
@@ -73,11 +75,29 @@ it is set to `AllSigned` here and blocks pnpm's shim; `pnpm.cmd dev` also works.
 Other tasks:
 
 ```bash
-pnpm test                 # 173 tests: the sim, the content rules, the art pipeline
+pnpm test                 # 239 tests: the sim, the content rules, the art pipeline
 pnpm playtest -- --runs=40 # the bots, with intervals
 pnpm art:batch            # regenerate sprites (needs FAL_KEY in .env)
 pnpm art:batch -- --dry   # print the prompts and run the content rule, no API calls
 ```
+
+### CI
+
+[`.github/workflows/ci.yml`](./.github/workflows/ci.yml) runs `pnpm typecheck`,
+`pnpm test`, `pnpm build` and `pnpm art:batch -- --dry` on every push and pull
+request against `main`. Those are the same four commands above, on a machine
+nobody here owns — the point being that "the tests pass" stops being something
+you have to take on trust from one person's terminal.
+
+The suite needs no network: it was run inside a namespace with no interfaces
+and all 239 tests still passed. The dry art run has no `FAL_KEY` in CI and
+never will, so a regression that made `--dry` reach the API would fail the step
+rather than quietly spend money.
+
+The playtest bots are **not** in CI. They print measurements and exit 0
+whatever the measurements say, and tuning is frozen pending a session with a
+human — a pass condition would have to be invented to gate on, and an invented
+number is the thing this project is most careful not to produce.
 
 ### Playing
 

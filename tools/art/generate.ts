@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { assertContentRule } from './content-rule';
+import { assertReserved } from './reservations';
 import { fullPrompt, styleSuffixFor } from './batch';
 import type { AssetSpec } from './types';
 
@@ -80,9 +81,16 @@ async function post(url: string, key: string, body: unknown): Promise<Response> 
 /**
  * Generate one image for one asset at one seed.
  *
- * The content rule is asserted BEFORE the network call, on every text field of
- * the spec. A prompt that violates D-007 is never sent — that is the whole
- * point of putting the check here rather than in review.
+ * Two rules are asserted BEFORE the network call, on the spec rather than on
+ * the image: D-007 over every text field, and law 11 over the asset's act. A
+ * prompt that violates either is never sent — that is the whole point of
+ * putting the checks here rather than in review.
+ *
+ * Law 11 was data with no caller until now (G-011). `assertReserved` existed,
+ * `RESERVATIONS` existed, and the only thing that ever ran them was the test
+ * suite: the reserved list constrained a test rather than the pipeline, which
+ * is the same failure the list was written to fix one level up. An act with no
+ * entry now refuses generation here, where the alternative is an API charge.
  */
 export async function generate(
   spec: AssetSpec,
@@ -100,6 +108,7 @@ export async function generate(
     prompt,
     styleSuffix: styleSuffixFor(spec),
   });
+  assertReserved(spec.act, [spec.id], spec.role);
 
   const key = options.key ?? loadKey(options.cwd);
 

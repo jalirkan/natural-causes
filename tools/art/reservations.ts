@@ -1,4 +1,5 @@
 import { ACT_IDS, THREAT, type ActId, type ThreatClass } from './palette';
+import type { AssetRole } from './types';
 
 /**
  * Law 11 as data (G-011).
@@ -150,24 +151,128 @@ export const RESERVATIONS: Partial<Record<ActId, ActReservations>> = {
  */
 export const PICKUP_SILHOUETTE = 'lozenge';
 
-export class ReservationError extends Error {}
+export class ReservationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ReservationError';
+  }
+}
 
 /**
- * Refuses to generate for an act with no reservation list, and refuses a list
- * that contradicts itself.
+ * What law 11 has to say about one asset.
+ *
+ * Two of these are refusals and they are not the same refusal, which is the
+ * only reason this is a verdict rather than a boolean:
+ *
+ * - `unlisted` — the act HAS a list and this asset is not on it. That is this
+ *   repository contradicting itself, and it fails wherever it is found.
+ * - `no-list` — the act has no list at all. That is a document nobody has
+ *   written yet: it is Cowork's open item, recorded in `ART-DIRECTION.md`
+ *   ("the remaining five acts still need theirs, each before its first
+ *   asset"), and it is refused at generation exactly the same way. What it is
+ *   not is a contradiction, so the dry run reports it rather than failing on
+ *   it — see `run.ts`.
+ */
+export type ReservationVerdict =
+  | { status: 'holds'; act: ActId; assetId: string; silhouette: string }
+  | { status: 'holds-threat'; act: ActId; assetId: string; threat: ThreatClass }
+  | { status: 'pickup'; act: ActId; assetId: string; silhouette: string }
+  | { status: 'player'; act: ActId; assetId: string }
+  | { status: 'icon'; act: ActId; assetId: string }
+  | { status: 'unlisted'; act: ActId; assetId: string; reason: string }
+  | { status: 'no-list'; act: ActId; assetId: string; reason: string };
+
+/** True for the two verdicts that refuse generation. */
+export function refuses(verdict: ReservationVerdict): boolean {
+  return verdict.status === 'unlisted' || verdict.status === 'no-list';
+}
+
+const NO_LIST = (act: ActId): string =>
+  `Act "${act}" has no reserved-silhouette list. Law 11 (G-011) requires one ` +
+  `before any asset in the act is generated, not after. Add it to ` +
+  `tools/art/reservations.ts.`;
+
+const UNLISTED = (act: ActId, id: string): string =>
+  `Act "${act}": asset "${id}" holds no reserved silhouette. Every asset in ` +
+  `an act declares its shape, or the vocabulary is not exclusive and law 6 ` +
+  `stops working at horde density.`;
+
+/**
+ * Law 11 applied to one asset, without throwing.
+ *
+ * The throwing form is below and is what the generation path calls. This one
+ * exists so the dry run can PRINT the verdict for every asset it is about to
+ * describe: a rule the pipeline enforces silently is one nobody can read the
+ * state of, and "which of these could actually be generated today" is the
+ * question a person asks before starting a run.
+ */
+export function reservationVerdict(
+  act: ActId,
+  assetId: string,
+  role: AssetRole = 'swarm',
+): ReservationVerdict {
+  const reserved = RESERVATIONS[act];
+  if (!reserved) return { status: 'no-list', act, assetId, reason: NO_LIST(act) };
+
+  // Pickups are exempt: they hold PICKUP_SILHOUETTE game-wide rather than an
+  // act shape (G-030).
+  if (role === 'pickup' || assetId.startsWith('pickup-')) {
+    return { status: 'pickup', act, assetId, silhouette: PICKUP_SILHOUETTE };
+  }
+
+  // Icons are exempt one step before either of those: law 11 reserves FIELD
+  // silhouettes — the vocabulary a player reads threat from at a glance — and
+  // card-surface art never reaches the field. An offer card appears with the
+  // world stopped, on an ink panel; a manicule there cannot be misread as a
+  // swarm object, and putting it on the act's silhouette list would claim a
+  // field shape it does not occupy. (G-035/G-037; the same surface boundary
+  // CHECK draws with its 'card' thresholds.)
+  if (role === 'icon') return { status: 'icon', act, assetId };
+
+  // So is the player, and for the same reason one step further along.
+  //
+  // The vocabulary answers *how does this hurt me*, which is why G-030 already
+  // narrowed the antibody's clause from "the only straight lines in the act"
+  // to "among the act's ENEMIES". The player is the other thing that clause
+  // was narrowed around: it is a comet with a tuft in an act where the comet
+  // belongs to `rival-sperm`, and it is supposed to be — the rivals are the
+  // player wearing no expression, and that reading is the act.
+  //
+  // Found by wiring this into the run rather than by reading it: `--dry`
+  // refused `player-sperm` the first time it was asked, in an act whose list
+  // has been correct since it was written. The tests never caught it because
+  // they only ever passed enemy ids in.
+  if (role === 'player') return { status: 'player', act, assetId };
+
+  const held = reserved.silhouettes.find((r) => r.heldBy === assetId);
+  if (held) return { status: 'holds', act, assetId, silhouette: held.silhouette };
+
+  const threat = (Object.entries(reserved.reservedThreat) as Array<[ThreatClass, string]>).find(
+    ([, who]) => who === assetId,
+  );
+  if (threat) return { status: 'holds-threat', act, assetId, threat: threat[0] };
+
+  return { status: 'unlisted', act, assetId, reason: UNLISTED(act, assetId) };
+}
+
+/**
+ * Refuses to generate for an act with no reservation list, refuses an asset
+ * that is not on the list its act does have, and refuses a list that
+ * contradicts itself.
  *
  * Called before generation rather than after, because a list written after the
- * assets describes what happened instead of constraining it.
+ * assets describes what happened instead of constraining it. `generate()` is
+ * the caller that matters — it runs this before the network request, next to
+ * the D-007 check, so an unreserved asset costs nothing rather than costing an
+ * image.
  */
-export function assertReserved(act: ActId, assetIds: string[]): void {
+export function assertReserved(
+  act: ActId,
+  assetIds: string[],
+  role: AssetRole = 'swarm',
+): void {
   const reserved = RESERVATIONS[act];
-  if (!reserved) {
-    throw new ReservationError(
-      `Act "${act}" has no reserved-silhouette list. Law 11 (G-011) requires one ` +
-        `before any asset in the act is generated, not after. Add it to ` +
-        `tools/art/reservations.ts.`,
-    );
-  }
+  if (!reserved) throw new ReservationError(NO_LIST(act));
 
   const shapes = new Map<string, string>();
   for (const entry of reserved.silhouettes) {
@@ -181,18 +286,9 @@ export function assertReserved(act: ActId, assetIds: string[]): void {
     shapes.set(entry.silhouette, entry.heldBy);
   }
 
-  const holders = new Set(reserved.silhouettes.map((r) => r.heldBy));
   for (const id of assetIds) {
-    // Pickups are exempt: they hold PICKUP_SILHOUETTE game-wide rather than an
-    // act shape (G-030).
-    if (id.startsWith('pickup-')) continue;
-    if (!holders.has(id) && !Object.values(reserved.reservedThreat).includes(id)) {
-      throw new ReservationError(
-        `Act "${act}": asset "${id}" holds no reserved silhouette. Every asset in ` +
-          `an act declares its shape, or the vocabulary is not exclusive and law 6 ` +
-          `stops working at horde density.`,
-      );
-    }
+    const verdict = reservationVerdict(act, id, role);
+    if (verdict.status === 'unlisted') throw new ReservationError(verdict.reason);
   }
 }
 

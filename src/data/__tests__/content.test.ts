@@ -4,6 +4,9 @@ import { ITEMS } from '../items';
 import { ACT_VISUALS } from '../act-visuals';
 import { ACTS, rateAt, spawnStreams } from '../acts';
 import { BONE, INK, PAPER, SHADOW, THREAT_BOSS, THREAT_CONTACT, THREAT_ELITE, THREAT_RANGED } from '../../config';
+import { ALL_ASSETS } from '../../../tools/art/batch';
+import { reservationVerdict } from '../../../tools/art/reservations';
+import { enemyPalette } from '../../../tools/art/palette';
 import {
   BONE as ART_BONE,
   INK as ART_INK,
@@ -68,6 +71,69 @@ describe('behaviours are fully specified (CONCEPTION-ROSTER §5.2)', () => {
   }
 });
 
+describe('every enemy holds a reserved silhouette in its own act (law 11)', () => {
+  // The join the `act` field exists for. Law 11 lives in the art pipeline and
+  // the enemies live in the game, and until these two are checked against each
+  // other the reserved list constrains what gets DRAWN and not what gets
+  // SHIPPED — an enemy could be added here with no reservation, no asset and
+  // no shape anybody claimed, and every existing test would pass.
+  for (const [id, def] of Object.entries(ENEMIES)) {
+    it(`${id}`, () => {
+      const verdict = reservationVerdict(def.act as 'conception', def.id, 'swarm');
+      expect(verdict.status, `"${id}" is in act "${def.act}", which has no list`).toBe('holds');
+      expect(def.frame).toBe(`${id}.png`);
+    });
+  }
+
+  it('School is exactly the five the roster reserves, no more', () => {
+    const school = Object.values(ENEMIES)
+      .filter((d) => d.act === 'school')
+      .map((d) => d.id)
+      .sort();
+    expect(school).toEqual([
+      'clique',
+      'dodgeball',
+      'hall-monitor',
+      'homework',
+      'substitute-teacher',
+    ]);
+  });
+
+  it('every enemy has an asset specified for it', () => {
+    // An enemy with no prompt is an enemy that cannot be drawn, which is a
+    // thing that only shows up when someone runs a batch months later.
+    const specified = new Set(ALL_ASSETS.map((s) => s.id));
+    for (const id of Object.keys(ENEMIES)) {
+      expect(specified.has(id), `"${id}" has no entry in the art batch`).toBe(true);
+    }
+  });
+});
+
+describe('the School behaviours are coherent (SCHOOL-ROSTER.md §4)', () => {
+  for (const [id, def] of Object.entries(ENEMIES)) {
+    it(`${id}`, () => {
+      const flags = [def.bounce, def.patrol, def.merge].filter(Boolean).length;
+      // Bounce reflects, patrol reverses, merge does neither and does not
+      // move. Two at once is not a richer enemy, it is an undefined one.
+      expect(flags, `"${id}" declares more than one edge behaviour`).toBeLessThanOrEqual(1);
+
+      if (def.merge) {
+        expect(def.movement, `"${id}" merges but moves`).toBe('static');
+        expect(def.contact, `"${id}" merges and also hurts`).toBe('none');
+      }
+      if (def.movement === 'static') expect(def.speed, `"${id}" is static with a speed`).toBe(0);
+      if (def.contact === 'none') expect(def.contactDamage, `"${id}"`).toBe(0);
+      if (def.bounce === true || def.patrol === true) {
+        // Both take their heading at spawn and keep it. A chaser steers every
+        // frame, so it has no heading to reflect or reverse.
+        expect(def.movement, `"${id}" cannot both steer and bounce`).not.toBe('chase');
+        expect(def.movement, `"${id}" cannot bounce while static`).not.toBe('static');
+        expect(def.speed, `"${id}" bounces at a standstill`).toBeGreaterThan(0);
+      }
+    });
+  }
+});
+
 describe("law 10 / G-030 — pickups take the act's light tone", () => {
   const threats = [THREAT_CONTACT, THREAT_RANGED, THREAT_ELITE, THREAT_BOSS];
 
@@ -75,6 +141,21 @@ describe("law 10 / G-030 — pickups take the act's light tone", () => {
     for (const [act, v] of Object.entries(ACT_VISUALS)) {
       const expected = parseInt(actLight(act as 'conception').hex.slice(1), 16);
       expect(v.pickup, `act "${act}" pickup is not its light tone`).toBe(expected);
+    }
+  });
+
+  it('no act lets an enemy near the two reserved colours, sprites or not', () => {
+    // The per-sprite scan in tools/art/__tests__ can only check assets that
+    // exist, and School has one of five. This checks the same law one stage
+    // earlier, where it is enforceable today: the palette an enemy in each act
+    // is allowed to be quantised INTO excludes paper (the player's) and the
+    // act's light tone (the pickups').
+    for (const act of ['conception', 'school'] as const) {
+      const allowed = enemyPalette(act).map((c) => c.name);
+      expect(allowed, `act "${act}" lets an enemy be paper`).not.toContain('paper');
+      expect(allowed, `act "${act}" lets an enemy take the pickup tone`).not.toContain(
+        `${act}-light`,
+      );
     }
   });
 

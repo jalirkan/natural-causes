@@ -475,7 +475,7 @@ export class ActScene extends Phaser.Scene {
       // reason the player dims rather than flashing red.
       s.setTexture(this.visuals.atlas.key, e.def.frame)
         .setPosition(e.x, e.y)
-        .setDisplaySize(e.def.displaySize, e.def.displaySize)
+        .setDisplaySize(e.displaySize, e.displaySize)
         .setAlpha(e.hitFlash > 0 ? 0.55 : 1)
         .setVisible(true);
       // Reset the flip for non-chasers: pooled sprites inherit state from
