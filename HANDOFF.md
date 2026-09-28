@@ -11,7 +11,7 @@ and write your name against it here, on `main`, before you start.
 
 | What | Where | State |
 |---|---|---|
-| The game | <https://jalirkan.github.io/natural-causes/> | `main`: a three-act life, Conception → School → Adolescence, every sprite authored SVG, `pnpm smoke` drives it end to end. Deploys on every push. |
+| The game | <https://jalirkan.github.io/natural-causes/> | `main`: a three-act life, Conception → School → Adolescence, every sprite authored SVG; CI's fifth check plays it end to end in Chromium. Deploys on every push. |
 | The sim | `src/sim/world.ts` | One life (D-024); upgrades are gains (G-038, G-039); the Egg is a race (G-040); School's three placeholders built and labelled (D-022, D-027); AUDIT parts three and four in. |
 | Art | `tools/art/svg/<act>/<id>.svg`, `pnpm art:svg` | Main's stage (D-025). Every field sprite plus the Gym Teacher drawn. The review page: `pnpm art:sheet`. |
 | The Gym Teacher | `SCHOOL-ROSTER.md` §9 | Designed, drawn and fighting: the whistle, the shield, PARTICIPATION. Every number a placeholder; nobody has played him. |
@@ -34,7 +34,6 @@ stop register at all.
 | Whatever Justin's play says — labelled numbers move only on a person's reaction | whoever he tells |
 | Prom's behaviour (ADOLESCENCE-ROSTER §4): the race, the floor, the ring of light | **cloud session** (in progress) |
 | Adolescence's sounds (the typing, the car, the slow song) | **cloud session** (in progress) |
-| `pnpm smoke` into CI (needs Chromium on the runner; its own PR, watched) | unowned |
 | AUDIT part four's item 26 (Capacitation restarts below baseline at the crossing): a design call, roster §4 owns it | unowned |
 | Icons for Grudge, Group Chat and Appetite as SVG through the stage (`iconPending` retires when the frame exists) | unowned — good for the local session |
 | The Egg's inheritance (G-017, unblocked): one unchosen item at the crossing, announced on the act card | unowned — good for the local session |
