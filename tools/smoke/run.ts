@@ -20,7 +20,10 @@ import { createServer, type ViteDevServer } from 'vite';
  * life with the dev panel — god, 4x, skip to boss, kill, once an act; in
  * College it also walks the player into a tuition and a registrar's HOLD, the
  * act's own drawings (AUDIT 39), and in The Office it asks that the tuition
- * still draws as tuition (AUDIT 38) — and at every
+ * still draws as tuition (AUDIT 38), walks into a ping and within range of a
+ * performance review's MEETS, waits for a commute on screen, and at The Reorg
+ * takes half its health from the panel and waits for the restructure to be
+ * drawn before the kill (AUDIT 54) — and at every
  * milestone asserts: no console error, no page error, no failed request, no
  * Phaser texture warning, nothing visible drawn from `__MISSING`, no
  * NaN/undefined in any text on screen, and after the crossing the screen
@@ -51,8 +54,24 @@ const OUT = resolve(ROOT, 'tools/smoke/out');
 // spawned on the arena rim needs about ten seconds of act time to walk on
 // screen. The budgets are sized for that machine, not this one; a milestone
 // still fails loudly, only later.
+//
+// The run's budget (AUDIT 57), from GitHub's logs rather than a guess: two
+// CI runs of the same thirteen milestones on 2026-09-28 (b936b60 on main and
+// its PR head c1bbed5) took 153.2s and 87.7s, so runners differ 1.75x on the
+// same code. office-play and office-reorg (AUDIT 54) add 8–12% to a run (7s
+// of 89s at 11–21 fps; 23s of ~260s and 38s of ~310s at 3–8 fps), so the
+// slowest CI run seen becomes about 170s: 70% of the old 240s, less headroom
+// than the 1.75x the runners have already shown. And below 20 fps a 1x
+// stretch (every kill here) slows with the frame rate, because a frame's step
+// is clamped to 50ms: at 4 fps the absorb's 1.8s takes 9s. A four-core box
+// shared with other sessions' bots and smokes ran this at 3–8 fps and ran
+// out of 240s and then of 300s, at the certificate both times. 420s is 2.5
+// times the slowest CI run and 1.35 times that shared box. A hang is still
+// caught by MILESTONE_MS; the total only bounds a run that is slow but
+// moving. The sixth act will need this sum done again, or the acts its
+// milestones already cover skipped.
 const MILESTONE_MS = 60_000;
-const BUDGET_MS = 240_000;
+const BUDGET_MS = 420_000;
 const VIEW = { width: 1280, height: 720 };
 
 /**
@@ -80,8 +99,20 @@ interface Probe {
     hud: string;
     level: string;
     overlay: string | null;
-    boss: { phase: string; hp: number } | null;
-    bossSprite: { key: string; frame: string } | null;
+    /**
+     * `restructures` is the world's count (The Reorg's thresholds passed);
+     * `drawnRestructures` is the scene's own record of it (`bossRestructures`,
+     * caught up in syncBoss), and `grey` whether the chart's greyed rows are
+     * drawn. Zero, zero and false for every boss that never restructures.
+     */
+    boss: { phase: string; hp: number; restructures: number; drawnRestructures: number; grey: boolean } | null;
+    /**
+     * The boss as drawn, where it is drawn (the Reorg's moves at a restructure),
+     * and whether that point is inside the camera's view.
+     */
+    bossSprite: { key: string; frame: string; x: number; y: number; inView: boolean } | null;
+    /** The camera's look at the boss on its entrance (AUDIT 37) is owed or running. */
+    bossLook: boolean;
     bossFrame: string;
     offers: string[] | null;
     won: boolean;
@@ -100,6 +131,12 @@ interface Probe {
     words: string[];
     /** The nearest enemy of each kind, from the player, in world pixels. For steering only. */
     nearest: Record<string, { dx: number; dy: number }>;
+    /**
+     * Enemies of each kind drawn inside the camera's view: the sprite in the
+     * enemy's slot visible and in the enemy's own frame. A sighting, where
+     * `nearest` only says the world has one.
+     */
+    seen: Record<string, number>;
   };
 }
 
@@ -142,8 +179,25 @@ const PROBE = String.raw`(() => {
       hud: s.hudClock.text,
       level: s.hudLevel.text,
       overlay: s.overlay.visible ? s.overlay.text : null,
-      boss: w.boss ? { phase: w.boss.phase, hp: w.boss.hp } : null,
-      bossSprite: s.bossSprite ? { key: s.bossSprite.texture.key, frame: s.bossSprite.frame.name } : null,
+      boss: w.boss
+        ? {
+            phase: w.boss.phase,
+            hp: w.boss.hp,
+            restructures: w.boss.restructures,
+            drawnRestructures: s.bossRestructures,
+            grey: !!s.bossGrey && s.bossGrey.visible,
+          }
+        : null,
+      bossSprite: s.bossSprite
+        ? {
+            key: s.bossSprite.texture.key,
+            frame: s.bossSprite.frame.name,
+            x: s.bossSprite.x,
+            y: s.bossSprite.y,
+            inView: s.cameras.main.worldView.contains(s.bossSprite.x, s.bossSprite.y),
+          }
+        : null,
+      bossLook: !!s.bossEntranceOwed || !!s.bossEntrance,
       bossFrame: s.visuals.bossFrame,
       offers: w.offers ? [...w.offers] : null,
       won: w.won,
@@ -158,6 +212,7 @@ const PROBE = String.raw`(() => {
       worn: {},
       words: [...new Set(s.nameShotTexts.filter((t) => t.visible).map((t) => t.text))],
       nearest: {},
+      seen: {},
     };
     for (const a of s.attachedSprites) if (a.visible) act.worn[a.frame.name] = (act.worn[a.frame.name] || 0) + 1;
     for (const e of w.enemies) {
@@ -165,6 +220,15 @@ const PROBE = String.raw`(() => {
       const dy = e.y - w.y;
       const n = act.nearest[e.def.id];
       if (!n || dx * dx + dy * dy < n.dx * n.dx + n.dy * n.dy) act.nearest[e.def.id] = { dx, dy };
+    }
+    // syncEnemies draws enemy i with sprite i, after the frame's steps; a panel
+    // spawn between frames has no sprite yet and is simply not counted.
+    const view = s.cameras.main.worldView;
+    for (let i = 0; i < w.enemies.length; i++) {
+      const e = w.enemies[i];
+      const sprite = s.enemySprites[i];
+      if (!sprite || !sprite.visible || sprite.frame.name !== e.def.frame || !view.contains(e.x, e.y)) continue;
+      act.seen[e.def.id] = (act.seen[e.def.id] || 0) + 1;
     }
     if (!Number.isFinite(w.x) || !Number.isFinite(w.y) || !Number.isFinite(w.hp))
       bad.push('world: player at ' + w.x + ',' + w.y + ' hp ' + w.hp);
@@ -217,9 +281,9 @@ const deadline = () => Math.min(since + MILESTONE_MS, started + BUDGET_MS);
 /**
  * Polls until `ready` holds, answering any level-up offer with "1" on the way
  * (an open offer freezes the world, so nothing downstream of it can arrive).
- * `each` runs on every poll that is not yet ready: the College milestone steers
- * with it. Fails on the first problem seen, or at the milestone's 20s or the
- * run's 90s, whichever is first.
+ * `each` runs on every poll that is not yet ready: the College and Office
+ * milestones steer with it. Fails on the first problem seen, or at the
+ * milestone's MILESTONE_MS or the run's BUDGET_MS, whichever is first.
  */
 async function waitFor(
   milestone: string,
@@ -487,12 +551,96 @@ async function main(): Promise<void> {
   }
   await milestone('office', p, `${actLine(p)}  worn tuition ${carried}`);
 
+  // The Office's own drawings (AUDIT 54), as College's above and at the same
+  // 4x under god: a ping worn on the player, a performance review's MEETS in
+  // flight, and a commute on screen. The ping waits at the lead like tuition,
+  // so the smoke walks into the nearest one until one is worn; the review is a
+  // counter that fires inside 460px, so it then walks to within 300px of the
+  // nearest until a MEETS is drawn. The commute is aimed at where the player
+  // stood when it arrived and patrols that line; it is latched on any poll
+  // that finds one drawn inside the camera's view (`seen`), and if none has
+  // been by the time the other two are, the player stands and another is
+  // asked for every 6s, aimed at where the player now is. All three are
+  // spawned from the panel rather than waited on (the act's first review and
+  // commute open at 60s and 75s), and asked for again as College's are: the
+  // ping when the field has none, the review every 10s without a MEETS (one
+  // off the arena's edge, or shot first). Each sighting latches.
+  const office = { worn: 0, meets: false, commute: false };
+  const officeAsked = { ping: 0, 'performance-review': 0, commute: 0 };
+  const officeButton = { ping: '1x Ping', 'performance-review': '1x Performance review', commute: '1x Commute' };
+  for (const kind of ['ping', 'performance-review', 'commute'] as const) {
+    await press('office-play', officeButton[kind]);
+    officeAsked[kind] = Date.now();
+  }
+  p = await waitFor(
+    'office-play',
+    (q) => {
+      office.worn = Math.max(office.worn, q.act?.worn['ping.png'] ?? 0);
+      office.meets ||= q.act?.words.includes('MEETS') ?? false;
+      office.commute ||= (q.act?.seen['commute'] ?? 0) > 0;
+      return q.act?.index === 4 && office.worn > 0 && office.meets && office.commute;
+    },
+    async (q) => {
+      if (!q.act || q.act.index !== 4) return;
+      const kind = office.worn === 0 ? 'ping' : !office.meets ? 'performance-review' : 'commute';
+      const target = q.act.nearest[kind];
+      const waited = Date.now() - officeAsked[kind];
+      const again =
+        kind === 'ping' ? !target && waited > 4000 : kind === 'performance-review' ? waited > 10_000 : waited > 6000;
+      if (again) {
+        await press('office-play', officeButton[kind]);
+        officeAsked[kind] = Date.now();
+      }
+      if (kind !== 'commute' && target) await steer(target.dx, target.dy, kind === 'ping' ? 0 : 300);
+      else await steer(0, 0, 0);
+    },
+  );
+  await steer(0, 0, 0);
+  await milestone('office-play', p, `${actLine(p)}  worn ping ${office.worn}  MEETS drawn  commute seen`);
+
   await press('office-boss', 'skip to boss');
   p = await waitFor('office-boss', (q) => !!q.act?.boss && q.act.bossSprite?.frame === q.act.bossFrame);
   await milestone('office-boss', p, actLine(p));
 
-  await press('office-boss', '1x');
-  await press('office-boss', 'kill');
+  // The Reorg restructuring (AUDIT 54), at player speed as every kill here is.
+  // The panel's kill goes straight to the absorb and passes no threshold, so
+  // first its "−50%" takes half the chart's health (it cannot reach zero) and
+  // the smoke waits for the restructure to be DRAWN, not only counted: the
+  // world's count up, the scene's own count caught up to it, the greyed row
+  // on the chart, and the chart's sprite somewhere else — the Reorg never
+  // moves but at a restructure. Half from full passes two thirds and not one
+  // third, so this is one restructure; the line prints the count seen, and a
+  // second one (the build's own fire taking it under a third first) would
+  // show there. Not while absorbing: the kill greys every row.
+  // It waits out the entrance's look first, so the camera is back on the
+  // player when the chart moves and the picture is framed as a player sees
+  // it. Whether the chart then landed in view is printed, not asserted: it
+  // relocates at least 300px from the player and may land off screen
+  // (AUDIT 53, open).
+  const chartAt = { x: p.act!.bossSprite!.x, y: p.act!.bossSprite!.y };
+  const chartMoved = (q: Probe) =>
+    q.act?.bossSprite ? Math.hypot(q.act.bossSprite.x - chartAt.x, q.act.bossSprite.y - chartAt.y) : 0;
+  await press('office-reorg', '1x');
+  await waitFor('office-reorg', (q) => !!q.act && !q.act.bossLook);
+  await press('office-reorg', '−50%');
+  p = await waitFor(
+    'office-reorg',
+    (q) =>
+      !!q.act?.boss &&
+      q.act.boss.phase !== 'absorbing' &&
+      q.act.boss.restructures >= 1 &&
+      q.act.boss.drawnRestructures === q.act.boss.restructures &&
+      q.act.boss.grey &&
+      chartMoved(q) > 1,
+  );
+  await milestone(
+    'office-reorg',
+    p,
+    `${actLine(p)}  restructured ${p.act!.boss!.restructures}  chart moved ${Math.round(chartMoved(p))}px` +
+      (p.act!.bossSprite!.inView ? ', in view' : ', off screen'),
+  );
+
+  await press('office-reorg', 'kill');
   p = await waitFor(
     'certificate',
     (q) => !!q.act?.won && !!q.act.overlay?.includes('Natural causes.') && q.act.overlay.includes('Age 34.'),
