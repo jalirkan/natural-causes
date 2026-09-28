@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <title>The Mortgage, door open</title>
+  <desc>The Mortgage exactly as it stands, a teal house front under one plain gable with a small chimney on the right slope, on a low plinth, its two bone windows its eyes, level and looking straight out, with one change: the door is open. The doorway in the middle of the ground floor, its mouth, is a dark opening inside the same ink frame, the carpet seen through it, and the door itself has swung inward and shows only as a thin grey-brown edge against the left jamb. The letterbox went in with it. Nobody is in the doorway. It has been paid.</desc>
+  <!--
+    The Mortgage, door open (FAMILY-ROSTER section 4, the ending: on the
+    twelfth payment the door opens). A variant frame (D-029) of its holder,
+    boss-mortgage: the same drawing in another state. It holds the house's
+    reservation and reserves nothing; the renderer swaps boss-mortgage for
+    this frame on the twelfth payment, where the door overlay stood (AUDIT
+    83: the overlay covered the ink frame, so the door read as a hole cut in
+    the wall). Law 9 and D-007: nobody is drawn and nobody is home; nothing
+    stands in the doorway.
+
+    Everything but the door is boss-mortgage.svg byte for byte: the chimney,
+    the plinth, the walls and their halftone, the seam, the roof, the eave
+    and soffit, the gleam and both windows. See that file for the
+    silhouette, the face and the register; they do not change.
+
+    The one change, inside the door rectangle (x 160-223, y 266-351 of the
+    384 sprite, frame included): the ink frame is kept path for path, so it
+    reads as a framed doorway. The panel inside it, shadow on the shut door,
+    is the act's deep umber (#4D3A1F), the carpet seen through the doorway;
+    it is the background colour, which is the point, and the check counts it
+    as vanishing, which it can afford at this size. The door has swung
+    inward and is seen edge-on as a thin shadow (#6E6353) sliver, 2.5 wide
+    at the head narrowing to 2.4 at the floor (hand-cut, law 4), against the
+    left jamb: hinged left, as the room's plan draws its door (the leaf up
+    from the left jamb, room.svg), because the room is what this house
+    leaves behind and it is the same door. The letterbox was on the leaf, so
+    it went in with it: the mouth is open, not a line.
+
+    Body (`bossBody`): unchanged, { cy: 0.68, r: 0.30 }; the silhouette is
+    the holder's.
+
+    Colours: threat-boss #2F7370, ink #2A2521, bone #D2C6AC, shadow #6E6353,
+    and family-deep #4D3A1F for the doorway alone.
+  -->
+  <defs>
+    <clipPath id="wall"><path d="M15.4,42 L84.7,42 Q85.2,67 85.4,92 L14.7,92 Q14.9,67 15.4,42 Z"/></clipPath>
+  </defs>
+  <!-- the chimney, behind the roof: a plain stack, no smoke -->
+  <path d="M66.6,27 L66.9,12.6 L75.3,12.4 L75.6,27 Z" fill="#2F7370"/>
+  <path d="M65.2,13.6 L65.3,9.4 Q70.9,9 76.9,9.3 L77,13.6 Z" fill="#2F7370"/>
+  <path d="M66.9,13.4 L75.3,13.3 L75.3,15.3 L66.9,15.4 Z" fill="#2A2521"/>
+  <!-- the plinth the house stands on -->
+  <path d="M13.4,91 L86.6,91 Q88,91 88,92.4 L88,95.4 Q88,96.8 86.6,96.8 L13.4,96.8 Q12,96.8 12,95.4 L12,92.4 Q12,91 13.4,91 Z" fill="#2F7370"/>
+  <!-- the walls, and the halftone on their shadow side -->
+  <path d="M15.4,42 L84.7,42 Q85.2,67 85.4,92 L14.7,92 Q14.9,67 15.4,42 Z" fill="#2F7370"/>
+  <g fill="#2A2521" clip-path="url(#wall)"><circle cx="75.2" cy="48.2" r="0.26"/><circle cx="77.5" cy="48.2" r="0.41"/><circle cx="79.8" cy="48.2" r="0.56"/><circle cx="82.1" cy="48.2" r="0.71"/><circle cx="84.4" cy="48.2" r="0.86"/><circle cx="76.35" cy="50.2" r="0.33"/><circle cx="78.65" cy="50.2" r="0.48"/><circle cx="80.95" cy="50.2" r="0.63"/><circle cx="83.25" cy="50.2" r="0.78"/><circle cx="85.55" cy="50.2" r="0.93"/><circle cx="75.2" cy="52.2" r="0.26"/><circle cx="77.5" cy="52.2" r="0.41"/><circle cx="79.8" cy="52.2" r="0.56"/><circle cx="82.1" cy="52.2" r="0.71"/><circle cx="84.4" cy="52.2" r="0.86"/><circle cx="76.35" cy="54.2" r="0.33"/><circle cx="78.65" cy="54.2" r="0.48"/><circle cx="80.95" cy="54.2" r="0.63"/><circle cx="83.25" cy="54.2" r="0.78"/><circle cx="85.55" cy="54.2" r="0.93"/><circle cx="75.2" cy="56.2" r="0.26"/><circle cx="77.5" cy="56.2" r="0.41"/><circle cx="79.8" cy="56.2" r="0.56"/><circle cx="82.1" cy="56.2" r="0.71"/><circle cx="84.4" cy="56.2" r="0.86"/><circle cx="76.35" cy="58.2" r="0.33"/><circle cx="78.65" cy="58.2" r="0.48"/><circle cx="80.95" cy="58.2" r="0.63"/><circle cx="83.25" cy="58.2" r="0.78"/><circle cx="85.55" cy="58.2" r="0.93"/><circle cx="75.2" cy="60.2" r="0.26"/><circle cx="77.5" cy="60.2" r="0.41"/><circle cx="79.8" cy="60.2" r="0.56"/><circle cx="82.1" cy="60.2" r="0.71"/><circle cx="84.4" cy="60.2" r="0.86"/><circle cx="76.35" cy="62.2" r="0.33"/><circle cx="78.65" cy="62.2" r="0.48"/><circle cx="80.95" cy="62.2" r="0.63"/><circle cx="83.25" cy="62.2" r="0.78"/><circle cx="85.55" cy="62.2" r="0.93"/><circle cx="75.2" cy="64.2" r="0.26"/><circle cx="77.5" cy="64.2" r="0.41"/><circle cx="79.8" cy="64.2" r="0.56"/><circle cx="82.1" cy="64.2" r="0.71"/><circle cx="84.4" cy="64.2" r="0.86"/><circle cx="76.35" cy="66.2" r="0.33"/><circle cx="78.65" cy="66.2" r="0.48"/><circle cx="80.95" cy="66.2" r="0.63"/><circle cx="83.25" cy="66.2" r="0.78"/><circle cx="85.55" cy="66.2" r="0.93"/><circle cx="75.2" cy="68.2" r="0.26"/><circle cx="77.5" cy="68.2" r="0.41"/><circle cx="79.8" cy="68.2" r="0.56"/><circle cx="82.1" cy="68.2" r="0.71"/><circle cx="84.4" cy="68.2" r="0.86"/><circle cx="76.35" cy="70.2" r="0.33"/><circle cx="78.65" cy="70.2" r="0.48"/><circle cx="80.95" cy="70.2" r="0.63"/><circle cx="83.25" cy="70.2" r="0.78"/><circle cx="85.55" cy="70.2" r="0.93"/><circle cx="75.2" cy="72.2" r="0.26"/><circle cx="77.5" cy="72.2" r="0.41"/><circle cx="79.8" cy="72.2" r="0.56"/><circle cx="82.1" cy="72.2" r="0.71"/><circle cx="84.4" cy="72.2" r="0.86"/><circle cx="76.35" cy="74.2" r="0.33"/><circle cx="78.65" cy="74.2" r="0.48"/><circle cx="80.95" cy="74.2" r="0.63"/><circle cx="83.25" cy="74.2" r="0.78"/><circle cx="85.55" cy="74.2" r="0.93"/><circle cx="75.2" cy="76.2" r="0.26"/><circle cx="77.5" cy="76.2" r="0.41"/><circle cx="79.8" cy="76.2" r="0.56"/><circle cx="82.1" cy="76.2" r="0.71"/><circle cx="84.4" cy="76.2" r="0.86"/><circle cx="76.35" cy="78.2" r="0.33"/><circle cx="78.65" cy="78.2" r="0.48"/><circle cx="80.95" cy="78.2" r="0.63"/><circle cx="83.25" cy="78.2" r="0.78"/><circle cx="85.55" cy="78.2" r="0.93"/><circle cx="75.2" cy="80.2" r="0.26"/><circle cx="77.5" cy="80.2" r="0.41"/><circle cx="79.8" cy="80.2" r="0.56"/><circle cx="82.1" cy="80.2" r="0.71"/><circle cx="84.4" cy="80.2" r="0.86"/><circle cx="76.35" cy="82.2" r="0.33"/><circle cx="78.65" cy="82.2" r="0.48"/><circle cx="80.95" cy="82.2" r="0.63"/><circle cx="83.25" cy="82.2" r="0.78"/><circle cx="85.55" cy="82.2" r="0.93"/><circle cx="75.2" cy="84.2" r="0.26"/><circle cx="77.5" cy="84.2" r="0.41"/><circle cx="79.8" cy="84.2" r="0.56"/><circle cx="82.1" cy="84.2" r="0.71"/><circle cx="84.4" cy="84.2" r="0.86"/><circle cx="76.35" cy="86.2" r="0.33"/><circle cx="78.65" cy="86.2" r="0.48"/><circle cx="80.95" cy="86.2" r="0.63"/><circle cx="83.25" cy="86.2" r="0.78"/><circle cx="85.55" cy="86.2" r="0.93"/><circle cx="75.2" cy="88.2" r="0.26"/><circle cx="77.5" cy="88.2" r="0.41"/><circle cx="79.8" cy="88.2" r="0.56"/><circle cx="82.1" cy="88.2" r="0.71"/><circle cx="84.4" cy="88.2" r="0.86"/><circle cx="76.35" cy="90.2" r="0.33"/><circle cx="78.65" cy="90.2" r="0.48"/><circle cx="80.95" cy="90.2" r="0.63"/><circle cx="83.25" cy="90.2" r="0.78"/><circle cx="85.55" cy="90.2" r="0.93"/></g>
+  <!-- the seam where the walls sit on the plinth -->
+  <path d="M14.7,90.9 L85.4,90.9 L85.5,92.9 L14.6,92.9 Z" fill="#2A2521"/>
+  <!-- the roof: one gable, the only roof in the act -->
+  <path d="M4,43 L48.9,5.4 Q50,4.4 51.1,5.45 L96,43.2 Q50,43.6 4,43 Z" fill="#2F7370"/>
+  <!-- the eave: one ink line over the wall, level with the outline under the overhangs, and the roof's underside -->
+  <path d="M14.6,43.3 Q50,43.9 85.5,43.5 L85.5,45.5 Q50,45.9 14.6,45.3 Z" fill="#2A2521"/>
+  <path d="M14.8,45.3 Q50,45.9 85.4,45.5 L85.4,48.4 Q50,48.6 14.8,48.2 Z" fill="#6E6353"/>
+  <!-- gleam, the sunlit slope -->
+  <path d="M14.6,37.4 L33.2,21.9 L34.2,23.1 L16,38.6 Z" fill="#D2C6AC"/>
+  <!-- the windows are the eyes: two open dots on bone panes, level, straight out -->
+  <g transform="rotate(-0.8 33.3 57.6)"><rect x="25" y="49.3" width="16.6" height="16.6" rx="0.6" fill="#2A2521"/><rect x="27" y="51.3" width="12.6" height="12.6" fill="#D2C6AC"/></g><circle cx="33.3" cy="58.8" r="3.2" fill="#2A2521"/>
+  <g transform="rotate(0.7 66.8 57.3)"><rect x="58.5" y="49" width="16.6" height="16.6" rx="0.6" fill="#2A2521"/><rect x="60.5" y="51" width="12.6" height="12.6" fill="#D2C6AC"/></g><circle cx="66.8" cy="58.5" r="3.2" fill="#2A2521"/>
+  <!-- the door is the mouth, open: the frame kept, the carpet seen through the doorway, the leaf swung in against the left jamb -->
+  <path d="M42.1,69.5 Q50,69.2 57.9,69.4 L58.1,91 L41.9,91 Z" fill="#2A2521"/>
+  <path d="M44.1,71.5 Q50,71.2 55.9,71.4 L56.1,91 L43.9,91 Z" fill="#4D3A1F"/>
+  <path d="M44.1,71.5 L46.6,71.38 L46.3,91 L43.9,91 Z" fill="#6E6353"/>
+</svg>
