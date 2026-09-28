@@ -7,7 +7,7 @@
 - **SVG sha256:** `2033215c7ee244d26782527b24f441196eef90c0d456e83bfe9a42ee442aa599`
 - **Rasteriser:** sharp 0.34.5 (libvips 8.17.3, librsvg 2.61.2)
 - **Render:** 49.500 dpi, 4× supersampled and area-averaged
-- **Rendered:** 2026-09-28T10:00:29.377Z
+- **Rendered:** 2026-09-28T10:02:38.473Z
 - **Sprite size:** 88px
 - **Tests:** the row of stars — five stars, one filled, the only points in the act; no gold on it
 
@@ -15,7 +15,7 @@
 
 ## Description
 
-a short flat strip with five flat five-pointed star outlines in a row across it, the second star filled in, the strip in muted tan (#D2C6AC), the star outlines in warm grey-brown (#6E6353), the filled star in muted tan, two small dark dots for eyes on the strip below the stars looking up at them and one short flat line for a mouth, no text, no numbers, no gold, no yellow, no red, no purple, no pale blue-grey anywhere
+a short flat strip with five flat five-pointed star outlines in a row across it, the second star filled in, the strip in muted tan (#D2C6AC), the star outlines in warm grey-brown (#6E6353), the filled star solid in warm near-black (#2A2521) so it is the odd one out, two small dark dots for eyes on the strip below the stars looking up at them and one short flat line for a mouth, no text, no numbers, no gold, no yellow, no red, no purple, no pale blue-grey anywhere
 
 ## Mechanical checks
 

@@ -1431,7 +1431,7 @@ export const OFFICE_ROSTER: AssetSpec[] = [
       'The Office is the first stage where the aimed thing is a number about the player, and the number takes something back.',
     subject: [
       'a short flat strip with five flat five-pointed star outlines in a row across it, the second star filled in',
-      'the strip in muted tan (#D2C6AC), the star outlines in warm grey-brown (#6E6353), the filled star in muted tan',
+      'the strip in muted tan (#D2C6AC), the star outlines in warm grey-brown (#6E6353), the filled star solid in warm near-black (#2A2521) so it is the odd one out',
       'two small dark dots for eyes on the strip below the stars looking up at them and one short flat line for a mouth',
       'no text, no numbers, no gold, no yellow, no red, no purple, no pale blue-grey anywhere',
     ].join(', '),
