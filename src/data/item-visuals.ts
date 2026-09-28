@@ -13,12 +13,15 @@ import type { ItemIcon } from './items';
  * clock for the late bloomer — quantised to the locked palette and mechanically
  * checked against the ink card surface they actually sit on.
  *
- * Grudge, Gossip and Appetite are drawn rather than generated (G-038,
- * `tools/art/svg/conception/icon-{orbit,chain,magnet}.svg`) and go through the
- * same CONFORM and CHECK: a fist standing in an orbit ring, three dots on one
- * bent line, a plate between a fork and a knife. The frame name is the icon
- * tag, not the item — Appetite's tag is `magnet` (its mechanic, pickup reach),
- * so its plate is `icon-magnet.png`; Charisma's horseshoe magnet is `pull`.
+ * Grudge, Gossip, Appetite, Growth Spurt and Snooze are drawn rather than
+ * generated (G-038, `tools/art/svg/conception/icon-{orbit,chain,magnet,grow,slow}.svg`)
+ * and go through the same CONFORM and CHECK: a fist standing in an orbit ring,
+ * three dots on one bent line, a plate between a fork and a knife, a rule on
+ * end with an arrow past its top, a bell-less clock with a z. The frame name
+ * is the icon tag, not the item — Appetite's tag is `magnet` (its mechanic,
+ * pickup reach), so its plate is `icon-magnet.png`; Charisma's horseshoe
+ * magnet is `pull`; Snooze's clock is `slow`, and Capacitation's twin-bell
+ * clock is `clock`.
  */
 export const ITEM_ICON_ATLAS = {
   key: 'nc-icons',
