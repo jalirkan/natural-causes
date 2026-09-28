@@ -5,8 +5,8 @@
  * Register matters more than fidelity here (ART-DIRECTION's "mid-century
  * institutional" applies to the ears too): short, quiet, dry sounds — a
  * date-stamp thunk rather than an arcade squeal. Sine and triangle waves only
- * (plus one low-passed noise burst, for impacts), low master volume, no
- * reverb, nothing sustained.
+ * (plus short noise bursts: low-passed for impacts, one band-passed swish for
+ * a swing), low master volume, no reverb, nothing sustained.
  *
  * Browser-only by construction and driven entirely by the renderer. The
  * simulation never knows sound exists, for the same reason it never knows
@@ -106,14 +106,25 @@ class Sfx {
   }
 
   /**
-   * One enveloped burst of low-passed white noise — the only unpitched thing
-   * in the set, kept for impacts (paper, a wall). Same gates as `tone`.
+   * One enveloped burst of white noise — the only unpitched thing in the set.
+   * Low-passed at `cutoff` for impacts (paper, a wall). `band` makes it a
+   * band-pass whose centre glides from `cutoff` to `glideTo` over the burst:
+   * air moving, for a swing. `attack` softens the onset. Left out, both change
+   * nothing. Same gates as `tone`.
    */
-  private noise(opts: { gain?: number; decay?: number; cutoff?: number; delay?: number } = {}): void {
+  private noise(
+    opts: {
+      gain?: number;
+      attack?: number;
+      decay?: number;
+      cutoff?: number;
+      delay?: number;
+      band?: { q: number; glideTo: number };
+    } = {},
+  ): void {
     if (!this.ctx || !this.master || this.muted) return;
-    const { gain = 0.03, decay = 0.05, cutoff = 2000, delay = 0 } = opts;
+    const { gain = 0.03, attack = 0.002, decay = 0.05, cutoff = 2000, delay = 0, band } = opts;
     const t0 = this.ctx.currentTime + delay;
-    const attack = 0.002;
     const rate = this.ctx.sampleRate;
     const buf = this.ctx.createBuffer(1, Math.ceil(rate * (attack + decay + 0.01)), rate);
     const data = buf.getChannelData(0);
@@ -122,8 +133,13 @@ class Sfx {
     const filter = this.ctx.createBiquadFilter();
     const env = this.ctx.createGain();
     src.buffer = buf;
-    filter.type = 'lowpass';
+    filter.type = band ? 'bandpass' : 'lowpass';
     filter.frequency.value = cutoff;
+    if (band) {
+      filter.Q.value = band.q;
+      filter.frequency.setValueAtTime(cutoff, t0);
+      filter.frequency.exponentialRampToValueAtTime(Math.max(1, band.glideTo), t0 + attack + decay);
+    }
     env.gain.setValueAtTime(0, t0);
     env.gain.linearRampToValueAtTime(gain, t0 + attack);
     env.gain.exponentialRampToValueAtTime(0.0005, t0 + attack + decay);
@@ -310,6 +326,41 @@ class Sfx {
       delay: 0.04,
       wobble: { rate: 4.5, depth: 1.8 },
     });
+  }
+
+  // --- G-044's weapons ---------------------------------------------------
+
+  /**
+   * Backhand's swing: a band-passed breath of noise whose centre falls about
+   * two octaves as it goes, ~120ms — the air a slap moves, not the slap. Once
+   * per frame however many arcs swung, so a three-arc swing is one swish.
+   */
+  sweep(): void {
+    if (!this.due('sweep', 90)) return;
+    this.noise({ gain: 0.045, attack: 0.02, decay: 0.1, cutoff: 2600 + Math.random() * 400, band: { q: 1.6, glideTo: 650 } });
+  }
+
+  /**
+   * Judgement lands: a gavel on its block. A low sine thump dropping as it
+   * dies, a hollow partial on top for the wood, and a bright click for the
+   * contact; ~90ms, and never on the telegraph — the verdict is the landing.
+   */
+  gavel(): void {
+    if (!this.due('gavel', 80)) return;
+    this.noise({ gain: 0.04, decay: 0.006, cutoff: 5000 });
+    this.tone(175, { gain: 0.11, attack: 0.002, decay: 0.08, glideTo: 110 });
+    this.tone(640, { wave: 'triangle', gain: 0.03, attack: 0.001, decay: 0.03, glideTo: 560 });
+  }
+
+  /**
+   * Personal Space with someone in it: a soft, dull tap, a knuckle on a desk.
+   * ~40ms and very quiet, the caller throttling it to one every 0.6s while
+   * anything stands in a ring, so a crowd at the rope is a slow tut-tut.
+   */
+  auraTick(): void {
+    if (!this.due('auraTick', 150)) return;
+    this.noise({ gain: 0.014, decay: 0.022, cutoff: 600 + Math.random() * 200 });
+    this.tone(210, { gain: 0.016, attack: 0.003, decay: 0.035, glideTo: 180 });
   }
 }
 

@@ -195,7 +195,7 @@ export class ActScene extends Phaser.Scene {
    * it must not know sound exists — so the renderer notices changes the same
    * way it notices everything else: by reading state and diffing.
    */
-  private heard = { kills: 0, hp: 0, stacks: 0, offers: false, boss: false, dead: false, won: false, xp: 0, level: 1, raced: 0, shot: 0, homework: 0, stun: 0, bossPhase: '', typing: 0, car: 0 };
+  private heard = { kills: 0, hp: 0, stacks: 0, offers: false, boss: false, dead: false, won: false, xp: 0, level: 1, raced: 0, shot: 0, homework: 0, stun: 0, bossPhase: '', typing: 0, car: 0, time: 0, auraAt: -Infinity };
 
   /**
    * How long this run held each heading (§12.4's sixth question). Fed the
@@ -376,7 +376,7 @@ export class ActScene extends Phaser.Scene {
     this.resetArrivals();
 
     this.dev = neutralDevState();
-    this.heard = { kills: 0, hp: this.world.hp, stacks: 0, offers: false, boss: false, dead: false, won: false, xp: 0, level: 1, raced: 0, shot: 0, homework: 0, stun: 0, bossPhase: '', typing: 0, car: 0 };
+    this.heard = { kills: 0, hp: this.world.hp, stacks: 0, offers: false, boss: false, dead: false, won: false, xp: 0, level: 1, raced: 0, shot: 0, homework: 0, stun: 0, bossPhase: '', typing: 0, car: 0, time: this.world.time, auraAt: -Infinity };
     this.inputLog = new InputLog();
     if (import.meta.env.DEV) {
       this.detachDev?.();
@@ -962,6 +962,47 @@ export class ActScene extends Phaser.Scene {
     }
     if (typing > h.typing) sfx.typing();
     if (car > h.car) sfx.carPass();
+    // G-044's three weapons. Unlike the counters above, their state sits still
+    // while the world does (a card up, the run over), so an arc or a landed
+    // bolt read off a held world would sound every frame. They hear only the
+    // world time this frame's steps covered, and nothing while an offer is
+    // open or the life is done.
+    const elapsed = w.time - h.time;
+    let auraAt = h.auraAt;
+    if (elapsed > 0 && !w.offers && !w.dead && !w.won) {
+      // Backhand: arcs are aged before the swing (updateSweeps runs first), so
+      // one swung on this frame's step reads 0 and one from the frame before
+      // reads a whole step; half the frame's world time splits them with room
+      // for float. One swish however many arcs swung.
+      if (w.sweeps.some((s) => s.age < elapsed / 2)) sfx.sweep();
+      // Judgement: the landing, never the telegraph. A strike holds `delay`
+      // above zero while it comes, then 0 with `age` counting from the moment
+      // it landed, so an age inside this frame's world time landed this frame.
+      if (w.areas.some((a) => a.delay === 0 && a.age < elapsed)) sfx.gavel();
+      // Personal Space: a tap at most every 0.6s of world time while anything
+      // stands in a ring — a throttle, not a count of hits. The sim's
+      // per-enemy re-hit map is private, so this is the renderer's honest
+      // approximation: its reach test (centre within ring plus body), skipping
+      // what it skips, on end-of-step positions.
+      if (w.auras.length > 0 && w.time - auraAt >= 0.6) {
+        const b = w.boss;
+        let inside = false;
+        for (const a of w.auras) {
+          if (b && b.phase !== 'absorbing' && (b.x - a.x) ** 2 + (b.y - a.y) ** 2 <= (a.radius + BOSS_RADIUS) ** 2) inside = true;
+          for (let i = 0; !inside && i < w.enemies.length; i++) {
+            const e = w.enemies[i]!;
+            if (e.def.invulnerable || e.hp <= 0) continue;
+            const r = a.radius + e.radius;
+            inside = (e.x - a.x) ** 2 + (e.y - a.y) ** 2 <= r * r;
+          }
+          if (inside) break;
+        }
+        if (inside) {
+          sfx.auraTick();
+          auraAt = w.time;
+        }
+      }
+    }
     if (w.dead && !h.dead) sfx.death();
     if (w.won && !h.won) sfx.win();
     this.heard = {
@@ -981,6 +1022,8 @@ export class ActScene extends Phaser.Scene {
       bossPhase,
       typing,
       car,
+      time: w.time,
+      auraAt,
     };
   }
 
