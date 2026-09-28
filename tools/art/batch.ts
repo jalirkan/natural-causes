@@ -159,6 +159,7 @@ const ACT_DEFAULT_GEOMETRY: Record<ActId, Geometry> = {
   service: 'hand-cut',
   office: 'hand-cut',
   family: 'hand-cut',
+  decline: 'hand-cut',
 };
 
 export function styleSuffix(
@@ -1613,6 +1614,142 @@ export const FAMILY_ROSTER: AssetSpec[] = [
   },
 ];
 
+/**
+ * DECLINE-ROSTER.md §1–§4, lifted. What the body and the building now do to
+ * you; nothing is a person and the knees are your own (law 9 has nothing to
+ * render); no enemy wears the act's mint (law 10); the rain is the act's
+ * only red, the steps its only purple, the clock its only teal, and gold
+ * rides the form's decision alone (G-031). Every sprite is drawn.
+ */
+export const DECLINE_ROSTER: AssetSpec[] = [
+  {
+    id: 'medication',
+    name: 'Medication',
+    act: 'decline',
+    role: 'swarm',
+    tests: 'the capsule — the only capsule and the smallest thing in the act, read by its seam',
+    targetSize: 40,
+    seed: 50050,
+    source: 'svg',
+    whyThisStage:
+      'Decline is the first stage where taking care of yourself is a thing you chase, and it hurts when it catches you first.',
+    subject: [
+      'a rounded capsule seen exactly side-on, two halves with a seam between them',
+      'the left half in muted tan (#D2C6AC), the right half in warm grey-brown (#6E6353), the seam and the outline in warm near-black (#2A2521)',
+      'two small dark dots for eyes and one short flat line for a mouth on the tan half, looking at the seam',
+      'no text, no red, no purple, no gold, no yellow, no teal anywhere',
+    ].join(', '),
+  },
+  {
+    id: 'weather',
+    name: 'Weather',
+    act: 'decline',
+    role: 'swarm',
+    tests: 'the front — the only cloud and the widest thing, read side-on crossing; red on the rain only',
+    targetSize: 112,
+    seed: 51051,
+    source: 'svg',
+    whyThisStage: 'Decline is the first stage where the weather is something that happens to the player.',
+    subject: [
+      'a long low bank of cloud seen side-on, twice as wide as it is tall, with five short straight rain lines falling from its underside',
+      'muted tan (#D2C6AC) cloud with warm near-black (#2A2521) edges, the rain lines in flat muted red (#C4472E), the contact threat colour, the only red on it',
+      'two small dark dots for eyes and one short flat line for a mouth in the cloud looking down at its own rain, not at the viewer',
+      'no sun, no lightning, no text, no purple, no gold, no yellow, no teal anywhere',
+    ].join(', '),
+  },
+  {
+    id: 'stairs',
+    name: 'Stairs',
+    act: 'decline',
+    role: 'swarm',
+    tests: 'the flight of stairs — the only steps and the only rail in the act; the elite purple on the steps',
+    targetSize: 96,
+    seed: 52052,
+    source: 'svg',
+    whyThisStage: 'Decline is the first stage where the slow way up is the safe way, and the crowd cannot follow.',
+    subject: [
+      'a flight of six steps rising from left to right seen exactly side-on, one straight rail above them on two posts',
+      'flat muted purple (#7C5C8A), the elite threat colour, on every step, one solid tone, the rail and posts and the outline in warm near-black (#2A2521)',
+      'two small dark dots for eyes and one short flat line for a mouth on the riser of the top step, looking down the flight, not at the viewer',
+      'no carpet, no banister curl, no text, no red, no gold, no yellow, no teal anywhere',
+    ].join(', '),
+  },
+  {
+    id: 'your-knees',
+    name: 'Your knees',
+    act: 'decline',
+    role: 'swarm',
+    tests: 'the knees — the only pair in the act, two domes side by side with one face between them',
+    targetSize: 40,
+    seed: 53053,
+    source: 'svg',
+    // DECLINE-ROSTER §3.3: the antibody's final costume. Bone, never skin;
+    // the frown between them is the only one in the life.
+    whyThisStage:
+      'Decline is where the record the player has been accumulating since before they were a person is finally read back to them by their own body.',
+    subject: [
+      'two rounded kneecaps side by side seen from the front, two domes of equal size nearly touching',
+      'muted tan (#D2C6AC) domes with warm near-black (#2A2521) outlines',
+      'a face between the two domes: two small dark dots for eyes and one short line for a mouth turned down one step at each end, worried',
+      'no legs, no skin, no text, no red, no purple, no gold, no yellow, no teal anywhere',
+    ].join(', '),
+  },
+  {
+    id: 'insurance-form',
+    name: 'Insurance form',
+    act: 'decline',
+    role: 'swarm',
+    tests: 'the form on a board — the only board and the only boxes in the act; no gold on it',
+    targetSize: 80,
+    seed: 54054,
+    source: 'svg',
+    whyThisStage: 'Decline is the first stage where the aimed thing decides what the player is covered for.',
+    subject: [
+      'a portrait clipboard seen from the front, a sheet of paper on a board with a clip at its top and three small square tick boxes down the left side of the sheet, all empty',
+      'the board in warm grey-brown (#6E6353), the sheet in muted tan (#D2C6AC), the clip, the boxes and the outline in warm near-black (#2A2521)',
+      'two small dark dots for eyes and one short flat line for a mouth on the sheet beside the boxes, looking at the boxes, not at the viewer',
+      'no text, no ticks, no gold, no yellow, no red, no purple, no teal anywhere',
+    ].join(', '),
+  },
+  {
+    id: 'boss-time',
+    name: 'Time',
+    act: 'decline',
+    role: 'boss',
+    tests: 'the clock face — boss teal at boss scale, a round dial with two hands and no numbers, the only circle in the act',
+    targetSize: 384,
+    seed: 55055,
+    source: 'svg',
+    // DECLINE-ROSTER §4: it cannot be hurt and its running out is the win.
+    // Law 5: a clock has had a face since the word.
+    whyThisStage: 'Decline is the last stage, and the thing that ends it was there the whole time.',
+    subject: [
+      'a round clock face seen straight on at boss scale, a wide rim, a plain dial with no numbers and no marks, two hands of different lengths meeting at the centre',
+      'flat muted deep teal (#2F7370), the boss colour, on the rim and both hands, one solid tone with warm near-black (#2A2521) edges, the dial in muted tan (#D2C6AC)',
+      'a small face at the centre where the hands meet: two open dark dots for eyes and one short flat line for a mouth, calm',
+      'no numbers, no ticks, no pendulum, no text, no red, no purple, no gold, no yellow anywhere',
+    ].join(', '),
+  },
+  {
+    id: 'player-decline',
+    name: 'The player — fifty-five',
+    act: 'decline',
+    role: 'player',
+    tests: 'G-003 at fifty-five: the same face and cowlick, one frame, a cardigan and a cane',
+    source: 'svg',
+    targetSize: 112,
+    seed: 56056,
+    subject: [
+      'the player at fifty-five: the same small round-headed figure as every act, standing, no taller',
+      'the same face as every act: two flat eyes and one short flat line for a mouth',
+      'the same single asymmetric cowlick sticking up above the left eye, one tuft and no other hair',
+      'a buttoned cardigan down the front and a plain cane held in one hand, its tip on the floor',
+      'paper coloured (#EFE7D6) head and body, warm grey-brown (#6E6353) as the only second tone',
+      'no threat colour anywhere, no tote bag, no keys, no glasses, no lettering',
+    ].join(', '),
+  },
+];
+
 export const ALL_ASSETS: AssetSpec[] = [
   ...TEST_BATCH,
   ...CONCEPTION_ROSTER,
@@ -1621,5 +1758,6 @@ export const ALL_ASSETS: AssetSpec[] = [
   ...COLLEGE_ROSTER,
   ...OFFICE_ROSTER,
   ...FAMILY_ROSTER,
+  ...DECLINE_ROSTER,
   ...ITEM_ICONS,
 ];
