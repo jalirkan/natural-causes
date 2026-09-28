@@ -55,18 +55,35 @@ describe('behaviours are fully specified (CONCEPTION-ROSTER §5.2)', () => {
         expect(def.engulf!.seconds).toBeGreaterThan(0);
         expect(def.engulf!.slow).toBeGreaterThan(0);
         expect(def.engulf!.slow).toBeLessThan(1);
-        expect(def.engulf!.damagePerSecond).toBeGreaterThan(0);
+        // Every hold costs something past the slow every hold has. It was
+        // "damage above zero" until the toddler (FAMILY-ROSTER §3.4), whose
+        // hold does no damage by design — it takes a hand, never health — so
+        // the rule is now that a hold costs health or cadence, and a hold
+        // that costs neither is only a slow nobody designed.
+        const e = def.engulf!;
+        expect(e.damagePerSecond).toBeGreaterThanOrEqual(0);
+        const costs = e.damagePerSecond > 0 || (e.cooldownMultiplier ?? 1) > 1;
+        expect(costs, `"${id}" engulfs and costs nothing but the slow`).toBe(true);
+        // A multiplier on cadence is a cost, never a gift.
+        if (e.cooldownMultiplier !== undefined) expect(e.cooldownMultiplier).toBeGreaterThan(1);
       }
       if (def.contact === 'attach') {
         expect(def.attach, `"${id}" attaches but has no drag`).toBeDefined();
         // Every attach costs something. It was "a drag above zero" until the
         // ping (OFFICE-ROSTER §3.3), whose drag is 0 by design — it costs
         // cadence, never speed — so the rule is now that a stack costs speed,
-        // XP or cadence, and an attach that costs none of them is inert.
+        // XP, cadence or, since the HOA letter (FAMILY-ROSTER §3.3), reach,
+        // and an attach that costs none of them is inert.
         const a = def.attach!;
-        const costs = a.drag > 0 || (a.tax ?? 0) > 0 || (a.cooldownMultiplier ?? 1) > 1;
+        const costs =
+          a.drag > 0 || (a.tax ?? 0) > 0 || (a.cooldownMultiplier ?? 1) > 1 || (a.pickup ?? 1) < 1;
         expect(costs, `"${id}" attaches and costs nothing`).toBe(true);
         expect(a.drag).toBeGreaterThanOrEqual(0);
+        // A notice shrinks the lawn; it never removes it, nor grows it.
+        if (a.pickup !== undefined) {
+          expect(a.pickup).toBeGreaterThan(0);
+          expect(a.pickup).toBeLessThan(1);
+        }
         // Small enough per stack that no single attachment feels unfair.
         expect(a.drag).toBeLessThan(0.1);
       }
@@ -174,7 +191,7 @@ describe("law 10 / G-030 — pickups take the act's light tone", () => {
     // earlier, where it is enforceable today: the palette an enemy in each act
     // is allowed to be quantised INTO excludes paper (the player's) and the
     // act's light tone (the pickups').
-    for (const act of ['conception', 'school', 'adolescence', 'college', 'office'] as const) {
+    for (const act of ['conception', 'school', 'adolescence', 'college', 'office', 'family'] as const) {
       const allowed = enemyPalette(act).map((c) => c.name);
       expect(allowed, `act "${act}" lets an enemy be paper`).not.toContain('paper');
       expect(allowed, `act "${act}" lets an enemy take the pickup tone`).not.toContain(

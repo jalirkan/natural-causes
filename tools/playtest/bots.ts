@@ -25,9 +25,11 @@ import {
  * and none of them is a game number — moving one changes the player the bot
  * is, never the game: the decision cadence (`cadenceSeconds`, 0.2s), the
  * aimed-shot sidestep (`SHOT_LOOKAHEAD_SECONDS` 0.6s, `SHOT_SIDESTEP_WEIGHT`
- * 0.8, `SHOT_MARGIN_PX` 8px) and the shield reading (`SHIELD_PULL_WEIGHT` 0.7,
- * `HUNT_CLEARANCE_PX` 40px, `FLOOR_HOLD_FRACTION` 0.8). What retires them is a
- * human input log (§11.5), not a bot run.
+ * 0.8, `SHOT_MARGIN_PX` 8px), the shield reading (`SHIELD_PULL_WEIGHT` 0.7,
+ * `HUNT_CLEARANCE_PX` 40px, `FLOOR_HOLD_FRACTION` 0.8) and the toddler
+ * (`COY_WEIGHT_PER_HELD_SECOND` 0.25, `COY_RADIUS_PX` 150px,
+ * `COY_CLEARANCE_PX` 24px). What retires them is a human input log (§11.5),
+ * not a bot run.
  */
 
 /** Fixed timestep. Real frames vary; a measurement must not. */
@@ -155,6 +157,15 @@ export interface RunResult {
    */
   bossHpLeft: number | null;
   bossHpFraction: number | null;
+  /**
+   * The Mortgage (FAMILY-ROSTER §4): instalments still owed when the run
+   * ended — `instalments` less the windows paid (`boss.paid`). Null when the
+   * run did not end at a Mortgage, or when the sim does not keep the count:
+   * `paid` is read behind an `in` check, so a sim without it reads null here
+   * and the report prints "boss left" as it always has. Optional so a result
+   * written before the field existed still reads.
+   */
+  bossInstalmentsLeft?: number | null;
   /** Item levels when the run ended — over the whole life, every act's picks. */
   items: Record<string, number>;
   /**
@@ -235,11 +246,90 @@ export function setInstrument(cadence: number, threat: boolean): void {
  *
  * Engulf damage is counted over its whole duration, because that is what the
  * contact actually costs.
+ *
+ * An attach that does no damage weighs nothing, whatever it costs instead:
+ * tuition's invoice (XP, and a drag stack), the ping (cadence) and the HOA
+ * letter (reach, `attach.pickup`) all score 0 here and are walked through, as
+ * a person walks through what is waiting at the lead. The letter gets exactly
+ * what tuition gets — nothing — by the same arithmetic, not by a case of its
+ * own.
+ *
+ * A `coy` enemy (the toddler, FAMILY-ROSTER §3.4) is the exception: its hold
+ * does no damage, so by damage alone it weighed 0 and the bots walked into it.
+ * What it costs is time — seconds held at `engulf.slow`, every cooldown
+ * multiplied — so it weighs `COY_WEIGHT_PER_HELD_SECOND` for each second of
+ * its hold, on top of any damage it does. Read off the def's `coy` and
+ * `engulf`, never its id. Inside `COY_RADIUS_PX` that weight is not a flee
+ * (`pastCoy`).
  */
-function threatOf(def: EnemyDef): number {
+export function threatOf(def: EnemyDef): number {
   if (!threatWeighting) return 1;
   const engulf = def.engulf ? def.engulf.damagePerSecond * def.engulf.seconds : 0;
-  return (def.contactDamage + engulf) / 14;
+  const damage = (def.contactDamage + engulf) / 14;
+  if (!def.coy) return damage;
+  return damage + COY_WEIGHT_PER_HELD_SECOND * (def.engulf?.seconds ?? 0);
+}
+
+// --- the toddler -------------------------------------------------------------
+//
+// FAMILY-ROSTER §3.4: `coy` makes a chaser faster (`flee`) while the player's
+// movement points away from it and slower (`approach`) while it points toward
+// it; "the answer is to walk at it and round it". A bot that fled it would
+// make it faster, and a bot that ignored it (the old weight of 0) walked into
+// its hold. These three numbers are the bot's, not the game's.
+
+/**
+ * PLACEHOLDER, 0.25 per second of hold. The lost-time weight: the toddler's
+ * three seconds weigh 0.75 — at touching, above a gem's 0.55, so a person
+ * does not walk into the hold for XP, and below a threat-1 contact enemy's
+ * 1.0, so going round a toddler does not walk the bot into a body. Awaiting
+ * §11.5, like the rest.
+ */
+export const COY_WEIGHT_PER_HELD_SECOND = 0.25;
+/**
+ * PLACEHOLDER, 150px. Inside this a `coy` enemy is not fled: its push is
+ * turned to pass it (`pastCoy`) and nothing else the bot steers by may carry
+ * it away from it. Outside it, out to the crowd's 260px, it is an ordinary
+ * threat and pushes away as any threat does, weakly (0.32 at most, at 150px).
+ */
+export const COY_RADIUS_PX = 150;
+/**
+ * PLACEHOLDER, 24px. How wide of contact (player radius + the enemy's) the
+ * pass aims: past a toddler slowed to its `approach` speed, with room for the
+ * few pixels it closes while the bot goes by.
+ */
+export const COY_CLEARANCE_PX = 24;
+
+/**
+ * The pass: a unit direction that goes round a `coy` enemy rather than away
+ * from it. Aimed along the tangent to a circle of contact reach plus
+ * `COY_CLEARANCE_PX` about it — toward-and-around, so its component toward
+ * the enemy is never negative and the enemy is slowed, not quickened. Inside
+ * that circle, straight across: the tangent, no component either way.
+ *
+ * The side is the one the bot's heading already leans to, as the sidestep's
+ * is. Dead on — fleeing straight away from it, or walking straight at it — a
+ * fixed side (+90° from the line to it), so a replay passes the same way.
+ */
+export function pastCoy(
+  w: World,
+  e: EnemyState,
+  heading: { headingX: number; headingY: number },
+): { x: number; y: number } {
+  const dx = e.x - w.x;
+  const dy = e.y - w.y;
+  const d = Math.hypot(dx, dy) || 1;
+  const ux = dx / d;
+  const uy = dy / d;
+  // Which side of the line to it the heading points: the cross product's sign.
+  const s = ux * heading.headingY - uy * heading.headingX < 0 ? -1 : 1;
+  const tx = -uy * s;
+  const ty = ux * s;
+  const clear = w.playerRadius + e.radius + COY_CLEARANCE_PX;
+  if (d <= clear) return { x: tx, y: ty };
+  const sin = clear / d;
+  const cos = Math.sqrt(1 - sin * sin);
+  return { x: ux * cos + tx * sin, y: uy * cos + ty * sin };
 }
 
 /**
@@ -313,16 +403,32 @@ export function threatens(w: World, p: ProjectileState): boolean {
   return mx * mx + my * my <= reach * reach;
 }
 
+/** One threatening shot as the sidestep reads it. */
+interface Push {
+  /** Unit, perpendicular to the path, toward the side the player stands on. */
+  x: number;
+  y: number;
+  /** The player's distance from the path's line. */
+  off: number;
+  /** Contact reach: inside `off < reach` the path, left alone, hits. */
+  reach: number;
+}
+
 /**
  * The sidestep: for every threatening shot, a unit push perpendicular to its
  * path, toward the side of the path the player already stands on. A shot dead
  * on (the Egg's centre shot is aimed exactly at the player) has no side, so
  * the bot keeps going the way it was already heading — which is what a person
- * does. Summed, then capped at SHOT_SIDESTEP_WEIGHT.
+ * does. Summed, then capped at SHOT_SIDESTEP_WEIGHT — unless the bot stands
+ * in one path's light with another pushing back (`intoTheGap`).
  */
-function sidestep(w: World, state: BotState): { x: number; y: number } {
+export function sidestep(
+  w: World,
+  heading: { headingX: number; headingY: number },
+): { x: number; y: number } {
   let sx = 0;
   let sy = 0;
+  const pushes: Push[] = [];
   for (const p of w.projectiles) {
     if (!threatens(w, p)) continue;
     const speed = Math.hypot(p.vx, p.vy);
@@ -330,17 +436,65 @@ function sidestep(w: World, state: BotState): { x: number; y: number } {
     const nx = -p.vy / speed;
     const ny = p.vx / speed;
     let side = (w.x - p.x) * nx + (w.y - p.y) * ny;
-    if (Math.abs(side) < 1e-6) side = state.headingX * nx + state.headingY * ny;
+    const off = Math.abs(side);
+    if (Math.abs(side) < 1e-6) side = heading.headingX * nx + heading.headingY * ny;
     // Heading straight along the path too: any fixed side, so it is replayable.
     if (Math.abs(side) < 1e-6) side = 1;
     const s = side > 0 ? 1 : -1;
     sx += nx * s;
     sy += ny * s;
+    pushes.push({ x: nx * s, y: ny * s, off, reach: w.playerRadius + p.radius });
   }
+  const gap = intoTheGap(pushes);
+  if (gap) return { x: gap.x * SHOT_SIDESTEP_WEIGHT, y: gap.y * SHOT_SIDESTEP_WEIGHT };
   const len = Math.hypot(sx, sy);
   if (len === 0) return { x: 0, y: 0 };
   const k = SHOT_SIDESTEP_WEIGHT / Math.max(1, len);
   return { x: sx * k, y: sy * k };
+}
+
+/**
+ * Between two paths, the sum cancels itself (AUDIT part five, minor). Prom's
+ * ring is the case: inside ~175px of the ball two neighbouring spots both
+ * threaten, their pushes point at each other and sum to at most 0.39 along
+ * the spots, outward, and the bot keeps no sidestep while standing in the
+ * nearer one's light — so whatever else it is steering by (the orbit's 0.75)
+ * walks it into the spot. Parallel paths (a column) cancel to exactly zero.
+ *
+ * So, when the bot is inside the contact reach of the NEAREST threatening
+ * path and some other threatening path pushes against it, the sum is dropped
+ * for that nearest path's push alone — away from it, into the gap toward the
+ * other — provided the gap is one a player fits in: stepping out of the
+ * nearest's reach does not put the bot inside any opposing path's. Moving
+ * `d` along the push brings an opposing path's line `c·d` nearer, `c` being
+ * minus the cosine between the two pushes — exact for a line, whatever the
+ * angle, so a ring's diverging neighbours are measured as a column's are.
+ *
+ * Where no gap fits (neighbouring shots of the Egg's fan inside ~325px, the
+ * ring inside ~133px) nothing is changed: no side is out of the light, and
+ * the sum's small outward push is toward where the spots spread. It reads
+ * paths, not who fired them, so the same case elsewhere — two shots of the
+ * fan a gap apart, the Reorg's column, two substitutes' crossfire — takes the
+ * same step. Deterministic: the nearest is the first in `w.projectiles` order
+ * on a tie, and a tie inside both reaches is a gap too narrow, so no tie ever
+ * picks a side. No new number.
+ */
+function intoTheGap(pushes: Push[]): { x: number; y: number } | null {
+  if (pushes.length < 2) return null;
+  let near = pushes[0]!;
+  for (const q of pushes) if (q.off < near.off) near = q;
+  if (near.off >= near.reach) return null;
+  // How far the bot must step, along the push, to be out of the nearest's reach.
+  const out = near.reach - near.off;
+  let opposed = false;
+  for (const q of pushes) {
+    const c = -(near.x * q.x + near.y * q.y);
+    if (q === near || c <= 0) continue;
+    opposed = true;
+    // Stepping `out` must leave this path at least its own reach away.
+    if (q.off - c * out < q.reach) return null;
+  }
+  return opposed ? { x: near.x, y: near.y } : null;
 }
 
 // --- the boss's shield -------------------------------------------------------
@@ -427,6 +581,17 @@ function shortestReach(w: World): number {
 function decideMove(w: World, rng: () => number, state: BotState): Input {
   let ax = 0;
   let ay = 0;
+  // The toddler (FAMILY-ROSTER §3.4): every `coy` enemy inside COY_RADIUS_PX,
+  // and the sum of their passes. Empty on every act without one, and then
+  // nothing below reads it and the move is the one it always was.
+  const coyNear: EnemyState[] = [];
+  let px = 0;
+  let py = 0;
+  // What a ring or a shot adds, tallied beside `ax`/`ay` (not instead of
+  // them): the coy branch keeps these out of its clamp. Damage is dodged
+  // whatever the toddler does; lost time is not worth a hit.
+  let hx = 0;
+  let hy = 0;
 
   for (const e of w.enemies) {
     const threat = threatOf(e.def);
@@ -436,6 +601,14 @@ function decideMove(w: World, rng: () => number, state: BotState): Input {
     const d = Math.hypot(dx, dy);
     if (d > 260 || d < 1) continue;
     const weight = ((260 - d) / 260) * threat;
+    if (e.def.coy && d < COY_RADIUS_PX) {
+      // Not fled: the same weight, turned to go round it.
+      const pass = pastCoy(w, e, state);
+      px += pass.x * weight;
+      py += pass.y * weight;
+      coyNear.push(e);
+      continue;
+    }
     ax += (dx / d) * weight;
     ay += (dy / d) * weight;
   }
@@ -449,6 +622,8 @@ function decideMove(w: World, rng: () => number, state: BotState): Input {
     if (Math.abs(d - radius) < 90) {
       ax += (dx / d) * 1.6;
       ay += (dy / d) * 1.6;
+      hx += (dx / d) * 1.6;
+      hy += (dy / d) * 1.6;
     }
   }
 
@@ -456,6 +631,8 @@ function decideMove(w: World, rng: () => number, state: BotState): Input {
     const s = sidestep(w, state);
     ax += s.x;
     ay += s.y;
+    hx += s.x;
+    hy += s.y;
   }
 
   if (w.gems.length > 0) {
@@ -522,6 +699,31 @@ function decideMove(w: World, rng: () => number, state: BotState): Input {
         ay += toY * SHIELD_PULL_WEIGHT;
       }
     }
+  }
+
+  if (coyNear.length > 0) {
+    // Nothing but a ring or a shot carries the bot away from a toddler inside
+    // COY_RADIUS_PX: of the crowd's pushes, the gem's pull and the boss's
+    // standoff, the share pointing away from each one is dropped, and what is
+    // left goes across or toward it. Then the passes are added. One toddler
+    // at a time, in `w.enemies` order: with two on opposite sides, dropping
+    // the second's share can hand back some of the first's. Rare on the
+    // placeholder schedule (one each half minute, each gone after its hold);
+    // not solved.
+    let rx = ax - hx;
+    let ry = ay - hy;
+    for (const e of coyNear) {
+      const d = Math.hypot(e.x - w.x, e.y - w.y) || 1;
+      const ux = (e.x - w.x) / d;
+      const uy = (e.y - w.y) / d;
+      const toward = rx * ux + ry * uy;
+      if (toward < 0) {
+        rx -= ux * toward;
+        ry -= uy * toward;
+      }
+    }
+    ax = hx + rx + px;
+    ay = hy + ry + py;
   }
 
   const len = Math.hypot(ax, ay);
@@ -596,6 +798,18 @@ function freshState(policy: BotPolicy, w: World): BotState {
  */
 export function decideOnce(policy: BotPolicy, w: World): Input {
   return decideMove(w, () => 0.5, freshState(policy, w));
+}
+
+/**
+ * Every stack the player wears, of every kind (`wornBy`) — the report's
+ * `stacks` column. Not only the drag: a ping costs cadence and an HOA letter
+ * costs reach (`attach.pickup`), neither costs speed, and both count here as
+ * the drag's stacks and tuition's invoices do. Equal to `dragStacks` in every
+ * act before The Office, whose attaches all drag; in Family, whose only
+ * attach is the letter, `dragStacks` stays 0 while this counts the file.
+ */
+export function stacksWorn(w: Pick<World, 'wornBy'>): number {
+  return [...w.wornBy.values()].reduce((n, k) => n + k, 0);
 }
 
 /**
@@ -729,6 +943,21 @@ function decideWithCadence(w: World, rng: () => number, state: BotState, dt: num
   return decideMove(w, rng, state);
 }
 
+/**
+ * What The Mortgage is still owed, if the world keeps count: `instalments`
+ * less `boss.paid`. Null for any other boss, for no boss, and for a sim whose
+ * boss state has no `paid` — read behind `in` and a number check, so this
+ * compiles and answers null before the count exists and reads it once it does.
+ */
+export function instalmentsLeft(w: Pick<World, 'boss' | 'act'>): number | null {
+  const b = w.boss;
+  const def = w.act.boss;
+  if (!b || def.kind !== 'mortgage' || !('paid' in b)) return null;
+  const paid: unknown = b.paid;
+  if (typeof paid !== 'number') return null;
+  return Math.max(0, def.instalments - paid);
+}
+
 export function runOnce(
   policy: BotPolicy,
   seed: number,
@@ -789,10 +1018,7 @@ export function runOnce(
   while (!world.dead && !world.won && steps < maxSteps) {
     if (!reached300 && world.actIndex === 0 && world.time >= act.durationSeconds) {
       reached300 = true;
-      // Every stack worn, not only the drag (`wornBy`): a ping costs cadence,
-      // not speed, and counts here as the drag's stacks do. Equal to
-      // `dragStacks` in every act before The Office, whose attaches all drag.
-      stacksAt300 = [...world.wornBy.values()].reduce((n, k) => n + k, 0);
+      stacksAt300 = stacksWorn(world);
       itemSpeedAt300 = world.itemSpeed;
       hpAt300 = world.hp;
       hpFractionAt300 = world.hp / world.maxHp;
@@ -850,6 +1076,7 @@ export function runOnce(
     cause: world.certificate?.cause ?? null,
     bossHpLeft: world.boss ? Math.round(world.boss.hp) : null,
     bossHpFraction: world.boss ? +(world.boss.hp / world.boss.maxHp).toFixed(3) : null,
+    bossInstalmentsLeft: instalmentsLeft(world),
     seconds: +world.time.toFixed(1),
     kills: world.kills,
     level: world.level,
@@ -987,6 +1214,11 @@ export interface PolicySummary {
   medianEnemiesAt300: number;
   /** Median share of the boss still standing when the run ended. */
   medianBossLeft: number | null;
+  /**
+   * Median instalments still owed, over the runs that ended at a Mortgage
+   * keeping count (`bossInstalmentsLeft`); null if none did.
+   */
+  medianInstalmentsLeft: number | null;
   reachedBoss: number;
   /** The life: median age at the end, and how many runs ended in each act. */
   medianAge: number;
@@ -1058,6 +1290,10 @@ export function summarise(results: RunResult[]): PolicySummary[] {
       medianBossLeft: (() => {
         const reached = runs.filter((r) => r.bossHpFraction !== null);
         return reached.length ? median(reached.map((r) => r.bossHpFraction!)) : null;
+      })(),
+      medianInstalmentsLeft: (() => {
+        const owed = runs.flatMap((r) => (r.bossInstalmentsLeft == null ? [] : [r.bossInstalmentsLeft]));
+        return owed.length ? median(owed) : null;
       })(),
       medianAge: median(runs.map((r) => r.age)),
       endedIn: runs.reduce<Record<string, number>>((acc, r) => {

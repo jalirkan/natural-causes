@@ -21,7 +21,7 @@ import type { World } from '../sim/world';
 /** What a document reads: the world at the crossing, nothing it could change. */
 export type DocumentWorld = Pick<
   World,
-  'seed' | 'kills' | 'level' | 'items' | 'pathLevels' | 'taxStacks' | 'inheritance'
+  'seed' | 'kills' | 'level' | 'items' | 'pathLevels' | 'taxStacks' | 'wornBy' | 'inheritance'
 >;
 
 /** What the form is filled in with that the world does not hold. */
@@ -69,9 +69,11 @@ const doc = <C>(d: DocumentDef<C>): DocumentDef<C> => d;
 
 /**
  * One document per act id: the only list of them (CONCEPTION-ROSTER §5.3).
- * Family and Decline have none yet (their acts do not exist); the obituary is
- * the death certificate, which `certificate.ts` already is. The Office's is
- * seen only once an act follows it (AUDIT seven, 52).
+ * Decline has none yet (its act does not exist); the obituary is the death
+ * certificate, which `certificate.ts` already is. A paper is handed over at a
+ * crossing, so the last act in the life hands its paper to nobody: The
+ * Office's is seen once Family follows it in `ACTS`, and Family's only once
+ * an act follows Family (AUDIT seven, 52's shape).
  */
 export const DOCUMENTS = {
   conception: doc({
@@ -230,7 +232,7 @@ export const DOCUMENTS = {
     fields: (w, f, c) => {
       const weapon = ranked(w.items).find((e) => e.kind === 'weapon');
       const path = furthestPath(w.pathLevels);
-      const owed = Math.max(0, Math.floor(w.taxStacks));
+      const owed = whole(w.taxStacks);
       return [
         [c.name, nameOf(f)],
         [c.degree, (weapon && own(c.degrees, weapon.id)) ?? c.general],
@@ -306,6 +308,62 @@ export const DOCUMENTS = {
       ];
     },
   }),
+
+  family: doc({
+    kind: 'mortgage-statement',
+    title: 'Mortgage Statement',
+    line: 'THE LENDER',
+    // The act ends on EQUITY: the twelfth instalment is paid (FAMILY-ROSTER §4).
+    stamp: 'SETTLED',
+    copy: {
+      name: 'NAME OF BORROWER',
+      term: 'TERM',
+      file: 'NOTICES ON FILE',
+      remarks: 'REMARKS',
+      /**
+       * The level as the loan's term: a mortgage longer than the act that took
+       * it out. The probe below crossed Family at level 42–56, so for every
+       * bot the term runs past the act's twenty-one years.
+       */
+      year: 'year',
+      years: 'years',
+      /**
+       * The def whose worn stacks are the notices (`World.wornBy`, by def id):
+       * the HOA letter, which persists, so every one worn in the act is still
+       * on file at the crossing (FAMILY-ROSTER §3.3).
+       */
+      letter: 'hoa-letter',
+      notice: 'notice',
+      notices: 'notices',
+      /** Nothing worn: the file is empty, and says so in words. */
+      none: 'no notices',
+      /**
+       * PLACEHOLDER: the lender's remark by the life's kills so far, highest
+       * first. A probe of the twelve policies over `ALL_ACTS` (seeds
+       * 1000–1001, `runOnce`, 18 lives reaching Family) left The Office on
+       * 5,327–7,027 kills and crossed Family on 5,698–7,393, with The
+       * Mortgage still fighting as the Egg. Presence, not calibration: the
+       * bands are written around that range so each is reachable, nobody has
+       * played Family, and a person's kills at the link is what moves them.
+       */
+      standing: [
+        [7000, 'Prompt payer.'],
+        [6000, 'Account in good standing.'],
+        [5000, 'A reminder has been sent.'],
+        [0, 'Late fees assessed.'],
+      ] as Bands,
+    },
+    fields: (w, f, c) => {
+      const filed = whole(w.wornBy.get(c.letter) ?? 0);
+      return [
+        [c.name, nameOf(f)],
+        // A forty-eight-year mortgage on a twenty-one-year act is the joke.
+        [c.term, tally(whole(w.level), c.year, c.years)],
+        [c.file, filed > 0 ? tally(filed, c.notice, c.notices) : c.none],
+        [c.remarks, band(c.standing, w.kills)],
+      ];
+    },
+  }),
 };
 
 /** The registry as the scene reads it: any act id, an entry or nothing. */
@@ -345,7 +403,17 @@ function nameOf(f: DocumentForm): string {
 
 /** A counter as typed on a form: a whole number, never negative, never NaN. */
 function count(n: number): string {
-  return String(Number.isFinite(n) ? Math.max(0, Math.floor(n)) : 0);
+  return String(whole(n));
+}
+
+/** `count`'s number, for a value typed with a noun after it. */
+function whole(n: number): number {
+  return Number.isFinite(n) ? Math.max(0, Math.floor(n)) : 0;
+}
+
+/** A whole number and its noun, singular for one: "1 notice", "3 notices". */
+function tally(n: number, one: string, many: string): string {
+  return `${n} ${n === 1 ? one : many}`;
 }
 
 /** The act clock as a time of day, mm:ss: a birth is logged by the clock on the wall. */

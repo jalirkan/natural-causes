@@ -120,11 +120,16 @@ describe('the five (§3)', () => {
     for (const def of Object.values(ENEMIES)) {
       if (def.id === 'tuition') continue;
       expect(def.attach?.tax, def.id).toBeUndefined();
+      // Tuition's alone until Family: the HOA letter's notices persist too
+      // (FAMILY-ROSTER §3.3, family-act.test.ts pins them there).
+      if (def.id === 'hoa-letter') continue;
       expect(def.attach?.persists, def.id).toBeUndefined();
     }
     for (const def of Object.values(ENEMIES)) {
       if (def.id !== 'group-project') expect(def.weakPoint, def.id).toBeUndefined();
-      if (def.id !== 'registrar') expect(def.ranged?.stun, def.id).toBeUndefined();
+      // The registrar's alone until Family: the phone's call stops the player
+      // before it pulls them (FAMILY-ROSTER §3.5, family-act.test.ts pins it).
+      if (def.id !== 'registrar' && def.id !== 'phone-call') expect(def.ranged?.stun, def.id).toBeUndefined();
     }
   });
 });

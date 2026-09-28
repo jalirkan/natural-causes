@@ -74,7 +74,7 @@ jobs:
       # The browser smoke (tools/smoke/run.ts): headless Chromium drives a
       # whole life through the dev panel and fails on any console error,
       # missing texture or NaN - the class of failure no headless test sees.
-      # About forty seconds. The browser is Playwright's own build, pinned by
+      # Two to three minutes on this runner (its budget is 420s, reasoned in tools/smoke/run.ts). The browser is Playwright's own build, pinned by
       # playwright-core's version; --with-deps installs the shared libraries
       # the runner image lacks.
       - name: Browser smoke

@@ -1,6 +1,6 @@
-import type { ActDef, BossDef, GymTeacherBoss, LoanBoss, PromBoss, ReorgBoss, SpawnWave } from '../data/acts';
+import type { ActDef, BossDef, GymTeacherBoss, LoanBoss, MortgageBoss, PromBoss, ReorgBoss, SpawnWave } from '../data/acts';
 import { ALL_ACTS, rateAt, spawnStreams, whistleInterval } from '../data/acts';
-import { enemyDef, type EnemyDef } from '../data/enemies';
+import { ENEMIES, enemyDef, type EnemyDef } from '../data/enemies';
 import {
   ITEMS,
   OFFER_PATH_SEPARATOR,
@@ -219,6 +219,17 @@ export const REORG_MARGIN = BOSS_RADIUS + 40;
 export const REORG_RELOCATE_TRIES = 8;
 
 /**
+ * The Mortgage's door (FAMILY-ROSTER §4), px below the boss point: where a
+ * missed window's late fee (`MortgageBoss.feeId`) is set down. Measured, not
+ * chosen: boss-mortgage.svg draws the door (its mouth) centred on 0.80 of the
+ * sprite's height and the body circle the sim's point stands for on 0.68, r
+ * 0.30 (its own comment), so at BOSS_RADIUS the sprite is BOSS_RADIUS / 0.30
+ * tall and the door is 0.12 of that below the point. Straight below, so it
+ * needs no dice and no heading. If the drawing's door moves, this follows it.
+ */
+export const MORTGAGE_DOOR_BELOW = ((0.8 - 0.68) * BOSS_RADIUS) / 0.3;
+
+/**
  * How long ago "recently" is, for an enemy that lands where the player has
  * been (`spawnAt: 'trail'` — homework, SCHOOL-ROSTER §3.3).
  *
@@ -384,6 +395,14 @@ export interface EnemyState {
    * `addEnemy`; optional so hand-built states need not carry it.
    */
   generation?: number;
+  /**
+   * `def.accrue` only (the bill, FAMILY-ROSTER §3.1): how many late fees this
+   * one has issued, and `fee` on a bill that IS one. A fee never accrues.
+   * Absent on everything else, and on a bill that has issued none; optional
+   * so hand-built states need not carry them (`accrueFees`).
+   */
+  accrued?: number;
+  fee?: boolean;
 }
 
 export interface ProjectileState {
@@ -415,6 +434,15 @@ export interface ProjectileState {
   chain?: number;
   /** An enemy this shot passes through without hitting: where a chain left from. */
   skipUid?: number;
+  /**
+   * `ranged.pull` only (the phone call, FAMILY-ROSTER §3.5): the enemy that
+   * fired it, and where it stood when it did. A landing pulls the player
+   * toward the shooter where it is at the hit, or toward (`fromX`, `fromY`)
+   * if it has left the field (`pullToward`). Absent on every other shot.
+   */
+  shooter?: EnemyState;
+  fromX?: number;
+  fromY?: number;
 }
 
 /**
@@ -609,7 +637,9 @@ export interface BossState {
    * for Prom it is the lights going down and `attack` begins on the ring;
    * for the Loan it is the tape jerking and `attack` begins on the statement;
    * for the Reorg it is the memo drafted and `attack` begins on the memo, and
-   * a restructure sets it back to `idle`.
+   * a restructure sets it back to `idle`; for the Mortgage it is the
+   * statement drafted and `attack` begins on its one shot (DUE). The
+   * Mortgage's window clock (`windowTimer`) runs beside it, not in it.
    * The exit, for every kind, is `absorbing`: the word is the Egg's, and it
    * means the outcome has latched (G-033) and `finishAct` follows the timer —
    * the Gym Teacher's stopwatch click and `ActDef.endWord` play in it.
@@ -621,7 +651,7 @@ export interface BossState {
    * True while it cannot be damaged: the Gym Teacher with any of his
    * `enemyId` alive on the field (§9); Prom with the player farther than its
    * `floorRadius` from the ball (ADOLESCENCE-ROSTER §4). Always false for the
-   * Egg, the Loan and the Reorg. Plain state for the renderer and the bots;
+   * Egg, the Loan, the Reorg and the Mortgage. Plain state for the renderer and the bots;
    * the sim reads the field and the player itself.
    */
   shielded: boolean;
@@ -649,6 +679,28 @@ export interface BossState {
    * restructure.
    */
   restructures: number;
+  /**
+   * The Mortgage's windows paid (FAMILY-ROSTER §4), 0 to `instalments`: the
+   * bar's notches. Set at each window's end from the health left, so between
+   * windows hp is exactly maxHp × (instalments − paid) / instalments and
+   * hp/maxHp reads paid twelfths. At `instalments` it is paid off: the exit.
+   * Zero for every other kind.
+   */
+  paid: number;
+  /**
+   * The Mortgage's window clock: seconds left in the current window, counting
+   * down from `instalmentSeconds`, set at spawn and carried at each window's
+   * end as the Loan's interest clock is. Zero for every other kind.
+   */
+  windowTimer: number;
+  /**
+   * Damage the Mortgage has accepted this window, 0 to one instalment
+   * (maxHp / instalments): what the gate (`bossTakes`) let through. Equal to
+   * one instalment once the window is met; everything after it is lost. Back
+   * to 0 at each window's end, when a short window is refunded to hp. Zero for
+   * every other kind.
+   */
+  accepted: number;
 }
 
 export interface Input {
@@ -849,6 +901,21 @@ export class World {
   certificate: Certificate | null = null;
   /** The enemy whose engulf is ticking, so a death to it can be named. */
   private engulfBy: EnemyDef | null = null;
+  /**
+   * The body holding the player, from the touch until the window ends, and
+   * what its hold does to every cooldown meanwhile (FAMILY-ROSTER §3.4:
+   * `engulf.cooldownMultiplier`, 1 for a hold without one). The body is kept
+   * so an engulf that `releases` can take exactly that one off the field.
+   */
+  private engulfer: EnemyState | null = null;
+  private engulfCooldown = 1;
+  /**
+   * The player's own movement this step — the walk, the Egg's pull and the
+   * walls, nothing an enemy did to them — for `coy` (FAMILY-ROSTER §3.4). Only
+   * its direction is read. Zero when stunned, pressed into a wall or still.
+   */
+  private movedX = 0;
+  private movedY = 0;
 
   /**
    * Set to the middle of the arena by the constructor.
@@ -1086,7 +1153,8 @@ export class World {
     this.dragStacks = 0;
     this.taxedStacks = 0;
     this.xpTaxFactor = 1;
-    // The pings and the by-def record go with them (OFFICE-ROSTER §3.3; AUDIT 42).
+    // The pings and the by-def record go with them (OFFICE-ROSTER §3.3; AUDIT 42),
+    // and the notices' cost to reach, which is read off that record.
     this.cooldownStacks = 0;
     this.attention = 1;
     this.worn.clear();
@@ -1226,15 +1294,48 @@ export class World {
 
   /**
    * Restlessness: every active item's cooldown, multiplied. And the pings
-   * worn (`attentionFactor`, OFFICE-ROSTER §3.3), which are 1 until one is.
+   * worn (`attentionFactor`, OFFICE-ROSTER §3.3), which are 1 until one is,
+   * and a hand held (`engulfCooldownFactor`, FAMILY-ROSTER §3.4), which is 1
+   * outside a hold that carries one. Every weapon's cadence, an orbiter's and
+   * an aura's re-hit read this through `activeCooldown`.
    */
   get cooldownFactor(): number {
-    return this.passiveProduct((d) => d.cooldownMultiplier) * this.attention;
+    return this.passiveProduct((d) => d.cooldownMultiplier) * this.attention * this.engulfCooldownFactor;
   }
 
-  /** Appetite: how far away a gem starts coming to the player. */
+  /**
+   * What the hold running now does to every cooldown: the engulfer's
+   * `engulf.cooldownMultiplier` while its window runs, 1 otherwise and for a
+   * hold without one (the white cell's, the test's). Already inside
+   * `cooldownFactor`; exposed for the HUD.
+   */
+  get engulfCooldownFactor(): number {
+    return this.engulfTimer > 0 ? this.engulfCooldown : 1;
+  }
+
+  /**
+   * Appetite: how far away a gem starts coming to the player. And the
+   * notices worn (`pickupFactor`, FAMILY-ROSTER §3.3): the lawn ends closer.
+   */
   get magnetRadius(): number {
-    return MAGNET_RADIUS * this.passiveProduct((d) => d.pickupMultiplier);
+    return MAGNET_RADIUS * this.passiveProduct((d) => d.pickupMultiplier) * this.pickupFactor;
+  }
+
+  /**
+   * What the notices worn do to the pickup radius: each worn stack of a def
+   * whose attach carries `pickup` multiplies it once (two HOA letters, 0.93²),
+   * 1 with none. Read off `wornBy`, by the registry's def for each id, so it
+   * crosses exactly as the record does — a persisting notice's cost stays on
+   * with it (`beginAct`), and the dev panel's shed takes it off with the rest.
+   * Already inside `magnetRadius`; exposed for the HUD.
+   */
+  get pickupFactor(): number {
+    let k = 1;
+    for (const [id, n] of this.worn) {
+      const pickup = ENEMIES[id]?.attach?.pickup;
+      if (pickup !== undefined) k *= pickup ** n;
+    }
+    return k;
   }
 
   private activeDamage(def: ItemDef, level: number): number {
@@ -1298,12 +1399,18 @@ export class World {
     this.actTime += dt;
     this.invulnerable = Math.max(0, this.invulnerable - dt);
 
+    const fromX = this.x;
+    const fromY = this.y;
     this.movePlayer(dt, input);
     this.applyBossPull(dt);
     // Unconditional, and after every path that can move the player. Hanging it
     // off `movePlayer` meant a frame with no input did not clamp at all, so any
     // other way of setting a position escaped the field.
     this.clampPlayer();
+    // What the player did this step, for `coy`: read before anything else in
+    // the step moves them (a pile's push, a phone's pull, a restructure).
+    this.movedX = this.x - fromX;
+    this.movedY = this.y - fromY;
     this.recordTrail();
     if (!this.boss) this.spawn(dt);
     this.moveEnemies(dt);
@@ -1556,6 +1663,8 @@ export class World {
       e.age += dt;
       if (e.hitFlash > 0) e.hitFlash -= dt;
       if (e.radius > this.maxEnemyRadius) this.maxEnemyRadius = e.radius;
+      // A fee is pushed past `i` and is not walked until the next step.
+      if (e.def.accrue && e.fee !== true) this.accrueFees(e, e.def.accrue);
       if (e.def.merge) this.solids.push(e);
 
       // Snooze and a meeting hold the walk and nothing else: fuses and
@@ -1575,8 +1684,11 @@ export class World {
         const tx = racing ? this.boss!.x : this.x;
         const ty = racing ? this.boss!.y : this.y;
         const d = Math.hypot(tx - e.x, ty - e.y) || 1;
-        e.x += ((tx - e.x) / d) * e.def.speed * mdt;
-        e.y += ((ty - e.y) / d) * e.def.speed * mdt;
+        // The toddler wants to be chased (FAMILY-ROSTER §3.4); a racer does not care.
+        const coy = e.def.coy;
+        const speed = coy && !racing ? e.def.speed * this.coyness(e, coy) : e.def.speed;
+        e.x += ((tx - e.x) / d) * speed * mdt;
+        e.y += ((ty - e.y) / d) * speed * mdt;
       } else if (e.def.movement !== 'static') {
         e.x += e.vx * mdt;
         e.y += e.vy * mdt;
@@ -1657,6 +1769,46 @@ export class World {
         swapRemove(this.enemies, i);
       }
     }
+  }
+
+  /**
+   * The bill's late fees (FAMILY-ROSTER §3.1, `accrue`): each time an enemy's
+   * age passes another `seconds` it issues one more of its own def, up to
+   * `fees` in all, and the fee is flagged and never accrues. A frame longer
+   * than `seconds` issues what it owes at once, never past `fees`.
+   *
+   * Set down touching it (its radius plus the def's from its centre) across
+   * the line from it to the player, the first fee on one side and the second
+   * on the other, so two fees flank the bill rather than stack on it — the
+   * split's spread, by index. No dice: the place is arithmetic, and
+   * `addEnemy` rolls only for a weak point, which nothing that accrues
+   * carries, so no seed's later rolls move. Capped by MAX_ACTIVE_ENEMIES like
+   * any spawn: at the cap the fee is not issued, and is not owed after.
+   */
+  private accrueFees(e: EnemyState, accrue: NonNullable<EnemyDef['accrue']>): void {
+    let issued = e.accrued ?? 0;
+    while (issued < accrue.fees && e.age >= (issued + 1) * accrue.seconds) {
+      issued++;
+      e.accrued = issued;
+      if (this.enemies.length >= MAX_ACTIVE_ENEMIES) continue;
+      const across = Math.atan2(this.y - e.y, this.x - e.x) + ((issued % 2 === 1 ? 1 : -1) * Math.PI) / 2;
+      const d = e.radius + e.def.radius;
+      const fee = this.addEnemy(e.def, e.x + Math.cos(across) * d, e.y + Math.sin(across) * d, 0, 0);
+      if (fee) fee.fee = true;
+    }
+  }
+
+  /**
+   * The toddler's speed, as a share of its own (FAMILY-ROSTER §3.4, `coy`):
+   * `flee` while the player's movement this step points away from it,
+   * `approach` while it points toward it, 1 while the player did not move or
+   * moved exactly across the line. Read off what the player did (`movedX`,
+   * `movedY`), not where they face: a stunned player, or one pressed into a
+   * wall, is standing still. No dice.
+   */
+  private coyness(e: EnemyState, coy: NonNullable<EnemyDef['coy']>): number {
+    const toward = this.movedX * (e.x - this.x) + this.movedY * (e.y - this.y);
+    return toward < 0 ? coy.flee : toward > 0 ? coy.approach : 1;
   }
 
   /**
@@ -2269,12 +2421,47 @@ export class World {
   private damageBoss(amount: number): void {
     const b = this.boss;
     if (!b || b.phase === 'absorbing' || this.shieldUp()) return;
-    b.hp -= amount;
-    if (b.hp <= 0) {
-      b.hp = 0;
-      b.phase = 'absorbing';
-      b.timer = 1.8;
+    this.bossTakes(b, amount);
+  }
+
+  /**
+   * The one gate every damage path to the boss goes through: the shots and
+   * the areas in `updateBoss`, and `damageBoss` (sweeps, landing strikes,
+   * auras, orbiters). Its callers have already decided the boss is hit (in
+   * reach, not shielded, not absorbing); this decides what the hit is worth.
+   * True when the blow ended the fight, so a damage pass stops there.
+   *
+   * Every kind but the Mortgage: the health falls by the whole amount, and at
+   * zero the outcome latches — `absorbing`, the Egg's exit, which every boss
+   * uses. It does not die. The eyes close, the corona parts, and the player
+   * wins by being permitted to stop existing separately from it.
+   *
+   * The Mortgage (FAMILY-ROSTER §4): the window's instalment is the most it
+   * accepts. What is still owed this window (one instalment less `accepted`)
+   * and what is left of the balance bound the take; the rest of the blow is
+   * lost. The last take that meets the instalment sets `accepted` to it
+   * exactly, so "met" is an equality and no sum of float slivers can fall a
+   * hair short of it. It never latches here, even at zero: whether the
+   * window was paid, and whether that was the last, is `mortgagePhase`'s,
+   * at the window's end — so the fight lasts every window of the schedule.
+   */
+  private bossTakes(b: BossState, amount: number): boolean {
+    const boss = this.act.boss;
+    if (boss.kind === 'mortgage') {
+      const instalment = b.maxHp / boss.instalments;
+      const owed = instalment - b.accepted;
+      const take = Math.min(amount, owed, b.hp);
+      if (!(take > 0)) return false;
+      b.hp -= take;
+      b.accepted = take === owed ? instalment : b.accepted + take;
+      return false;
     }
+    b.hp -= amount;
+    if (!(b.hp <= 0)) return false;
+    b.hp = 0;
+    b.phase = 'absorbing';
+    b.timer = 1.8;
+    return true;
   }
 
   /**
@@ -2726,9 +2913,17 @@ export class World {
     if (this.outcomeDecided) return;
     if (this.engulfTimer > 0) {
       this.engulfTimer -= dt;
-      this.hp -= this.engulfDps * dt * this.damageTaken;
-      if (this.hp <= 0) return this.die(this.engulfBy ?? 'boss');
+      // A hold with no damage (the toddler's, FAMILY-ROSTER §3.4) never
+      // touches health, and no engulf sets i-frames.
+      if (this.engulfDps > 0) {
+        this.hp -= this.engulfDps * dt * this.damageTaken;
+        if (this.hp <= 0) return this.die(this.engulfBy ?? 'boss');
+      }
     }
+    // The window is over — run out, or zeroed from outside (the dev panel's
+    // god mode) — so the hand is let go. Before the touches below, so another
+    // engulfer can take it on this step.
+    if (this.engulfer && this.engulfTimer <= 0) this.release();
 
     const body = this.playerRadius;
     for (let i = this.enemies.length - 1; i >= 0; i--) {
@@ -2753,6 +2948,8 @@ export class World {
           this.engulfSlow = e.def.engulf.slow;
           this.engulfDps = e.def.engulf.damagePerSecond;
           this.engulfBy = e.def;
+          this.engulfer = e;
+          this.engulfCooldown = e.def.engulf.cooldownMultiplier ?? 1;
         }
         continue;
       }
@@ -2799,7 +2996,63 @@ export class World {
         this.stun(stun);
         this.invulnerable = Math.max(this.invulnerable, stun + IFRAMES);
       }
+      // The phone's call (FAMILY-ROSTER §3.5): after the damage and the stop,
+      // the player is moved toward the phone. Not a body the call just killed.
+      const pull = p.owner?.ranged?.pull;
+      if (pull !== undefined && !this.dead) this.pullToward(p, pull);
     }
+  }
+
+  /**
+   * The end of a hold (FAMILY-ROSTER §3.4, `engulf.releases`): the engulfer
+   * lets go and leaves the field, delighted. Not a kill — `kills` does not
+   * move, no gem, no XP — and not a death: it is simply gone, as a racer that
+   * reached the Egg is. A hold without `releases` (the white cell's) ends
+   * with its body still on the field, as it always did. No dice.
+   */
+  private release(): void {
+    const e = this.engulfer;
+    this.engulfer = null;
+    this.engulfCooldown = 1;
+    if (!e || e.def.engulf?.releases !== true) return;
+    const i = this.enemies.indexOf(e);
+    if (i >= 0) swapRemove(this.enemies, i);
+  }
+
+  /**
+   * A landing call moves the player `pull` px toward whoever made it
+   * (FAMILY-ROSTER §3.5): the shooter where it stands now, or, if it has left
+   * the field, the point the shot was fired from; a hand-built shot carrying
+   * neither is followed back along its own flight. Never past the target, so
+   * a call from nearer than `pull` sets the player on the phone (it touches
+   * nobody), and held inside the arena. Instant: it crosses whatever is in
+   * the way, and a pile or room it lands the player in pushes them out on
+   * the next step (`resolveSolids`). No dice.
+   */
+  private pullToward(p: ProjectileState, pull: number): void {
+    const s = p.shooter;
+    // A linear scan, on a landing call only: calls are rare and the phone is static.
+    const here = s !== undefined && s.hp > 0 && this.enemies.includes(s);
+    const tx = here ? s.x : p.fromX;
+    const ty = here ? s.y : p.fromY;
+    let nx: number;
+    let ny: number;
+    let reach = pull;
+    if (tx !== undefined && ty !== undefined) {
+      const d = Math.hypot(tx - this.x, ty - this.y);
+      if (d < 0.001) return;
+      nx = (tx - this.x) / d;
+      ny = (ty - this.y) / d;
+      reach = Math.min(pull, d);
+    } else {
+      const v = Math.hypot(p.vx, p.vy);
+      if (v < 0.001) return;
+      nx = -p.vx / v;
+      ny = -p.vy / v;
+    }
+    this.x += nx * reach;
+    this.y += ny * reach;
+    this.clampPlayer();
   }
 
   /**
@@ -2916,7 +3169,7 @@ export class World {
    */
   private fireRanged(e: EnemyState, r: NonNullable<EnemyDef['ranged']>): void {
     const d = Math.hypot(this.x - e.x, this.y - e.y) || 1;
-    this.projectiles.push({
+    const shot: ProjectileState = {
       x: e.x,
       y: e.y,
       vx: ((this.x - e.x) / d) * r.projectileSpeed,
@@ -2929,7 +3182,15 @@ export class World {
       source: e.def.id,
       owner: e.def,
       serial: this.nextSerial++,
-    });
+    };
+    // Only a call that pulls carries who made it and from where (`pullToward`);
+    // every other act's shots are built exactly as they were.
+    if (r.pull !== undefined) {
+      shot.shooter = e;
+      shot.fromX = e.x;
+      shot.fromY = e.y;
+    }
+    this.projectiles.push(shot);
   }
 
   /** The hall monitor's stop. Refreshes the window; never stacks past it. */
@@ -3001,7 +3262,8 @@ export class World {
   /**
    * The threshold between acts. What crosses it is the player: items, level,
    * the XP still on the ground (collected now rather than lost — you leave
-   * with what you earned), and tuition's invoices (`attach.persists`). What
+   * with what you earned), and tuition's invoices and the HOA's notices
+   * (`attach.persists`), with what each costs. What
    * does not is the act: its crowd, its projectiles and fields, every other
    * attach's drag, and the boss. Health is
    * restored, because arriving at School on three hit points after the Egg is
@@ -3057,6 +3319,10 @@ export class World {
     this.engulfSlow = 1;
     this.engulfDps = 0;
     this.engulfBy = null;
+    this.engulfer = null;
+    this.engulfCooldown = 1;
+    this.movedX = 0;
+    this.movedY = 0;
     this.invulnerable = 0;
     this.stunTimer = 0;
     if (!this.inheritance) this.inherit();
@@ -3288,6 +3554,9 @@ export class World {
       rings: 0,
       interestIn: 0,
       restructures: 0,
+      paid: 0,
+      windowTimer: 0,
+      accepted: 0,
     };
     // The Loan opens at what the player carried in (COLLEGE-ROSTER §4): a
     // tenth more per invoice worn, and its cap is `cap` times that, so the bar
@@ -3300,6 +3569,10 @@ export class World {
       this.boss.maxHp = opening * loan.cap;
       this.boss.interestIn = loan.interestSeconds;
     }
+    // The Mortgage's first window opens as it stands (FAMILY-ROSTER §4), and
+    // from here every one is `instalmentSeconds` long.
+    const mortgage = this.act.boss;
+    if (mortgage.kind === 'mortgage') this.boss.windowTimer = mortgage.instalmentSeconds;
     // Read once it stands: Prom's shield is the player's distance from it.
     this.boss.shielded = this.shieldUp();
     this.partRace(this.boss);
@@ -3357,6 +3630,10 @@ export class World {
     if (!b) return;
 
     if (b.phase === 'absorbing') {
+      // The exit is the last payment however it came: a window's end, or a
+      // write that set `absorbing` directly (the dev panel's kill, the tests'
+      // crossings) with hp at zero, which derives every window paid.
+      if (this.act.boss.kind === 'mortgage') b.paid = this.paidFrom(b, this.act.boss);
       b.timer -= dt;
       if (b.timer <= 0) this.finishAct();
       return;
@@ -3379,16 +3656,10 @@ export class World {
         swapRemove(this.projectiles, i);
         continue;
       }
-      b.hp -= p.damage;
+      // Spent either way: a shot into a window already met is the overflow,
+      // and it is lost, not held for the next one (FAMILY-ROSTER §4).
       swapRemove(this.projectiles, i);
-      if (b.hp <= 0) {
-        // It does not die. The eyes close, the corona parts, and the player
-        // wins by being permitted to stop existing separately from it.
-        b.hp = 0;
-        b.phase = 'absorbing';
-        b.timer = 1.8;
-        return;
-      }
+      if (this.bossTakes(b, p.damage)) return;
     }
     for (const a of this.areas) {
       // A strike deals its one hit on the boss where it lands (landStrike).
@@ -3397,23 +3668,21 @@ export class World {
       // shield drops inside its lifetime, it lands then.
       if (a.pull || a.damage <= 0 || b.shielded) continue;
       if (Math.hypot(a.x - b.x, a.y - b.y) > a.radius + BOSS_RADIUS) continue;
-      if (a.tick) b.hp -= a.damage * dt * 6;
+      let amount: number;
+      if (a.tick) amount = a.damage * dt * 6;
       else if (a.serial !== this.bossHitSerial) {
         this.bossHitSerial = a.serial;
-        b.hp -= a.damage;
+        amount = a.damage;
       } else continue;
-      if (b.hp <= 0) {
-        b.hp = 0;
-        b.phase = 'absorbing';
-        b.timer = 1.8;
-        return;
-      }
+      if (this.bossTakes(b, amount)) return;
     }
 
     // Above the phase timer: interest runs every step, not on phase changes.
     if (this.act.boss.kind === 'loan') return this.loanPhase(b, this.act.boss, dt);
     // Above it too: a threshold is read off the health every step, not on a timer.
     if (this.act.boss.kind === 'reorg') return this.reorgPhase(b, this.act.boss, dt);
+    // And the window clock: it runs every step, beside the statement.
+    if (this.act.boss.kind === 'mortgage') return this.mortgagePhase(b, this.act.boss, dt);
 
     // It does not move from where it is. It has already decided.
     b.timer -= dt;
@@ -3429,6 +3698,7 @@ export class World {
       return;
     }
 
+    // The Egg's machine.
     if (b.phase === 'idle') {
       b.phase = 'telegraph';
       b.timer = EGG_TELEGRAPH_SECONDS;
@@ -3789,5 +4059,171 @@ export class World {
 
     b.phase = 'idle';
     b.timer = EGG_IDLE_SECONDS;
+  }
+
+  /**
+   * The Mortgage's step (FAMILY-ROSTER §4), called every step it is not
+   * absorbing, after the damage passes have run through `bossTakes`.
+   *
+   * The window clock: `windowTimer` counts down from `instalmentSeconds`,
+   * one window closing a step at most, the overshoot carried (AUDIT 16) as
+   * the Loan's interest clock is, so the schedule is the same at every frame
+   * rate and no `instalmentSeconds` can hang the step. At the close
+   * (`closeWindow`) the window is paid or missed, the balance is set from
+   * what was paid, and the house grows.
+   *
+   * The statement is the Egg's machine at the Egg's timings, carried as the
+   * Loan's is: idle; the statement drafted (telegraph); DUE (attack), one
+   * shot. It never moves, never shields (`shieldUp` has no branch for it)
+   * and is never raced for (`race` reads only the Egg and Prom).
+   *
+   * Nothing of it runs once the player has died this step (resolveHits comes
+   * first): a window closing then would build a room round the body, or pay
+   * the house off over it.
+   */
+  private mortgagePhase(b: BossState, boss: MortgageBoss, dt: number): void {
+    if (this.dead) return;
+    b.windowTimer -= dt;
+    if (b.windowTimer <= 0) {
+      b.windowTimer += boss.instalmentSeconds;
+      this.closeWindow(b, boss);
+      if (b.phase === 'absorbing') return;
+    }
+
+    b.timer -= dt;
+    if (b.timer > 0) return;
+    if (b.phase === 'idle') {
+      b.phase = 'telegraph';
+      b.timer += EGG_TELEGRAPH_SECONDS;
+    } else if (b.phase === 'telegraph') {
+      b.phase = 'attack';
+      b.timer += EGG_ATTACK_SECONDS;
+      this.due(b);
+    } else {
+      b.phase = 'idle';
+      b.timer += EGG_IDLE_SECONDS;
+    }
+  }
+
+  /**
+   * One window's end (§4), in this order:
+   *   1. Paid or missed. Paid is `accepted` equal to one instalment (the gate
+   *      sets it exactly on the take that meets it). Missed, the balance does
+   *      not move: what the window accepted goes back on the health.
+   *   2. The balance. `paid` is read off the health, round((maxHp − hp) /
+   *      instalment), held to 0..instalments, and the health set back to
+   *      maxHp × (instalments − paid) / instalments, so between windows the
+   *      bar reads paid twelfths exactly. Untouched, that is the last `paid`
+   *      plus one for a paid window and plus none for a missed one. Read off
+   *      the health rather than counted so a write to it from outside the
+   *      sim (the dev panel's −50% and kill) stays consistent: half the
+   *      health gone is six instalments paid, and none left is all of them.
+   *   3. Paid off, the exit: `absorbing`, as every boss falls (`bossTakes`),
+   *      and nothing is built on the way out — the door opens instead.
+   *   4. Otherwise the house grows: one room at the player's lead, paid or
+   *      missed, and a missed window sends one late fee from the door.
+   *      Each capped by MAX_ACTIVE_ENEMIES like any spawn.
+   */
+  private closeWindow(b: BossState, boss: MortgageBoss): void {
+    const instalment = b.maxHp / boss.instalments;
+    const met = b.accepted >= instalment;
+    if (!met) b.hp += b.accepted;
+    b.accepted = 0;
+    b.paid = this.paidFrom(b, boss);
+    b.hp = (b.maxHp * (boss.instalments - b.paid)) / boss.instalments;
+    if (b.paid >= boss.instalments) {
+      b.hp = 0;
+      b.phase = 'absorbing';
+      b.timer = 1.8;
+      return;
+    }
+    this.buildRoom(boss);
+    if (!met) this.lateFee(b, boss);
+  }
+
+  /** Windows paid, read off the health (`closeWindow`, step 2). */
+  private paidFrom(b: BossState, boss: MortgageBoss): number {
+    const instalment = b.maxHp / boss.instalments;
+    const paid = Math.round((b.maxHp - b.hp) / instalment);
+    return Math.min(boss.instalments, Math.max(0, paid));
+  }
+
+  /**
+   * A room at the player's lead, through `spawnEnemy`: the act's own arrival
+   * (§3.6's room is `spawnAt: 'lead'`, static, merging), so where it lands,
+   * the clamp that holds a static inside the arena and the merge onto a room
+   * already there are all written once, there. The lead is ANTIBODY_LEAD
+   * ahead, farther than a room's radius, so it never lands on the player —
+   * except at a wall they face, where the clamp pulls it back onto them: then
+   * it lands at the lead behind them instead, the heading turned for the call
+   * and put back after, as the Loan's statement turns it. The turn is read
+   * off where the player stands, never rolled. A lead placement draws no
+   * dice; under a `spawnOverride` of 'edge' the room draws its angle, as
+   * every arrival does there.
+   */
+  private buildRoom(boss: MortgageBoss): void {
+    if (this.enemies.length >= MAX_ACTIVE_ENEMIES) return;
+    const def = enemyDef(boss.roomId);
+    const fx = this.facingX;
+    const fy = this.facingY;
+    if ((this.spawnOverride ?? def.spawnAt) === 'lead' && this.leadLandsOnPlayer(def, fx, fy)) {
+      this.facingX = -fx;
+      this.facingY = -fy;
+    }
+    this.spawnEnemy(boss.roomId);
+    this.facingX = fx;
+    this.facingY = fy;
+  }
+
+  /** True when `def` set at the lead along (fx, fy), as `spawnEnemy` would, overlaps the player. */
+  private leadLandsOnPlayer(def: EnemyDef, fx: number, fy: number): boolean {
+    let x = this.x + fx * ANTIBODY_LEAD;
+    let y = this.y + fy * ANTIBODY_LEAD;
+    if (def.movement === 'static') {
+      x = clamp(x, def.radius, ARENA_WIDTH - def.radius);
+      y = clamp(y, def.radius, ARENA_HEIGHT - def.radius);
+    }
+    return Math.hypot(x - this.x, y - this.y) < def.radius + this.playerRadius;
+  }
+
+  /**
+   * The late fee: one `feeId` (the act's bill) at the door, MORTGAGE_DOOR_BELOW
+   * straight below the boss point and held inside the arena, standing still
+   * until its own movement takes it (a bill chases). Through `addEnemy`, as
+   * the Gym Teacher's throw is, because the door is the placement: the bill's
+   * own arrival is the edge, which would roll an angle. A whole bill, not a
+   * `fee`: it accrues fees of its own, left alone (§3.1). No dice.
+   */
+  private lateFee(b: BossState, boss: MortgageBoss): void {
+    if (this.enemies.length >= MAX_ACTIVE_ENEMIES) return;
+    const def = enemyDef(boss.feeId);
+    const x = clamp(b.x, def.radius, ARENA_WIDTH - def.radius);
+    const y = clamp(b.y + MORTGAGE_DOOR_BELOW, def.radius, ARENA_HEIGHT - def.radius);
+    this.addEnemy(def, x, y, 0, 0);
+  }
+
+  /**
+   * The statement: one of the Egg's shot at where the player is now, at the
+   * Egg's speed, damage, life and radius — the fan's middle shot, alone. The
+   * bearing is the Egg's (atan2, so a player on the boss point is fired at
+   * along +x). No owner, so a death to it names the boss (`bossName`) and it
+   * carries none of a ranged enemy's stun, rating or pull. The renderer draws
+   * it as the word DUE.
+   */
+  private due(b: BossState): void {
+    const bearing = Math.atan2(this.y - b.y, this.x - b.x);
+    this.projectiles.push({
+      x: b.x,
+      y: b.y,
+      vx: Math.cos(bearing) * EGG_SHOT.speed,
+      vy: Math.sin(bearing) * EGG_SHOT.speed,
+      life: EGG_SHOT.life,
+      damage: EGG_SHOT.damage,
+      pierce: 1,
+      radius: EGG_SHOT.radius,
+      hostile: true,
+      source: 'boss',
+      serial: this.nextSerial++,
+    });
   }
 }

@@ -320,6 +320,63 @@ export const RESERVATIONS: Partial<Record<ActId, ActReservations>> = {
       boss: 'boss-reorg',
     },
   },
+
+  // Lifted from FAMILY-ROSTER.md §1, consequences verbatim. Everything in the
+  // act is post, packaging or plumbing; the one person in it is drawn as what
+  // it is wearing (law 9), and the room is the boss's, not the schedule's
+  // alone.
+  family: {
+    silhouettes: [
+      {
+        silhouette: 'windowed envelope',
+        heldBy: 'bill',
+        consequence:
+          "The only envelope in the act (College's invoices are College's), and the only address window (the house's windows are its eyes). A late fee is the same envelope, never a different shape.",
+      },
+      {
+        silhouette: 'flat box',
+        heldBy: 'flat-pack',
+        consequence: 'The only box, the only tape, and the widest thing.',
+      },
+      {
+        silhouette: 'sealed letter',
+        heldBy: 'hoa-letter',
+        consequence: 'The only seal, and the only thing folded.',
+      },
+      {
+        silhouette: 'bib with arms',
+        heldBy: 'toddler',
+        consequence: 'The only thing in the act reaching up, and the smallest mover.',
+      },
+      {
+        silhouette: 'wall phone',
+        heldBy: 'phone-call',
+        consequence: 'The only cord, and the only coil.',
+      },
+      {
+        silhouette: 'room',
+        heldBy: 'room',
+        consequence: 'The only square in the act, and the only outline with a gap. Solid.',
+      },
+      {
+        silhouette: 'house with a face',
+        heldBy: 'boss-mortgage',
+        consequence: 'The only gable, and the only thing with a roof.',
+      },
+    ],
+    reservedThreat: {
+      // The act's heaviest hit is its only red thing: the tape.
+      contact: 'flat-pack',
+      // The meeting's colour on the bib: the act's elite weighs twelve kilos.
+      elite: 'toddler',
+      // G-031: the phone's gold is on the call it fires, never its body, and
+      // it is the act's only gold.
+      ranged: PROJECTILE_HOLDER,
+      // The house's walls and roof. The rooms it adds do not hurt (law 10):
+      // they are wallpaper.
+      boss: 'boss-mortgage',
+    },
+  },
 };
 
 /**

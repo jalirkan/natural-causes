@@ -86,18 +86,35 @@ export interface EnemyDef {
    */
   movement: Movement;
   contact: Contact;
-  /** `engulf` only. */
-  engulf?: { seconds: number; slow: number; damagePerSecond: number };
+  /**
+   * `engulf` only. FAMILY-ROSTER §3.4 adds two, both absent everywhere but the
+   * toddler. `cooldownMultiplier`: while this enemy's hold runs, every active
+   * item's cooldown is multiplied by it — the player has one hand. With a
+   * `damagePerSecond` of 0 the hold costs cadence and speed and never health.
+   * `releases`: when the window ends the engulfer lets go and leaves the
+   * field, delighted — not a kill, no XP, no gem (World.resolveContact).
+   */
+  engulf?: {
+    seconds: number;
+    slow: number;
+    damagePerSecond: number;
+    cooldownMultiplier?: number;
+    releases?: boolean;
+  };
   /**
    * `attach` only. `drag`: fraction of movement speed removed per stack.
    * `tax` (COLLEGE-ROSTER §3.3): the share of every gem's value each worn
    * stack takes, compounding. `persists`: the stacks stay on through the
    * crossing instead of coming off with the act, so the next act inherits
-   * them. Both absent everywhere but tuition. `cooldownMultiplier`
+   * them. `tax` is tuition's alone; `persists` is tuition's and the HOA
+   * letter's. `cooldownMultiplier`
    * (OFFICE-ROSTER §3.3): each worn stack multiplies every active item's
    * cooldown — the ping costs cadence, never speed (its `drag` is 0).
+   * `pickup` (FAMILY-ROSTER §3.3): each worn stack multiplies the radius the
+   * player picks gems up at (World.magnetRadius) — the HOA letter costs
+   * reach, never speed (its `drag` is 0 too), and it persists as tuition does.
    */
-  attach?: { drag: number; tax?: number; persists?: boolean; cooldownMultiplier?: number };
+  attach?: { drag: number; tax?: number; persists?: boolean; cooldownMultiplier?: number; pickup?: number };
   /**
    * COLLEGE-ROSTER §3.4: all the hp sits in one of four quadrants about the
    * centre, rolled at spawn from the world's dice. A hit counts only when it
@@ -113,6 +130,22 @@ export interface EnemyDef {
    * generation on the state, never a second entry.
    */
   split?: { children: number; generations: number; scale: number };
+  /**
+   * FAMILY-ROSTER §3.1: left alone, it breeds. Every `seconds` it has been
+   * alive it issues a late fee — one more of itself, set down beside it — up
+   * to `fees` in all (World.accrueFees). The same def with `fee` on the state,
+   * never a second entry, and a fee never accrues: a fee on a fee is a
+   * different act. Killing it promptly is the answer; the reply-all's mirror.
+   */
+  accrue?: { seconds: number; fees: number };
+  /**
+   * FAMILY-ROSTER §3.4: a `chase` enemy that wants to be chased. Its speed is
+   * multiplied by `flee` while the player is moving away from it and by
+   * `approach` while the player is moving toward it, and left alone while the
+   * player stands still — read off the player's own movement this step, not
+   * their facing. The answer is to walk at it and round it.
+   */
+  coy?: { flee: number; approach: number };
   /**
    * OFFICE-ROSTER §3.4: a hold, not a mover. Spawned centred on the player
    * (`spawnAt: 'player'`), it contracts from `from` px to `to` over `seconds`,
@@ -196,6 +229,13 @@ export interface EnemyDef {
      * level a landing shot takes back — never a level already reached.
      */
     xpLoss?: number;
+    /**
+     * FAMILY-ROSTER §3.5: pixels a landing shot moves the player toward the
+     * enemy that fired it — where it stands at the hit, or where the shot left
+     * from if it has gone — after the damage and the `stun`, held inside the
+     * arena and never past the shooter. You were needed.
+     */
+    pull?: number;
   };
   /**
    * Seconds the player's input is ignored after this enemy's contact damage
@@ -874,6 +914,201 @@ export const ENEMIES: Record<string, EnemyDef> = {
     ranged: { range: 460, consultSeconds: 1, cooldownSeconds: 5, projectileSpeed: 220, damage: 5, xpLoss: 0.15 },
     whyThisStage:
       'The Office is the first stage where the aimed thing is a number about the player, and the number takes something back.',
+  },
+
+  // --- Family (FAMILY-ROSTER §3) ---
+  //
+  // Five enemies, four swarm-tier and one elite (the toddler), and a sixth
+  // entry that is The Mortgage's (the room, §4). Five behaviours are new, each
+  // a field rather than a system: `accrue` (the bill, §3.1), `attach.pickup`
+  // (the HOA letter, §3.3), `coy` with `engulf.cooldownMultiplier` and
+  // `engulf.releases` (the toddler, §3.4) and `ranged.pull` (the phone call,
+  // §3.5). Everything else is a field an earlier act already needed.
+  //
+  // EVERY NUMBER BELOW IS A PLACEHOLDER under `FAMILY.provisional` (acts.ts,
+  // D-022): §3.6's table transcribed, nothing chosen here and nothing played.
+  // The relationships are the roster's — the crowd breeds when it is left
+  // alone, the flat-pack is the act's heaviest hit and never comes back, the
+  // letters cost reach and never speed, the toddler costs a hand and never
+  // health, the phone moves you and barely hurts — and a person at the link
+  // moves the figures, never the bots.
+  //
+  // The act's costume of the life script: you are needed. Everything in it is
+  // post, packaging or plumbing (D-007): the one thing that is a person is
+  // drawn as what it is wearing (law 9), a bib, and nothing in the act has
+  // skin. The toddler is the one enemy in the life paying attention to the
+  // player (law 8 bent on purpose, §2); everything else still is not.
+  bill: {
+    id: 'bill',
+    name: 'Bill',
+    act: 'family',
+    frame: 'bill.png',
+    hp: 8,
+    speed: 52,
+    contactDamage: 4,
+    radius: 14,
+    displaySize: 48,
+    xp: 2,
+    // The rivals, the hormones, the reading and the reply-all again, from the
+    // edge: slow and weak. The difference is what happens when it is not
+    // dealt with.
+    movement: 'chase',
+    contact: 'damage',
+    // Alive `seconds`, it issues a late fee: one more bill set down beside it,
+    // the same def with `fee` on the state, up to `fees` per bill
+    // (World.accrueFees). A fee never accrues. No dice: where the fee lands is
+    // arithmetic, so no seed's later rolls move. A build that ignores the
+    // crowd to chase something else finds the crowd doubled.
+    accrue: { seconds: 8, fees: 2 },
+    whyThisStage: 'Family is the first stage where leaving a thing alone is precisely what makes more of it.',
+  },
+
+  'flat-pack': {
+    id: 'flat-pack',
+    name: 'Flat-pack',
+    act: 'family',
+    frame: 'flat-pack.png',
+    hp: 40,
+    // Slower than the commute and lighter, and still the act's heaviest hit
+    // and its only red thing (the tape).
+    speed: 260,
+    contactDamage: 16,
+    radius: 26,
+    displaySize: 104,
+    xp: 8,
+    // Enters aimed at where the player stands and never steers, because it
+    // cannot turn the corner. Not `patrol`: it leaves (§3.2), and past
+    // DESPAWN_RADIUS it is culled as a crosser is. The commute again, without
+    // the timetable.
+    movement: 'cross',
+    contact: 'damage',
+    whyThisStage: 'Family is the first stage where the heaviest thing in the room is something the player carried in.',
+  },
+
+  'hoa-letter': {
+    id: 'hoa-letter',
+    name: 'HOA letter',
+    act: 'family',
+    frame: 'hoa-letter.png',
+    // hp is inert: it cannot be damaged. Kept at 1 so nothing divides by zero.
+    hp: 1,
+    invulnerable: true,
+    speed: 0,
+    // It costs reach, never health, and it is not a kill, so no XP.
+    contactDamage: 0,
+    radius: 12,
+    displaySize: 40,
+    xp: 0,
+    // Acne's, tuition's and the ping's arrival: already where the player is
+    // going, and it stays. The only way off the floor is to wear it.
+    movement: 'static',
+    spawnAt: 'lead',
+    contact: 'attach',
+    // No drag, so no drag stack (World.wear): the lawn ends closer, the legs
+    // are the same. Each worn notice multiplies the radius gems come to the
+    // player from by `pickup` (World.magnetRadius, read off `wornBy`), and the
+    // notices stay on through the crossing as tuition's invoices do
+    // (`persists`): a file follows you.
+    attach: { drag: 0, pickup: 0.93, persists: true },
+    whyThisStage:
+      'Family is the first stage where the rules of the place the player lives arrive by post, and every one makes the place smaller.',
+  },
+
+  toddler: {
+    id: 'toddler',
+    name: 'Toddler',
+    act: 'family',
+    frame: 'toddler.png',
+    // The elite, and nobody is asked to hit it (G-018, and law 9's whole
+    // point): hp is inert, kept at 1 so nothing divides by zero. It is never a
+    // kill and drops nothing.
+    hp: 1,
+    invulnerable: true,
+    // The smallest mover in the act, at its own pace; `coy` moves it.
+    speed: 70,
+    contactDamage: 0,
+    radius: 14,
+    displaySize: 44,
+    xp: 0,
+    movement: 'chase',
+    // Hormones' arrival: where the player was TRAIL_SECONDS ago, in their own
+    // wake (World.spawnEnemy).
+    spawnAt: 'trail',
+    // It wants to be chased: faster while the player moves away from it,
+    // slower while they move toward it, its own speed while they stand still
+    // (World.moveEnemies). Walk at it and round it.
+    coy: { flee: 1.6, approach: 0.5 },
+    // It takes a hand. The hold does no damage and sets no i-frames; while it
+    // lasts every active item's cooldown is multiplied (World.cooldownFactor),
+    // and when it ends the toddler lets go and leaves the field, delighted
+    // (`releases`, World.resolveContact): not a kill, no gem. The stream sends
+    // another.
+    contact: 'engulf',
+    engulf: { seconds: 3, slow: 0.3, damagePerSecond: 0, cooldownMultiplier: 1.4, releases: true },
+    whyThisStage: 'Family is the first stage where the thing slowing the player down is thrilled to see them.',
+  },
+
+  'phone-call': {
+    id: 'phone-call',
+    name: 'Phone call',
+    act: 'family',
+    frame: 'phone-call.png',
+    hp: 16,
+    speed: 0,
+    contactDamage: 0,
+    radius: 24,
+    displaySize: 80,
+    xp: 8,
+    // On the wall where it lands, never touching anyone. Zero damage AND
+    // `none`, for the reason `Contact` gives.
+    movement: 'static',
+    contact: 'none',
+    // The registrar's consult (G-010). In range and off cooldown it rings —
+    // the handset lifts and shakes, the renderer's job — and fires one gold
+    // call at where the player is (G-031: the gold is the call's, never the
+    // phone's). A hit does small damage, stops the player for `stun` and then
+    // moves them `pull` px toward the phone (World.resolveContact).
+    ranged: {
+      range: 440,
+      consultSeconds: 1.2,
+      cooldownSeconds: 6,
+      projectileSpeed: 240,
+      damage: 4,
+      stun: 0.3,
+      pull: 180,
+    },
+    whyThisStage:
+      'Family is the first stage where the aimed thing wants nothing from the player but the player, somewhere else.',
+  },
+
+  room: {
+    id: 'room',
+    name: 'Room',
+    act: 'family',
+    frame: 'room.png',
+    // The Mortgage's (§4), and on the schedule from 90s too, so the house
+    // starts growing before it arrives: at §3.6's placeholder rate the first
+    // room lands at 110s and the second at 130s (FAMILY in acts.ts).
+    // Unkillable: hp is inert, kept at 1
+    // so nothing divides by zero, and merging sums it without meaning anything.
+    hp: 1,
+    invulnerable: true,
+    speed: 0,
+    contactDamage: 0,
+    radius: 40,
+    displaySize: 96,
+    xp: 0,
+    // Homework's three at once — static, merging on arrival, solid to the
+    // player and every mover (World.resolveSolids) — landing where the player
+    // is going rather than where they were: the house builds around the
+    // player's route. `lead` is farther than a room's radius, so one never
+    // lands on the player.
+    movement: 'static',
+    contact: 'none',
+    merge: true,
+    spawnAt: 'lead',
+    whyThisStage:
+      'Family is the first stage where the place the player lives is built around them while they are standing in it.',
   },
 };
 

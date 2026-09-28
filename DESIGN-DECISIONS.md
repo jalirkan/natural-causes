@@ -1281,3 +1281,19 @@ typed in the copy and every table is a placeholder. One registry,
 before, which is how The Office ends today (AUDIT seven, 52).
 Rejected: a stats screen between acts — the register is the joke; a table of numbers is a menu.
 Rejected: the stats folded into the act card — three lines seen while moving; a paper stops the world and is read.
+
+## G-050 · 2026-09-28 · The sixth act is Family, and its pressure is being needed
+PLAN.md's sixth act, built now that five are playable: **Family**, ages 34 to
+55 on a 150-second clock, whose line is *you are needed*. The accumulator (HOA
+letter) costs reach — each worn notice shrinks the pickup radius, and they
+persist as tuition's invoices do; the roadblock (Toddler) holds the player
+three seconds with no damage and one hand (every cooldown multiplied), speeds
+up when fled, slows when approached, and is the one enemy in the life nobody is
+ever asked to hit; the ranged thing (Phone call) pulls the player toward it;
+the crowd (Bill) breeds when left alone; the velocity thing (Flat-pack) cannot
+turn. The boss is **The Mortgage**: paid in twelve equal instalments with a cap
+on each, so no build pays it faster than the schedule, a room walling the arena
+every window and a bill for every missed one. Every number is a placeholder
+under `FAMILY.provisional`; FAMILY-ROSTER.md is the spec.
+Rejected: a toddler that can be hurt — law 9's whole point is that the player never aims at a person; invulnerable, it is a hold that loves you.
+Rejected: The Loan again with a bigger number — the Loan compounds while you hit it; the Mortgage refuses to be hurried, which is the different joke.

@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <title>Bill</title>
+  <desc>A landscape envelope seen flat on, wider than tall, bone paper with square corners. One ink flap line crosses its top as a shallow V, from both top corners down to a point on the middle. Low on its face and centred is a clear address window framed in ink, its corners softened, and inside it, where the address would be, two dots and one flat mouth looking straight out. Nothing is written on it and it has no stamp.</desc>
+  <!--
+    Bill (FAMILY-ROSTER §3.1), the act's crowd. Reserved silhouette (§1):
+    the windowed envelope, the only envelope in the act and the only window.
+    A late fee is this same drawing; nothing is drawn for it.
+
+    One envelope seen flat on, 46 units wide and 30 tall with square
+    corners: landscape at a little over three to two, so it reads as post
+    and not as the flat-pack's long carton or the HOA letter's tent.
+
+    The flap line is the envelope. One ink V from both top corners to a
+    point on the centre line, stepped two across for one down, two units
+    thick in every column, so both arms are the same regular stair and meet
+    in a two-unit point thirteen units down, a little over two fifths of the
+    face. Shallower than College's tuition, whose V reached the middle: the
+    lower part of this face belongs to the window.
+
+    The window is the read and the face. An ink frame two units thick, 26
+    wide and 13 tall, centred under the V's point with two units of bone
+    between them and two below it. Its outer corners are cut by one unit:
+    an address window's rounded corners, not a picture frame's. The pane is
+    bone because the window is clear and what shows through it is the paper
+    inside. Centred rather than low on the left, as tuition's solid window
+    was, because here the window is the face, not a slot beside one; the
+    shadow tone was tried as a glassine pane and dropped, since ink eyes on
+    it lose more than half their contrast (Oklab L 0.24 from ink against
+    bone's 0.56) and the face goes first at 48px.
+
+    Face: two 3-by-3 ink dots and one flat 6-by-2 mouth inside the window
+    where the address would be, looking straight out, nine units apart as
+    the reply-all's eyes are. It is not looking at anyone in particular; it
+    has the address already.
+
+    Drawn on the finished sprite's own pixel grid, as the reply-all is: one
+    unit is one pixel of the 46px subject (48 less the 1px outline each
+    side). The group puts 46 units at exactly 184 supersampled pixels at the
+    rasteriser's first density (27), so the render fits on the first pass;
+    the envelope's left edge sits on x=0 and it is dropped a whole nine
+    units to centre it on the canvas, so the crop starts on the grid.
+    crispEdges keeps the ink/bone edges from inventing tones.
+
+    Colours are palette hex values: bone #D2C6AC, ink #2A2521. No threat
+    colour (contact red is the flat-pack's tape), no shadow tone, nothing in
+    the act's light tone (pickups only). CONFORM adds the outline; there is
+    none here.
+  -->
+  <g shape-rendering="crispEdges" transform="translate(2.0833333 18.75) scale(2.0833333)">
+    <!-- the envelope: bone paper, 46 by 30 -->
+    <rect x="0" y="0" width="46" height="30" fill="#D2C6AC"/>
+    <!-- the flap line: one ink V, two units thick, from both top corners to a point on the middle -->
+    <path fill="#2A2521" d="
+      M0,0 H2 V1 H4 V2 H6 V3 H8 V4 H10 V5 H12 V6 H14 V7 H16 V8 H18 V9 H20 V10 H22 V11
+      H24 V10 H26 V9 H28 V8 H30 V7 H32 V6 H34 V5 H36 V4 H38 V3 H40 V2 H42 V1 H44 V0 H46
+      V2 H44 V3 H42 V4 H40 V5 H38 V6 H36 V7 H34 V8 H32 V9 H30 V10 H28 V11 H26 V12 H24 V13
+      H22 V12 H20 V11 H18 V10 H16 V9 H14 V8 H12 V7 H10 V6 H8 V5 H6 V4 H4 V3 H2 V2 H0 Z"/>
+    <!-- the window, low and centred: an ink frame two units thick, outer corners cut -->
+    <path fill="#2A2521" fill-rule="evenodd" d="
+      M11,15 H35 V16 H36 V27 H35 V28 H11 V27 H10 V16 H11 Z
+      M12,17 H34 V26 H12 Z"/>
+    <!-- the face, in the window where the address would be: two dots, one flat mouth -->
+    <g fill="#2A2521">
+      <rect x="17" y="18" width="3" height="3"/>
+      <rect x="26" y="18" width="3" height="3"/>
+      <rect x="20" y="23" width="6" height="2"/>
+    </g>
+  </g>
+</svg>
