@@ -122,6 +122,18 @@ browser's audio — the sound is synthesised in-house, no files). **WASD** or th
 arrow keys to move. You fire automatically — there is no attack button.
 **1, 2 or 3** takes an upgrade when the game stops to offer three. **P** or
 **Esc** pauses. **M** mutes. **R** restarts once the run is over.
+
+Every card carries the joke and, under it, the number (G-043): "attack
+speed +8%", "+1 orbiting", "damage taken −15%", derived from the data and
+never typed by hand. Once a weapon is at its second level its **paths**
+join the pool as their own cards — Grudge · Company (another fist), Grudge ·
+Spiralling (faster round), Grudge · Weight (harder); every weapon has two or
+three — levelled apart from the weapon and stacking with it. Three classic
+builds are in the pool from the first minute (G-044): **Personal Space** (the
+aura — a ring that hurts whatever stands in it), **Backhand** (the arc in
+front of you; at conception, a tail-flick) and **Judgement** (a bolt that
+comes down on someone in range after a moment's warning). Every one of those
+numbers is a labelled placeholder.
 On a phone: tap to start, drag anywhere to move, tap a card to choose, the
 corner button pauses, and a tap restarts once the run is over.
 
@@ -143,7 +155,7 @@ speed nobody can walk. Its boss is Prom, a mirror ball the hormones race for.
 Outlive it and you die of natural causes, aged eighteen. Dying earlier, the
 certificate names what did it.
 
-#### After you play — eight things to say
+#### After you play — ten things to say
 
 These replace the six calibration questions in `CONCEPTION-ROSTER.md` §12.4.
 Nothing here asks for a number; every one is about the run you just had.
@@ -162,6 +174,12 @@ Nothing here asks for a number; every one is about the run you just had.
 8. **Adolescence: did being followed feel like being looked at, or like the
    rival sperm again?** Three of its five enemies follow you. That is the
    act's whole bet, and only a person can say whether it landed.
+9. **Did a path feel like a choice?** When Grudge · Company sat beside
+   Grudge · Spiralling, did you know which you wanted, and did the number
+   under the joke help or get in the way?
+10. **Personal Space, Backhand, Judgement: did any of them feel like the
+    build you already know?** Say which, and whether it wanted anything the
+    pool did not offer.
 
 §12.4's sixth question — how long you hold a heading — is not asked, because
 the game answers it itself now: an input log records every heading you hold
