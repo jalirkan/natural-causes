@@ -120,15 +120,6 @@ describe('law 10 — a field-riding icon wears nothing reserved on the field', (
    */
   const KNOWN_ON_FIELD_EXCEPTIONS = new Map<string, { colours: string[]; reason: string }>([
     [
-      'icon-strike',
-      {
-        colours: ['conception-light', 'paper', 'threat-contact'],
-        reason:
-          "Reflex's manicule (lash), the shot: paper cuff (305 px), conception-light (29 px), " +
-          'contact red (4 px). Paper on a projectile is the player.',
-      },
-    ],
-    [
       'icon-pierce',
       {
         colours: ['conception-light', 'paper', 'threat-ranged'],
