@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <title>Growth Spurt icon</title>
+  <desc>A measuring rule standing on end, and beside it one tall arrow pointing up past the top of it.</desc>
+  <!--
+    Growth Spurt (items.ts, icon "grow"). A passive, so it is only ever on a
+    card and may wear paper there (CHECK's card surface); it wears none.
+    The rule is the doorframe a height gets pencilled onto. The arrow stands
+    on the same floor and has already gone past the top of it: taller than
+    the thing that measures you.
+    The ticks are rose, not ink: on the ink card an ink tick at the edge is a
+    notch, and a notched rule reads as the letter E at card size.
+    CONFORM adds the outer outline.
+    Colours: conception-mid #A86A63, bone #D2C6AC.
+  -->
+  <g shape-rendering="crispEdges">
+    <!-- the rule: bone, standing on end -->
+    <rect x="14" y="30" width="26" height="64" rx="3" fill="#D2C6AC"/>
+    <!-- its ticks, in from the edge facing the arrow: long, short, long -->
+    <g stroke="#A86A63" stroke-width="3.6" stroke-linecap="butt">
+      <line x1="40" y1="40" x2="24" y2="40"/>
+      <line x1="40" y1="51" x2="31" y2="51"/>
+      <line x1="40" y1="62" x2="24" y2="62"/>
+      <line x1="40" y1="73" x2="31" y2="73"/>
+      <line x1="40" y1="84" x2="24" y2="84"/>
+    </g>
+
+    <!-- the arrow: rose, on the same floor, its point well above the rule -->
+    <g fill="#A86A63">
+      <rect x="58" y="36" width="18" height="58"/>
+      <polygon points="46,42 67,6 88,42"/>
+    </g>
+  </g>
+</svg>
