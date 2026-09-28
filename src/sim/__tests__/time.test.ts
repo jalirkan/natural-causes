@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { DECLINE, type ActDef, type TimeBoss } from '../../data/acts';
 import { enemyDef, type EnemyDef } from '../../data/enemies';
+import { ITEMS, isActive } from '../../data/items';
 import {
   ANTIBODY_LEAD,
   ARENA_HEIGHT,
@@ -254,6 +255,33 @@ describe('the hand touches (§4)', () => {
       w.hp = w.maxHp;
     }
     expect(hits).toBe(1);
+  });
+
+  it('is not contact: a sleeper on the Nap is hit by it, as a shot hits them — the clock keeps running', () => {
+    const nap = ITEMS['nap'];
+    if (!nap || !isActive(nap) || !nap.nap) throw new Error('the Nap is a nap-mode item');
+    const w = empty(69);
+    w.items.set(nap.id, 1);
+    const b = toBoss(w);
+    // Off the blade, under the Nap's threshold for one step: asleep.
+    let p = at(b, b.hand + Math.PI, 200);
+    w.x = p.x;
+    w.y = p.y;
+    w.hp = w.maxHp * (nap.nap.threshold - 0.01);
+    w.step(DT, still);
+    expect(w.napTimer, 'the Nap did not put the player to sleep').toBeGreaterThan(0);
+    // The Nap sets no i-frames: it skips touches, and the hand is not one.
+    expect(w.invulnerable).toBe(0);
+    // Onto the blade, still asleep: hit for the Egg's damage, less a step of the nap's heal.
+    p = at(b, b.hand, 300);
+    w.x = p.x;
+    w.y = p.y;
+    const hp = w.hp;
+    w.step(DT, still);
+    expect(w.napTimer).toBeGreaterThan(0);
+    expect(hp - w.hp).toBeGreaterThan(EGG_SHOT.damage * w.damageTaken - 1);
+    expect(hp - w.hp).toBeLessThanOrEqual(EGG_SHOT.damage * w.damageTaken);
+    expect(w.invulnerable).toBeGreaterThan(0);
   });
 
   it('a death to the hand is a death to Time, and no knee is filed on the body', () => {

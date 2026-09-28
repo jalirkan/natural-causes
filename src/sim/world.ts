@@ -4742,9 +4742,11 @@ export class World {
    *      `sweepLength` × `sweepWidth` from the boss point along it
    *      (`fromHand`) takes the Egg's shot damage (EGG_SHOT.damage) through
    *      `hurt`, which gives the usual IFRAMES, unless i-frames are already
-   *      running. A death to it names the act's `bossName`, Time. The hand
-   *      passes over everything else: it walls nothing and nothing walls it,
-   *      a hold included.
+   *      running. A death to it names the act's `bossName`, Time. It is not
+   *      a touch: the Nap's sleep (`napTimer`), which skips touches, does not
+   *      skip it, and a sleeper on the line is hit — the clock keeps running.
+   *      The hand passes over everything else: it walls nothing and nothing
+   *      walls it, a hold included.
    *   3. The file: at every 1/TIME_FILES_PER_TURN of a turn since its
    *      arrival (`filed` counts them), one TIME_FILE_ID at the player's lead
    *      through the Mortgage's room placement (`landOffPlayer`): at the
