@@ -55,6 +55,8 @@ export function rateAt(stream: SpawnWave[], seconds: number): number {
  */
 export interface EggBoss {
   kind: 'egg';
+  /** Never shielded, so nothing to say. Declared so the HUD can read any boss's. */
+  shieldHint?: never;
 }
 
 /**
@@ -86,10 +88,32 @@ export interface GymTeacherBoss {
    * velocity: one ball to the eye and to the player's i-frames.
    */
   throwSpread: number;
+  /** What the HUD says beside his name while he is shielded: how to open him. */
+  shieldHint?: string;
+}
+
+/**
+ * Prom (ADOLESCENCE-ROSTER §4): a mirror ball where the boss spawns, never
+ * moving. Three parts, all borrowed. The race is the Egg's (`ActDef.race`).
+ * The floor is the Gym Teacher's untouchability pointed at the player: no
+ * damage while the player is farther than `floorRadius` from the ball. The
+ * light is the Egg's machine (idle, telegraph, attack) with the Egg's timings
+ * and shot, read from world.ts, firing a full ring of `spots` in every
+ * direction instead of a fan, each ring turned half a spacing from the last.
+ * Aimed at nobody, so a spot has no owner and a death to one names the boss.
+ */
+export interface PromBoss {
+  kind: 'prom';
+  /** Pixels, ball centre to player centre, beyond which it takes no damage. */
+  floorRadius: number;
+  /** Shots in one ring, evenly spaced about the ball. */
+  spots: number;
+  /** What the HUD says beside its name while it is shielded. */
+  shieldHint?: string;
 }
 
 /** Which boss an act fights. world.ts branches on `kind`. */
-export type BossDef = EggBoss | GymTeacherBoss;
+export type BossDef = EggBoss | GymTeacherBoss | PromBoss;
 
 /**
  * Seconds between the Gym Teacher's whistles at this share of his health: the
@@ -145,9 +169,9 @@ export interface ActDef {
    * of them reach it before the player empties it, someone else got there
    * first and the life ends. Absent means the boss is only a fight.
    *
-   * Only the Egg races. world.ts reads this through `boss.kind`, so a race
-   * declared beside any other boss is inert rather than a second loss
-   * condition nobody designed.
+   * Only the Egg and Prom are raced for. world.ts reads this through
+   * `boss.kind`, so a race declared beside any other boss is inert rather
+   * than a second loss condition nobody designed.
    */
   race?: { enemyId: string; absorb: number };
 }
@@ -209,6 +233,7 @@ export const SCHOOL: ActDef = {
     telegraphSeconds: 0.85,
     thrown: 3,
     throwSpread: 0.16,
+    shieldHint: 'put the equipment away',
   },
   endWord: 'PARTICIPATION',
   age: { from: 5, to: 12 },
@@ -258,19 +283,22 @@ export const ADOLESCENCE: ActDef = {
   bossName: 'Prom',
   // ADOLESCENCE-ROSTER §4. Prom is the Egg's race, a full turning ring of gold
   // spots, and the Gym Teacher's untouchability pointed at the player's
-  // distance from the ball. Its own `kind` is not built yet, so the Egg STANDS
-  // IN for Prom mechanically until it is: the same stillness, fan and race,
-  // under Prom's name on the certificate. `provisional` says so.
-  boss: { kind: 'egg' },
+  // distance from the ball. Both numbers are PLACEHOLDERS under `provisional`:
+  //   floorRadius 360 — §4's dance floor, inside Reflex's 420 so the starting
+  //     weapon works from its edge;
+  //   spots 16 — §4's ring, turned half a spacing per attack.
+  // The telegraph, idle, spot speed, damage and radius are the Egg's, read
+  // from world.ts rather than copied here; its health is BOSS_HP.
+  boss: { kind: 'prom', floorRadius: 360, spots: 16, shieldHint: 'get on the floor' },
   // The house lights come up, a camera flashes, and the act ends on one word.
   endWord: 'SMILE',
   age: { from: 13, to: 18 },
   // The second race of the player's life, and the first one they were invited
-  // to: at Prom every living hormone goes to the dance. The Egg races, so this
-  // works today. PLACEHOLDER: 40 is §4's, named in `provisional` below.
+  // to: at Prom every living hormone goes to the dance. PLACEHOLDER: 40 is
+  // §4's, named in `provisional` below.
   race: { enemyId: 'hormones', absorb: 40 },
   provisional:
-    "Every rate, time and enemy number here, the race's absorb count and Prom's ring, floor and cadence were written as placeholders before anyone played the act, and the Egg stands in for Prom's behaviour until Prom's own kind is built (ADOLESCENCE-ROSTER §4); a person playing it at the link is what moves them (D-022).",
+    "Every rate, time and enemy number here, the race's absorb count, and Prom's floor radius (`boss.floorRadius`, 360) and spot count (`boss.spots`, 16) were written as placeholders before anyone played the act, and Prom's light borrows the Egg's telegraph, cadence and shot unplayed (ADOLESCENCE-ROSTER §4); a person playing it at the link is what moves them (D-022).",
   // ADOLESCENCE-ROSTER.md §3.6, transcribed. The ORDER is the design and is
   // under test (adolescence-act.test.ts): age runs 13 to 18, a year every 48
   // seconds, and each enemy arrives about when it does in a life — hormones
