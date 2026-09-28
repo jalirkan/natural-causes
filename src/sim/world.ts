@@ -522,6 +522,39 @@ export interface AreaState {
   source?: string;
 }
 
+/**
+ * A hold (OFFICE-ROSTER §3.4, the meeting): a place, not a body. An enemy
+ * whose def carries `hold` becomes one of these where it is spawned and is
+ * never on the field as an enemy (`addEnemy`), so no target, hit, contact or
+ * cull can reach it. It contracts from `from` to `to` over `seconds`, holds at
+ * `to` for `holdSeconds`, then ends (`updateHolds`). Inside it everything
+ * moves at `slow` (`slowAt`, the same reading Snooze's field has); its edge is
+ * a wall for the crowd both ways (`wallHolds`) and never for the player. No
+ * damage, no drop, nothing on the certificate.
+ */
+export interface HoldState {
+  x: number;
+  y: number;
+  /** Honest: the radius it slows and walls at, this step. */
+  radius: number;
+  from: number;
+  to: number;
+  seconds: number;
+  holdSeconds: number;
+  age: number;
+  slow: number;
+  /** The enemy id it was spawned as. The renderer draws that def's frame. */
+  source: string;
+}
+
+/**
+ * How far to the right side of a hold's edge the wall sets an enemy, px. An
+ * enemy set exactly on the edge is read as inside by `d <= radius`, and one
+ * pushed back out would walk in on the next step; float error either way is
+ * far below this. Invisible at any zoom.
+ */
+const HOLD_EDGE = 0.01;
+
 export interface GemState {
   x: number;
   y: number;
@@ -857,6 +890,8 @@ export class World {
   projectiles: ProjectileState[] = [];
   rings: RingState[] = [];
   areas: AreaState[] = [];
+  /** Meetings (OFFICE-ROSTER §3.4) on the field. Read-only outside the sim. */
+  readonly holds: HoldState[] = [];
   gems: GemState[] = [];
   /** Everything circling the player this step. Read-only outside the sim. */
   orbiters: OrbiterState[] = [];
@@ -1008,7 +1043,8 @@ export class World {
    * The player's own hold: every field that holds them (Snooze's) but never
    * a damaging trail (Rut's, G-046), which is laid where the player stands
    * and would otherwise hold them for as long as they kept moving. A trail
-   * holds what follows; the player walks it at full speed.
+   * holds what follows; the player walks it at full speed. A meeting holds
+   * them too (OFFICE-ROSTER §3.4), and never walls them in.
    */
   private slowAtPlayer(): number {
     let k = 1;
@@ -1016,7 +1052,7 @@ export class World {
       if (f.slow === undefined || f.slow >= k || f.damage > 0) continue;
       if ((this.x - f.x) ** 2 + (this.y - f.y) ** 2 <= f.radius * f.radius) k = f.slow;
     }
-    return k;
+    return this.slowInHolds(this.x, this.y, k);
   }
 
   /**
@@ -1035,10 +1071,11 @@ export class World {
   }
 
   /**
-   * The movement multiplier at a point: the slowest Snooze field whose area
-   * holds it, 1 outside all of them. Slowest rather than product, so two
-   * overlapping fields are one field and not a standstill. Reads `areas`
-   * directly; the per-entity passes collect the fields once instead.
+   * The movement multiplier at a point: the slowest Snooze field or meeting
+   * (`holds`) whose area holds it, 1 outside all of them. Slowest rather than
+   * product, so two overlapping fields are one field and not a standstill.
+   * Reads `areas` directly; the per-entity passes collect the fields once
+   * instead. The holds are always read whole: there are a few at most.
    */
   slowAt(x: number, y: number, fields: readonly AreaState[] = this.areas): number {
     let k = 1;
@@ -1046,7 +1083,24 @@ export class World {
       if (f.slow === undefined || f.slow >= k) continue;
       if ((x - f.x) ** 2 + (y - f.y) ** 2 <= f.radius * f.radius) k = f.slow;
     }
+    return this.slowInHolds(x, y, k);
+  }
+
+  /** `k`, or the slowest hold whose centre-within-radius holds the point, if slower. */
+  private slowInHolds(x: number, y: number, k: number): number {
+    for (const h of this.holds) {
+      if (h.slow >= k) continue;
+      if ((x - h.x) ** 2 + (y - h.y) ** 2 <= h.radius * h.radius) k = h.slow;
+    }
     return k;
+  }
+
+  /**
+   * True when nothing on the field slows a mover: no Snooze field collected
+   * and no hold. The per-entity passes skip `slowAt` entirely then.
+   */
+  private unheld(fields: readonly AreaState[]): boolean {
+    return fields.length === 0 && this.holds.length === 0;
   }
 
   /** The live Snooze fields, into a reused buffer, for a pass over many movers. */
@@ -1165,6 +1219,7 @@ export class World {
     this.moveProjectiles(dt);
     this.updateRings(dt);
     this.updateAreas(dt);
+    this.updateHolds(dt);
     this.updateOrbiters();
     this.updateAuras(dt);
     this.updateGems(dt);
@@ -1349,9 +1404,20 @@ export class World {
    * The one constructor for an enemy on the field. `spawnEnemy` decides where
    * and how fast; the Gym Teacher's throw decides both itself; every field is
    * set here, so a thrown ball and a spawned one cannot differ in anything
-   * but where they started.
+   * but where they started. Null for a def with `hold`, which becomes a hold
+   * instead of a body.
    */
-  private addEnemy(def: EnemyDef, x: number, y: number, vx: number, vy: number): EnemyState {
+  private addEnemy(def: EnemyDef, x: number, y: number, vx: number, vy: number): EnemyState | null {
+    // A hold is a place, not a body (OFFICE-ROSTER §3.4): it goes on `holds`
+    // where it was placed and never on `enemies`, so no pass that walks the
+    // crowd — targets, hits, contact, the grid, the cull, the cap — can see
+    // it. Here rather than in `spawnEnemy`, so whatever places one (a wave,
+    // the Reorg's threshold) gets a hold and nothing else. No dice drawn.
+    if (def.hold) {
+      const { from, to, seconds, holdSeconds, slow } = def.hold;
+      this.holds.push({ x, y, radius: from, from, to, seconds, holdSeconds, age: 0, slow, source: def.id });
+      return null;
+    }
     const e: EnemyState = {
       uid: this.nextUid++,
       hitBySerial: 0,
@@ -1386,8 +1452,9 @@ export class World {
       if (e.radius > this.maxEnemyRadius) this.maxEnemyRadius = e.radius;
       if (e.def.merge) this.solids.push(e);
 
-      // Snooze holds the walk and nothing else: fuses and consults keep time.
-      const mdt = fields.length === 0 ? dt : dt * this.slowAt(e.x, e.y, fields);
+      // Snooze and a meeting hold the walk and nothing else: fuses and
+      // consults keep time.
+      const mdt = this.unheld(fields) ? dt : dt * this.slowAt(e.x, e.y, fields);
       // Where it stood before this step's walk: a reversal below reflects at
       // most this step's travel past the edge, never distance it came in with.
       const fromX = e.x;
@@ -1456,6 +1523,11 @@ export class World {
           }
         }
       }
+
+      // A meeting's edge (OFFICE-ROSTER §3.4), against where it stood before
+      // the walk. Here, in the one loop that has both positions: the grid
+      // holds last step's cells, so it cannot say who was where.
+      if (this.holds.length > 0) this.wallHolds(e, fromX, fromY);
 
       if (e.def.burst && e.age >= e.def.burst.fuseSeconds) {
         this.rings.push({
@@ -1585,8 +1657,12 @@ export class World {
         const d = Math.hypot(a.x - e.x, a.y - e.y);
         if (d > a.radius || d < 1) continue;
         const strength = (1 - d / a.radius) * 130 * dt;
+        const fromX = e.x;
+        const fromY = e.y;
         e.x += ((a.x - e.x) / d) * strength;
         e.y += ((a.y - e.y) / d) * strength;
+        // A meeting's edge holds against the pull as against the walk.
+        if (this.holds.length > 0) this.wallHolds(e, fromX, fromY);
       }
     }
   }
@@ -2170,9 +2246,9 @@ export class World {
     const fields = this.collectFields();
     for (let i = this.projectiles.length - 1; i >= 0; i--) {
       const p = this.projectiles[i]!;
-      // Held by Snooze, hostile or not. Its life is held with it, so a shot
-      // through a field arrives late rather than falling short.
-      const pdt = fields.length === 0 ? dt : dt * this.slowAt(p.x, p.y, fields);
+      // Held by Snooze or a meeting, hostile or not. Its life is held with it,
+      // so a shot through a field arrives late rather than falling short.
+      const pdt = this.unheld(fields) ? dt : dt * this.slowAt(p.x, p.y, fields);
       p.x += p.vx * pdt;
       p.y += p.vy * pdt;
       p.life -= pdt;
@@ -2234,6 +2310,95 @@ export class World {
   }
 
   /**
+   * A meeting's life (OFFICE-ROSTER §3.4): its radius runs linearly from
+   * `from` to `to` over `seconds`, stays at `to` for `holdSeconds`, and then
+   * it is gone. The edge carries the crowd with it (`moveHoldEdge`): an enemy
+   * the wall held in is taken inward as the room closes, or the next step's
+   * wall would read it as outside and let it walk away.
+   */
+  private updateHolds(dt: number): void {
+    for (let i = this.holds.length - 1; i >= 0; i--) {
+      const h = this.holds[i]!;
+      h.age += dt;
+      if (h.age >= h.seconds + h.holdSeconds) {
+        swapRemove(this.holds, i);
+        continue;
+      }
+      const was = h.radius;
+      const t = h.seconds > 0 ? Math.min(1, h.age / h.seconds) : 1;
+      h.radius = h.from + (h.to - h.from) * t;
+      if (h.radius !== was) this.moveHoldEdge(h, was);
+    }
+  }
+
+  /**
+   * Keeps the wall's two sides true across a change of radius: whatever was
+   * inside at `was` and is outside now is set just inside the new edge, and
+   * whatever was outside and is inside now just outside it, each along the
+   * centre line. Walks every enemy once per hold, allocation-free: there are
+   * a few holds at most, and the grid would miss anything added since it was
+   * built this step (a split, a throw).
+   */
+  private moveHoldEdge(h: HoldState, was: number): void {
+    const was2 = was * was;
+    const now2 = h.radius * h.radius;
+    for (const e of this.enemies) {
+      if (!World.walledByHolds(e.def)) continue;
+      const dx = e.x - h.x;
+      const dy = e.y - h.y;
+      const d2 = dx * dx + dy * dy;
+      const wasIn = d2 <= was2;
+      if (wasIn === d2 <= now2) continue;
+      this.setOnHoldEdge(e, h, dx, dy, Math.sqrt(d2), wasIn);
+    }
+  }
+
+  /**
+   * A meeting's edge is a wall for the crowd both ways (OFFICE-ROSTER §3.4):
+   * an enemy that stood outside a hold at (`fromX`, `fromY`) and has come in
+   * is set back just outside its edge, and one that stood inside and has left
+   * is set back just inside, along the centre line through where it got to.
+   * Inside is the centre within the radius, as `slowAt` reads it. Called
+   * wherever the crowd is moved — the walk, the pull, a shove — with where
+   * the enemy stood before; the holds against this one enemy, and there are
+   * a few holds at most. The player is never walled.
+   */
+  private wallHolds(e: EnemyState, fromX: number, fromY: number): void {
+    if (!World.walledByHolds(e.def)) return;
+    for (const h of this.holds) {
+      const r2 = h.radius * h.radius;
+      const wasIn = (fromX - h.x) ** 2 + (fromY - h.y) ** 2 <= r2;
+      const dx = e.x - h.x;
+      const dy = e.y - h.y;
+      const d2 = dx * dx + dy * dy;
+      if (wasIn === d2 <= r2) continue;
+      this.setOnHoldEdge(e, h, dx, dy, Math.sqrt(d2), wasIn);
+    }
+  }
+
+  /** Sets `e` on `h`'s edge along the centre line: just inside it if `inside`, else just outside. */
+  private setOnHoldEdge(e: EnemyState, h: HoldState, dx: number, dy: number, d: number, inside: boolean): void {
+    const at = Math.max(0, inside ? h.radius - HOLD_EDGE : h.radius + HOLD_EDGE);
+    // On the centre exactly there is no line; any consistent one will do.
+    const nx = d < 0.001 ? 1 : dx / d;
+    const ny = d < 0.001 ? 0 : dy / d;
+    e.x = h.x + nx * at;
+    e.y = h.y + ny * at;
+  }
+
+  /**
+   * What a meeting's edge holds: the crowd, not the room (AUDIT 28 and 33's
+   * rule, as the pull and the shove read it). A pile, a patrol line and
+   * anything `static` are the arena's shape — carried by a closing meeting, a
+   * review would stay moved for the rest of the act and a ping would be
+   * brought to the player — and a `cross` mover took its heading at spawn and
+   * does not care who is in a meeting: a commute passes straight through.
+   */
+  private static walledByHolds(def: EnemyDef): boolean {
+    return def.merge !== true && def.patrol !== true && def.movement !== 'cross' && def.movement !== 'static';
+  }
+
+  /**
    * Pushes an enemy straight away from the player, held inside the arena. The
    * boss is never in `enemies`, so it is never pushed.
    */
@@ -2252,12 +2417,16 @@ export class World {
     // another without merging, since piles merge only on arrival.
     if (e.def.merge) return;
     const inside = e.x >= 0 && e.x <= ARENA_WIDTH && e.y >= 0 && e.y <= ARENA_HEIGHT;
+    const fromX = e.x;
+    const fromY = e.y;
     e.x += nx * distance;
     e.y += ny * distance;
     if (inside) {
       e.x = clamp(e.x, 0, ARENA_WIDTH);
       e.y = clamp(e.y, 0, ARENA_HEIGHT);
     }
+    // A meeting's edge holds against a shove as against the walk.
+    if (this.holds.length > 0) this.wallHolds(e, fromX, fromY);
   }
 
   private updateGems(dt: number): void {
@@ -2691,6 +2860,7 @@ export class World {
     this.projectiles.length = 0;
     this.rings.length = 0;
     this.areas.length = 0;
+    this.holds.length = 0;
     this.solids.length = 0;
     this.maxEnemyRadius = 0;
     this.grid.build(this.enemies);
