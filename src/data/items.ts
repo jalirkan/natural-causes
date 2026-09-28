@@ -44,7 +44,12 @@ export type ItemIcon =
   | 'slow'
   | 'aura'
   | 'sweep'
-  | 'bolt';
+  | 'bolt'
+  | 'vendetta'
+  | 'jump'
+  | 'reach'
+  | 'hindsight'
+  | 'rut';
 
 interface ItemBase {
   id: string;
@@ -217,11 +222,18 @@ export interface ActiveItem extends ItemBase {
    */
   arc?: number;
   /**
-   * `field` only: the attractor's area with a hold instead of a pull. Inside
-   * it enemies, every projectile and the player move at this fraction of
-   * their speed; overlapping fields take the slowest, they do not multiply.
+   * `field`: the attractor's area with a hold instead of a pull. Inside it
+   * enemies, every projectile and the player move at this fraction of their
+   * speed; overlapping fields take the slowest, they do not multiply. On a
+   * `trail` (Rut, G-046) each footprint holds the same way as it hurts.
    */
   slow?: number;
+  /**
+   * `strike` only: seconds from the pick to the landing. Absent means
+   * `STRIKE_DELAY` (world.ts). Zero is no telegraph: the bolt lands on the
+   * step it is fired (Hindsight, G-046).
+   */
+  strikeDelay?: number;
   /**
    * Present on an evolution. It is never in the normal offer pool: when
    * `weapon` is at its max level and `with` is owned, the next level-up is
@@ -634,7 +646,7 @@ export const ITEMS: Record<string, ItemDef> = {
     // PLACEHOLDER: bigger and faster than a maxed Temper, and nothing more
     // considered than that.
     cooldown: 0.8,
-    damage: 14,
+    damage: 7,
     range: 210,
     projectileSpeed: 0,
     radius: 210,
@@ -841,6 +853,58 @@ export const ITEMS: Record<string, ItemDef> = {
       {},
       each(2, 6, { area: 1.08 }),
     ),
+    // G-043 paths on a control item. PLACEHOLDER VALUES, every one, under
+    // Conception's `provisional` (its weapon level tables clause): each path
+    // level's single bonus field and each maxLevel were written to make the
+    // branch playable, not measured; a person playing at the link moves them.
+    // No numbers in the copy: the card prints them from these fields.
+    paths: [
+      {
+        id: 'magnetism',
+        name: 'Magnetism',
+        blurb: 'Pulls from further. They heard about you first.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Further. You come up at parties you missed.',
+            'Further again. Friends of friends have opinions.',
+            'From across town. Nobody remembers meeting you.',
+          ],
+          {},
+          each(1, 3, { area: 1.15 }),
+        ),
+      },
+      {
+        id: 'staying-power',
+        name: 'Staying Power',
+        blurb: 'The pull lasts longer. Nobody wants to leave first.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Longer. They stay for one more story.',
+            'Longer again. Somebody missed the last bus.',
+            'Nobody leaves. The party is wherever you are.',
+          ],
+          {},
+          each(1, 3, { duration: 1.25 }),
+        ),
+      },
+      {
+        id: 'small-talk',
+        name: 'Small Talk',
+        blurb: 'Pulls sooner. You never run out of things to say.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Sooner. You remember everyone by name.',
+            'Sooner again. You ask about their weekend.',
+            'Sooner still. Even the wallflowers come over.',
+          ],
+          {},
+          each(1, 3, { cooldown: 0.85 }),
+        ),
+      },
+    ],
     enables:
       'Every area weapon in the act at once, by choosing where the crowd will be instead of reacting to it. It is the item that makes Temper and Baggage into builds rather than options.',
     // Extended 2026-08-01 after Run 5 (§10.2). Chemotaxis is the largest
@@ -1012,6 +1076,58 @@ export const ITEMS: Record<string, ItemDef> = {
       {},
       each(2, 6, { area: 1.08 }),
     ),
+    // G-043 paths on a control item. PLACEHOLDER VALUES, every one, under
+    // Adolescence's `provisional` (the items born there): each path level's
+    // single bonus field and each maxLevel were written to make the branch
+    // playable, not measured; a person playing at the link moves them. The
+    // "nine" in the name is a word, not a figure: the card prints the figure.
+    paths: [
+      {
+        id: 'nine-more',
+        name: 'Nine More Minutes',
+        blurb: 'Lasts longer. You hit the button without waking.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Longer. Nine more, and then nine more.',
+            'Longer again. You have stopped counting.',
+            'It is somehow noon. The alarm gave up first.',
+          ],
+          {},
+          each(1, 3, { duration: 1.25 }),
+        ),
+      },
+      {
+        id: 'whole-house',
+        name: 'Whole House',
+        blurb: 'Wider. Nobody under this roof is up yet.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Wider. Your brother slept through it too.',
+            'Wider again. The dog will not get up either.',
+            'The whole street. The bus is running late too.',
+          ],
+          {},
+          each(1, 3, { area: 1.15 }),
+        ),
+      },
+      {
+        id: 'early-alarm',
+        name: 'Early Alarm',
+        blurb: 'Sooner. It goes off before you need it to.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Sooner. You keep the clock a little fast.',
+            'Sooner again. There is a backup alarm now.',
+            'Sooner still. It goes off before you sleep.',
+          ],
+          {},
+          each(1, 3, { cooldown: 0.85 }),
+        ),
+      },
+    ],
     enables:
       'Builds that want the crowd held where it is: Baggage lays more trail over a crowd that crosses it at half speed, Temper and Grudge get twice as long with everything inside, and an aimed shot through the field arrives late enough to step round.',
     tradesAway:
@@ -1269,6 +1385,152 @@ export const ITEMS: Record<string, ItemDef> = {
       'A caster build for a player busy staying alive: it picks its own target anywhere in range, so it needs no aiming and no positioning, and a crowd packed tight takes the neighbours of whoever was picked.',
     tradesAway:
       'Choice and timing. It picks at random rather than what is dangerous, it lands where the target was a moment ago so anything fast has already left, and it never favours what is touching the player.',
+  },
+
+  // --- 4.6 Evolutions (G-046) ---
+  //
+  // G-047: an evolution is PAID AT ITS WEAPON'S MAX LEVEL — the generic
+  // per-level damage and cooldown scaling (damageScale/cooldownScale) runs at
+  // the weapon's maxLevel, not at the evolution's own level 1 — so its base
+  // numbers below are written beside the weapon's base, a little above it,
+  // and the card that replaces a maxed weapon is never a downgrade.------------------------------------------
+  //
+  // Five more, dealt as Tantrum is: never rolled, one card alone the level
+  // after the weapon is maxed beside its partner (`readyEvolution`, which
+  // takes them in registry order after Tantrum), each replacing its weapon
+  // and the paths taken on it (`World.take`).
+  //
+  // PLACEHOLDER NUMBERS, every one, under Conception's `provisional` (its
+  // weapon tables clause): each cooldown, damage, range, speed, radius,
+  // pierce, knockback, arc, slow, strike delay and level-one bonus below was
+  // written to make the five playable, not measured, and nobody has played
+  // them. An evolution is paid at level one, so none of the generic per-level
+  // scaling its maxed weapon had comes with it. A person playing them at the
+  // link is what moves them. The copy carries no numbers: the card prints them
+  // from these fields (G-043).
+
+  vendetta: {
+    id: 'vendetta',
+    name: 'Vendetta',
+    kind: 'weapon',
+    mode: 'orbit',
+    // Orbit never activates; this is how often one fist may hit one enemy.
+    cooldown: 0.4,
+    damage: 4,
+    range: 90,
+    projectileSpeed: 260,
+    radius: 16,
+    pierce: 99,
+    // Orbit hits push only when this is set (updateOrbiters).
+    knockback: 40,
+    maxLevel: 1,
+    icon: 'vendetta',
+    blurb: 'Nobody remembers what started it. Everyone gets shoved.',
+    levels: table(['Nobody remembers what started it. Everyone gets shoved.'], { 1: { projectiles: 3 } }),
+    evolvesFrom: { weapon: 'grudge', with: 'membrane' },
+    enables:
+      'The Grudge build finished: every fist now shoves what it hits outward, so the orbit clears its own ring and keeps the crowd off a player who was standing in it on Thick Skin anyway.',
+    tradesAway:
+      'Grudge, which it replaces with any path taken on it, and the choosing: it is dealt alone the moment it is possible. The shove also leaves what it hits just outside the circle, where no fist reaches it until it walks back in.',
+  },
+
+  jumpiness: {
+    id: 'jumpiness',
+    name: 'Jumpiness',
+    kind: 'weapon',
+    mode: 'seeking',
+    cooldown: 0.35,
+    damage: 2.5,
+    range: 460,
+    projectileSpeed: 520,
+    radius: 7,
+    pierce: 1,
+    maxLevel: 1,
+    icon: 'jump',
+    blurb: 'Flinches at everything, all the time. It is not a phase.',
+    levels: table(['Flinches at everything, all the time. It is not a phase.'], { 1: { projectiles: 2 } }),
+    evolvesFrom: { weapon: 'lash', with: 'midpiece' },
+    enables:
+      'The Reflex build finished: more flinches a second than a maxed Reflex, from further away and faster, so the weapon every life starts with fills the air around a player Restlessness already keeps on the move.',
+    tradesAway:
+      'Reflex, which it replaces with any path taken on it, and the choosing. It still fires at whatever is nearest rather than what matters, every flinch stops in the first thing it hits, and it has no area at all.',
+  },
+
+  reach: {
+    id: 'reach',
+    name: 'Reach',
+    kind: 'weapon',
+    mode: 'sweep',
+    cooldown: 1,
+    damage: 7,
+    // The circle's reach, in pixels.
+    range: 150,
+    projectileSpeed: 0,
+    radius: 0,
+    pierce: 99,
+    knockback: 30,
+    // The whole way round: inArc takes every bearing.
+    arc: Math.PI * 2,
+    maxLevel: 1,
+    icon: 'reach',
+    blurb: 'You grew into it. There is no behind you any more.',
+    levels: table(['You grew into it. There is no behind you any more.']),
+    evolvesFrom: { weapon: 'backhand', with: 'growth-spurt' },
+    enables:
+      'The Backhand build finished: the swat goes all the way round, so the melee build that had to face the crowd no longer has a back to be caught from, and Growth Spurt carries the circle further out.',
+    tradesAway:
+      'Backhand, which it replaces with any path taken on it, and the choosing. It swings less often than the hand it replaced, it still touches nothing past arm’s length, and the shove scatters a crowd an area weapon wanted kept close.',
+  },
+
+  hindsight: {
+    id: 'hindsight',
+    name: 'Hindsight',
+    kind: 'weapon',
+    mode: 'strike',
+    cooldown: 1.3,
+    damage: 10,
+    // How far away a target may be picked, in pixels.
+    range: 340,
+    projectileSpeed: 0,
+    // What each bolt hits where it lands.
+    radius: 60,
+    pierce: 99,
+    // No telegraph: it lands on the step it is fired (strikeAt).
+    strikeDelay: 0,
+    maxLevel: 1,
+    icon: 'hindsight',
+    blurb: 'No warning. It was obvious afterwards.',
+    levels: table(['No warning. It was obvious afterwards.'], { 1: { projectiles: 2 } }),
+    evolvesFrom: { weapon: 'judgement', with: 'capacitation' },
+    enables:
+      'The Judgement build finished: the bolts come down the moment they are picked, so nothing fast gets out from under them, and Late Bloomer’s late-act damage lands on exactly the spot it was aimed at.',
+    tradesAway:
+      'Judgement, which it replaces with any path taken on it, and the choosing. It still picks at random rather than what is dangerous, it still ignores what is touching the player, and with no warning nobody can read where the next one falls.',
+  },
+
+  rut: {
+    id: 'rut',
+    name: 'Rut',
+    kind: 'weapon',
+    mode: 'trail',
+    cooldown: 0.18,
+    damage: 2.5,
+    // Seconds each footprint lasts.
+    range: 3,
+    projectileSpeed: 0,
+    radius: 30,
+    pierce: 99,
+    // Each footprint holds what stands in it, as Snooze's field does (slowAt).
+    slow: 0.6,
+    maxLevel: 1,
+    icon: 'rut',
+    blurb: 'Everything behind you gets stuck in it. You keep going.',
+    levels: table(['Everything behind you gets stuck in it. You keep going.'], { 1: { duration: 1.2 } }),
+    evolvesFrom: { weapon: 'wake', with: 'snooze' },
+    enables:
+      'The Baggage build finished: whatever follows the player across the trail is held in it while it hurts, so a chasing crowd spends longer in the footprints and arrives later.',
+    tradesAway:
+      'Baggage, which it replaces with any path taken on it, and the choosing. It holds only what follows: the player walks their own trail at full speed, and a cornered player is still holding a weapon that has stopped existing.',
   },
 };
 

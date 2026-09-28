@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <title>Stubbornness icon</title>
+  <desc>A folded paper dart seen from directly above, a slim triangle with its point to the right: two wing panels meeting at one centre crease, a narrow shadow panel along the crease, and a notch where the back of the sheet folds.</desc>
+  <!--
+    Stubbornness (items.ts id motility, icon "pierce"). A card icon, and also
+    the shot the weapon fires on the field (ActScene syncProjectiles, 42px
+    scaled by the shot's radius, rotated to its heading), so it keeps off the
+    field's reserved colours: no threat colour, no paper, no conception-light.
+    fal's dart was ranged gold, the colour of hostile aimed shots (G-031):
+    the player's own shot wore the enemy's warning. The sheet is bone, not
+    paper; paper on a projectile would be the player.
+    It points exactly along +x, because the renderer turns it to the heading.
+    A folded sheet, never an arrowhead: the crease runs from the notch and
+    stops short of the nose (run to the tip it pooled with the outline into
+    a dark point, which is an arrow's), the rose panel is the side of the
+    fold turned away, and the back edge is notched shallowly where the two
+    wings leave the crease (deeper, it read as a chevron). No fuselage, no
+    fins. Angular all round, never Conception's comet; notched at the back,
+    never the pickups' lozenge. The nose is cut blunt by a fraction of a
+    unit: a true point would not let the render fit its size exactly.
+    CONFORM adds the outer outline; the crease is drawn here.
+    Colours: bone #D2C6AC, conception-mid #A86A63, ink #2A2521.
+  -->
+  <g shape-rendering="crispEdges">
+    <!-- the upper wing, the one seen flat from above -->
+    <polygon points="97,49.4 97,50.6 11,50 3,25" fill="#D2C6AC"/>
+    <!-- the lower wing -->
+    <polygon points="97,49.4 97,50.6 3,71 11,50" fill="#D2C6AC"/>
+    <!-- the shadow panel: the side of the fold turned away, along the crease -->
+    <polygon points="97,50 11,50 6.6,62.1" fill="#A86A63"/>
+    <!-- the crease, from the notch, stopping short of the nose -->
+    <line x1="11" y1="50" x2="80" y2="50" stroke="#2A2521" stroke-width="2.2" stroke-linecap="butt"/>
+  </g>
+</svg>

@@ -1206,3 +1206,48 @@ name anyway.
 Rejected: a garlic aura as a passive on the player rather than a weapon —
 then it has no levels table, no paths and no card, and it is the one
 archetype whose growth a player most expects to feel.
+
+## G-045 · 2026-09-28 · The fourth act is College; Service waits; the branch is a choice
+PLAN.md's fourth act is "Service *or* College", a branch marked stretch. Built
+first: **College**, ages 18 to 22 on a 210-second clock, whose line is *you are
+paying for this* — the act's accumulator (Tuition) takes a share of every gem
+and its stacks stay on through the crossing, and its boss (The Loan) is a
+number that compounds and forecloses. Five enemies re-costume the five slots
+(COLLEGE-ROSTER.md), two need a small verb each (`attach.tax`/`persists`,
+`weakPoint`, `ranged.stun`), the boss is a fourth kind on the per-act selector.
+Service's roster stays G-007's (indifferent, never hostile) and is built when a
+person has played four acts; when both exist Prom's crossing offers the choice,
+and the choice is the first thing in the life the player picks that is not a
+card. Every number is a placeholder under `COLLEGE.provisional`.
+Rejected: Service first — its enemies are the D-007 drift risk the whole rule was written for, and law 11 already refuses its one test asset; College is the same slot with no such edge.
+Rejected: deal the branch like the inheritance — a life with no fork in it is a life on rails, and eighteen is the age the script first asks.
+
+## G-046 · 2026-09-28 · Five more evolutions, dealt as Tantrum is
+G-039 built one evolution so the mechanism existed. Five more, each a weapon at
+max beside one passive or control, each one card dealt (never rolled), each
+replacing its weapon, each with a drawn icon: **Vendetta** (Grudge + Thick
+Skin: more fists, wider, and they push), **Jumpiness** (Reflex + Restlessness:
+fires at everything, immediately, all the time), **Reach** (Backhand + Growth
+Spurt: the arc becomes a circle), **Hindsight** (Judgement + Late Bloomer:
+three bolts, no warning — it was obvious afterwards), **Rut** (Baggage +
+Snooze: the trail also slows whatever crosses it). A path taken on the weapon
+dies with it, as Temper's do (G-043's placeholder decision, kept). Every
+number is a placeholder.
+Rejected: one evolution per weapon by rule — the archetype pairs above are the ones with a joke in the pairing; a table filled for symmetry ships five names with nothing in them.
+Rejected: evolutions that keep the weapon's paths — then Vendetta is Grudge with a hat, and what you became was a bonus, not a change.
+
+## G-047 · 2026-09-28 · An evolution is paid at its weapon's max level
+Building G-046 measured every evolution, Tantrum included, at a fraction of
+the maxed weapon it replaced: an evolution is a level-1 item, so it lost the
+generic per-level damage and cooldown scaling its weapon had earned at 8. So
+the rule: the generic scaling (`damageScale`, `cooldownScale`) reads an
+evolution at its weapon's max level (`scalingLevel`, world.ts), and an
+evolution's base numbers sit beside its weapon's base, a little above, so the
+one card the life deals without asking is never a downgrade. Its own levels
+table and paths still read its own level. Rut's hold exempts its owner (the
+trail is laid where the player stands; a weapon that slowed its holder for
+as long as they moved was a stat penalty, not a shape, G-038). Placeholders.
+Rejected: raise every evolution's base numbers to a maxed weapon's — then the
+same fact lives in six places and drifts, which is the AUDIT class of bug.
+Rejected: let evolutions level to 8 too — then they are weapons with a hat,
+and what you became (G-039) goes back to being something you grind.

@@ -1,4 +1,4 @@
-import type { ActDef, BossDef, GymTeacherBoss, PromBoss, SpawnWave } from '../data/acts';
+import type { ActDef, BossDef, GymTeacherBoss, LoanBoss, PromBoss, SpawnWave } from '../data/acts';
 import { ALL_ACTS, rateAt, spawnStreams, whistleInterval } from '../data/acts';
 import { enemyDef, type EnemyDef } from '../data/enemies';
 import {
@@ -145,6 +145,19 @@ export const ANTIBODY_LEAD = 320;
  * not. Expect the bots to move it again.
  */
 export const BOSS_HP = 320;
+
+/**
+ * G-047: an evolution is paid at its weapon's max level. The generic
+ * per-level scaling (damageScale, cooldownScale) reads this instead of the
+ * item's own level, so Tantrum at level 1 keeps what Temper had at 8 and the
+ * card that replaces a maxed weapon is never a downgrade. Everything else
+ * (the levels table, paths) reads the item's own level.
+ */
+export function scalingLevel(def: ItemDef, level: number): number {
+  if (!isActive(def) || !def.evolvesFrom) return level;
+  const weapon = ITEMS[def.evolvesFrom.weapon];
+  return weapon ? level + weapon.maxLevel - 1 : level;
+}
 /**
  * The Egg's light, which Prom borrows whole (ADOLESCENCE-ROSTER §4): seconds
  * in each phase of its machine, and the shot it fires. Named so Prom reads
@@ -163,6 +176,26 @@ export const EGG_SHOT = { speed: 260, life: 4, damage: 12, radius: 10 } as const
  * moves where `idle` starts and not how often he blows.
  */
 export const WHISTLE_HOLD_SECONDS = 0.35;
+
+/**
+ * The Loan (COLLEGE-ROSTER §4). PLACEHOLDERS under `COLLEGE.provisional`,
+ * beside the four on `LoanBoss` (interestSeconds 5, interestRate 0.06, cap 3,
+ * invoices 3). None has been played:
+ *   LOAN_OPENING_PER_STACK 0.1 — §4's opening balance, BOSS_HP plus a tenth of
+ *     it for every invoice worn when it appears. Read off `dragStacks`: the
+ *     act's only attach is tuition, so the stacks worn at the boss ARE the
+ *     invoices;
+ *   LOAN_INVOICE_SPREAD 0.16 — radians between neighbouring invoices in one
+ *     statement, fanned about the player's heading at the lead: the Egg's fan
+ *     spacing (and the Gym Teacher's `throwSpread`), for the reason his has
+ *     one. Unspread, a statement is `invoices` envelopes on one point: one
+ *     envelope to the eye, and all of them worn on one touch.
+ * Its statement runs on the Egg's timings (EGG_IDLE_SECONDS,
+ * EGG_TELEGRAPH_SECONDS, EGG_ATTACK_SECONDS) and it opens from BOSS_HP; both
+ * are read, not copied.
+ */
+export const LOAN_OPENING_PER_STACK = 0.1;
+export const LOAN_INVOICE_SPREAD = 0.16;
 
 /**
  * How long ago "recently" is, for an enemy that lands where the player has
@@ -314,6 +347,14 @@ export interface EnemyState {
    */
   consult: number;
   reload: number;
+  /**
+   * `def.weakPoint` only (the group project, COLLEGE-ROSTER §3.4): which of
+   * the four quadrants about its centre holds all its hp, 0–3, rolled at
+   * spawn from the world's dice (`addEnemy`). Quadrant k covers bearings
+   * [k·π/2, (k+1)·π/2) from the centre, by `Math.atan2`. Absent on every
+   * other enemy, which every hit reads as "anywhere counts" (`hitsWeakPoint`).
+   */
+  weakQuadrant?: number;
 }
 
 export interface ProjectileState {
@@ -492,12 +533,19 @@ export interface BossState {
   kind: BossDef['kind'];
   x: number;
   y: number;
+  /**
+   * For the Loan, the balance: it opens at 1/`cap` of `maxHp` and compounds
+   * toward it, so a bar drawn as hp/maxHp starts part full and fills — the
+   * filling is the fight. For every other kind, health left.
+   */
   hp: number;
+  /** For the Loan, the cap: `cap` × the opening balance, where it forecloses. */
   maxHp: number;
   /**
    * `idle` → `telegraph` → `attack`, then back. For the Gym Teacher the
    * telegraph is the whistle rising and `attack` begins on the step it blows;
-   * for Prom it is the lights going down and `attack` begins on the ring.
+   * for Prom it is the lights going down and `attack` begins on the ring;
+   * for the Loan it is the tape jerking and `attack` begins on the statement.
    * The exit, for every kind, is `absorbing`: the word is the Egg's, and it
    * means the outcome has latched (G-033) and `finishAct` follows the timer —
    * the Gym Teacher's stopwatch click and `ActDef.endWord` play in it.
@@ -509,8 +557,8 @@ export interface BossState {
    * True while it cannot be damaged: the Gym Teacher with any of his
    * `enemyId` alive on the field (§9); Prom with the player farther than its
    * `floorRadius` from the ball (ADOLESCENCE-ROSTER §4). Always false for the
-   * Egg. Plain state for the renderer and the bots; the sim reads the field
-   * and the player itself.
+   * Egg and the Loan. Plain state for the renderer and the bots; the sim reads
+   * the field and the player itself.
    */
   shielded: boolean;
   /**
@@ -520,6 +568,15 @@ export interface BossState {
    * count. Zero for the kinds that fire no ring.
    */
   rings: number;
+  /**
+   * The Loan's interest clock: seconds until its balance next compounds,
+   * counting down from `interestSeconds`, set at spawn and carried (never
+   * reset) at each tick. Read-only outside the sim; a renderer that wants the
+   * tape to jerk on the tick sees it wrap upward between two frames, and
+   * 1 − interestIn/interestSeconds is the progress to the next one. Zero for
+   * the kinds that never compound.
+   */
+  interestIn: number;
 }
 
 export interface Input {
@@ -600,6 +657,28 @@ function clamp(v: number, lo: number, hi: number): number {
 function swapRemove<T>(arr: T[], i: number): void {
   const last = arr.pop()!;
   if (i < arr.length) arr[i] = last;
+}
+
+/**
+ * Whether a hit at (x, y) on `e` counts (COLLEGE-ROSTER §3.4, the group
+ * project). Always, for an enemy with no weak point. Otherwise only when the
+ * bearing from its centre to (x, y) falls in `e.weakQuadrant` — a shot by
+ * where it strikes, an orbiter by where it is, a sweep by where the player
+ * swung from — or, for an area, when (x, y) is within `cover` of its centre:
+ * an area over the centre covers all four, and one that only reaches the rim
+ * lands on the side facing its own centre. A hit that does not count does
+ * nothing and does not flash; the callers skip it whole.
+ */
+export function hitsWeakPoint(e: EnemyState, x: number, y: number, cover = 0): boolean {
+  const q = e.weakQuadrant;
+  if (q === undefined) return true;
+  const dx = x - e.x;
+  const dy = y - e.y;
+  if (cover > 0 && dx * dx + dy * dy <= cover * cover) return true;
+  let bearing = Math.atan2(dy, dx);
+  if (bearing < 0) bearing += Math.PI * 2;
+  // `& 3`: a bearing a hair under zero wraps to exactly 2π, which is quadrant 0.
+  return (Math.floor(bearing / (Math.PI / 2)) & 3) === q;
 }
 
 export class World {
@@ -718,6 +797,21 @@ export class World {
   engulfSlow = 1;
   engulfDps = 0;
   dragStacks = 0;
+  /**
+   * Worn stacks whose attach carries a `tax` (tuition, COLLEGE-ROSTER §3.3),
+   * and what they leave of every gem: the product of (1 − tax) over each one,
+   * multiplied in as it is worn. Read through `taxStacks` and `xpTax`.
+   */
+  private taxedStacks = 0;
+  private xpTaxFactor = 1;
+  /**
+   * The part of `dragStacks`, `taxedStacks` and `xpTaxFactor` that crosses
+   * (`attach.persists`): restored at every crossing instead of zero. Per
+   * life; nothing takes it off.
+   */
+  private persistentStacks = 0;
+  private persistentTaxedStacks = 0;
+  private persistentTaxFactor = 1;
   /**
    * Seconds left of a `contactStun` (the hall monitor, §3.4). While it runs
    * `movePlayer` ignores input. Refreshed by a touch, never extended past it.
@@ -875,6 +969,21 @@ export class World {
   }
 
   /**
+   * What a gem is worth to the player, as a share of its value: 1 until an
+   * invoice is worn, then (1 − tax) per taxed stack, compounding (§3.3; two
+   * tuition leave 0.92²). Applied where XP is collected (`updateGems`,
+   * `beginAct`), never to the gem's own `value`.
+   */
+  get xpTax(): number {
+    return this.xpTaxFactor;
+  }
+
+  /** Worn stacks that carry a tax, for the HUD and the Loan's opening balance. */
+  get taxStacks(): number {
+    return this.taxedStacks;
+  }
+
+  /**
    * Speed from items alone — no antibody drag, no engulf.
    *
    * The exogenous half of the player's speed: what the build chose, rather
@@ -892,7 +1001,22 @@ export class World {
   }
 
   get speed(): number {
-    return this.baseSpeed * (this.engulfTimer > 0 ? this.engulfSlow : 1) * this.slowAt(this.x, this.y);
+    return this.baseSpeed * (this.engulfTimer > 0 ? this.engulfSlow : 1) * this.slowAtPlayer();
+  }
+
+  /**
+   * The player's own hold: every field that holds them (Snooze's) but never
+   * a damaging trail (Rut's, G-046), which is laid where the player stands
+   * and would otherwise hold them for as long as they kept moving. A trail
+   * holds what follows; the player walks it at full speed.
+   */
+  private slowAtPlayer(): number {
+    let k = 1;
+    for (const f of this.areas) {
+      if (f.slow === undefined || f.slow >= k || f.damage > 0) continue;
+      if ((this.x - f.x) ** 2 + (this.y - f.y) ** 2 <= f.radius * f.radius) k = f.slow;
+    }
+    return k;
   }
 
   /**
@@ -961,12 +1085,14 @@ export class World {
 
   private activeDamage(def: ItemDef, level: number): number {
     if (!isActive(def)) return 0;
-    return def.damage * damageScale(level) * this.bonusFor(def, level).damage * this.damageDealt;
+    return def.damage * damageScale(scalingLevel(def, level)) * this.bonusFor(def, level).damage * this.damageDealt;
   }
 
   private activeCooldown(def: ItemDef, level: number): number {
     if (!isActive(def)) return Infinity;
-    return def.cooldown * cooldownScale(level) * this.bonusFor(def, level).cooldown * this.cooldownFactor;
+    return (
+      def.cooldown * cooldownScale(scalingLevel(def, level)) * this.bonusFor(def, level).cooldown * this.cooldownFactor
+    );
   }
 
   /**
@@ -1241,6 +1367,9 @@ export class World {
       consult: 0,
       reload: 0,
     };
+    // Rolled for a weak point and for nothing else, so no other enemy draws
+    // from the dice and every seed without one replays exactly as it did.
+    if (def.weakPoint) e.weakQuadrant = Math.floor(this.rng() * 4);
     this.enemies.push(e);
     return e;
   }
@@ -1631,7 +1760,7 @@ export class World {
           last.x = this.x;
           last.y = this.y;
         } else this.trailDrops.set(def.id, { x: this.x, y: this.y });
-        this.areas.push({
+        const trail: AreaState = {
           x: this.x,
           y: this.y,
           age: 0,
@@ -1641,7 +1770,12 @@ export class World {
           pull: false,
           tick: true,
           serial: this.nextSerial++,
-        });
+        };
+        // Rut (G-046): a trail that holds as well as hurts. `slowAt` reads any
+        // area with a `slow`, so whatever crosses a footprint is held, and so
+        // is the player, since each one is laid where the player stands.
+        if (def.slow !== undefined) trail.slow = def.slow;
+        this.areas.push(trail);
         return true;
       }
       case 'attractor': {
@@ -1703,6 +1837,8 @@ export class World {
             if (e.def.invulnerable || e.hp <= 0 || this.swept.has(e.uid)) continue;
             if (!this.inArc(e.x, e.y, e.radius, angle, width, sweepReach)) continue;
             this.swept.add(e.uid);
+            // A sweep lands on the side the player swung from (§3.4).
+            if (!hitsWeakPoint(e, this.x, this.y)) continue;
             e.hp -= damage;
             e.hitFlash = 0.08;
             if (knockback > 0) this.knockBack(e, knockback);
@@ -1746,6 +1882,8 @@ export class World {
           const pick = Math.floor(this.rng() * pool.length);
           const e = pool[pick]!;
           swapRemove(pool, pick);
+          // A bolt with no delay (Hindsight) has already landed: not at what it killed.
+          if (e.hp <= 0) continue;
           this.strikeAt(def, e.x, e.y, radius, damage);
           aimed++;
         }
@@ -1775,15 +1913,25 @@ export class World {
     if (d2 > (reach + r) * (reach + r)) return false;
     const d = Math.sqrt(d2);
     if (d <= r) return true;
+    // A full circle (Reach, G-046) takes every bearing. The wrapped test below
+    // already would, |off| <= π with a body's width to spare; this says so
+    // without leaning on the float at exactly π.
+    if (width >= Math.PI * 2) return true;
     // Wrapped to [-π, π]: a bearing of 179° and an arc at -179° are 2° apart.
     let off = Math.atan2(dy, dx) - angle;
     off -= Math.PI * 2 * Math.floor((off + Math.PI) / (Math.PI * 2));
     return Math.abs(off) <= width / 2 + Math.asin(r / d);
   }
 
-  /** One strike, telegraphed: it lands after STRIKE_DELAY (updateAreas → landStrike). */
+  /**
+   * One strike, telegraphed: it lands after its item's `strikeDelay`, or
+   * STRIKE_DELAY (updateAreas → landStrike). A delay of zero (Hindsight,
+   * G-046) lands here, on the fire step. `fireItems` runs before
+   * `updateAreas`, but `updateStrike` reads a delay of zero as already landed
+   * and only ages the flash, so waiting for it would never land at all.
+   */
   private strikeAt(def: ActiveItem, x: number, y: number, radius: number, damage: number): void {
-    this.areas.push({
+    const a: AreaState = {
       x,
       y,
       age: 0,
@@ -1793,9 +1941,11 @@ export class World {
       pull: false,
       tick: false,
       serial: this.nextSerial++,
-      delay: STRIKE_DELAY,
+      delay: Math.max(0, def.strikeDelay ?? STRIKE_DELAY),
       source: def.id,
-    });
+    };
+    this.areas.push(a);
+    if (a.delay === 0) this.landStrike(a);
   }
 
   /**
@@ -1823,6 +1973,7 @@ export class World {
       if (e.def.invulnerable || e.hp <= 0) continue;
       const r = a.radius + e.radius;
       if ((e.x - a.x) ** 2 + (e.y - a.y) ** 2 > r * r) continue;
+      if (!hitsWeakPoint(e, a.x, a.y, a.radius)) continue;
       e.hp -= a.damage;
       e.hitFlash = 0.08;
     }
@@ -1878,6 +2029,8 @@ export class World {
         if ((e.x - this.x) ** 2 + (e.y - this.y) ** 2 > r * r) continue;
         const next = hits.get(e.uid);
         if (next !== undefined && this._time < next) continue;
+        // Off the weak point it does nothing, the re-hit clock included (§3.4).
+        if (!hitsWeakPoint(e, this.x, this.y, radius)) continue;
         hits.set(e.uid, this.nextAuraHit(next, cooldown, dt));
         e.hp -= damage;
         e.hitFlash = 0.08;
@@ -1987,9 +2140,13 @@ export class World {
           const key = e.uid * 64 + i;
           const last = hits.get(key);
           if (last !== undefined && this._time - last < cooldown) continue;
+          // By where it is; off the weak point the touch spends nothing (§3.4).
+          if (!hitsWeakPoint(e, o.x, o.y)) continue;
           hits.set(key, this._time);
           e.hp -= damage;
           e.hitFlash = 0.08;
+          // Vendetta (G-046): a fist that shoves. Grudge carries no knockback and never pushes.
+          if (def.knockback) this.knockBack(e, def.knockback + bonus.knockback);
         }
 
         const b = this.boss;
@@ -2055,6 +2212,9 @@ export class World {
       for (const e of this.near) {
         if (e.def.invulnerable || e.hp <= 0) continue;
         if (Math.hypot(e.x - a.x, e.y - a.y) > a.radius + e.radius) continue;
+        // Covering the centre covers all four quadrants (§3.4). A burst that
+        // misses here keeps its one hit, and lands if the centre comes under it.
+        if (!hitsWeakPoint(e, a.x, a.y, a.radius)) continue;
         if (a.tick) {
           e.hp -= a.damage * dt * 6;
         } else {
@@ -2111,7 +2271,11 @@ export class World {
         g.y += ((this.y - g.y) / (d || 1)) * GEM_SPEED * dt;
       }
       if (d < body) {
-        this.gainXp(g.value);
+        // Less every invoice worn (§3.3). Unrounded: a 1-XP gem is the act's
+        // commonest, and rounding it would leave it untaxed to the ninth
+        // invoice and worthless from there — a cliff, which G-025 refused the
+        // drag for the same reason.
+        this.gainXp(g.value * this.xpTaxFactor);
         swapRemove(this.gems, i);
       }
     }
@@ -2133,9 +2297,15 @@ export class World {
         if ((e.x - p.x) ** 2 + (e.y - p.y) ** 2 > r * r) continue;
 
         e.hitBySerial = p.serial;
-        e.hp -= p.damage;
-        e.hitFlash = 0.08;
-        if (p.chain && p.chain > 0) this.chainFrom(p, e);
+        // By where it strikes (COLLEGE-ROSTER §3.4). Off the weak point it
+        // does nothing — no hp, no flash, no chain — and is still spent as a
+        // hit, so a seeking shot does not pass through and take it from the
+        // far side on the same flight.
+        if (hitsWeakPoint(e, p.x, p.y)) {
+          e.hp -= p.damage;
+          e.hitFlash = 0.08;
+          if (p.chain && p.chain > 0) this.chainFrom(p, e);
+        }
         if (--p.pierce <= 0) {
           swapRemove(this.projectiles, pi);
           break;
@@ -2254,7 +2424,7 @@ export class World {
       if (e.def.contact === 'none') continue;
 
       if (e.def.contact === 'attach') {
-        this.dragStacks++;
+        this.wear(e.def);
         swapRemove(this.enemies, i);
         this.hp -= e.def.contactDamage * this.damageTaken;
         if (this.hp <= 0) return this.die(e.def);
@@ -2297,7 +2467,16 @@ export class World {
       const r = p.radius + body;
       if ((p.x - this.x) ** 2 + (p.y - this.y) ** 2 > r * r) continue;
       swapRemove(this.projectiles, i);
-      if (this.invulnerable <= 0) this.hurt(p.damage, p.owner ?? 'boss');
+      if (this.invulnerable > 0) continue;
+      this.hurt(p.damage, p.owner ?? 'boss');
+      // The registrar's hold (COLLEGE-ROSTER §3.5): the monitor's stop, by
+      // post, and its i-frames run from the END of the stop for the reason the
+      // contact branch above gives (AUDIT part three, 18).
+      const stun = p.owner?.ranged?.stun;
+      if (stun !== undefined) {
+        this.stun(stun);
+        this.invulnerable = Math.max(this.invulnerable, stun + IFRAMES);
+      }
     }
   }
 
@@ -2309,6 +2488,27 @@ export class World {
    */
   private get outcomeDecided(): boolean {
     return this.dead || this.won || this.boss?.phase === 'absorbing';
+  }
+
+  /**
+   * One attach stack on the player: a drag stack, always; for tuition, a
+   * share of every gem from now on (`attach.tax`) and a stack that stays on
+   * through the crossing (`attach.persists`, COLLEGE-ROSTER §3.3).
+   */
+  private wear(def: EnemyDef): void {
+    this.dragStacks++;
+    const tax = def.attach?.tax ?? 0;
+    const persists = def.attach?.persists === true;
+    if (tax > 0) {
+      this.taxedStacks++;
+      this.xpTaxFactor *= 1 - tax;
+    }
+    if (!persists) return;
+    this.persistentStacks++;
+    if (tax > 0) {
+      this.persistentTaxedStacks++;
+      this.persistentTaxFactor *= 1 - tax;
+    }
   }
 
   private hurt(amount: number, cause: Cause): void {
@@ -2458,8 +2658,9 @@ export class World {
   /**
    * The threshold between acts. What crosses it is the player: items, level,
    * the XP still on the ground (collected now rather than lost — you leave
-   * with what you earned). What does not is the act: its crowd, its
-   * projectiles and fields, the antibodies' drag, and the boss. Health is
+   * with what you earned), and tuition's invoices (`attach.persists`). What
+   * does not is the act: its crowd, its projectiles and fields, every other
+   * attach's drag, and the boss. Health is
    * restored, because arriving at School on three hit points after the Egg is
    * a death with extra steps. PLACEHOLDER: full heal is the simplest rule
    * with no number in it; a person playing the crossing decides otherwise.
@@ -2468,7 +2669,8 @@ export class World {
    * the heal reaches its ceiling; every crossing takes its unasked levels.
    */
   private beginAct(index: number): void {
-    for (const g of this.gems) this.xp += g.value;
+    // Collected as any gem is, so at whatever the invoices worn leave of it.
+    for (const g of this.gems) this.xp += g.value * this.xpTaxFactor;
     this.gems.length = 0;
 
     this.actIndex = index;
@@ -2494,7 +2696,14 @@ export class World {
     this.grid.build(this.enemies);
     this.boss = null;
     this.raceAbsorbed = 0;
-    this.dragStacks = 0;
+    // The act's attach stacks come off here, except a persisting attach's:
+    // tuition's invoices, and the share of every gem they take, cross with
+    // the player and stay for the rest of the life. That is College's whole
+    // bet (COLLEGE-ROSTER §2, G-045): every attach before it cost something
+    // for an act; this one costs the future, and the Office inherits it.
+    this.dragStacks = this.persistentStacks;
+    this.taxedStacks = this.persistentTaxedStacks;
+    this.xpTaxFactor = this.persistentTaxFactor;
     this.engulfTimer = 0;
     this.engulfSlow = 1;
     this.engulfDps = 0;
@@ -2728,7 +2937,19 @@ export class World {
       timer: 2.2,
       shielded: false,
       rings: 0,
+      interestIn: 0,
     };
+    // The Loan opens at what the player carried in (COLLEGE-ROSTER §4): a
+    // tenth more per invoice worn, and its cap is `cap` times that, so the bar
+    // opens 1/cap full. The act's only attach is tuition, so every stack
+    // worn here is an invoice.
+    const loan = this.act.boss;
+    if (loan.kind === 'loan') {
+      const opening = BOSS_HP * (1 + LOAN_OPENING_PER_STACK * this.dragStacks);
+      this.boss.hp = opening;
+      this.boss.maxHp = opening * loan.cap;
+      this.boss.interestIn = loan.interestSeconds;
+    }
     // Read once it stands: Prom's shield is the player's distance from it.
     this.boss.shielded = this.shieldUp();
     this.partRace(this.boss);
@@ -2838,6 +3059,9 @@ export class World {
         return;
       }
     }
+
+    // Above the phase timer: interest runs every step, not on phase changes.
+    if (this.act.boss.kind === 'loan') return this.loanPhase(b, this.act.boss, dt);
 
     // It does not move from where it is. It has already decided.
     b.timer -= dt;
@@ -2996,5 +3220,74 @@ export class World {
       });
     }
     b.rings++;
+  }
+
+  /**
+   * The Loan's step (COLLEGE-ROSTER §4), called every step it is not
+   * absorbing, after the damage passes: a kill this step latched `absorbing`
+   * and returned before this, so the player's last hit beats the tick.
+   *
+   * Interest: every `interestSeconds`, the balance grows by `interestRate` of
+   * itself, held at `maxHp`. One tick a step at most, the overshoot carried
+   * (AUDIT 16): a frame longer than the interval catches up over the next
+   * steps rather than looping, so no `interestSeconds` can hang the step.
+   * Foreclosure is the balance reaching the cap: not damage, so no health,
+   * armour or i-frames stand in front of it, and it goes straight to `die`
+   * as the lost race and the engulf do. Its cause is 'boss', which prints the
+   * act's `bossName`.
+   *
+   * The statement is the Egg's machine at the Egg's timings, carried as
+   * Prom's is: idle; the tape jerks (telegraph); the invoices (attack). It
+   * never fires at the player, never moves and never shields (`shieldUp` has
+   * no branch for it).
+   */
+  private loanPhase(b: BossState, boss: LoanBoss, dt: number): void {
+    b.interestIn -= dt;
+    if (b.interestIn <= 0) {
+      b.interestIn += boss.interestSeconds;
+      b.hp = Math.min(b.hp * (1 + boss.interestRate), b.maxHp);
+      if (b.hp >= b.maxHp) {
+        if (!this.outcomeDecided) this.die('boss');
+        return;
+      }
+    }
+
+    b.timer -= dt;
+    if (b.timer > 0) return;
+    if (b.phase === 'idle') {
+      b.phase = 'telegraph';
+      b.timer += EGG_TELEGRAPH_SECONDS;
+    } else if (b.phase === 'telegraph') {
+      b.phase = 'attack';
+      b.timer += EGG_ATTACK_SECONDS;
+      this.statement(boss);
+    } else {
+      b.phase = 'idle';
+      b.timer += EGG_IDLE_SECONDS;
+    }
+  }
+
+  /**
+   * The statement: `invoices` of the act's `enemyId` at the player's lead,
+   * through `spawnEnemy` — the act's own arrival, with its clamp — one per
+   * heading in a fan of LOAN_INVOICE_SPREAD about the player's. The heading
+   * is turned for each call and put back after, so the placement is written
+   * once, in `spawnEnemy`. A lead placement draws no dice; under a
+   * `spawnOverride` of 'edge' each invoice draws its angle, as the act's own
+   * spawns do. Capped by MAX_ACTIVE_ENEMIES like any spawn.
+   */
+  private statement(boss: LoanBoss): void {
+    const fx = this.facingX;
+    const fy = this.facingY;
+    for (let i = 0; i < boss.invoices && this.enemies.length < MAX_ACTIVE_ENEMIES; i++) {
+      const turn = (i - (boss.invoices - 1) / 2) * LOAN_INVOICE_SPREAD;
+      const c = Math.cos(turn);
+      const s = Math.sin(turn);
+      this.facingX = fx * c - fy * s;
+      this.facingY = fx * s + fy * c;
+      this.spawnEnemy(boss.enemyId);
+    }
+    this.facingX = fx;
+    this.facingY = fy;
   }
 }

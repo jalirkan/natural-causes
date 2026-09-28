@@ -88,8 +88,22 @@ export interface EnemyDef {
   contact: Contact;
   /** `engulf` only. */
   engulf?: { seconds: number; slow: number; damagePerSecond: number };
-  /** `attach` only. Fraction of movement speed removed per stack. */
-  attach?: { drag: number };
+  /**
+   * `attach` only. `drag`: fraction of movement speed removed per stack.
+   * `tax` (COLLEGE-ROSTER §3.3): the share of every gem's value each worn
+   * stack takes, compounding. `persists`: the stacks stay on through the
+   * crossing instead of coming off with the act, so the next act inherits
+   * them. Both absent everywhere but tuition.
+   */
+  attach?: { drag: number; tax?: number; persists?: boolean };
+  /**
+   * COLLEGE-ROSTER §3.4: all the hp sits in one of four quadrants about the
+   * centre, rolled at spawn from the world's dice. A hit counts only when it
+   * lands there — a shot by where it strikes, an orbiter or a sweep by where
+   * it is, an area by covering the centre — and a hit elsewhere neither hurts
+   * nor flashes. The drawing does not say which.
+   */
+  weakPoint?: boolean;
   /**
    * Weapons do not affect it (G-018). Shots pass through, areas ignore it, it
    * is never a kill and drops nothing.
@@ -154,6 +168,12 @@ export interface EnemyDef {
     cooldownSeconds: number;
     projectileSpeed: number;
     damage: number;
+    /**
+     * COLLEGE-ROSTER §3.5: seconds the player's input is ignored when the shot
+     * lands — the hall monitor's stop, delivered by post. Its i-frames run
+     * from the end of the stop, as `contactStun`'s do.
+     */
+    stun?: number;
   };
   /**
    * Seconds the player's input is ignored after this enemy's contact damage
@@ -544,6 +564,144 @@ export const ENEMIES: Record<string, EnemyDef> = {
     patrol: true,
     whyThisStage:
       'Adolescence is the only stage where the most dangerous thing the player will ever do is scheduled as a class.',
+  },
+
+  // --- College (COLLEGE-ROSTER §3) ---
+  //
+  // Five enemies, four swarm-tier and one elite (the group project). Three
+  // behaviours are new, each a field rather than a system: `attach.tax` and
+  // `attach.persists` (tuition, §3.3), `weakPoint` (the group project, §3.4)
+  // and `ranged.stun` (the registrar, §3.5). Everything else is a field an
+  // earlier act already needed.
+  //
+  // EVERY NUMBER BELOW IS A PLACEHOLDER under `COLLEGE.provisional` (acts.ts,
+  // D-022): §3.6's table transcribed, nothing chosen here and nothing played.
+  // The relationships are the roster's — the deadline is the fastest and
+  // heaviest thing in the life so far, tuition cannot be shot and costs XP
+  // rather than health, the registrar's shot costs a second rather than a
+  // life — and a person at the link moves the figures, never the bots.
+  //
+  // The act's costume of the life script: you are paying for this. Nothing in
+  // it is a person (D-007, law 9), and nothing in it is paying attention to
+  // the player (law 8): the registrar is looking at the file.
+  reading: {
+    id: 'reading',
+    name: 'Reading',
+    act: 'college',
+    frame: 'reading.png',
+    hp: 3,
+    speed: 52,
+    contactDamage: 3,
+    radius: 14,
+    displaySize: 48,
+    xp: 1,
+    // The rival sperm and the hormones again, from the edge: weak, slow, and
+    // never in short supply. It comes in stacks because the schedule does.
+    movement: 'chase',
+    contact: 'damage',
+    spawnAt: 'edge',
+    whyThisStage:
+      'College is the first stage where the work arrives faster than it can be done and nobody checks whether it was.',
+  },
+
+  deadline: {
+    id: 'deadline',
+    name: 'Deadline',
+    act: 'college',
+    frame: 'deadline.png',
+    hp: 30,
+    // Faster than driver's ed and heavier: the act's heaviest hit, and its
+    // only red thing. Driver's ed without the wheels.
+    speed: 300,
+    contactDamage: 18,
+    radius: 24,
+    displaySize: 84,
+    xp: 8,
+    // Enters aimed at where the player stands and patrols that line for good.
+    // Its cadence is the schedule's (about one every thirty seconds, §3.2), so
+    // the player learns when to expect it and still gets caught.
+    movement: 'cross',
+    contact: 'damage',
+    patrol: true,
+    whyThisStage:
+      'College is where the date first crosses the room on its own schedule and does not slow down for anyone standing in it.',
+  },
+
+  tuition: {
+    id: 'tuition',
+    name: 'Tuition',
+    act: 'college',
+    frame: 'tuition.png',
+    // hp is inert: it cannot be damaged. Kept at 1 so nothing divides by zero.
+    hp: 1,
+    invulnerable: true,
+    speed: 0,
+    // It costs XP and speed, never health, and it is not a kill, so no XP.
+    contactDamage: 0,
+    radius: 12,
+    displaySize: 44,
+    xp: 0,
+    // Acne's arrival: already where the player is going, and it stays. The
+    // only way off the floor is to wear it.
+    movement: 'static',
+    spawnAt: 'lead',
+    contact: 'attach',
+    // One drag stack on the antibody's curve like every attach, and two new
+    // costs (World.xpTax, World.beginAct): each worn invoice takes `tax` of
+    // every gem's value, compounding, and the invoices do NOT come off at the
+    // crossing. The Office will inherit them, and that is the joke (§3.3).
+    attach: { drag: 0.03, tax: 0.08, persists: true },
+    whyThisStage:
+      'College is the first stage that takes a share of everything the player earns from then on, and the share does not come off at the end of the act.',
+  },
+
+  'group-project': {
+    id: 'group-project',
+    name: 'Group project',
+    act: 'college',
+    frame: 'group-project.png',
+    // The elite: the slow, heavy thing that costs the most to get past.
+    hp: 60,
+    speed: 20,
+    contactDamage: 12,
+    radius: 34,
+    displaySize: 100,
+    xp: 14,
+    movement: 'chase',
+    contact: 'damage',
+    // All its hp is in one of four quadrants, rolled at spawn (World.addEnemy,
+    // `hitsWeakPoint`). A shot counts by where it strikes, an orbiter or a
+    // sweep by where it is, an area by covering the centre; anything else
+    // does nothing and does not flash. The drawing does not say which lump.
+    weakPoint: true,
+    whyThisStage:
+      'College is where the player is first graded on something four were assigned and one did, and finding out which one costs more than doing the work.',
+  },
+
+  registrar: {
+    id: 'registrar',
+    name: 'Registrar',
+    act: 'college',
+    frame: 'registrar.png',
+    hp: 14,
+    speed: 0,
+    contactDamage: 0,
+    radius: 26,
+    displaySize: 80,
+    xp: 6,
+    // A counter: it stays where it lands and never touches anyone. Zero damage
+    // AND `none`, for the reason `Contact` gives.
+    movement: 'static',
+    contact: 'none',
+    // The substitute's consult, from a window (G-010). In range and off
+    // cooldown it consults the file — the bell and the slot are the telegraph
+    // — and posts one gold form at where the player is (G-031: the gold is the
+    // form's, never the counter's). A hit does little damage and stops the
+    // player for `stun` seconds, the hall monitor's stop by post; the i-frames
+    // run from the end of the stop (AUDIT part three, 18).
+    ranged: { range: 440, consultSeconds: 0.9, cooldownSeconds: 4, projectileSpeed: 240, damage: 4, stun: 0.5 },
+    whyThisStage:
+      'College is the first stage where the aimed thing is not a hit but a hold, placed by a window that has never seen the player and has the file.',
   },
 };
 

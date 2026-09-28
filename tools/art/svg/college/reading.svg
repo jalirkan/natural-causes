@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <title>Reading</title>
+  <desc>A short pile of four loose pages seen from low down, their edges fanned out at the right, the top corner turned up with its underside showing; two half-shut dot eyes and one flat line for a mouth on the top page, looking straight out. Nothing is written on it.</desc>
+  <!--
+    Reading (COLLEGE-ROSTER §3.1), the act's crowd. Reserved silhouette: the
+    stack, the only pile in the act and the only paper on paper. Four loose
+    pages seen from low down. The top one is a trapezoid, its far edge short,
+    lying back. The three under it are the same sheet, each turned a further
+    four degrees about the pile's near left corner and slid a step down and
+    to the right, so their edges fan out at the right and splay along the
+    bottom while the left side stays nearly flush. The fan is the read at
+    48px. No sheet is square and the whole is taller than wide: the square is
+    the deadline's and the wide rectangle is tuition's.
+
+    The top corner is turned up along a straight fold, underside in shadow,
+    and the page beneath shows where it was. A fold, not a curl: the curl is
+    the Loan's.
+
+    Face: two ink half-dots under flat lids, half-shut, straight out, and one
+    flat line. It has been on the pile a while.
+
+    Drawn on the finished sprite's own pixel grid, as the antibody is: one
+    unit is one pixel of the 46px subject (48 less the 1px outline each side).
+    The group puts 46 units at exactly 184 supersampled pixels at the
+    rasteriser's first density (27), so the render fits on the first pass,
+    and the top edge sits flat on y=0 and the near left corner on x=0 so the
+    crop starts on the grid: every rect lands on the pixel it names.
+    crispEdges keeps the ink/bone edges from inventing tones.
+
+    Interior lines drawn: every page but the bottom one is an ink sheet under
+    a bone sheet cut one unit in from its right and near edges, so each edge
+    that lies over another page is one pixel of ink. CONFORM adds the outline;
+    there is none here.
+    Colours are palette hex values: bone #D2C6AC, ink #2A2521,
+    shadow #6E6353. No threat colour; nothing in the act's light tone.
+  -->
+  <g shape-rendering="crispEdges" transform="translate(2.0833333 2.0833333) scale(2.0833333)">
+    <!-- the bottom page: all its edges are the silhouette -->
+    <g transform="translate(4.5 6) rotate(12 0 33)">
+      <path d="M8,0 L32,0 L35,32 L0,33 Z" fill="#D2C6AC"/>
+    </g>
+    <!-- the third page -->
+    <g transform="translate(3 4) rotate(8 0 33)">
+      <path d="M8,0 L32,0 L35,32 L0,33 Z" fill="#2A2521"/>
+      <path d="M8,0 L31,0 L34,31 L0.24,32 Z" fill="#D2C6AC"/>
+    </g>
+    <!-- the second page -->
+    <g transform="translate(1.5 2) rotate(4 0 33)">
+      <path d="M8,0 L32,0 L35,32 L0,33 Z" fill="#2A2521"/>
+      <path d="M8,0 L31,0 L34,31 L0.24,32 Z" fill="#D2C6AC"/>
+    </g>
+    <!-- the top page, its corner gone along the fold -->
+    <path d="M8,0 L22,0 L33,10 L35,32 L0,33 Z" fill="#2A2521"/>
+    <path d="M8,0 L22,0 L32.9,9.9 L32,10 L34,31 L0.24,32 Z" fill="#D2C6AC"/>
+    <!-- the turned-up corner: ink on the two edges that lie on the page, shadow underside -->
+    <path d="M22,0 L33,10 L23,10 Z" fill="#2A2521"/>
+    <path d="M23.1,1 L31.9,9 L24,9 Z" fill="#6E6353"/>
+    <!-- the face: half-dots under flat lids, and a flat line -->
+    <g fill="#2A2521">
+      <rect x="9" y="16" width="5" height="1"/>
+      <rect x="10" y="17" width="3" height="1"/>
+      <rect x="19" y="16" width="5" height="1"/>
+      <rect x="20" y="17" width="3" height="1"/>
+      <rect x="12" y="24" width="8" height="1"/>
+    </g>
+  </g>
+</svg>

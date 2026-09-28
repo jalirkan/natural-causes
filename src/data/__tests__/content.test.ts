@@ -167,7 +167,7 @@ describe("law 10 / G-030 — pickups take the act's light tone", () => {
     // earlier, where it is enforceable today: the palette an enemy in each act
     // is allowed to be quantised INTO excludes paper (the player's) and the
     // act's light tone (the pickups').
-    for (const act of ['conception', 'school', 'adolescence'] as const) {
+    for (const act of ['conception', 'school', 'adolescence', 'college'] as const) {
       const allowed = enemyPalette(act).map((c) => c.name);
       expect(allowed, `act "${act}" lets an enemy be paper`).not.toContain('paper');
       expect(allowed, `act "${act}" lets an enemy take the pickup tone`).not.toContain(
@@ -302,7 +302,7 @@ describe('upgrades gain (G-038)', () => {
   });
 });
 
-describe('weapon paths (G-043)', () => {
+describe('active item paths (G-043): weapons and controls', () => {
   const pathed = Object.values(ITEMS).filter((d) => isActive(d) && d.paths !== undefined);
   // Every field a level may carry, from the fold's own identity: a new field
   // is covered the day it is added to `LevelBonus`.

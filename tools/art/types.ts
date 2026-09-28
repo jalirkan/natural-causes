@@ -1,9 +1,10 @@
 import type { ActId } from './palette';
 
 /**
- * `icon` is UI art: it lives on the offer cards' ink surface, never on the
- * field, so CHECK judges it against ink and the enemy value ceiling does not
- * apply — an icon may wear paper, which on the field is the player's alone.
+ * `icon` is UI art: it lives on the offer cards' ink surface, so CHECK judges
+ * it against ink and the enemy value ceiling does not apply — a card-only icon
+ * may wear paper, which on the field is the player's alone. An icon marked
+ * `fieldRiding` is also drawn on the field (G-036) and may not (law 10).
  */
 export type AssetRole = 'player' | 'swarm' | 'boss' | 'pickup' | 'icon';
 
@@ -48,6 +49,15 @@ export interface AssetSpec {
    * content rule still runs on it.
    */
   source?: 'svg';
+  /**
+   * Icons only. This icon is also drawn on the field — a shot, an orbiter, a
+   * stamp, a rider (G-036) — so besides the card checks it keeps off the
+   * field's reserved colours: every threat colour (threats), paper (the
+   * player) and every act's light tone (pickups), law 10 — in every act,
+   * because items are not act-scoped. Omitted: card-only, judged against the
+   * card surface alone (G-035).
+   */
+  fieldRiding?: true;
 }
 
 export interface GenerationRecord {

@@ -6,6 +6,7 @@ import { ALL_ASSETS, DETAIL_THRESHOLD_PX, styleSuffixFor } from '../batch';
 import { generate } from '../generate';
 import { MAX_ENEMY_LIGHTNESS, reservedColourViolations, threatColourViolations } from '../check';
 import {
+  FIELD_RESERVED_COLOURS,
   PICKUP_SILHOUETTE,
   PROJECTILE_HOLDER,
   RESERVATIONS,
@@ -16,7 +17,8 @@ import {
 } from '../reservations';
 import type { AssetSpec } from '../types';
 import { UI_FILL } from '../../../src/config';
-import { rgbToOklab } from '../palette';
+import { ITEMS, isActive } from '../../../src/data/items';
+import { ACT_IDS, PAPER, actLight, rgbToOklab } from '../palette';
 import { THREAT } from '../palette';
 
 /**
@@ -85,6 +87,97 @@ describe('G-032 — the sprite arrives dark; nothing is corrected on the GPU', (
             .map(([cls]) => cls) as Parameters<typeof reservedColourViolations>[2])
         : [];
       expect(reservedColourViolations(bmp, spec.act, holds)).toEqual([]);
+    });
+  }
+});
+
+/**
+ * Law 10 on the icons that leave the card (G-036).
+ *
+ * An icon was card-surface art, judged against ink and free to wear paper
+ * (G-035). Then the weapon on the field became the card's own object: Reflex
+ * fires the manicule, Baggage stamps the footprint, Grudge circles the fist. On
+ * the field every colour has one job — threat colours to threats, paper to the
+ * player, the act's light tone to pickups — and a field-riding icon is none of
+ * those, so it keeps off all of them, in every act, because items are not
+ * act-scoped. This is the G-032 enemy scan (`reservedColourViolations`) run
+ * once per act and holding no threat colour, so it shares that scan's one
+ * blind spot: service-light is inside the grain tolerance of bone and cannot
+ * be told from it.
+ */
+describe('law 10 — a field-riding icon wears nothing reserved on the field', () => {
+  const riders = ALL_ASSETS.filter((s) => s.fieldRiding === true);
+
+  /**
+   * Field-riding icons that DO wear a reserved colour today, and exactly which
+   * ones. Not a licence: each entry must still fail the scan with exactly the
+   * colours listed, so a redraw that fixes it fails here until the entry is
+   * deleted, and a new reserved colour on it fails here too. When this test
+   * was written, the five icons fal generated for the card (G-035) before
+   * G-036 put them on the field all sat here — "brick red" had landed on
+   * contact red, and the dart's body on ranged gold — and the same day they
+   * were redrawn as SVG. The map stays so the next slip has somewhere honest
+   * to sit while it is fixed.
+   */
+  const KNOWN_ON_FIELD_EXCEPTIONS = new Map<string, { colours: string[]; reason: string }>([
+    // Empty since 2026-09-28: the five generated icons that wore reserved
+    // colours on the field (the manicule, the dart, the starburst, the
+    // footprint, the magnet) were redrawn as SVG in rose, bone and ink.
+  ]);
+
+  /** The reserved colours a sprite wears on the field, by colour name, sorted. */
+  async function onFieldViolations(file: string): Promise<string[]> {
+    const bmp = await fromPng(readFileSync(file));
+    const found = new Set<string>();
+    for (const act of ACT_IDS) {
+      for (const v of reservedColourViolations(bmp, act, [])) found.add(v.replace(/ \(.*\)$/, ''));
+    }
+    return [...found].sort();
+  }
+
+  it('the flag is on icons only, and some flagged icon has a sprite to read', () => {
+    for (const spec of riders) expect(spec.role, spec.id).toBe('icon');
+    const drawn = riders.filter((s) =>
+      existsSync(resolve(process.cwd(), `assets/sprites/${s.act}/${s.id}.png`)),
+    );
+    expect(drawn.length).toBeGreaterThan(0);
+  });
+
+  it("every active item's icon is flagged: its shot, orbiter, stamp or rider is that icon", () => {
+    // Passives stay on the card (Thick Skin's ring and Restlessness's streaks
+    // are drawn in code, not with the icon); every weapon and control item draws
+    // its card's icon on the field (ActScene: syncProjectiles, syncAreas,
+    // syncOrbiters, syncAuras, syncSweeps). A new weapon that forgets the flag
+    // would skip this law silently.
+    const flagged = new Set(riders.map((s) => s.id));
+    for (const def of Object.values(ITEMS)) {
+      if (!isActive(def)) continue;
+      expect(flagged.has(`icon-${def.icon}`), `${def.name} (icon-${def.icon})`).toBe(true);
+    }
+  });
+
+  it('every exception names a field-riding icon', () => {
+    const flagged = new Set(riders.map((s) => s.id));
+    for (const id of KNOWN_ON_FIELD_EXCEPTIONS.keys()) expect(flagged.has(id), id).toBe(true);
+  });
+
+  for (const spec of riders) {
+    const file = resolve(process.cwd(), `assets/sprites/${spec.act}/${spec.id}.png`);
+    if (!existsSync(file)) {
+      it.skip(`${spec.id} — no sprite yet; read once it is drawn`, () => {});
+      continue;
+    }
+    const known = KNOWN_ON_FIELD_EXCEPTIONS.get(spec.id);
+    if (known) {
+      const listed = known.colours.join(', ');
+      it(`${spec.id} is a known exception and still wears exactly ${listed}`, async () => {
+        expect(await onFieldViolations(file), known.reason).toEqual([...known.colours].sort());
+      });
+      continue;
+    }
+    it(`${spec.id} wears no threat colour, no paper and no act's light tone`, async () => {
+      const found = await onFieldViolations(file);
+      expect(found, `${spec.id} rides the field wearing ${found.join(', ')}`).toEqual([]);
     });
   }
 });
@@ -181,6 +274,24 @@ describe('law 11 — each act reserves its silhouettes, before generation', () =
     expect(() => assertReserved('conception', ['player-sperm'], 'player')).not.toThrow();
     // And it is exempt as the player, not as a favour to that one id.
     expect(reservationVerdict('conception', 'player-sperm', 'swarm').status).toBe('unlisted');
+  });
+
+  it('an icon verdict says whether it rides the field, and what it keeps off if so', () => {
+    // "Never on the field" was the verdict for every icon, printed by the dry
+    // run beside icons whose shots fly across it (G-036).
+    const cardOnly = reservationVerdict('conception', 'icon-guard', 'icon');
+    expect(cardOnly).toMatchObject({ status: 'icon', fieldRiding: false, keepsOff: [] });
+    const rider = reservationVerdict('conception', 'icon-strike', 'icon', true);
+    expect(rider).toMatchObject({ status: 'icon', fieldRiding: true });
+    const keepsOff = rider.status === 'icon' ? rider.keepsOff : [];
+    expect([...keepsOff].sort()).toEqual(
+      [
+        ...Object.values(THREAT).map((c) => c.name),
+        PAPER.name,
+        ...ACT_IDS.map((a) => actLight(a).name),
+      ].sort(),
+    );
+    expect(keepsOff).toEqual(FIELD_RESERVED_COLOURS);
   });
 });
 

@@ -102,8 +102,8 @@
     },
     "icon-speed.png": {
       "frame": {
-        "x": 2,
-        "y": 100,
+        "x": 492,
+        "y": 2,
         "w": 96,
         "h": 96
       },
@@ -122,8 +122,8 @@
     },
     "icon-guard.png": {
       "frame": {
-        "x": 100,
-        "y": 100,
+        "x": 590,
+        "y": 2,
         "w": 96,
         "h": 96
       },
@@ -142,8 +142,8 @@
     },
     "icon-clock.png": {
       "frame": {
-        "x": 198,
-        "y": 100,
+        "x": 688,
+        "y": 2,
         "w": 96,
         "h": 96
       },
@@ -162,8 +162,8 @@
     },
     "icon-orbit.png": {
       "frame": {
-        "x": 296,
-        "y": 100,
+        "x": 786,
+        "y": 2,
         "w": 96,
         "h": 96
       },
@@ -182,8 +182,8 @@
     },
     "icon-chain.png": {
       "frame": {
-        "x": 394,
-        "y": 100,
+        "x": 884,
+        "y": 2,
         "w": 96,
         "h": 96
       },
@@ -203,7 +203,7 @@
     "icon-magnet.png": {
       "frame": {
         "x": 2,
-        "y": 198,
+        "y": 100,
         "w": 96,
         "h": 96
       },
@@ -223,7 +223,7 @@
     "icon-grow.png": {
       "frame": {
         "x": 100,
-        "y": 198,
+        "y": 100,
         "w": 96,
         "h": 96
       },
@@ -243,7 +243,7 @@
     "icon-slow.png": {
       "frame": {
         "x": 198,
-        "y": 198,
+        "y": 100,
         "w": 96,
         "h": 96
       },
@@ -263,7 +263,7 @@
     "icon-aura.png": {
       "frame": {
         "x": 296,
-        "y": 198,
+        "y": 100,
         "w": 96,
         "h": 96
       },
@@ -283,7 +283,7 @@
     "icon-bolt.png": {
       "frame": {
         "x": 394,
-        "y": 198,
+        "y": 100,
         "w": 96,
         "h": 96
       },
@@ -302,8 +302,108 @@
     },
     "icon-sweep.png": {
       "frame": {
+        "x": 492,
+        "y": 100,
+        "w": 96,
+        "h": 96
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 96,
+        "h": 96
+      },
+      "sourceSize": {
+        "w": 96,
+        "h": 96
+      }
+    },
+    "icon-vendetta.png": {
+      "frame": {
+        "x": 590,
+        "y": 100,
+        "w": 96,
+        "h": 96
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 96,
+        "h": 96
+      },
+      "sourceSize": {
+        "w": 96,
+        "h": 96
+      }
+    },
+    "icon-jump.png": {
+      "frame": {
+        "x": 688,
+        "y": 100,
+        "w": 96,
+        "h": 96
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 96,
+        "h": 96
+      },
+      "sourceSize": {
+        "w": 96,
+        "h": 96
+      }
+    },
+    "icon-reach.png": {
+      "frame": {
+        "x": 786,
+        "y": 100,
+        "w": 96,
+        "h": 96
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 96,
+        "h": 96
+      },
+      "sourceSize": {
+        "w": 96,
+        "h": 96
+      }
+    },
+    "icon-hindsight.png": {
+      "frame": {
+        "x": 884,
+        "y": 100,
+        "w": 96,
+        "h": 96
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 96,
+        "h": 96
+      },
+      "sourceSize": {
+        "w": 96,
+        "h": 96
+      }
+    },
+    "icon-rut.png": {
+      "frame": {
         "x": 2,
-        "y": 296,
+        "y": 198,
         "w": 96,
         "h": 96
       },
@@ -327,7 +427,7 @@
     "image": "icons.png",
     "format": "RGBA8888",
     "size": {
-      "w": 512,
+      "w": 1024,
       "h": 512
     },
     "scale": "1"

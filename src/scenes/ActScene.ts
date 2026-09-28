@@ -7,6 +7,7 @@ import { addVignette, ensureFieldTile, ensureGemTexture, ensureShotTextures } fr
 import { ITEM_ICON_ATLAS, itemIconFrame } from '../data/item-visuals';
 import { parseOfferId } from '../data/items';
 import { offerPips, offerTitle, statLines } from '../data/item-text';
+import { buildSheet, pipString } from '../data/build-sheet';
 import { sfx } from '../audio/sfx';
 import { combineMoves, stickVector, type Move } from './touch';
 import { oncePerEvent } from './keys';
@@ -69,6 +70,18 @@ const PLAYER_DISPLAY = 56;
 const GEM_SIZE = 9;
 /** Attached Y-shapes drawn on the player. Stacks keep counting past this. */
 const MAX_ATTACHED_SPRITES = 16;
+/**
+ * Enemies whose aimed shot is drawn as a word in the ranged gold instead of the
+ * gold dot: the substitute's (the player's name, misspelled) and the
+ * registrar's (HOLD). Keyed on the id because the word is the drawing.
+ */
+const WORDED_SHOTS: ReadonlySet<string> = new Set(['substitute-teacher', 'registrar']);
+/**
+ * The Loan's tape jerking on its interest tick: how long the jolt rings, in
+ * world seconds, and how far it stretches the frame at its peak.
+ */
+const LOAN_JERK_SECONDS = 0.45;
+const LOAN_JERK = 0.07;
 /**
  * How far a finger travels for full stick, in CSS pixels rather than game
  * pixels: the canvas is FIT-scaled, and a radius in game units would be a
@@ -140,7 +153,10 @@ export class ActScene extends Phaser.Scene {
 
   private enemySprites: Phaser.GameObjects.Image[] = [];
   private projectileSprites: Phaser.GameObjects.Image[] = [];
-  /** The substitute's shots: the player's name, spelled wrong (SCHOOL-ROSTER §3.5). */
+  /**
+   * Shots drawn as words (`WORDED_SHOTS`): the substitute's, the player's name
+   * spelled wrong (SCHOOL-ROSTER §3.5), and the registrar's HOLD (COLLEGE §3.5).
+   */
   private nameShotTexts: Phaser.GameObjects.Text[] = [];
   /** The name on the form, read once per life; the sim never knows it. */
   private playerName = DEFAULT_NAME;
@@ -161,6 +177,16 @@ export class ActScene extends Phaser.Scene {
   private floorRing?: Phaser.GameObjects.Graphics;
   /** Scale the boss frame sits at when idle. The telegraph pulses around it. */
   private bossBaseScale = 1;
+  /**
+   * The boss's uniform scale this frame, eased toward the pulse's target. Kept
+   * apart from the sprite so a stretch laid over it (the Loan's jerk) is never
+   * read back as the next frame's starting size.
+   */
+  private bossScale = 1;
+  /** The Loan's interest clock last frame; it wrapping upward is the tick. */
+  private bossInterestIn = 0;
+  /** World time of the Loan's last tick, which the tape's jerk rings down from. */
+  private bossJerkAt = -Infinity;
 
   /** Set by P or Escape. Distinct from the offer freeze, which is the rules. */
   private paused = false;
@@ -195,7 +221,7 @@ export class ActScene extends Phaser.Scene {
    * it must not know sound exists — so the renderer notices changes the same
    * way it notices everything else: by reading state and diffing.
    */
-  private heard = { kills: 0, hp: 0, stacks: 0, offers: false, boss: false, dead: false, won: false, xp: 0, level: 1, raced: 0, shot: 0, homework: 0, stun: 0, bossPhase: '', typing: 0, car: 0 };
+  private heard = { kills: 0, hp: 0, stacks: 0, offers: false, boss: false, dead: false, won: false, xp: 0, level: 1, raced: 0, shot: 0, homework: 0, stun: 0, bossPhase: '', typing: 0, car: 0, time: 0, auraAt: -Infinity };
 
   /**
    * How long this run held each heading (§12.4's sixth question). Fed the
@@ -214,12 +240,16 @@ export class ActScene extends Phaser.Scene {
   /**
    * The certificate's words: `certificateLines`, typed on the receipt under
    * the form (showCertificate). The smoke reads this object's text for
-   * "Natural causes." and "Age 18." (tools/smoke/run.ts), so those lines live
+   * "Natural causes." and "Age 22." (tools/smoke/run.ts), so those lines live
    * here and nowhere else on the sheet decides them.
    */
   private overlay!: Phaser.GameObjects.Text;
   /** "paused", centred. Was `overlay` before the certificate became a form. */
   private pauseNote!: Phaser.GameObjects.Text;
+  /** The build sheet under "paused" (buildPauseSheet). Built on pause, torn down on resume. */
+  private pauseSheet?: Phaser.GameObjects.Container;
+  /** True while the sheet holds an upright phone's canvas, so only it gives that back. */
+  private pauseSheetNarrow = false;
   /** The certificate as a document. Built the first frame the run is over. */
   private form?: Phaser.GameObjects.Container;
   private endScrim!: Phaser.GameObjects.Rectangle;
@@ -371,12 +401,15 @@ export class ActScene extends Phaser.Scene {
     this.shownOffers = '';
     delete this.offerScrim;
     delete this.offerHeader;
+    // The display list took the sheet with it; the shutdown gave its canvas back.
+    delete this.pauseSheet;
+    this.pauseSheetNarrow = false;
     this.arrivalCards = [];
     this.arrivalUid = 0;
     this.resetArrivals();
 
     this.dev = neutralDevState();
-    this.heard = { kills: 0, hp: this.world.hp, stacks: 0, offers: false, boss: false, dead: false, won: false, xp: 0, level: 1, raced: 0, shot: 0, homework: 0, stun: 0, bossPhase: '', typing: 0, car: 0 };
+    this.heard = { kills: 0, hp: this.world.hp, stacks: 0, offers: false, boss: false, dead: false, won: false, xp: 0, level: 1, raced: 0, shot: 0, homework: 0, stun: 0, bossPhase: '', typing: 0, car: 0, time: this.world.time, auraAt: -Infinity };
     this.inputLog = new InputLog();
     if (import.meta.env.DEV) {
       this.detachDev?.();
@@ -962,6 +995,47 @@ export class ActScene extends Phaser.Scene {
     }
     if (typing > h.typing) sfx.typing();
     if (car > h.car) sfx.carPass();
+    // G-044's three weapons. Unlike the counters above, their state sits still
+    // while the world does (a card up, the run over), so an arc or a landed
+    // bolt read off a held world would sound every frame. They hear only the
+    // world time this frame's steps covered, and nothing while an offer is
+    // open or the life is done.
+    const elapsed = w.time - h.time;
+    let auraAt = h.auraAt;
+    if (elapsed > 0 && !w.offers && !w.dead && !w.won) {
+      // Backhand: arcs are aged before the swing (updateSweeps runs first), so
+      // one swung on this frame's step reads 0 and one from the frame before
+      // reads a whole step; half the frame's world time splits them with room
+      // for float. One swish however many arcs swung.
+      if (w.sweeps.some((s) => s.age < elapsed / 2)) sfx.sweep();
+      // Judgement: the landing, never the telegraph. A strike holds `delay`
+      // above zero while it comes, then 0 with `age` counting from the moment
+      // it landed, so an age inside this frame's world time landed this frame.
+      if (w.areas.some((a) => a.delay === 0 && a.age < elapsed)) sfx.gavel();
+      // Personal Space: a tap at most every 0.6s of world time while anything
+      // stands in a ring — a throttle, not a count of hits. The sim's
+      // per-enemy re-hit map is private, so this is the renderer's honest
+      // approximation: its reach test (centre within ring plus body), skipping
+      // what it skips, on end-of-step positions.
+      if (w.auras.length > 0 && w.time - auraAt >= 0.6) {
+        const b = w.boss;
+        let inside = false;
+        for (const a of w.auras) {
+          if (b && b.phase !== 'absorbing' && (b.x - a.x) ** 2 + (b.y - a.y) ** 2 <= (a.radius + BOSS_RADIUS) ** 2) inside = true;
+          for (let i = 0; !inside && i < w.enemies.length; i++) {
+            const e = w.enemies[i]!;
+            if (e.def.invulnerable || e.hp <= 0) continue;
+            const r = a.radius + e.radius;
+            inside = (e.x - a.x) ** 2 + (e.y - a.y) ** 2 <= r * r;
+          }
+          if (inside) break;
+        }
+        if (inside) {
+          sfx.auraTick();
+          auraAt = w.time;
+        }
+      }
+    }
     if (w.dead && !h.dead) sfx.death();
     if (w.won && !h.won) sfx.win();
     this.heard = {
@@ -981,6 +1055,8 @@ export class ActScene extends Phaser.Scene {
       bossPhase,
       typing,
       car,
+      time: w.time,
+      auraAt,
     };
   }
 
@@ -1116,7 +1192,8 @@ export class ActScene extends Phaser.Scene {
           s.setScale(s.scaleX * (1 + pulse), s.scaleY * (1 - pulse));
           break;
         }
-        case 'drivers-ed': {
+        case 'drivers-ed':
+        case 'deadline': {
           // A vehicle has a front (AUDIT part five): the car is drawn side-on
           // facing right, so it turns to its `cross` heading, and one driving
           // left flips and rotates by the remainder so the roof stays up.
@@ -1124,7 +1201,9 @@ export class ActScene extends Phaser.Scene {
           // exists and the other crossers have no front in this game's
           // drawing: the dodgeball and white cell are round, and the hall
           // monitor and substitute are people, who would walk left on their
-          // heads. A second vehicle is the moment to add a flag instead.
+          // heads. The deadline (COLLEGE-ROSTER §3.2) is driver's ed without
+          // the wheels, a leaf in flight, so it leads with its edge the same
+          // way and its curl stays up. A third is the moment for a flag.
           const a = Math.atan2(e.vy, e.vx);
           const left = Math.abs(a) > Math.PI / 2;
           s.setFlipX(left).setRotation(left ? a - Math.PI : a);
@@ -1149,9 +1228,12 @@ export class ActScene extends Phaser.Scene {
     // §3.5): text in the HUD's hand, in the ranged gold, upright so it reads.
     // The shot's serial picks the mistake, so one shot keeps its spelling for
     // its whole flight and the next one gets it wrong differently.
+    //
+    // The registrar's form is the one word HOLD (COLLEGE-ROSTER §3.5), in the
+    // same hand and the same pool: the aimed thing is not a hit but a hold.
     this.fit(this.projectileSprites, list.length, () => this.add.image(0, 0, 'nc-shot').setDepth(8));
     let named = 0;
-    for (const p of list) if (p.hostile && p.owner?.id === 'substitute-teacher') named++;
+    for (const p of list) if (p.hostile && WORDED_SHOTS.has(p.owner?.id ?? '')) named++;
     this.fit(this.nameShotTexts, named, () =>
       this.add
         .text(0, 0, '', {
@@ -1169,9 +1251,9 @@ export class ActScene extends Phaser.Scene {
       const p = list[i]!;
       const s = this.projectileSprites[i]!;
       const heading = Math.atan2(p.vy, p.vx);
-      if (p.hostile && p.owner?.id === 'substitute-teacher') {
+      if (p.hostile && WORDED_SHOTS.has(p.owner?.id ?? '')) {
         this.nameShotTexts[named++]!
-          .setText(misspell(this.playerName, p.serial))
+          .setText(p.owner!.id === 'registrar' ? 'HOLD' : misspell(this.playerName, p.serial))
           .setPosition(p.x, p.y)
           .setVisible(true);
         s.setVisible(false);
@@ -1330,10 +1412,11 @@ export class ActScene extends Phaser.Scene {
             .setAlpha(fade)
             .setVisible(true);
         }
-      } else if (a.slow !== undefined) {
+      } else if (a.slow !== undefined && a.damage === 0) {
         // Snooze: the field it holds, drawn at its honest radius, with the
         // card's icon where it was dropped. Checked first: it ticks and does
-        // not pull, which would otherwise draw it as Wake's footprints.
+        // not pull, which would otherwise draw it as Wake's footprints. Rut's
+        // footprints hold too but hurt, so they fall through and draw as Wake's.
         const [key, frame] = this.iconTexture('slow', 'Snooze');
         circle
           .setPosition(a.x, a.y)
@@ -1531,6 +1614,9 @@ export class ActScene extends Phaser.Scene {
       const body = this.visuals.bossBody ?? { cy: 0.5, r: 0.5 };
       this.bossSprite.setOrigin(0.5, body.cy).setDisplaySize(BOSS_RADIUS / body.r, BOSS_RADIUS / body.r);
       this.bossBaseScale = this.bossSprite.scaleX;
+      this.bossScale = this.bossBaseScale;
+      this.bossInterestIn = b.interestIn;
+      this.bossJerkAt = -Infinity;
       // Prom's floor (ADOLESCENCE-ROSTER §4): the HUD says get on it, so it is
       // drawn — a thin paper ring at floorRadius, chrome not threat (law 10),
       // under everything that moves. Destroyed with the boss sprite.
@@ -1561,9 +1647,24 @@ export class ActScene extends Phaser.Scene {
       // The act's one word, if it has one (ActDef.endWord: PARTICIPATION).
       if (this.world.act.endWord) this.announceWord(this.world.act.endWord);
     }
+    // The Loan's tape jerks when its balance compounds (COLLEGE-ROSTER §4):
+    // its interest clock counts down and wraps UP at the tick, so a rise
+    // between two frames is the tick (the dev panel's kill cannot fake one:
+    // the clock stops once it absorbs). Zero for the other kinds, which never
+    // compound. Same rule as the pulse: the stretch is computed from the time
+    // since the tick and laid over the eased scale, never added to it, so the
+    // size each frame is absolute and the jolt ends where it began.
+    if (b.interestIn > this.bossInterestIn) this.bossJerkAt = this.world.time;
+    this.bossInterestIn = b.interestIn;
+    const since = this.world.time - this.bossJerkAt;
+    const jerk =
+      since >= 0 && since < LOAN_JERK_SECONDS ? LOAN_JERK * Math.exp(-since * 9) * Math.cos(since * 28) : 0;
+    this.bossScale = Phaser.Math.Linear(this.bossScale, target, 0.14);
     this.bossSprite
       .setPosition(b.x, b.y)
-      .setScale(Phaser.Math.Linear(this.bossSprite.scaleX, target, 0.14))
+      // Taller and thinner first (the tape yanked up), then a squash, ringing
+      // down: about the body's anchor, so the machine stays on the floor.
+      .setScale(this.bossScale * (1 - jerk), this.bossScale * (1 + jerk))
       // Value, not tint (G-032, law 10).
       .setAlpha(b.phase === 'absorbing' ? Math.max(0, b.timer / 1.8) : telegraph ? 0.72 : 1);
   }
@@ -1778,8 +1879,13 @@ export class ActScene extends Phaser.Scene {
     this.hudRight.setText(
       `${w.kills} killed${import.meta.env.DEV ? `   ${Math.round(this.game.loop.actualFps)} fps` : ''}`,
     );
+    // Tuition's cost is on the gems, not the legs (COLLEGE-ROSTER §3.3): what
+    // every gem is worth now, derived from the sim's own factor so the HUD
+    // cannot drift from the tax it reports.
+    const tax = Math.round((1 - w.xpTax) * 100);
     this.hudDrag.setText(
-      w.dragStacks > 0 ? `${w.dragStacks} attached  −${drag}% speed` : '',
+      (w.dragStacks > 0 ? `${w.dragStacks} attached  −${drag}% speed` : '') +
+        (w.taxStacks > 0 ? `${w.dragStacks > 0 ? ' · ' : ''}xp −${tax}%` : ''),
     );
 
     this.bars.clear();
@@ -1851,9 +1957,11 @@ export class ActScene extends Phaser.Scene {
       this.pauseNote
         .setText('paused' + '\n\n' + (this.touch ? 'tap to resume' : 'P or Esc to resume'))
         .setVisible(true);
+      if (!this.pauseSheet) this.buildPauseSheet();
       return;
     }
     this.pauseNote.setVisible(false);
+    if (this.pauseSheet) this.destroyPauseSheet();
 
     if (w.dead || w.won) {
       // Built once: the world is frozen from here, so the record cannot move.
@@ -1863,6 +1971,200 @@ export class ActScene extends Phaser.Scene {
       // God mode can take a death back (applyDevCheats); the paperwork goes with it.
       if (this.form) this.hideCertificate();
     }
+  }
+
+  /**
+   * The build sheet under "paused" (`build-sheet.ts`): what the life holds,
+   * with levels, paths and the totals, in the offer cards' words and ink. One
+   * panel under the pause note: the totals in a column of their own, then the
+   * items in whichever number of even columns lets the panel stand largest,
+   * scaled down (never clipped) only if none fits at full size. Nothing on it
+   * is interactive, so a tap anywhere still resumes. Every word is the
+   * sheet's; nothing is typed here.
+   *
+   * An upright phone (`narrowCanvas`) shows the 1280×720 view 390 CSS px wide,
+   * where 13px type is 4px. The world is held still, so, as the certificate
+   * does, the sheet takes a canvas of the screen's shape, sets the type 1.7×
+   * and the totals above the items; `destroyPauseSheet` gives 1280×720 back.
+   */
+  private buildPauseSheet(): void {
+    const sheet = buildSheet(this.world);
+    const narrow = narrowCanvas(this.scale.parentSize) !== null;
+    const px = (n: number) => Math.round(n * (narrow ? 1.7 : 1));
+    const mono = (size: number, color: string, letterSpacing = 0): Phaser.Types.GameObjects.Text.TextStyle => ({
+      fontFamily: 'monospace',
+      fontSize: `${px(size)}px`,
+      color,
+      lineSpacing: px(3),
+      letterSpacing,
+    });
+    const PAD = px(20);
+    const GAP_X = px(28);
+    const GAP_Y = px(12);
+    const MARGIN = narrow ? 20 : 24;
+    const NOTE_GAP = px(14);
+    const parts: Phaser.GameObjects.GameObject[] = [];
+    const rules = this.add.graphics();
+    parts.push(rules);
+    const text = (s: string, style: Phaser.Types.GameObjects.Text.TextStyle) => {
+      const t = this.add.text(0, 0, s, style);
+      parts.push(t);
+      return t;
+    };
+
+    // A block is text that moves as one: the totals, or one held item.
+    type Block = { w: number; h: number; place: (x: number, y: number) => void };
+    const header = text(sheet.header, mono(15, '#EFE7D6', 2)).setPosition(PAD, PAD);
+    const totals: Block | null = (() => {
+      if (sheet.totals.length === 0) return null;
+      const t = text(sheet.totals.join('\n'), mono(14, '#EFE7D6')).setAlpha(0.9);
+      return { w: t.width, h: t.height, place: (x, y) => t.setPosition(x, y) };
+    })();
+    const items: Block[] = sheet.items.map((e) => {
+      const title = text(e.title, mono(15, '#EFE7D6'));
+      const pips = text(pipString(e.pips), mono(13, '#D2C6AC'));
+      const paths = e.paths.length > 0 ? text(e.paths.join('\n'), mono(13, '#EFE7D6')).setAlpha(0.8) : null;
+      const stats = text(e.lines.join('\n'), mono(13, '#D2C6AC'));
+      const PIP_GAP = px(10);
+      const INDENT = px(12);
+      const top = title.height + px(3);
+      const mid = paths ? paths.height + px(2) : 0;
+      return {
+        w: Math.max(title.width + PIP_GAP + pips.width, paths ? INDENT + paths.width : 0, stats.width),
+        h: top + mid + stats.height,
+        place: (x, y) => {
+          title.setPosition(x, y);
+          pips.setPosition(x + title.width + PIP_GAP, y + (title.height - pips.height) / 2);
+          paths?.setPosition(x + INDENT, y + top);
+          stats.setPosition(x, y + top + mid);
+        },
+      };
+    });
+    if (items.length === 0) {
+      const t = text('nothing held', mono(13, '#D2C6AC'));
+      items.push({ w: t.width, h: t.height, place: (x, y) => t.setPosition(x, y) });
+    }
+
+    // The box the panel must fit: the view under the note, or on a phone the
+    // screen's own shape (never grown to the content: FIT would then shrink
+    // the whole canvas, scrim and all). Touch keeps clear of the corner button.
+    const cam = this.cameras.main;
+    const shape = narrow ? narrowCanvas(this.scale.parentSize) : null;
+    const view = shape ?? { width: cam.width, height: cam.height - (this.pauseButton ? 76 : 0) };
+    const note = this.pauseNote.setFontSize(px(20));
+    // On the 1280×720 view the note starts under the HUD's clock, not over it.
+    const TOP = narrow ? MARGIN : 56;
+    const maxW = view.width - 2 * MARGIN;
+    const maxH = view.height - TOP - MARGIN - note.height - NOTE_GAP;
+    const headH = header.height + px(14);
+
+    // Columns: greedy under a height limit; for n columns, the shortest limit
+    // that needs no more than n, so they come out even rather than one tall
+    // and one stub. Every n is tried and the one that lets the panel stand
+    // largest wins (the fewest, on a tie), so a long life scales down only
+    // as far as it must, and never clips.
+    const greedy = (limit: number): Block[][] => {
+      const cols: Block[][] = [];
+      let h = 0;
+      for (const b of items) {
+        const col = cols[cols.length - 1];
+        if (col && h + GAP_Y + b.h <= limit) {
+          col.push(b);
+          h += GAP_Y + b.h;
+        } else {
+          cols.push([b]);
+          h = b.h;
+        }
+      }
+      return cols;
+    };
+    const tallest = Math.max(...items.map((b) => b.h));
+    const evenly = (n: number): Block[][] => {
+      let lo = tallest;
+      let hi = items.reduce((sum, b) => sum + GAP_Y + b.h, 0);
+      if (greedy(lo).length <= n) return greedy(lo);
+      for (let i = 0; i < 24; i++) {
+        const mid = (lo + hi) / 2;
+        if (greedy(mid).length <= n) hi = mid;
+        else lo = mid;
+      }
+      return greedy(hi);
+    };
+    const measure = (cols: Block[][]) => {
+      const colW = cols.map((c) => Math.max(...c.map((b) => b.w)));
+      const itemsW = colW.reduce((sum, w) => sum + w, 0) + GAP_X * (cols.length - 1);
+      const itemsH = Math.max(...cols.map((c) => c.reduce((h, b, i) => h + b.h + (i > 0 ? GAP_Y : 0), 0)));
+      // The totals stand in a column of their own; on a phone, above the items.
+      const innerW = !totals ? itemsW : narrow ? Math.max(totals.w, itemsW) : totals.w + GAP_X + itemsW;
+      const innerH = !totals ? itemsH : narrow ? totals.h + 2 * GAP_Y + itemsH : Math.max(totals.h, itemsH);
+      const W = 2 * PAD + Math.max(header.width, innerW);
+      const H = 2 * PAD + headH + innerH;
+      return { cols, colW, W, H, s: Math.min(1, maxW / W, maxH / H) };
+    };
+    let best = measure(evenly(1));
+    for (let n = 2; n <= items.length && best.s < 1; n++) {
+      const next = measure(evenly(n));
+      if (next.s > best.s) best = next;
+    }
+    const { cols, colW, W, H, s } = best;
+
+    const top = PAD + headH;
+    let x = PAD;
+    let itemsTop = top;
+    let divider = -1;
+    if (totals) {
+      totals.place(PAD, top);
+      if (narrow) itemsTop = top + totals.h + 2 * GAP_Y;
+      else {
+        x = PAD + totals.w + GAP_X;
+        divider = x - GAP_X / 2;
+      }
+    }
+    cols.forEach((col, i) => {
+      let y = itemsTop;
+      for (const b of col) {
+        b.place(x, y);
+        y += b.h + GAP_Y;
+      }
+      x += colW[i]! + GAP_X;
+    });
+
+    rules.fillStyle(INK, 0.9).fillRoundedRect(0, 0, W, H, 10);
+    rules.lineStyle(2, UI_FILL, 0.5).strokeRoundedRect(0, 0, W, H, 10);
+    rules.lineStyle(1, UI_FILL, 0.18).lineBetween(PAD, top - px(7), W - PAD, top - px(7));
+    if (totals && narrow) rules.lineBetween(PAD, itemsTop - GAP_Y, W - PAD, itemsTop - GAP_Y);
+    if (divider > 0) rules.lineBetween(divider, top, divider, H - PAD);
+
+    if (shape) {
+      this.scale.setGameSize(shape.width, shape.height);
+      // The follow would glide to the new view's centre; the world is still, so snap.
+      cam.centerOn(this.player.x, this.player.y);
+      this.events.off('shutdown', this.restoreCanvas, this).once('shutdown', this.restoreCanvas, this);
+      this.pauseSheetNarrow = true;
+      this.endScrim.setPosition(shape.width / 2, shape.height / 2).setSize(shape.width, shape.height);
+      this.devBadge.setPosition(shape.width - 14, shape.height - 14 - this.devBadge.height);
+    }
+    const y0 = TOP + Math.max(0, (view.height - TOP - MARGIN - (note.height + NOTE_GAP + H * s)) / 2);
+    note.setPosition(view.width / 2, y0 + note.height / 2);
+    this.pauseSheet = this.add
+      .container((view.width - W * s) / 2, y0 + note.height + NOTE_GAP, parts)
+      .setScale(s)
+      .setScrollFactor(0)
+      .setDepth(200);
+  }
+
+  /** Takes the sheet down on resume, and gives back what the phone's layout moved. */
+  private destroyPauseSheet(): void {
+    this.pauseSheet?.destroy();
+    delete this.pauseSheet;
+    this.pauseNote.setFontSize(20).setPosition(VIEW_WIDTH / 2, VIEW_HEIGHT / 2);
+    if (!this.pauseSheetNarrow) return;
+    this.pauseSheetNarrow = false;
+    if (this.restoreCanvas()) this.events.off('shutdown', this.restoreCanvas, this);
+    // Back where the run left it, not gliding there from the phone's view.
+    this.cameras.main.centerOn(this.player.x, this.player.y);
+    this.endScrim.setPosition(VIEW_WIDTH / 2, VIEW_HEIGHT / 2).setSize(VIEW_WIDTH, VIEW_HEIGHT);
+    this.devBadge.setPosition(VIEW_WIDTH - 14, 58);
   }
 
   /**

@@ -1,4 +1,4 @@
-import { ACT_IDS, THREAT, type ActId, type ThreatClass } from './palette';
+import { ACT_IDS, PAPER, THREAT, actLight, type ActId, type ThreatClass } from './palette';
 import type { AssetRole } from './types';
 
 /**
@@ -213,6 +213,61 @@ export const RESERVATIONS: Partial<Record<ActId, ActReservations>> = {
       boss: 'boss-prom',
     },
   },
+
+  // Lifted from COLLEGE-ROSTER.md §1, consequences verbatim. Five shapes and
+  // the boss's: the act adds a pressure (cost) rather than a verb. The square
+  // is the one most at risk — a form and a screen would both be square — and
+  // it is what put tuition into an envelope and the registrar behind a counter.
+  college: {
+    silhouettes: [
+      {
+        silhouette: 'stack',
+        heldBy: 'reading',
+        consequence: 'The only pile in the act. Nothing else is paper on paper.',
+      },
+      {
+        silhouette: 'calendar leaf',
+        heldBy: 'deadline',
+        consequence:
+          'The only square in the act. A form and a screen would both be square, so neither is drawn.',
+      },
+      {
+        silhouette: 'windowed envelope',
+        heldBy: 'tuition',
+        consequence: 'The only rectangle wider than tall, and the only window.',
+      },
+      {
+        silhouette: 'cluster',
+        heldBy: 'group-project',
+        consequence:
+          'The only silhouette with more than one face. Nothing else is a fused mass. (School holds a cluster too; the list is per act.)',
+      },
+      {
+        silhouette: 'counter',
+        heldBy: 'registrar',
+        consequence: 'The only architecture in the act, and the only bell.',
+      },
+      {
+        silhouette: 'tape',
+        heldBy: 'boss-loan',
+        consequence:
+          'The only curl in the act, and the only thing taller than the player by a multiple.',
+      },
+    ],
+    reservedThreat: {
+      // The act's heaviest hit is its only red thing. The invoice, which
+      // anyone would print in red, is bone and ink.
+      contact: 'deadline',
+      // The test's colour on the test's successor: the slow, heavy thing that
+      // costs the most to get past. On the whole body, never on one head.
+      elite: 'group-project',
+      // G-031: the registrar's gold is on the form it fires, never its body,
+      // and it is the act's only gold: The Loan's figures are ink.
+      ranged: PROJECTILE_HOLDER,
+      // The adding machine's body.
+      boss: 'boss-loan',
+    },
+  },
 };
 
 /**
@@ -225,6 +280,25 @@ export const RESERVATIONS: Partial<Record<ActId, ActReservations>> = {
  * same object in all seven.
  */
 export const PICKUP_SILHOUETTE = 'lozenge';
+
+/**
+ * The colours an icon that also rides the field keeps off (law 10, G-036), by
+ * name, for the verdict to print: every threat colour (threats), paper (the
+ * player) and every act's light tone (pickups). Every act's, because items
+ * are not act-scoped — Reflex fires the same manicule in School as in
+ * Conception.
+ *
+ * `laws.test.ts` reads the sprites against this through the enemy scan
+ * (`reservedColourViolations`, once per act), which inherits that scan's one
+ * blind spot: service-light sits inside the grain tolerance of bone, so a
+ * service-light pixel cannot be told from a legal bone one. A palette
+ * collision, recorded in check.ts, not a licence.
+ */
+export const FIELD_RESERVED_COLOURS: readonly string[] = [
+  ...Object.values(THREAT).map((c) => c.name),
+  PAPER.name,
+  ...ACT_IDS.map((a) => actLight(a).name),
+];
 
 export class ReservationError extends Error {
   constructor(message: string) {
@@ -253,7 +327,15 @@ export type ReservationVerdict =
   | { status: 'holds-threat'; act: ActId; assetId: string; threat: ThreatClass }
   | { status: 'pickup'; act: ActId; assetId: string; silhouette: string }
   | { status: 'player'; act: ActId; assetId: string }
-  | { status: 'icon'; act: ActId; assetId: string }
+  | {
+      status: 'icon';
+      act: ActId;
+      assetId: string;
+      /** Also drawn on the field (G-036); card-only when false. */
+      fieldRiding: boolean;
+      /** What it keeps off on the field: FIELD_RESERVED_COLOURS, or none. */
+      keepsOff: readonly string[];
+    }
   | { status: 'unlisted'; act: ActId; assetId: string; reason: string }
   | { status: 'no-list'; act: ActId; assetId: string; reason: string };
 
@@ -285,6 +367,7 @@ export function reservationVerdict(
   act: ActId,
   assetId: string,
   role: AssetRole = 'swarm',
+  fieldRiding = false,
 ): ReservationVerdict {
   const reserved = RESERVATIONS[act];
   if (!reserved) return { status: 'no-list', act, assetId, reason: NO_LIST(act) };
@@ -296,13 +379,28 @@ export function reservationVerdict(
   }
 
   // Icons are exempt one step before either of those: law 11 reserves FIELD
-  // silhouettes — the vocabulary a player reads threat from at a glance — and
-  // card-surface art never reaches the field. An offer card appears with the
-  // world stopped, on an ink panel; a manicule there cannot be misread as a
+  // silhouettes — the vocabulary a player reads threat from at a glance. A
+  // card-only icon never reaches the field: an offer card appears with the
+  // world stopped, on an ink panel; an umbrella there cannot be misread as a
   // swarm object, and putting it on the act's silhouette list would claim a
   // field shape it does not occupy. (G-035/G-037; the same surface boundary
   // CHECK draws with its 'card' thresholds.)
-  if (role === 'icon') return { status: 'icon', act, assetId };
+  //
+  // A field-riding icon DOES reach the field — Reflex's shot is the manicule,
+  // Baggage's stamps are the footprint (G-036) — so "never on the field" is false
+  // for it and the verdict says so. It stays off the silhouette list for the
+  // player's reason below (it is the player's weapon, and the list answers
+  // "how does this hurt me"), but law 10 applies to it in full: the verdict
+  // names the colours it keeps off, and laws.test.ts reads its sprite for them.
+  if (role === 'icon') {
+    return {
+      status: 'icon',
+      act,
+      assetId,
+      fieldRiding,
+      keepsOff: fieldRiding ? FIELD_RESERVED_COLOURS : [],
+    };
+  }
 
   // So is the player, and for the same reason one step further along.
   //

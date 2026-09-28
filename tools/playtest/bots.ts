@@ -86,6 +86,11 @@ export const POLICIES: BotPolicy[] = [
   { name: 'personal-space+membrane', priorities: ['personal-space', 'personal-space/boundaries', 'membrane', 'lash'] },
   { name: 'backhand+midpiece', priorities: ['backhand', 'backhand/wingspan', 'midpiece', 'lash'] },
   { name: 'judgement+appetite', priorities: ['judgement', 'judgement/docket', 'appetite', 'lash'] },
+  // G-046: two of the five new evolutions. Grudge maxed beside Thick Skin is
+  // Vendetta; Backhand beside Growth Spurt is Reach, and Growth Spurt is born
+  // in Adolescence, so that arm evolves late in a life or not at all.
+  { name: 'grudge+membrane', priorities: ['grudge', 'membrane', 'grudge/company', 'lash'] },
+  { name: 'backhand+growth-spurt', priorities: ['backhand', 'growth-spurt', 'backhand/wingspan', 'midpiece', 'lash'] },
 ];
 
 export interface RunResult {
@@ -369,9 +374,9 @@ export const HUNT_CLEARANCE_PX = 40;
  */
 export const FLOOR_HOLD_FRACTION = 0.8;
 
-/** A boss that can be shielded: every kind but the Egg, which never is (acts.ts). */
+/** A boss that can be shielded: the Gym Teacher and Prom; the Egg and The Loan never are (acts.ts). */
 export function bossHasShield(boss: BossDef): boolean {
-  return boss.kind !== 'egg';
+  return boss.kind === 'gym-teacher' || boss.kind === 'prom';
 }
 
 /**

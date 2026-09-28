@@ -155,6 +155,7 @@ const ACT_DEFAULT_GEOMETRY: Record<ActId, Geometry> = {
   conception: 'hand-cut',
   school: 'hand-cut',
   adolescence: 'hand-cut',
+  college: 'hand-cut',
   service: 'hand-cut',
   office: 'hand-cut',
 };
@@ -640,13 +641,15 @@ export const ITEM_ICONS: AssetSpec[] = [
     name: 'Lash icon',
     act: 'conception',
     role: 'icon',
+    fieldRiding: true,
+    source: 'svg',
     targetSize: 96,
     seed: 61011,
     tests: 'a manicule that reads at 40px on an ink card',
     subject: [
       'a vintage printed pointing-hand ornament, a manicule, one hand with the index finger extended pointing to the right',
       'a simple shirt cuff at the wrist, seen perfectly flat as printed on a page, filling most of the frame',
-      'flat muted dusty rose with one darker shadow tone, no interior texture',
+      'flat muted dusty rose hand, pale warm cuff, dark interior lines between the fingers',
     ].join(', '),
   },
   {
@@ -654,13 +657,17 @@ export const ITEM_ICONS: AssetSpec[] = [
     name: 'Motility icon',
     act: 'conception',
     role: 'icon',
+    fieldRiding: true,
+    // Drawn, not generated: fal's dart came back ranged gold, and Stubbornness
+    // fires this icon as its shot (G-036), so it keeps to bone, rose and ink.
+    source: 'svg',
     targetSize: 96,
     seed: 61022,
-    tests: 'a sleek dart, long and slender, unmistakably a paper aeroplane',
+    tests: 'a sleek dart, long and slender, unmistakably a paper aeroplane, read at 52px on a card and 42px in flight',
     subject: [
       'a folded paper dart made from a single sheet of folded paper, seen from directly above, a slim elegant triangle with the point to the right, filling most of the frame',
       'two flat wing panels meeting at a centre crease, nothing but folded paper, not an aircraft, no fuselage, no tail, no engines',
-      'flat pale warm paper colouring with one darker shadow tone along the centre crease',
+      'the sheet in flat pale warm tan (#D2C6AC) with one narrow flat dusty rose (#A86A63) shadow panel along the centre crease and the crease one dark warm near-black (#2A2521) line, no gold, no yellow, no paper white, no pale pink, no red',
     ].join(', '),
   },
   {
@@ -668,26 +675,35 @@ export const ITEM_ICONS: AssetSpec[] = [
     name: 'Acrosome icon',
     act: 'conception',
     role: 'icon',
+    fieldRiding: true,
+    source: 'svg',
     targetSize: 96,
     seed: 61013,
     tests: 'a starburst that stays a badge and never becomes a sun',
     subject: [
       'a retail price-tag starburst badge with about twelve irregular points, seen perfectly flat, filling most of the frame',
-      'flat muted brick red with a smaller flat rose starburst inset inside it, no text, no numbers, no face',
+      'flat muted dusty rose outer starburst with a smaller flat pale warm starburst inset inside it, a dark interior edge round the inset, no text, no numbers, no face',
     ].join(', '),
   },
+  // Drawn, not generated (G-038). Baggage stamps this on the field behind the
+  // player (G-036; ActScene syncAreas, 26px), and the generated sole was
+  // contact red all over, so the player's own trail read as a threat. It
+  // keeps to rose, bone and ink as Rut's slippers do, and stays a bare foot.
   {
     id: 'icon-trail',
     name: 'Wake icon',
     act: 'conception',
     role: 'icon',
+    fieldRiding: true,
+    source: 'svg',
     targetSize: 96,
     seed: 61034,
-    tests: 'two footprints reading as a stride at 40px',
+    tests: 'one bare footprint, read at 52px on a card and 26px stamped along a trail, never footwear',
     subject: [
       'a bare footprint pressed in sand, seen from directly above, toes pointing up, as on a beach safety sign',
-      'one smooth foot-sole shape narrow at the arch and wide at the ball, with five small round toe dots arranged in an arc above it',
-      'flat muted brick red, one darker shadow tone',
+      'one smooth foot-sole shape narrow at the arch and wide at the ball, with five fat round toe dots arranged in an arc above it',
+      'flat muted dusty rose (#A86A63) sole and toes, a muted tan (#D2C6AC) mark in the hollow of the inner arch, a warm near-black (#2A2521) edge where the ball meets the arch',
+      'no red, no pale paper tone, no light rose, no shoe, no sandal, no slipper, no text',
     ].join(', '),
   },
   {
@@ -695,12 +711,14 @@ export const ITEM_ICONS: AssetSpec[] = [
     name: 'Chemotaxis icon',
     act: 'conception',
     role: 'icon',
+    fieldRiding: true,
+    source: 'svg',
     targetSize: 96,
     seed: 61015,
     tests: 'the classroom magnet, instantly legible',
     subject: [
       'a classic horseshoe magnet with two clean parallel arms of even width and a smooth semicircular bend, pole tips pointing downward, seen perfectly flat, filling most of the frame',
-      'flat muted brick red body with flat pale warm rectangular tips',
+      'flat muted dusty rose horseshoe with flat pale warm rectangular tips, one dark line where each tip meets its arm',
     ].join(', '),
   },
   {
@@ -757,6 +775,7 @@ export const ITEM_ICONS: AssetSpec[] = [
     name: 'Grudge icon',
     act: 'conception',
     role: 'icon',
+    fieldRiding: true,
     source: 'svg',
     targetSize: 96,
     seed: 61019,
@@ -772,6 +791,7 @@ export const ITEM_ICONS: AssetSpec[] = [
     name: 'Gossip icon',
     act: 'conception',
     role: 'icon',
+    fieldRiding: true,
     source: 'svg',
     targetSize: 96,
     seed: 61020,
@@ -821,6 +841,7 @@ export const ITEM_ICONS: AssetSpec[] = [
     name: 'Snooze icon',
     act: 'conception',
     role: 'icon',
+    fieldRiding: true,
     source: 'svg',
     targetSize: 96,
     seed: 61024,
@@ -840,6 +861,7 @@ export const ITEM_ICONS: AssetSpec[] = [
     name: 'Personal Space icon',
     act: 'conception',
     role: 'icon',
+    fieldRiding: true,
     source: 'svg',
     targetSize: 96,
     seed: 61025,
@@ -859,6 +881,7 @@ export const ITEM_ICONS: AssetSpec[] = [
     name: 'Judgement icon',
     act: 'conception',
     role: 'icon',
+    fieldRiding: true,
     source: 'svg',
     targetSize: 96,
     seed: 61027,
@@ -882,6 +905,7 @@ export const ITEM_ICONS: AssetSpec[] = [
     name: 'Backhand icon',
     act: 'conception',
     role: 'icon',
+    fieldRiding: true,
     source: 'svg',
     targetSize: 96,
     seed: 61026,
@@ -893,6 +917,90 @@ export const ITEM_ICONS: AssetSpec[] = [
       'a simple shirt cuff with one button at the wrist, as on the printed pointing hand, and no forearm past it',
       'no finger pointing, no palm showing, never a wave',
       'flat muted dusty rose hand, pale warm cuff and motion arcs, dark interior lines between the fingers',
+    ].join(', '),
+  },
+  // G-046's five evolutions, each an object from the life that the weapon
+  // becomes, drawn so the field sprite reads too (the orbit's gloves, the
+  // shots' cups, the sweep's edge, the bolt's target, the trail's stamps).
+  // All keep to rose, bone and ink like the other field-riding icons.
+  {
+    id: 'icon-vendetta',
+    name: 'Vendetta icon',
+    act: 'conception',
+    role: 'icon',
+    fieldRiding: true,
+    source: 'svg',
+    targetSize: 96,
+    seed: 61028,
+    tests: 'a boxing glove — the grudge with thick skin on — read at 52px on a card and 36px circling the player, never the bare fist',
+    subject: [
+      'a boxing glove seen from the side, thumb up, a fat rounded mitt with a short laced cuff, no forearm',
+      'flat muted dusty rose glove, pale warm cuff and laces, dark interior line where the thumb meets the mitt',
+      'nothing else: no ring, no ropes, no figure, no text',
+    ].join(', '),
+  },
+  {
+    id: 'icon-jump',
+    name: 'Jumpiness icon',
+    act: 'conception',
+    role: 'icon',
+    fieldRiding: true,
+    source: 'svg',
+    targetSize: 96,
+    seed: 61029,
+    tests: 'a small espresso cup with three steam lines, read at 52px on a card and 30px in flight',
+    subject: [
+      'a small espresso cup on a saucer seen from the side, one round handle on the right, three short wavy steam lines rising from it',
+      'flat muted dusty rose cup, pale warm saucer and steam, a dark interior line at the rim',
+      'no spoon, no table, no text, no face',
+    ].join(', '),
+  },
+  {
+    id: 'icon-reach',
+    name: 'Reach icon',
+    act: 'conception',
+    role: 'icon',
+    fieldRiding: true,
+    source: 'svg',
+    targetSize: 96,
+    seed: 61030,
+    tests: 'a grabber tool — a long rod with a trigger handle and a two-finger claw — read at 52px on a card and 36px at the edge of a sweep',
+    subject: [
+      'a long-handled grabber tool seen from the side, a pistol-grip trigger handle at the left, a straight rod, a two-finger open claw at the right',
+      'flat muted dusty rose handle and claw, pale warm rod, dark interior lines at the trigger and the claw hinge',
+      'no hand holding it, no figure, no text',
+    ].join(', '),
+  },
+  {
+    id: 'icon-hindsight',
+    name: 'Hindsight icon',
+    act: 'conception',
+    role: 'icon',
+    fieldRiding: true,
+    source: 'svg',
+    targetSize: 96,
+    seed: 61031,
+    tests: 'a rear-view mirror on its stalk, read at 52px on a card and 36px dropping onto the field, never a hand mirror',
+    subject: [
+      'a wide flat rear-view mirror seen straight on, a rounded landscape rectangle on a short stalk rising from below',
+      'flat muted dusty rose frame and stalk, pale warm mirror face with one darker flat band across it as the reflection',
+      'no car, no road, no figure, no text',
+    ].join(', '),
+  },
+  {
+    id: 'icon-rut',
+    name: 'Rut icon',
+    act: 'conception',
+    role: 'icon',
+    fieldRiding: true,
+    source: 'svg',
+    targetSize: 96,
+    seed: 61032,
+    tests: 'a pair of worn slippers seen from above, read at 52px on a card and 26px stamped along a trail, never a pair of shoes',
+    subject: [
+      'a pair of soft house slippers seen from directly above, toes up, side by side and slightly splayed, each a rounded sole with a low toe pocket',
+      'flat muted dusty rose slippers, pale warm inner soles showing at the heels, a dark interior line along each toe pocket edge',
+      'no feet in them, no floor, no laces, no text',
     ].join(', '),
   },
 ];
@@ -1074,10 +1182,164 @@ export const ADOLESCENCE_ROSTER: AssetSpec[] = [
   },
 ];
 
+/**
+ * The College roster (COLLEGE-ROSTER.md §1, §3, §4, §5). Five swarm-tier
+ * enemies (one elite), The Loan and the player at eighteen, all authored SVG
+ * (G-038) and none drawn yet: every spec here is the written description a
+ * drawing is owed against, so D-007 and law 11 run on it before a line exists.
+ * whyThisStage strings lift the roster's verbatim; enemies.ts carries the same.
+ */
+export const COLLEGE_ROSTER: AssetSpec[] = [
+  {
+    id: 'reading',
+    name: 'Reading',
+    act: 'college',
+    role: 'swarm',
+    tests: 'the stack — the only pile in the act, read by its fanned edges',
+    targetSize: 48,
+    seed: 23023,
+    source: 'svg',
+    whyThisStage:
+      'College is the first stage where the work arrives faster than it can be done and nobody checks whether it was.',
+    subject: [
+      'a short pile of three or four pages seen from a low angle, their edges fanned out at one side, the top corner turned up',
+      'pale muted tan (#D2C6AC) pages with warm near-black (#2A2521) edge lines, the only pile in the act',
+      'two small dark dots for eyes on the top page, half-shut, and one short flat line for a mouth',
+      'it has been on the pile a while',
+      'no text, no letters, no lines of writing, no desk',
+      'no red, no purple, no gold, no yellow anywhere',
+    ].join(', '),
+  },
+  {
+    id: 'deadline',
+    name: 'Deadline',
+    act: 'college',
+    role: 'swarm',
+    tests: 'the calendar leaf — the only square in the act, and its only red thing',
+    targetSize: 84,
+    seed: 24024,
+    source: 'svg',
+    whyThisStage:
+      'College is where the date first crosses the room on its own schedule and does not slow down for anyone standing in it.',
+    subject: [
+      'a square calendar leaf seen flat on, its top edge curled over in a short roll, two round ring holes along the top',
+      'flat muted red (#C4472E), the contact threat colour, one solid tone, the only square in the act',
+      'the curl and the ring holes in muted tan (#D2C6AC)',
+      'two small dark dots for eyes low on the sheet and one straight flat line for a mouth',
+      'no date, no numbers, no letters, no month name, nothing printed',
+      'no purple, no gold, no yellow anywhere',
+    ].join(', '),
+  },
+  {
+    id: 'tuition',
+    name: 'Tuition',
+    act: 'college',
+    role: 'swarm',
+    tests: 'the windowed envelope — the only rectangle wider than tall, read by its window',
+    targetSize: 44,
+    seed: 25025,
+    source: 'svg',
+    whyThisStage:
+      'College is the first stage that takes a share of everything the player earns from then on, and the share does not come off at the end of the act.',
+    subject: [
+      'a landscape envelope seen flat on, wider than tall, with a darker address window low on its left side',
+      'muted tan (#D2C6AC) paper, the window and the flap lines in warm near-black (#2A2521), nothing legible in the window',
+      'the flap folded down across the top with a face on it: two closed eye arcs and one short flat line for a mouth',
+      'it does not need to look at you, it has your address',
+      'no stamp, no text, no numbers, no red anywhere',
+      'no purple, no gold, no yellow anywhere',
+    ].join(', '),
+  },
+  {
+    id: 'group-project',
+    name: 'Group project',
+    act: 'college',
+    role: 'swarm',
+    tests: 'the cluster — four lumps, four faces, one awake, and the drawing does not say which one matters',
+    targetSize: 100,
+    seed: 26026,
+    source: 'svg',
+    whyThisStage:
+      'College is where the player is first graded on something four were assigned and one did, and finding out which one costs more than doing the work.',
+    subject: [
+      'four rounded lumps fused into one uneven mass, the only fused mass in the act',
+      'flat muted purple (#7C5C8A), the elite threat colour, on all four lumps, one solid tone with one darker flat tone as the only shadow',
+      'four faces, one per lump: three with closed eye arcs and flat mouths, one with two open dark dots for eyes and a flat mouth',
+      'nothing in the drawing marks any lump as different beyond the one open face',
+      'no arms, no legs, no books, no laptops, no text',
+      'no red, no gold, no yellow anywhere',
+    ].join(', '),
+  },
+  {
+    id: 'registrar',
+    name: 'Registrar',
+    act: 'college',
+    role: 'swarm',
+    tests: 'the counter — the only architecture in the act, read by its bell; nobody behind it',
+    targetSize: 80,
+    seed: 27027,
+    source: 'svg',
+    whyThisStage:
+      'College is the first stage where the aimed thing is not a hit but a hold, placed by a window that has never seen the player and has the file.',
+    subject: [
+      'a low service counter seen straight on, a wide front panel under a ledge, a slot cut in the panel',
+      'a small round desk bell standing on the ledge, the only bell in the act',
+      'flat warm grey-brown (#6E6353) counter, the ledge and the bell in muted tan (#D2C6AC), the slot in warm near-black (#2A2521)',
+      'two small dark dots for eyes on the front panel looking down at the slot and one short flat line for a mouth',
+      'nobody behind the counter, no window glass, no sign, no text',
+      'no red, no purple, no gold, no yellow anywhere',
+    ].join(', '),
+  },
+  {
+    id: 'boss-loan',
+    name: 'The Loan',
+    act: 'college',
+    role: 'boss',
+    tests: 'the tape — boss teal at boss scale, a paper tape curling off the top of the frame, gold only on its figures',
+    targetSize: 384,
+    seed: 28028,
+    source: 'svg',
+    // COLLEGE-ROSTER §4: the only boss in the life that wants nothing from the
+    // player. It wants the balance. Law 9 and D-007: a machine and its tape.
+    whyThisStage:
+      'College is the first stage that ends on a number the player will still be paying when the act is long over.',
+    subject: [
+      'a boxy adding machine seen from the front at boss scale, a wide flat body with a row of round keys, the only curl in the act rising out of its top',
+      'flat muted deep teal (#2F7370), the boss colour, one solid tone with warm near-black (#2A2521) key rims',
+      'a paper tape in muted tan (#D2C6AC) rising from a slot in the top, curling once and running off the top edge of the frame',
+      'short flat marks in muted gold (#D69A3C) down the tape as figures, never legible digits',
+      'a face on the front panel above the keys: two open dark dots for eyes and one short flat line for a mouth, patient',
+      'no hands, no desk, no coins, no dollar signs, no text',
+      'no red, no purple anywhere',
+    ].join(', '),
+  },
+  {
+    id: 'player-college',
+    name: 'The player — eighteen',
+    act: 'college',
+    role: 'player',
+    tests: 'G-003 at eighteen: the same face and cowlick, one frame, a lanyard and a paper cup',
+    source: 'svg',
+    targetSize: 112,
+    seed: 29029,
+    // COLLEGE-ROSTER §5: the face at eighteen, a lanyard, a paper cup. No taller
+    // (Growth Spurt's joke is Growth Spurt's).
+    subject: [
+      'the player at eighteen: the same small round-headed figure as every act, standing, no taller',
+      'the same face as every act: two flat eyes and one short flat line for a mouth',
+      'the same single asymmetric cowlick sticking up above the left eye, one tuft and no other hair',
+      'a thin lanyard loop around the neck with a small blank card at its end, and a small paper cup held in one hand',
+      'paper coloured (#EFE7D6) head and body, warm grey-brown (#6E6353) as the only second tone',
+      'no threat colour anywhere, no phone, no backpack, no lettering on the card',
+    ].join(', '),
+  },
+];
+
 export const ALL_ASSETS: AssetSpec[] = [
   ...TEST_BATCH,
   ...CONCEPTION_ROSTER,
   ...SCHOOL_ROSTER,
   ...ADOLESCENCE_ROSTER,
+  ...COLLEGE_ROSTER,
   ...ITEM_ICONS,
 ];

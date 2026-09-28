@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <title>Tuition</title>
+  <desc>A landscape envelope seen flat on, wider than tall, bone paper with a solid ink address window low on its left and nothing legible in it. The flap is folded down across the top in one ink V, and the face is on the flap: two closed eye arcs and one flat mouth. It does not need to look at you; it has your address.</desc>
+  <!--
+    Tuition (COLLEGE-ROSTER §3.3). The act's reserved windowed envelope (§1):
+    the only rectangle wider than tall and the only window, and the smallest
+    thing in the act, as acne was in Adolescence and the antibody before it.
+    It wears their colours on purpose: red is the deadline's, and this deals
+    no damage; it attaches, and it stays attached. The bill is bone and ink.
+
+    Drawn on the finished sprite's own pixel grid. The group maps one unit to
+    one pixel of the 44px sprite: the envelope is 42 units wide (44 less the
+    1px outline each side) and 26 tall, well clear of the deadline's square.
+    At the rasteriser's first density one unit is exactly four supersampled
+    pixels, so every edge lands where it is written. The flap's V is stated
+    as steps on that grid, runs of two then one, so both arms are the same
+    regular stair and meet in a two-pixel point at the middle. The window is
+    a solid block, 15 by 6 with its corners cut, because an outlined window
+    is a hairline at 44px and the window is the read.
+    Colours are palette hex values: ink #2A2521, bone #D2C6AC.
+    CONFORM adds the outline; there is none here.
+  -->
+  <g shape-rendering="crispEdges" transform="scale(2.2727273) translate(1 9)">
+  <!-- the envelope: bone paper, 42 by 26 -->
+  <rect x="0" y="0" width="42" height="26" fill="#D2C6AC"/>
+  <!-- the flap, folded down: one ink V from both top corners to the middle -->
+  <path fill="#2A2521" d="
+    M0,0 h2 v1 h-2 Z  M2,1 h1 v1 h-1 Z  M3,2 h2 v1 h-2 Z  M5,3 h1 v1 h-1 Z
+    M6,4 h2 v1 h-2 Z  M8,5 h1 v1 h-1 Z  M9,6 h2 v1 h-2 Z  M11,7 h1 v1 h-1 Z
+    M12,8 h2 v1 h-2 Z M14,9 h1 v1 h-1 Z M15,10 h2 v1 h-2 Z M17,11 h1 v1 h-1 Z
+    M18,12 h2 v1 h-2 Z M20,13 h2 v1 h-2 Z
+    M40,0 h2 v1 h-2 Z M39,1 h1 v1 h-1 Z M37,2 h2 v1 h-2 Z M36,3 h1 v1 h-1 Z
+    M34,4 h2 v1 h-2 Z M33,5 h1 v1 h-1 Z M31,6 h2 v1 h-2 Z M30,7 h1 v1 h-1 Z
+    M28,8 h2 v1 h-2 Z M27,9 h1 v1 h-1 Z M25,10 h2 v1 h-2 Z M24,11 h1 v1 h-1 Z
+    M22,12 h2 v1 h-2 Z"/>
+  <!-- the face on the flap: two closed eye arcs, lids down -->
+  <rect x="14" y="4" width="1" height="1" fill="#2A2521"/>
+  <rect x="15" y="5" width="2" height="1" fill="#2A2521"/>
+  <rect x="17" y="4" width="1" height="1" fill="#2A2521"/>
+  <rect x="24" y="4" width="1" height="1" fill="#2A2521"/>
+  <rect x="25" y="5" width="2" height="1" fill="#2A2521"/>
+  <rect x="27" y="4" width="1" height="1" fill="#2A2521"/>
+  <!-- one flat mouth -->
+  <rect x="19" y="8" width="4" height="1" fill="#2A2521"/>
+  <!-- the address window, low on the left: a solid block, corners cut -->
+  <path fill="#2A2521" d="M5,16 H18 V17 H19 V21 H18 V22 H5 V21 H4 V17 H5 Z"/>
+  </g>
+</svg>
