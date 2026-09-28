@@ -8,6 +8,7 @@ import { ITEM_ICON_ATLAS, itemIconFrame } from '../data/item-visuals';
 import { parseOfferId } from '../data/items';
 import { offerPips, offerTitle, statLines } from '../data/item-text';
 import { buildSheet, pipString } from '../data/build-sheet';
+import { actDocument, PAPER_NARROW_TITLE, PAPER_SHEET, paperType } from '../data/documents';
 import { sfx } from '../audio/sfx';
 import { combineMoves, stickVector, type Move } from './touch';
 import { oncePerEvent } from './keys';
@@ -90,6 +91,8 @@ const LOAN_JERK = 0.07;
 const STICK_RADIUS_CSS = 56;
 /** A tap this soon after the run ends is the thumb still steering, not a restart. */
 const RESTART_GRACE_MS = 700;
+/** How long the act's document stays up at the crossing unless a key or a tap takes it first. */
+const DOCUMENT_MS = 4000;
 /** The last clean run's held headings (src/meta/input-log.ts), beside `nc-ancestors`. One run, overwritten. */
 const INPUT_LOG_KEY = 'nc-input-log';
 /** Arrival toasts stay below the HUD's top band (plate, boss bar, race bar) and this far off the edges. */
@@ -252,6 +255,15 @@ export class ActScene extends Phaser.Scene {
   private pauseSheetNarrow = false;
   /** The certificate as a document. Built the first frame the run is over. */
   private form?: Phaser.GameObjects.Container;
+  /**
+   * The act's document at the crossing (showDocument), its scrim with it; the
+   * scene holds its steps while this is set. When it goes, whether it took an
+   * upright phone's canvas, and the life clock the playing act began at.
+   */
+  private paper?: Phaser.GameObjects.Container;
+  private paperUntil = 0;
+  private paperNarrow = false;
+  private actBegan = 0;
   private endScrim!: Phaser.GameObjects.Rectangle;
   private devBadge!: Phaser.GameObjects.Text;
 
@@ -308,6 +320,10 @@ export class ActScene extends Phaser.Scene {
     this.world = new World({ acts: this.life, seed: Date.now() & 0xffff });
     this.shownAct = this.world.actIndex;
     this.visuals = actVisuals(this.world.act.id);
+    // A restart destroyed the paper with the display list; the shutdown gave its canvas back.
+    delete this.paper;
+    this.paperNarrow = false;
+    this.actBegan = this.world.time - this.world.actTime;
 
     this.enemySprites = [];
     this.projectileSprites = [];
@@ -384,13 +400,17 @@ export class ActScene extends Phaser.Scene {
         `keydown-${key}`,
         oncePerEvent(() => {
           const offers = this.world.offers;
-          if (offers && offers[i]) {
+          // Not under the act's document: the card is not drawn yet (drawHud).
+          if (offers && offers[i] && !this.paper) {
             this.world.choose(offers[i]!);
             sfx.choose();
           }
         }),
       );
     }
+    // Any key takes the act's document down. After the named keys: Phaser
+    // emits `keydown-ONE` before `keydown`, so a 1 only lifts the paper.
+    keyboard.on('keydown', oncePerEvent(() => this.hideDocument()));
     this.createTouch(togglePause);
 
     this.createHud();
@@ -474,7 +494,8 @@ export class ActScene extends Phaser.Scene {
       .setTexture(this.visuals.atlas.key, this.visuals.playerFrame)
       .setDisplaySize(PLAYER_DISPLAY, PLAYER_DISPLAY);
     this.resetArrivals();
-    this.announceAct();
+    // The finished act's paper first; the act is announced as it goes.
+    if (!this.showDocument()) this.announceAct();
   }
 
   /**
@@ -536,6 +557,143 @@ export class ActScene extends Phaser.Scene {
       ],
       onComplete: () => card.destroy(),
     });
+  }
+
+  /**
+   * The act's document (`documents.ts`): the paper the crossing issues from
+   * the life so far, before the next act is announced — the certificate's
+   * sibling on a smaller sheet, in its register (G-038): the office, the
+   * title in small caps, the fields numbered and typed on their rules, the
+   * stamp in the new act's deep tone, on a scrim of its own.
+   *
+   * While it is up the scene holds its steps, as the pause does (`update`), so
+   * nothing starts behind the paper; the rules never know. It goes after
+   * `DOCUMENT_MS` or on any key or tap (`hideDocument`), and the act is
+   * announced as it goes. False when the finished act issues none yet.
+   *
+   * On a screen wider than tall the type is raised to the certificate's floors
+   * at the ratio FIT shows the canvas (`paperType`). An upright phone
+   * (`narrowCanvas`) gets the pause sheet's treatment: the world is held, so
+   * the paper takes a canvas of the screen's shape in the certificate's
+   * narrow type, and `hideDocument` gives 1280×720 back.
+   */
+  private showDocument(): boolean {
+    const w = this.world;
+    // The finished act's clock, off the life clock: when this act began, less
+    // when the last one did. Exact at any time scale, and under the dev
+    // panel's skip, which moves both clocks together.
+    const began = w.time - w.actTime;
+    const clock = began - this.actBegan;
+    this.actBegan = began;
+    const finished = this.life[w.actIndex - 1];
+    const doc = finished ? actDocument(w, this.playerName, finished, clock) : null;
+    if (!doc) return false;
+
+    const cam = this.cameras.main;
+    const shape = narrowCanvas(this.scale.parentSize);
+    const type = shape
+      ? { line: NARROW_TYPE.print, label: NARROW_TYPE.print, value: NARROW_TYPE.value, title: PAPER_NARROW_TITLE, hint: NARROW_TYPE.hint }
+      : paperType(this.scale.displaySize.width / this.scale.width);
+    const view = shape ?? { width: cam.width, height: cam.height };
+    const W = shape ? NARROW_WIDTH - 40 : PAPER_SHEET.width;
+    const M = shape ? 40 : PAPER_SHEET.margin;
+    // As showCertificate: an absorb's lean-in ends under the paper, which takes the zoom too.
+    cam.zoomEffect.reset();
+    cam.setZoom(1);
+    const parts: Phaser.GameObjects.GameObject[] = [];
+    const text = (x: number, y: number, s: string, size: number, colour: string, spacing = 0) => {
+      const t = this.add.text(x, y, s, { fontFamily: 'monospace', fontSize: `${size}px`, color: colour, letterSpacing: spacing });
+      parts.push(t);
+      return t;
+    };
+    const sheet = this.add.graphics();
+    const rules = this.add.graphics();
+
+    // The office, the title, the double rule: the certificate's head.
+    const office = text(W / 2, 32, doc.line, type.line, CERT_PRINT, shape ? 3 : 5).setOrigin(0.5, 0);
+    const baseline = office.y + office.height + 16 + type.title;
+    parts.push(...this.smallCaps(doc.title, W / 2, baseline, type.title, CERT_INK, shape ? 3 : 4));
+    rules.lineStyle(2, INK, 1).lineBetween(M, baseline + 16, W - M, baseline + 16);
+    rules.lineStyle(1, INK, 1).lineBetween(M, baseline + 21, W - M, baseline + 21);
+
+    // The fields, numbered; a value too long for its rule wraps rather than spills.
+    let y = baseline + 21 + (shape ? 30 : 24);
+    let rule = y;
+    doc.fields.forEach(([label, value], i) => {
+      const printed = text(M, y, `${i + 1}. ${label}`, type.label, CERT_PRINT, 1);
+      const typed = text(M + 6, printed.y + printed.height + 6, value, type.value, CERT_INK);
+      typed.setWordWrapWidth(W - 2 * M - 6);
+      rule = typed.y + Math.max(Math.round(type.value * 1.25), typed.height + 4);
+      rules.lineStyle(1.5, INK, 1).lineBetween(M, rule, W - M, rule);
+      y = rule + (shape ? 24 : 16);
+    });
+
+    // The stamp in a band of its own under the last rule, so it covers no value.
+    const stamp = this.inkStamp(doc.stamp, shape ? 34 : 30, shape ? 48 : 44);
+    // Its half-height, and what the tilt (inkStamp's 8°) lifts and drops its corners by.
+    const half = stamp.height / 2 + (stamp.width / 2) * Math.sin(Phaser.Math.DegToRad(8));
+    stamp.setPosition(W - M - 16 - stamp.width / 2, rule + 10 + half);
+    const H = stamp.y + half + 28;
+    sheet.fillStyle(INK, 0.55).fillRect(8, 10, W, H);
+    sheet.fillStyle(PAPER, 1).fillRect(0, 0, W, H);
+    sheet.lineStyle(3, INK, 1).strokeRect(14, 14, W - 28, H - 28);
+    sheet.lineStyle(1, INK, 1).strokeRect(21, 21, W - 42, H - 42);
+    const gap = shape ? 50 : 32;
+    const hint = this.add
+      .text(W / 2, H + gap, this.touch ? 'tap to continue' : 'any key to continue', {
+        fontFamily: 'monospace',
+        fontSize: `${type.hint}px`,
+        color: css(PAPER),
+      })
+      .setOrigin(0.5)
+      .setAlpha(0.85);
+
+    // Centred on the view, sheet and hint together; scaled down only if FIT
+    // shows the canvas so small the raised type overruns it.
+    const need = H + gap + type.hint;
+    const s = Math.min(1, (view.height - 16) / need);
+    const paper = this.add
+      .container(Math.round((view.width - W * s) / 2), Math.max(8, Math.round((view.height - need * s) / 2)), [
+        sheet,
+        rules,
+        ...parts,
+        stamp,
+        hint,
+      ])
+      .setScale(s);
+    const scrim = this.add.rectangle(view.width / 2, view.height / 2, view.width, view.height, INK, 0.62);
+    this.paper = this.add.container(0, 0, [scrim, paper]).setScrollFactor(0).setDepth(202);
+    this.paperUntil = this.time.now + DOCUMENT_MS;
+    if (shape) {
+      this.scale.setGameSize(shape.width, shape.height);
+      // The follow would glide to the new view's centre; the world is still, so snap.
+      cam.centerOn(this.player.x, this.player.y);
+      this.events.off('shutdown', this.restoreCanvas, this).once('shutdown', this.restoreCanvas, this);
+      this.paperNarrow = true;
+      this.devBadge.setPosition(shape.width - 14, shape.height - 14 - this.devBadge.height);
+    }
+    return true;
+  }
+
+  /**
+   * Takes the act's document down, and announces the act it held back. Fades
+   * where it can; an upright phone's paper goes at once, because the canvas
+   * it was set on goes back to 1280×720 with it. No-op with no paper up.
+   */
+  private hideDocument(): void {
+    const paper = this.paper;
+    if (!paper) return;
+    delete this.paper;
+    if (this.paperNarrow) {
+      this.paperNarrow = false;
+      paper.destroy();
+      if (this.restoreCanvas()) this.events.off('shutdown', this.restoreCanvas, this);
+      this.cameras.main.centerOn(this.player.x, this.player.y);
+      this.devBadge.setPosition(VIEW_WIDTH - 14, 58);
+    } else {
+      this.tweens.add({ targets: paper, alpha: 0, duration: 300, onComplete: () => paper.destroy() });
+    }
+    this.announceAct();
   }
 
   /**
@@ -701,6 +859,12 @@ export class ActScene extends Phaser.Scene {
       'pointerdown',
       (p: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]) => {
         sfx.unlock();
+        // Any tap takes the act's document down, and only that: no stick
+        // starts under the paper (a tap on the pause button also pauses).
+        if (this.paper) {
+          this.hideDocument();
+          return;
+        }
         // The pause button and the offer cards handle their own taps (their
         // events fire before this one); a stick must not start under them.
         if (over.length > 0) return;
@@ -848,6 +1012,12 @@ export class ActScene extends Phaser.Scene {
       this.syncArrivals();
       this.drawHud();
       return;
+    }
+    // The act's document holds the scene's steps, as the pause does, so the
+    // next act does not begin behind a piece of paper. The rules are untouched.
+    if (this.paper) {
+      if (this.time.now < this.paperUntil) return;
+      this.hideDocument();
     }
 
     // Clamp: a stalled tab must not teleport the horde.
@@ -1938,7 +2108,8 @@ export class ActScene extends Phaser.Scene {
     // same three items, and the pips must not show the pre-choice level. A
     // path card's level lives in `pathLevels` (G-043); an id is in one map or
     // the other, never both.
-    const offerKey = w.offers
+    // Held under the act's document, whose paper a tap on a card would not reach.
+    const offerKey = w.offers && !this.paper
       ? `${w.level}:${w.offers.map((id) => `${id}@${w.pathLevels.get(id) ?? w.items.get(id) ?? 0}`).join(',')}`
       : '';
     if (offerKey !== this.shownOffers) {
@@ -2405,9 +2576,10 @@ export class ActScene extends Phaser.Scene {
    * The stamp in the act's deep tone (a spot ink, not a threat): the word,
    * double-framed and tilted, at 0,0 for the form to place. `long` is its size
    * for a word of more than eight letters, `short` for one of eight or fewer.
+   * A certificate stamps what `certificateStamp` says; an act's document, its own word.
    */
-  private inkStamp(c: Certificate, long: number, short: number): Phaser.GameObjects.Container {
-    const word = certificateStamp(c);
+  private inkStamp(c: Certificate | string, long: number, short: number): Phaser.GameObjects.Container {
+    const word = typeof c === 'string' ? c : certificateStamp(c);
     const size = word.length > 8 ? long : short;
     const inked = this.add
       .text(0, 0, word, {
