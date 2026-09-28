@@ -87,13 +87,14 @@ export function thresholdsFor(spec: AssetSpec): CheckThresholds {
 }
 
 /** Threat colours this asset holds under law 11 — what CONFORM may quantise into. */
-export function heldThreats(spec: AssetSpec): ThreatClass[] {
+export function heldThreats(spec: Pick<AssetSpec, 'act' | 'id'>): ThreatClass[] {
   const held = RESERVATIONS[spec.act];
-  return held
-    ? (Object.entries(held.reservedThreat)
-        .filter(([, who]) => who === spec.id)
-        .map(([cls]) => cls) as ThreatClass[])
-    : [];
+  if (!held) return [];
+  // D-029: a variant frame wears its holder's threat colour.
+  const holder = Object.entries(held.variants ?? {}).find(([, ids]) => ids.includes(spec.id))?.[0] ?? spec.id;
+  return Object.entries(held.reservedThreat)
+    .filter(([, who]) => who === holder)
+    .map(([cls]) => cls) as ThreatClass[];
 }
 
 /**
