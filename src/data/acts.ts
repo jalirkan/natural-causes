@@ -441,7 +441,7 @@ export const OFFICE: ActDef = {
   age: { from: 22, to: 34 },
   // No race: nobody else wants the job.
   provisional:
-    "Every rate, time and enemy number here, reply-all's split (`split`: 2 children, 3 generations, at 0.75 scale), the ping's cost to cadence (`attach.cooldownMultiplier`, 1.06 a stack), the meeting's hold (`hold`: from 260px to 120px over 30s, held 12s, at 0.6 speed), the review's cut of the level bar (`ranged.xpLoss`, 0.15), and all of The Reorg's numbers (`boss.thresholds` at two thirds and one third, `lateralMove` 220, `memoShots` 5, `memoSpacing` 36, the 300px it relocates beyond, and the Egg's telegraph, idle, shot and BOSS_HP it borrows) were written as placeholders before anyone played the act (OFFICE-ROSTER §3.6 and §4, G-048); a person playing it at the link is what moves them (D-022).",
+    "Every rate, time and enemy number here, reply-all's split (`split`: 2 children, 3 generations, at 0.75 scale), the ping's cost to cadence (`attach.cooldownMultiplier`, 1.06 a stack), the meeting's hold (`hold`: from 260px to 120px over 30s, held 12s, at 0.6 speed), the review's cut of the level bar (`ranged.xpLoss`, 0.15), and all of The Reorg's numbers (`boss.thresholds` at two thirds and one third, `lateralMove` 220, `memoShots` 5, `memoSpacing` 64, the 300px it relocates beyond, and the Egg's telegraph, idle, shot and BOSS_HP it borrows) were written as placeholders before anyone played the act (OFFICE-ROSTER §3.6 and §4, G-048); a person playing it at the link is what moves them (D-022).",
   // OFFICE-ROSTER.md §3.6, transcribed. The ORDER is the design and is under
   // test (office-act.test.ts): age runs 22 to 34, a year every 15 seconds.
   // Reply-all from 0s, the first day; pings at 15s; the meeting's stream at

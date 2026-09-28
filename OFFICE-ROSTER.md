@@ -307,6 +307,7 @@ hold, and a hold in the sim (§3.4) that the renderer draws as chairs.
 - **Family**, where the life goes at thirty-four; **Service**, the other
   branch at eighteen.
 - **Sounds:** the ping, the carriage, the chairs scraping, the memo.
+- *2026-09-28:* **The review has nowhere to show yet.** A crossing shows the finished act's paper (G-049) and The Office is the life's last act, so its paper waits on Family, or on the certificate path showing the last act's paper first (AUDIT seven, 52).
 
 ## 7 · Open question
 

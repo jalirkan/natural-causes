@@ -566,10 +566,30 @@ plays. All at `5552874`. None is fixed here; each says who it waits on.
 
 | # | What | Why it looks right | Status |
 |---|---|---|---|
-| 37 | **The Loan spawns mostly off screen.** Every boss is placed 420px above the player and the view shows 360; the Loan's anchor is at 0.73 of its frame, so the machine sits behind the HUD band and the tape — its shape, and the part that jerks on the tick — is off the top | The bar fills, the pull works, the bots walk up | Open. A per-kind spawn offset or a camera nudge on spawn; the placement is the sim's |
-| 38 | **Persisting stacks draw as the next act's frame.** Tuition stays on through the crossing (§3.3) and the scene rebuilds worn stacks from the new act's `attachFrame`, falling back to the antibody | Nothing after College exists yet | Open until a fifth act; noted at `attachFrame` |
-| 39 | **The smoke never sees College's drawings.** It skips to the boss and kills it; tuition, HOLD, the deadline's heading, the group project and the jerk were checked once by hand in Chromium | The smoke passes | Open: a College milestone that waits for a tuition sprite and a HOLD |
+| 37 | **The Loan spawns mostly off screen.** Every boss is placed 420px above the player and the view shows 360; the Loan's anchor is at 0.73 of its frame, so the machine sits behind the HUD band and the tape — its shape, and the part that jerks on the tick — is off the top | The bar fills, the pull works, the bots walk up | **Fixed** (round 14): the camera pans to the boss on its entrance and back (`bossEntrance` in ActScene); the placement stays the sim's |
+| 38 | **Persisting stacks draw as the next act's frame.** Tuition stays on through the crossing (§3.3) and the scene rebuilds worn stacks from the new act's `attachFrame`, falling back to the antibody | Nothing after College exists yet | **Fixed** with The Office: a stack draws in the frame of the act that attached it (`wornBy`); tuition's invoices stay envelopes among the pings |
+| 39 | **The smoke never sees College's drawings.** It skips to the boss and kills it; tuition, HOLD, the deadline's heading, the group project and the jerk were checked once by hand in Chromium | The smoke passes | **Fixed**: the `college-play` milestone waits for a tuition sprite and a HOLD before the skip to The Loan |
 | 40 | **The Loan's placeholders imply a floor of invoices.** A statement every 2.8s drops three static, undamageable envelopes: about 64 on the floor in a 60s fight, and with no damage it forecloses in about 95s | The fight ends either way | A reaction question (11), not a number to move |
-| 41 | **`bossHpFraction` reads backwards for The Loan** in the bots' report: its bar opens a third full and fills | Shield section excludes it (`bossHasShield`) | Open, cosmetic |
-| 42 | **The dev panel's "no drag" zeroes the drag stacks but not the tax,** so the HUD can read `xp −8%` alone; its "level up" gem is sized before tax | Dev only | Open, dev only |
+| 41 | **`bossHpFraction` reads backwards for The Loan** in the bots' report: its bar opens a third full and fills | Shield section excludes it (`bossHasShield`) | **Fixed**: the report's column reads `balance` for The Loan's runs and footnotes it |
+| 42 | **The dev panel's "no drag" zeroes the drag stacks but not the tax,** so the HUD can read `xp −8%` alone; its "level up" gem is sized before tax | Dev only | **Fixed**: "no drag" sheds every worn stack — drag, tax, cadence and the `wornBy` map (`shedWornStacks`) |
 | 43 | **Judgement draws the world's dice.** The first weapon to, so holding it moves later spawns and rolls for that seed; Hindsight and the group project's quadrant too | Bots and browser still agree; determinism per seed holds | By design; a per-weapon stream if it ever matters |
+
+# Part seven — 2026-09-28, the fifth act and the papers, as the builders flagged them
+
+Not a read: the agents that built The Office (OFFICE-ROSTER, G-048), The
+Reorg, its drawings, the crossing papers (G-049) and the Office wiring each
+reported what looked like the game working but might not. Collected before
+anyone plays, at the round's integration branch. Each says what was done or
+who it waits on.
+
+| # | What | Why it looks right | Status |
+|---|---|---|---|
+| 44 | **The Office's first arrivals are review, meeting, commute.** A stream opening at t with rate r first delivers at t + 1/r, so the roster's "first meeting at 40s" is when its stream opens; the builder read the first review at 80.00s, the first meeting one frame later and the first commute near 104s | The order test passes: it checks when streams open | Open, documentation: §3.6 speaks of openings; the act as met is review first. Placeholder schedule either way |
+| 45 | **A reply-all's children keep the parent's full XP** (8 XP over 7 kills), and at the 1500-enemy cap a child that does not fit drops no gem, so that XP is lost | Splitting draws no dice; two tests pin it | By design at placeholder values (`split`); noted |
+| 46 | **The memo column left no gap.** A shot hits within 26px of its centre, so `memoSpacing` 36 was a wall; the Reorg's builder read it and the value went to 64 before the merge | The column arrives; the bots sidestep it | Fixed at data. A placeholder, labelled in the act's `provisional` |
+| 47 | **A restructure against a wall shoves less.** The player's sideways move is `clampPlayer`ed, so at an edge it shortens or vanishes; the meeting still closes and the i-frames still apply | Nothing throws; the chart still moves | Open, a judgement: at a wall the joke is the meeting, not the shove |
+| 48 | **One blow crossing two thresholds restructures twice**, on this step and the next, so a very large hit moves everything twice a frame apart | Each threshold restructures exactly once; `restructures` counts it | By design: a threshold is one restructure; two in two frames reads as one |
+| 49 | **The meeting walls the crowd but not static, cross, patrol or merge behaviours**, so a commute runs through a ring the reply-alls cannot leave | Nothing else in the act has those behaviours today | By design (a carriage does not attend); noted at `updateHolds` |
+| 50 | **The Loan's opening balance counts `dragStacks`, not tuition's `taxStacks`.** College's only attach is tuition, so the two agree; a drag-only stack persisting from an earlier act (none does) would inflate it | `loan.test` sets `dragStacks` directly and passes | Open, cosmetic; move to `taxStacks` if an earlier act ever persists a stack |
+| 51 | **The inheritance is named twice at the first crossing**: the birth certificate's INHERITED line, then School's card (G-042) | Both read the same registry | By design: the paper lifts on any key, so the card stays the guaranteed naming; the paper records, the card announces |
+| 52 | **The last act's paper is never seen.** A crossing shows the finished act's paper and the life's last act ends on the death certificate, so The Office's review (OFFICE-ROSTER §6) has nowhere to show until Family exists or the certificate path shows it first | The diploma shows, now an act follows College | Open, unowned (HANDOFF) |

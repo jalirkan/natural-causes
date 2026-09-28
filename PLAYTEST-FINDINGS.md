@@ -24,6 +24,31 @@ Running record of what the automated bots measured and what it means for design.
 
 ---
 
+# 2026-09-28 · After The Office — the five-act life. Presence only.
+
+`pnpm playtest -- --runs=8 --life` (seeds 1000–1007, 96 lives, twelve policies) at the integration
+branch before its PR (`65b669b`), The Office in `ALL_ACTS`, The Reorg restructuring, the memo column
+at 64px. The crossing papers are presentation and the bots never see them.
+
+| policy | ended in | of |
+|---|---|---|
+| motility, greedy-capacitation, judgement+appetite | office 8 | natural causes 8 |
+| acrosome+midpiece | office 7, conception 1 | natural causes 7, Someone else 1 |
+| midpiece+wake | office 4, conception 4 | natural causes 4, Someone else 3, Rival sperm 1 |
+| the other eight arms | office 4–6, the rest Conception's race or Adolescence's hormones | natural causes; Someone else, Hormones, one Group chat |
+| uptake, evolutions | Jumpiness 10, Vendetta 6, Reach 3, Tantrum 3, Hindsight 1, Rut 0 of 96 | |
+
+Every life that reached The Office (72 of 96) ended there of natural causes at thirty-four: no bot died
+to a ping, a meeting, a review or The Reorg, which says the placeholders let a build carried from
+Conception through, not that they are right. The review's rating landed on every arm (1–10 hits of
+3–28 seen), so the cut to the level bar is a pressure the bots took and never read, as tuition's tax
+was. Every death in the life still falls in Conception's race (18 lives never crossed) or Adolescence,
+so the last three acts are, to the bots, a corridor with a boss at the end of each. The memo column
+went from 36 to 64px before this run because a 36px column left no gap to stand in (AUDIT seven, 46);
+that is a builder's reading, not a calibration. The question for a person is OFFICE-ROSTER §7's.
+
+---
+
 # 2026-09-28 · After College and the evolutions — the four-act life. Presence only.
 
 `pnpm playtest -- --runs=8 --life` (seeds 1000–1007, 96 lives, twelve policies) at the integration
