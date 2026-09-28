@@ -1305,8 +1305,6 @@ export const ITEMS: Record<string, ItemDef> = {
     marks: { seconds: 3, multiplier: 1.5 },
     maxLevel: 8,
     icon: 'highlight',
-    iconPending:
-      'Drawn at tools/art/svg/conception/icon-highlight.svg and conformed to assets/sprites/conception/icon-highlight.png; retired when `pnpm art:pack` puts icon-highlight.png in the icons atlas.',
     blurb: 'Marks what matters. Everything then hits what matters.',
     levels: table(
       [
@@ -1810,8 +1808,6 @@ export const ITEMS: Record<string, ItemDef> = {
     strikeNearest: true,
     maxLevel: 8,
     icon: 'letter',
-    iconPending:
-      'Drawn at tools/art/svg/conception/icon-letter.svg and through CONFORM and CHECK; retires when `pnpm art:pack` puts icon-letter.png in the icons atlas.',
     blurb: 'Arrives in four to six seconds. The problem has usually moved.',
     levels: table(
       [
