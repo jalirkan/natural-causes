@@ -239,6 +239,7 @@ describe('a life that ends at College', () => {
       age: 22,
       causeId: 'natural-causes',
       cause: 'natural causes',
+      rules: [],
     });
   });
 });

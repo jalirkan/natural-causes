@@ -354,6 +354,7 @@ describe('the life is seven acts long, and it ends', () => {
       age: 84,
       causeId: 'natural-causes',
       cause: 'natural causes',
+      rules: [],
     });
   }, LONG);
 });

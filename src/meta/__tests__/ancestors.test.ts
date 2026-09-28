@@ -40,6 +40,7 @@ const death: Certificate = {
   age: 9.7,
   causeId: 'homework',
   cause: 'Homework',
+  rules: [],
 };
 
 const win: Certificate = {
@@ -148,6 +149,49 @@ describe('the ancestor log, with storage', () => {
   it('drops malformed entries rather than printing them', () => {
     storage.setItem(ANCESTORS_KEY, JSON.stringify([{ outcome: 'died' }, null, 3]));
     expect(recentLives(6)).toEqual([]);
+  });
+
+  it('keeps a ruled life’s rules (G-055), and writes none for a plain one', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(4_000);
+    recordLife({ ...death, rules: ['couch-potato', 'one-trick'] }, 'Justin');
+    recordLife(death);
+    const stored = JSON.parse(storage.getItem(ANCESTORS_KEY)!) as Ancestor[];
+    expect(stored).toEqual([
+      { outcome: 'died', actName: 'School', age: 9.7, cause: 'Homework', at: 4_000, name: 'Justin', rules: ['couch-potato', 'one-trick'] },
+      { outcome: 'died', actName: 'School', age: 9.7, cause: 'Homework', at: 4_000 },
+    ]);
+    // Round trip: what was written reads back as it was.
+    expect(recentLives(6).map((a) => a.rules)).toEqual([undefined, ['couch-potato', 'one-trick']]);
+    expect(recentLives(6).map(obituary)).toEqual([
+      'Age 9 · School · Homework',
+      'Justin · Age 9 · School · Homework · couch potato · one trick',
+    ]);
+  });
+
+  it('reads a record from before rules as a plain life, beside a ruled one', () => {
+    storage.setItem(
+      ANCESTORS_KEY,
+      JSON.stringify([
+        { outcome: 'died', actName: 'School', age: 9.7, cause: 'Homework', at: 1 },
+        { outcome: 'won', actName: 'Decline', age: 84, cause: 'natural causes', at: 2, rules: ['one-trick'] },
+      ]),
+    );
+    const lives = recentLives(6);
+    expect(lives.map((a) => a.rules ?? [])).toEqual([['one-trick'], []]);
+    expect(lives.map(obituary)).toEqual(['Age 84 · natural causes · one trick', 'Age 9 · School · Homework']);
+  });
+
+  it('drops an entry whose rules it cannot read: not a list, or a rule the registry does not hold', () => {
+    storage.setItem(
+      ANCESTORS_KEY,
+      JSON.stringify([
+        { outcome: 'died', actName: 'School', age: 9, cause: 'Homework', at: 1, rules: 'couch-potato' },
+        { outcome: 'died', actName: 'School', age: 9, cause: 'Homework', at: 2, rules: ['sit-still'] },
+        { outcome: 'died', actName: 'School', age: 9, cause: 'Homework', at: 3, rules: [] },
+      ]),
+    );
+    expect(recentLives(6).map((a) => a.at)).toEqual([3]);
   });
 });
 

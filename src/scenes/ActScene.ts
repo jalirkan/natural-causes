@@ -18,14 +18,18 @@ import { healthBar } from './health-bar';
 import { oncePerEvent } from './keys';
 import { bossFrameFor } from './boss-frames';
 import {
+  certificateConditions,
   certificateFields,
   certificateLines,
   certificateStamp,
+  CONDITIONS_LABEL,
   effectLines,
   hudAge,
+  hudRules,
   NARROW_TYPE,
   NARROW_WIDTH,
   narrowCanvas,
+  narrowConditions,
   narrowRows,
   effectsColumn,
   pauseTypeScale,
@@ -34,6 +38,7 @@ import {
   wornText,
 } from './certificate';
 import { recordLife } from '../meta/ancestors';
+import { NO_RULES, RULES, type RunRules } from '../sim/rules';
 import { InputLog } from '../meta/input-log';
 import { DEFAULT_NAME, misspell, readPlayerName } from '../meta/name';
 import {
@@ -390,6 +395,11 @@ export class ActScene extends Phaser.Scene {
   private detachDev?: () => void;
   /** Set by `init` when the panel's `start at` began this life (D-030). */
   private startTainted = false;
+  /**
+   * The rules this life is played under (G-055), from the title. Every World
+   * the scene makes gets them, restarts included; they never taint.
+   */
+  private rules: RunRules = NO_RULES;
 
   /**
    * Last frame's world counters, for sound. The simulation emits no events —
@@ -457,6 +467,12 @@ export class ActScene extends Phaser.Scene {
   private playerFx!: Phaser.GameObjects.Graphics;
   private prevGemCount = 0;
   private absorbZoomed = false;
+  /**
+   * One Trick's opening offer (G-055) is up before the first frame, under the
+   * card that names the act: the act is announced once the choice is made,
+   * not across the offer's header.
+   */
+  private announceWhenChosen = false;
 
   /** The offer cards. Built when offers appear, torn down on the choice. */
   private offerCards: Phaser.GameObjects.Container[] = [];
@@ -479,12 +495,15 @@ export class ActScene extends Phaser.Scene {
     super('act');
   }
 
-  init(data?: { acts?: ActDef[]; tainted?: boolean }): void {
+  init(data?: { acts?: ActDef[]; tainted?: boolean; rules?: RunRules }): void {
     const life = data?.acts ?? this.life ?? ACTS;
     if (life.length === 0) throw new Error('ActScene was started without an act');
     this.life = life;
     // The panel's `start at` (D-030): the life it begins is tainted from its first frame.
     this.startTainted = data?.tainted === true;
+    // Challenge runs (G-055): the title's choice, carried by every restart
+    // below. A rule is the game, not a cheat: nothing here taints for one.
+    this.rules = data?.rules ?? NO_RULES;
     // Throws here, before a frame is drawn, if an act in the life has no art.
     for (const act of life) actVisuals(act.id);
   }
@@ -501,7 +520,7 @@ export class ActScene extends Phaser.Scene {
 
   create(): void {
     // The world places the player itself — the arena is its own now.
-    this.world = new World({ acts: this.life, seed: Date.now() & 0xffff });
+    this.world = new World({ acts: this.life, seed: Date.now() & 0xffff, rules: this.rules });
     this.shownAct = this.world.actIndex;
     this.visuals = actVisuals(this.world.act.id);
     // A restart destroyed the paper with the display list; the shutdown gave its canvas back.
@@ -595,7 +614,7 @@ export class ActScene extends Phaser.Scene {
         // Mid-run restarts are a dev affordance. In a clean run R still only
         // works once the run is over, so it cannot be a panic button.
         const anytime = reviewMode() && this.dev.tainted;
-        if (this.world.dead || this.world.won || anytime) this.scene.restart({ acts: this.life });
+        if (this.world.dead || this.world.won || anytime) this.scene.restart({ acts: this.life, rules: this.rules });
       }),
     );
     for (const [i, key] of ['ONE', 'TWO', 'THREE'].entries()) {
@@ -649,11 +668,11 @@ export class ActScene extends Phaser.Scene {
           world: this.world,
           dev: this.dev,
           inputLog: this.inputLog,
-          restart: () => this.scene.restart({ acts: this.life }),
+          restart: () => this.scene.restart({ acts: this.life, rules: this.rules }),
           startAt: (acts) => {
             // `paused` is the scene's own and outlives a restart.
             this.paused = false;
-            this.scene.restart({ acts, tainted: true });
+            this.scene.restart({ acts, tainted: true, rules: this.rules });
           },
           showPaper: (doc) => !this.paper && !this.world.dead && !this.world.won && this.showDocument(doc),
           playerName: this.playerName,
@@ -665,14 +684,16 @@ export class ActScene extends Phaser.Scene {
     // Controls, stated. The first level-up arrives about fourteen seconds in
     // and freezes the world until a choice is made, which without a prompt is
     // indistinguishable from the game hanging — it was reported as exactly
-    // that. Fades out once the player has started moving.
+    // that. Fades out once the player has started moving. Under Couch Potato
+    // (G-055) the stick only turns the player, and the hint says so.
+    const move = this.world.rules.includes('couch-potato') ? 'turn' : 'move';
     const hint = this.add
       .text(
         this.cameras.main.width / 2,
         this.cameras.main.height - 54,
         this.touch
-          ? 'drag anywhere to move   ·   you fire automatically   ·   tap a card to choose'
-          : 'WASD or arrows to move   ·   you fire automatically   ·   1/2/3 choose an upgrade   ·   P pauses',
+          ? `drag anywhere to ${move}   ·   you fire automatically   ·   tap a card to choose`
+          : `WASD or arrows to ${move}   ·   you fire automatically   ·   1/2/3 choose an upgrade   ·   P pauses`,
         { fontFamily: 'monospace', fontSize: '15px', color: '#EFE7D6' },
       )
       .setOrigin(0.5)
@@ -680,7 +701,8 @@ export class ActScene extends Phaser.Scene {
       .setDepth(150)
       .setAlpha(0.85);
     this.tweens.add({ targets: hint, alpha: 0, delay: 6500, duration: 1200 });
-    this.announceAct();
+    this.announceWhenChosen = this.world.choosingTrick;
+    if (!this.announceWhenChosen) this.announceAct();
   }
 
   /**
@@ -1104,7 +1126,7 @@ export class ActScene extends Phaser.Scene {
         }
         if (this.world.dead || this.world.won) {
           if (this.endedAt >= 0 && this.time.now - this.endedAt >= RESTART_GRACE_MS) {
-            this.scene.restart({ acts: this.life });
+            this.scene.restart({ acts: this.life, rules: this.rules });
           }
           return;
         }
@@ -1169,6 +1191,16 @@ export class ActScene extends Phaser.Scene {
     // right-aligned top-right. The fps counter is dev-only; a frame counter in
     // a shipped HUD is the single fastest way to say "unfinished".
     this.hudLevel = this.add.text(20, 12, '', style(13, '#D2C6AC')).setScrollFactor(0).setDepth(100);
+    // G-055: the rules, in the plate under the bars (drawHud grows the plate
+    // to hold them), left of where the boss's bar begins at x 240 and above
+    // it at y 68, and nowhere near the centred clock and boss label. Read off
+    // the world, which holds them in the registry's order, and set once: a
+    // life's rules do not change while it lasts.
+    this.add
+      .text(22, 50, hudRules(this.world.rules), style(12, '#D2C6AC'))
+      .setScrollFactor(0)
+      .setDepth(100)
+      .setVisible(this.world.rules.length > 0);
     this.hudClock = this.add
       .text(cam.width / 2, 12, '', {
         ...style(24, '#EFE7D6'),
@@ -1275,6 +1307,10 @@ export class ActScene extends Phaser.Scene {
 
     this.applyDevCheats();
     if (this.world.actIndex !== this.shownAct) this.crossThreshold();
+    if (this.announceWhenChosen && !this.world.offers) {
+      this.announceWhenChosen = false;
+      this.announceAct();
+    }
 
     const over = this.world.dead || this.world.won;
     if (over && this.endedAt < 0) {
@@ -2644,8 +2680,14 @@ export class ActScene extends Phaser.Scene {
     const first = offers.length === 1 ? parseOfferId(offers[0]!) : null;
     const evolution =
       first && !first.path && isActive(first.item) && first.item.evolvesFrom ? first.item.evolvesFrom : null;
+    // One Trick's opening offer (G-055) is not a level: it says what it is.
+    const header = evolution
+      ? 'EVOLUTION'
+      : this.world.choosingTrick
+        ? RULES['one-trick'].name.toUpperCase()
+        : `LEVEL ${this.world.level}`;
     this.offerHeader = this.add
-      .text(cam.width / 2, HEADER_Y, evolution ? 'EVOLUTION' : `LEVEL ${this.world.level}`, {
+      .text(cam.width / 2, HEADER_Y, header, {
         fontFamily: 'monospace',
         fontSize: '15px',
         color: '#D2C6AC',
@@ -2835,7 +2877,9 @@ export class ActScene extends Phaser.Scene {
     this.bars.clear();
     // The plate: one quiet ink surface holding both bars, so the corner reads
     // as an instrument instead of two floating rectangles.
-    this.bars.fillStyle(INK, 0.4).fillRoundedRect(12, 8, 236, 46, 7);
+    // A ruled life's plate is taller by the rule's line (G-055), and still
+    // ends above the boss's bar (y 68) where the two share x 240–248.
+    this.bars.fillStyle(INK, 0.4).fillRoundedRect(12, 8, 236, w.rules.length > 0 ? 58 : 46, 7);
     // Health (`healthBar`, AUDIT 90, 122, 123). The track is the maximum the
     // items give (`itemsMaxHp`), so a decision that lowers the maximum
     // (DECLINE-ROSTER §3.5) visibly shortens what you have, and still does
@@ -3214,7 +3258,7 @@ export class ActScene extends Phaser.Scene {
     const cam = this.cameras.main;
     const fields = certificateFields(c, { name: this.playerName, lived: w.time });
     // CSS px per game px: under 1 when FIT shows the canvas narrower than 1280.
-    const lay = wideLayout(fields, this.scale.displaySize.width / this.scale.width);
+    const lay = wideLayout(fields, this.scale.displaySize.width / this.scale.width, certificateConditions(c));
     const type = lay.type;
     const W = WIDE_SHEET.width;
     const L = Math.round((cam.width - W) / 2);
@@ -3256,6 +3300,13 @@ export class ActScene extends Phaser.Scene {
       text(x + 6, row.value, f.value, row.size, CERT_INK);
       rules.lineStyle(1.5, INK, 1).lineBetween(x, row.rule, x + row.w, row.rule);
     });
+    // The rules the life was played under (G-055), noted at the cause, short
+    // of the stamp (`wideLayout`): printed as a label is, typed as a value is.
+    const cond = lay.conditions;
+    if (cond) {
+      text(L + M + cond.labelX, cond.label, CONDITIONS_LABEL, type.label, CERT_PRINT, 1);
+      text(L + M + cond.x, cond.value, cond.lines.join('\n'), type.label, CERT_INK).setLineSpacing(cond.spacing);
+    }
 
     // The receipt, below the tear: the prose, and the effects in a column clear of it.
     const R = lay.receipt;
@@ -3360,9 +3411,16 @@ export class ActScene extends Phaser.Scene {
       text(left + 6, row.value, f.value, row.size, CERT_INK);
       rules.lineStyle(1.5, INK, 1).lineBetween(left, row.rule, right, row.rule);
     });
+    // The rules (G-055) under the cause's rule, the stamp's band under them.
+    const cond = narrowConditions(certificateConditions(c), bottom, right - left);
+    if (cond) {
+      text(left + cond.labelX, cond.label, CONDITIONS_LABEL, type.print, CERT_PRINT, 1);
+      text(left + cond.x, cond.value, cond.lines.join('\n'), type.receipt, CERT_INK).setLineSpacing(cond.spacing);
+    }
+    const above = cond ? cond.bottom : bottom;
     const stamp = this.inkStamp(c, 34, 48);
-    stamp.setPosition(right - 16 - stamp.width / 2, bottom + 80);
-    const PERF = bottom + 160;
+    stamp.setPosition(right - 16 - stamp.width / 2, above + 80);
+    const PERF = above + 160;
 
     // The receipt: the prose, and the personal effects under it rather than beside.
     const R = PERF + 36;

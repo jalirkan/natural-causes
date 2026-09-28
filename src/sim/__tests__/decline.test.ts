@@ -626,6 +626,7 @@ describe('Time runs out, and the life ends won (§4)', () => {
       age: 84,
       causeId: 'natural-causes',
       cause: 'natural causes',
+      rules: [],
     });
     expect(w.certificate!.age).toBe(DECLINE.age.to);
   });

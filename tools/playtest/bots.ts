@@ -10,6 +10,7 @@ import {
   type ProjectileState,
   type WorldOptions,
 } from '../../src/sim/world';
+import { NO_RULES, type RunRules } from '../../src/sim/rules';
 
 /**
  * Automated playtest bots. The part of PLAN.md that genuinely runs for hours
@@ -1230,8 +1231,13 @@ export function runOnce(
   bossPull?: number,
   spawnOverride?: 'edge' | 'lead',
   acts: ActDef[] = [CONCEPTION],
+  // G-055: the life's rules, enforced by the World, so the bot plays the
+  // ruled game a person does. Its steering is unchanged: under Couch Potato
+  // the sim refuses the walk, and One Trick's opening offer is taken by
+  // `chooseOffer` at the loop's first turn, as any offer is.
+  rules: RunRules = NO_RULES,
 ): RunResult {
-  const options: WorldOptions = { acts, seed };
+  const options: WorldOptions = { acts, seed, rules };
   // The instrument's "300s mark" is the FIRST act's crowd phase, so every
   // Conception figure reads exactly as it did before there were lives.
   const act = acts[0]!;

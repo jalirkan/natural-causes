@@ -1,16 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import {
   ageYears,
+  certificateConditions,
   certificateFields,
   certificateLines,
   certificateStamp,
+  CONDITIONS_LABEL,
   effectLines,
   hudAge,
+  hudRules,
   lifeClock,
   NARROW_SCREEN,
   NARROW_TYPE,
   NARROW_WIDTH,
   narrowCanvas,
+  narrowConditions,
   narrowRows,
   NARROW_WORN_CHARS,
   effectsColumn,
@@ -24,6 +28,7 @@ import {
 } from '../certificate';
 import { CONCEPTION, SCHOOL } from '../../data/acts';
 import { World, type Certificate } from '../../sim/world';
+import { RULES, RULE_IDS } from '../../sim/rules';
 
 const base: Certificate = {
   outcome: 'died',
@@ -33,6 +38,7 @@ const base: Certificate = {
   age: 9.7,
   causeId: 'homework',
   cause: 'Homework',
+  rules: [],
 };
 
 describe('certificateLines', () => {
@@ -296,5 +302,109 @@ describe('the pause sheet', () => {
     expect(pauseTypeScale(landscape, true)).toBe(1.7);
     // 13px at 1.7 on the narrow canvas, on the narrowest phone it is sized for.
     expect((13 * 1.7 * NARROW_SCREEN) / NARROW_WIDTH).toBeGreaterThanOrEqual(11);
+  });
+});
+
+describe('the rules on the form (G-055)', () => {
+  const ruled: Certificate = { ...base, rules: ['couch-potato', 'one-trick'] };
+  const won: Certificate = { ...ruled, outcome: 'won', causeId: 'natural-causes', cause: 'natural causes', age: 84 };
+  const conditions = certificateConditions(ruled);
+  const fields = certificateFields(ruled, { name: 'Justin', lived: 252.9 });
+  const landscape = (390 * 16) / 9 / 1280;
+  const room = WIDE_SHEET.width - 2 * WIDE_SHEET.margin;
+  // The widest stamp (NATURAL CAUSES) and its 40 in from the margin: what the conditions stay left of.
+  const stampLeft = room - 40 - 366;
+  const mono = (s: string, px: number, spacing = 0) => s.length * (0.6 * px + spacing);
+
+  it('prints one line per rule, the registry’s, and nothing for a plain life', () => {
+    expect(conditions).toEqual(['Never moved.', 'Had one trick.']);
+    expect(certificateConditions({ ...base, rules: ['one-trick'] })).toEqual([RULES['one-trick'].certificate]);
+    expect(certificateConditions(base)).toEqual([]);
+    // The prose on the receipt is untouched: the rules are the form's.
+    expect(certificateLines(ruled)).toEqual(certificateLines(base));
+  });
+
+  it('names them on the HUD as its labels read, and not at all for a plain life', () => {
+    expect(hudRules(['couch-potato'])).toBe('couch potato');
+    expect(hudRules(['couch-potato', 'one-trick'])).toBe('couch potato · one trick');
+    expect(hudRules([])).toBe('');
+    // In the plate from x 22 at 12px, clear of the boss's bar at x 240.
+    expect(22 + mono(hudRules(RULE_IDS), 12)).toBeLessThan(240);
+  });
+
+  it('a plain life’s form is the form before rules existed', () => {
+    for (const r of [1, landscape]) {
+      const plain = wideLayout(fields, r);
+      expect(plain.conditions).toBeNull();
+      expect(wideLayout(fields, r, [])).toEqual(plain);
+    }
+  });
+
+  it('are noted on the cause’s label line, short of the stamp, and nothing on the form moves', () => {
+    for (const r of [1, 1.5, landscape, 0.5]) {
+      const plain = wideLayout(fields, r);
+      const lay = wideLayout(fields, r, conditions);
+      const c = lay.conditions!;
+      const cause = lay.rows[4]!;
+      expect(lay.rows).toEqual(plain.rows);
+      expect([lay.stamp, lay.perf, lay.receipt, lay.content]).toEqual([plain.stamp, plain.perf, plain.receipt, plain.content]);
+      // On the label's own line, after "5. CAUSE OF DEATH", the label printed and the rules typed after it.
+      expect(c.label).toBe(cause.label);
+      expect(c.value).toBe(cause.label);
+      expect(c.labelX).toBeGreaterThan(cause.x + mono('5. CAUSE OF DEATH', lay.type.label, 1));
+      expect(c.x).toBeGreaterThan(c.labelX + mono(CONDITIONS_LABEL, lay.type.label, 1));
+      expect(c.lines).toEqual(['Never moved. Had one trick.']);
+      // The stamp's top edge, tilted, climbs into this line's band from 734 at the smallest; 720 is the end.
+      expect(c.x + mono(c.lines[0]!, lay.type.label)).toBeLessThanOrEqual(720);
+      // Inside the cause's row: above its value, so above the rule and the frame under it.
+      expect(c.bottom).toBeLessThanOrEqual(cause.value + 2);
+    }
+  });
+
+  it('a rule too long for that line goes under the cause, left of the stamp, and the tear moves down for it', () => {
+    const long = ['Never once got up off the couch, not for anything, not even for the door.', ...conditions];
+    for (const r of [1, landscape]) {
+      const plain = wideLayout(fields, r);
+      const lay = wideLayout(fields, r, long);
+      const c = lay.conditions!;
+      const cause = lay.rows[4]!;
+      expect(c.label).toBeGreaterThan(cause.rule);
+      expect(c.value - c.label).toBeGreaterThanOrEqual(lay.type.label);
+      for (const l of c.lines) expect(c.x + mono(l, lay.type.label)).toBeLessThanOrEqual(stampLeft);
+      expect(c.lines.join(' ')).toBe(long.join(' '));
+      // The form's inner frame is drawn 21 above the tear: the lines stay above it.
+      expect(lay.perf - 21).toBeGreaterThanOrEqual(c.bottom);
+      expect(lay.perf).toBeGreaterThan(plain.perf);
+      expect(lay.receipt - lay.perf).toBe(plain.receipt - plain.perf);
+    }
+  });
+
+  it('on a landscape phone the form still holds the longest build, the hint under the sheet', () => {
+    const lay = wideLayout(certificateFields(won, { name: 'Justin', lived: 5000 }), landscape, conditions);
+    const col = effectsColumn(0.6 * lay.type.receipt * 'Cause of death: Substitute teacher.'.length, lay.type);
+    const build = ['Reflex', 'Stubbornness', 'Temper', 'Baggage', 'Tantrum', 'Grudge', 'Gossip', 'Charisma', 'Restlessness',
+      'Thick Skin', 'Late Bloomer', 'Appetite', 'Growth Spurt', 'Snooze'].map((n) => `${n} 8`);
+    const lines = effectLines(build, col.chars);
+    const line = (px: number, spacing: number) => 1.3 * px + spacing;
+    const effectsBottom = lay.content + lines.length * line(lay.type.effects, lay.spacing.effects);
+    const proseBottom = lay.content + 3 * line(lay.type.receipt, lay.spacing.prose);
+    const sheetBottom = Math.max(effectsBottom, proseBottom) + lay.foot;
+    expect(sheetBottom + lay.hint + lay.type.hint / 2).toBeLessThanOrEqual(720);
+  });
+
+  it('on the narrow form they sit under the cause’s rule, typed across the column, before the stamp’s band', () => {
+    expect(narrowConditions([], 900, 600)).toBeNull();
+    const c = narrowConditions(conditions, 900, 600)!;
+    expect(c.label).toBeGreaterThan(900);
+    expect(c.value - c.label).toBeGreaterThanOrEqual(NARROW_TYPE.print);
+    for (const l of c.lines) expect(mono(l, NARROW_TYPE.receipt)).toBeLessThanOrEqual(600);
+    expect(c.lines.join(' ')).toBe(conditions.join(' '));
+    expect(c.bottom).toBeGreaterThanOrEqual(c.value + c.lines.length * NARROW_TYPE.receipt);
+    // Rules too long for one line run on and break between words, never inside one.
+    const said = ['A condition that goes on for a very long while, and then some more.', 'Had one trick.'];
+    const long = narrowConditions(said, 0, 600)!;
+    expect(long.lines.length).toBeGreaterThan(1);
+    for (const l of long.lines) expect(mono(l, NARROW_TYPE.receipt)).toBeLessThanOrEqual(600);
+    expect(long.lines.join(' ')).toBe(said.join(' '));
   });
 });
