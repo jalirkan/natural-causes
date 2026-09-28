@@ -23,7 +23,7 @@ Five shapes and the boss's. The consequence strings lift verbatim.
 | **Capsule** — a pill in two halves, one darker, seen side-on | `medication` | The only capsule, and the smallest thing in the act. |
 | **Front** — a long low bank of cloud side-on with rain lines falling from it, at twice the width of anything else | `weather` | The only cloud, and the widest thing; the only thing with lines falling from it. |
 | **Flight of stairs** — six steps rising left to right, seen side-on, one rail above them | `stairs` | The only steps, and the only rail. |
-| **Knees** — two rounded kneecaps side by side with one face between them | `your-knees` | The only pair in the act: nothing else comes in twos. |
+| **Knees** — two rounded kneecaps side by side, one face apart, with one face in the hollow between them | `your-knees` | The only pair in the act: nothing else comes in twos. |
 | **Form on a board** — a portrait sheet on a clipboard, three tick boxes down its left side | `insurance-form` | The only board and the only boxes. (The Office's clip is the Office's; the list is per act.) |
 | **Clock face** — a round face with two hands and no numbers, at boss scale | `boss-time` | The only circle in the act, and the only hands. |
 
@@ -130,8 +130,8 @@ anything about.
 
 **Threat:** none on its body · **Colour:** bone knees, ink face · **Silhouette:** knees
 
-**48px** — two rounded kneecaps side by side, a worried face between them.
-The pair is the read.
+**48px** — two rounded kneecaps side by side, one face apart, a worried face
+in the hollow between them. The pair is the read.
 
 **Visual** — two bone domes, ink outlines, and between them two dots and a
 short mouth turned down one step at each end — the only frown in the life.

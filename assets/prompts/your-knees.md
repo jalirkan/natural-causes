@@ -7,7 +7,7 @@
 - **SVG sha256:** `8228828662a0d99e28e9b4ab1026e896a21233950d1fee6262eb614d0edae55c`
 - **Rasteriser:** sharp 0.34.5 (libvips 8.17.3, librsvg 2.61.2)
 - **Render:** 22.500 dpi, 4× supersampled and area-averaged
-- **Rendered:** 2026-09-28T17:32:25.454Z
+- **Rendered:** 2026-09-28T17:34:32.127Z
 - **Sprite size:** 40px
 - **Tests:** the knees — the only pair in the act, two domes side by side with one face between them
 
@@ -15,7 +15,7 @@
 
 ## Description
 
-two rounded kneecaps side by side seen from the front, two domes of equal size nearly touching, muted tan (#D2C6AC) domes with warm near-black (#2A2521) outlines, a face between the two domes: two small dark dots for eyes and one short line for a mouth turned down one step at each end, worried, no legs, no skin, no text, no red, no purple, no gold, no yellow, no teal anywhere
+two rounded kneecaps side by side seen from the front, two domes of equal size one face apart, a low hollow between them, muted tan (#D2C6AC) domes with warm near-black (#2A2521) outlines, the hollow between the domes in warm grey-brown (#6E6353) carries the face: two small dark dots for eyes and one short line for a mouth turned down one step at each end, worried, no legs, no skin, no text, no red, no purple, no gold, no yellow, no teal anywhere
 
 ## Mechanical checks
 

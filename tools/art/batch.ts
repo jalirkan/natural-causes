@@ -1688,9 +1688,9 @@ export const DECLINE_ROSTER: AssetSpec[] = [
     whyThisStage:
       'Decline is where the record the player has been accumulating since before they were a person is finally read back to them by their own body.',
     subject: [
-      'two rounded kneecaps side by side seen from the front, two domes of equal size nearly touching',
+      'two rounded kneecaps side by side seen from the front, two domes of equal size one face apart, a low hollow between them',
       'muted tan (#D2C6AC) domes with warm near-black (#2A2521) outlines',
-      'a face between the two domes: two small dark dots for eyes and one short line for a mouth turned down one step at each end, worried',
+      'the hollow between the domes in warm grey-brown (#6E6353) carries the face: two small dark dots for eyes and one short line for a mouth turned down one step at each end, worried',
       'no legs, no skin, no text, no red, no purple, no gold, no yellow, no teal anywhere',
     ].join(', '),
   },
