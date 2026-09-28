@@ -24,6 +24,26 @@ Running record of what the automated bots measured and what it means for design.
 
 ---
 
+# 2026-09-28 · Under rules — Couch Potato and One Trick. Presence only.
+
+`pnpm playtest -- --runs=4 --rules=couch-potato` and `--rules=one-trick` (Conception, seeds
+1000–1003, 48 runs each, twelve policies) at the round's integration branch, the kid's weapons in the
+pool (G-054), before any person has played either life.
+
+| rule | ended | reached the Egg | evolutions dealt |
+|---|---|---|---|
+| Couch Potato | Rival sperm 41, Someone else 6, The Egg 1 | 8 of 48 | — |
+| One Trick | natural causes 14, Rival sperm and Someone else the rest | — | Jumpiness 9, Tantrum 1, Hindsight 1 |
+
+Both lives run and end, which is all this asks. A bot that never moves dies to the rival sperm in
+Conception almost every time, since the act is a race (G-040) and it cannot run it; whether a person
+finds that funny or unplayable is question 24. Under One Trick the bots reach evolutions more often
+than in a plain life, because every level goes into the one weapon. Bot policies that differ only in
+their weapon priorities play identical lives on one seed under One Trick (AUDIT 159), so the agreement
+the report shows is inflated. Nothing here is calibration.
+
+---
+
 # 2026-09-28 · After Decline — the whole life. Presence only.
 
 `pnpm playtest -- --runs=8 --life` (seeds 1000–1007, 96 lives, twelve policies) at the integration
