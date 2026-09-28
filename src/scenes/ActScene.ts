@@ -13,6 +13,10 @@ import {
   certificateStamp,
   effectLines,
   hudAge,
+  NARROW_TYPE,
+  NARROW_WIDTH,
+  narrowCanvas,
+  narrowRows,
   type CertificateField,
 } from './certificate';
 import { recordLife } from '../meta/ancestors';
@@ -820,7 +824,7 @@ export class ActScene extends Phaser.Scene {
       // under a time scale every hold is multiplied, so its log is not a
       // person's number. The HUD said DEV · RUN TAINTED the whole way.
       if (!this.dev.tainted) {
-        if (this.world.certificate) recordLife(this.world.certificate);
+        if (this.world.certificate) recordLife(this.world.certificate, this.playerName);
         try {
           localStorage.setItem(INPUT_LOG_KEY, JSON.stringify(this.inputLog.toJSON()));
         } catch {
@@ -1081,6 +1085,20 @@ export class ActScene extends Phaser.Scene {
           s.setRotation(Math.sin(t * 0.7 + ph) * 0.06);
           const pulse = Math.sin(t * 1.4 + ph) * 0.02;
           s.setScale(s.scaleX * (1 + pulse), s.scaleY * (1 - pulse));
+          break;
+        }
+        case 'drivers-ed': {
+          // A vehicle has a front (AUDIT part five): the car is drawn side-on
+          // facing right, so it turns to its `cross` heading, and one driving
+          // left flips and rotates by the remainder so the roof stays up.
+          // Gated on the id, not on `cross`, because no per-def visual flag
+          // exists and the other crossers have no front in this game's
+          // drawing: the dodgeball and white cell are round, and the hall
+          // monitor and substitute are people, who would walk left on their
+          // heads. A second vehicle is the moment to add a flag instead.
+          const a = Math.atan2(e.vy, e.vx);
+          const left = Math.abs(a) > Math.PI / 2;
+          s.setFlipX(left).setRotation(left ? a - Math.PI : a);
           break;
         }
         default:
@@ -1687,6 +1705,10 @@ export class ActScene extends Phaser.Scene {
    * stamp's ink. No threat colour — law 10 keeps them off chrome.
    */
   private showCertificate(c: Certificate): void {
+    if (narrowCanvas(this.scale.parentSize)) {
+      this.showNarrowCertificate(c);
+      return;
+    }
     const w = this.world;
     const cam = this.cameras.main;
     const W = 1120;
@@ -1764,26 +1786,8 @@ export class ActScene extends Phaser.Scene {
     for (let x = L + 4; x < L + W - 4; x += 14) sheet.lineBetween(x, PERF, Math.min(x + 7, L + W - 4), PERF);
 
     // The stamp, bottom right, in the act's deep tone: a spot ink, not a threat.
-    const word = certificateStamp(c);
-    const size = word.length > 8 ? 30 : 44;
-    const inked = this.add
-      .text(0, 0, word, {
-        fontFamily: 'monospace',
-        fontSize: `${size}px`,
-        fontStyle: 'bold',
-        color: css(this.visuals.background),
-        letterSpacing: size > 40 ? 12 : 5,
-      })
-      .setOrigin(0.5);
-    const bw = inked.width + 44;
-    const bh = inked.height + 26;
-    const frame = this.add.graphics();
-    frame.lineStyle(4, this.visuals.background, 1).strokeRect(-bw / 2, -bh / 2, bw, bh);
-    frame.lineStyle(1.5, this.visuals.background, 1).strokeRect(-bw / 2 + 7, -bh / 2 + 7, bw - 14, bh - 14);
-    const stamp = this.add
-      .container(L + W - M - 40 - bw / 2, T + 366, [frame, inked])
-      .setAngle(-8)
-      .setAlpha(0.88);
+    const stamp = this.inkStamp(c, 30, 44);
+    stamp.setPosition(L + W - M - 40 - stamp.width / 2, T + 366);
 
     // The restart, under the form as it always was.
     const hint = this.add
@@ -1801,11 +1805,165 @@ export class ActScene extends Phaser.Scene {
       .setDepth(200);
   }
 
+  /**
+   * The certificate on a screen taller than wide (`narrowCanvas`): the same
+   * form, stacked. FIT sets the 1280×720 canvas at 390×219 CSS px on an upright
+   * phone, where the wide form's labels are 4 px; the run is over, so the form
+   * takes a canvas of the screen's shape and sets the fields one per row in
+   * `NARROW_TYPE`. The stamp gets a band of its own under the cause — on a
+   * 600px column any cause would run under it — and the personal effects go
+   * under the receipt's prose. The HUD keeps its 1280×720 places under the
+   * scrim; `restoreCanvas` gives that canvas back when the certificate goes.
+   */
+  private showNarrowCertificate(c: Certificate): void {
+    const w = this.world;
+    const cam = this.cameras.main;
+    const type = NARROW_TYPE;
+    const L = 20;
+    const W = NARROW_WIDTH - 2 * L;
+    const T = 24;
+    const M = 40;
+    const left = L + M;
+    const right = L + W - M;
+    // As showCertificate: the last boss's lean-in ends under the paper.
+    cam.zoomEffect.reset();
+    cam.setZoom(1);
+    const parts: Phaser.GameObjects.GameObject[] = [];
+    const text = (x: number, y: number, s: string, size: number, colour: string, spacing = 0) => {
+      const t = this.add.text(x, y, s, {
+        fontFamily: 'monospace',
+        fontSize: `${size}px`,
+        color: colour,
+        letterSpacing: spacing,
+      });
+      parts.push(t);
+      return t;
+    };
+    const sheet = this.add.graphics();
+    const rules = this.add.graphics();
+
+    text(NARROW_WIDTH / 2, T + 40, 'OFFICE OF VITAL STATISTICS', type.print, CERT_PRINT, 3).setOrigin(0.5, 0);
+    parts.push(...this.smallCaps('Certificate of Death', NARROW_WIDTH / 2, T + 126, type.title, CERT_INK, 3));
+    rules.lineStyle(2, INK, 1).lineBetween(left, T + 146, right, T + 146);
+    rules.lineStyle(1, INK, 1).lineBetween(left, T + 151, right, T + 151);
+
+    const fields = certificateFields(c, { name: this.playerName, lived: w.time });
+    const { rows, bottom } = narrowRows(fields, T + 178);
+    fields.forEach((f, i) => {
+      const row = rows[i]!;
+      text(left, row.label, `${i + 1}. ${f.label}`, type.print, CERT_PRINT, 1);
+      text(left + 6, row.value, f.value, row.size, CERT_INK);
+      rules.lineStyle(1.5, INK, 1).lineBetween(left, row.rule, right, row.rule);
+    });
+    const stamp = this.inkStamp(c, 34, 48);
+    stamp.setPosition(right - 16 - stamp.width / 2, bottom + 80);
+    const PERF = bottom + 160;
+
+    // The receipt: the prose, and the personal effects under it rather than beside.
+    const R = PERF + 36;
+    text(left, R, 'RECEIPT · DETACH AND RETAIN', type.print, CERT_PRINT, 2);
+    this.overlay
+      .setFontSize(type.receipt)
+      .setLineSpacing(8)
+      .setWordWrapWidth(right - left)
+      .setPosition(left, R + 40)
+      .setText([...certificateLines(c), `${w.kills} killed, level ${w.level}.`].join('\n'))
+      .setVisible(true);
+    const E = this.overlay.y + this.overlay.height + 30;
+    text(left, E, 'PERSONAL EFFECTS', type.print, CERT_PRINT, 2);
+    const build = [...w.items.entries()].map(([id, lv]) => `${itemDef(id).name} ${lv}`);
+    // Forty characters of 24px monospace is the 600px column.
+    const effects = text(left, E + 40, effectLines(build, 40).join('\n') || 'None', type.effects, CERT_INK);
+    effects.setLineSpacing(6);
+    const H = effects.y + effects.height + 34 - T;
+
+    // The sheet as the wide form draws it.
+    sheet.fillStyle(INK, 0.55).fillRect(L + 8, T + 10, W, H);
+    sheet.fillStyle(PAPER, 1).fillRect(L, T, W, H);
+    sheet.lineStyle(3, INK, 1).strokeRect(L + 14, T + 14, W - 28, PERF - T - 28);
+    sheet.lineStyle(1, INK, 1).strokeRect(L + 21, T + 21, W - 42, PERF - T - 42);
+    sheet.lineStyle(1, INK, 0.7).strokeRect(L + 14, PERF + 14, W - 28, T + H - PERF - 28);
+    sheet.lineStyle(1.5, INK, 0.6);
+    for (let x = L + 4; x < L + W - 4; x += 14) sheet.lineBetween(x, PERF, Math.min(x + 7, L + W - 4), PERF);
+
+    const hint = this.add
+      .text(NARROW_WIDTH / 2, T + H + 50, this.touch ? 'tap to live again' : 'R to live again', {
+        fontFamily: 'monospace',
+        fontSize: `${type.hint}px`,
+        color: css(PAPER),
+      })
+      .setOrigin(0.5);
+
+    // The canvas: the screen's shape, or the form's height if that is more.
+    // Centred on it; the prose moves with the sheet it is typed on.
+    const need = T + H + 50 + type.hint / 2 + T;
+    const size = narrowCanvas(this.scale.parentSize, need) ?? { width: NARROW_WIDTH, height: need };
+    this.scale.setGameSize(size.width, size.height);
+    this.events.off('shutdown', this.restoreCanvas, this).once('shutdown', this.restoreCanvas, this);
+    const dy = Math.floor((size.height - need) / 2);
+    this.overlay.y += dy;
+    // Off the sheet's header, into the scrim's bottom corner.
+    this.devBadge.setPosition(size.width - 14, size.height - 14 - this.devBadge.height);
+    this.endScrim
+      .setPosition(size.width / 2, size.height / 2)
+      .setSize(size.width, size.height)
+      .setFillStyle(INK, 0.62)
+      .setVisible(true);
+    this.form = this.add
+      .container(0, dy, [sheet, rules, ...parts, stamp, hint])
+      .setScrollFactor(0)
+      .setDepth(200);
+  }
+
+  /**
+   * The stamp in the act's deep tone (a spot ink, not a threat): the word,
+   * double-framed and tilted, at 0,0 for the form to place. `long` is its size
+   * for a word of more than eight letters, `short` for one of eight or fewer.
+   */
+  private inkStamp(c: Certificate, long: number, short: number): Phaser.GameObjects.Container {
+    const word = certificateStamp(c);
+    const size = word.length > 8 ? long : short;
+    const inked = this.add
+      .text(0, 0, word, {
+        fontFamily: 'monospace',
+        fontSize: `${size}px`,
+        fontStyle: 'bold',
+        color: css(this.visuals.background),
+        letterSpacing: size > 40 ? 12 : 5,
+      })
+      .setOrigin(0.5);
+    const bw = inked.width + 44;
+    const bh = inked.height + 26;
+    const frame = this.add.graphics();
+    frame.lineStyle(4, this.visuals.background, 1).strokeRect(-bw / 2, -bh / 2, bw, bh);
+    frame.lineStyle(1.5, this.visuals.background, 1).strokeRect(-bw / 2 + 7, -bh / 2 + 7, bw - 14, bh - 14);
+    return this.add.container(0, 0, [frame, inked]).setSize(bw, bh).setAngle(-8).setAlpha(0.88);
+  }
+
   private hideCertificate(): void {
     this.form?.destroy();
     delete this.form;
     this.overlay.setVisible(false);
     this.endScrim.setFillStyle(INK, 0.45);
+    // God mode took the death back from the narrow form: the run goes on at
+    // 1280×720, so what that form resized goes back to how createHud made it.
+    if (this.restoreCanvas()) {
+      this.events.off('shutdown', this.restoreCanvas, this);
+      this.endScrim.setPosition(VIEW_WIDTH / 2, VIEW_HEIGHT / 2).setSize(VIEW_WIDTH, VIEW_HEIGHT);
+      this.devBadge.setPosition(VIEW_WIDTH - 14, 58);
+      this.overlay.setFontSize(18).setLineSpacing(6).setWordWrapWidth(null);
+    }
+  }
+
+  /**
+   * Gives the 1280×720 canvas back if the narrow certificate took it; true
+   * when it had. Also runs on shutdown, so a restart's `create` lays the HUD
+   * out on the canvas it was written for.
+   */
+  private restoreCanvas(): boolean {
+    if (this.scale.width === VIEW_WIDTH && this.scale.height === VIEW_HEIGHT) return false;
+    this.scale.setGameSize(VIEW_WIDTH, VIEW_HEIGHT);
+    return true;
   }
 
   /**

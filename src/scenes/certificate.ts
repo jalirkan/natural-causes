@@ -94,3 +94,85 @@ export function effectLines(entries: string[], width: number): string[] {
   if (line) lines.push(line);
   return lines;
 }
+
+/**
+ * The certificate on a screen taller than wide — a phone held upright, which is
+ * how this game is played. The game renders 1280×720 under FIT, so on a
+ * 390×844 phone the whole canvas is 390×219 CSS px and the wide form's printed
+ * labels come out at 4 px. The run is over and the world frozen by then, so the
+ * form asks for a canvas of the screen's shape, `NARROW_WIDTH` wide, and sets
+ * the fields one per row in `NARROW_TYPE`. Leaving the certificate puts
+ * 1280×720 back.
+ */
+export const NARROW_WIDTH = 720;
+
+/** The narrowest upright phone `NARROW_TYPE` is sized for, in CSS px. */
+export const NARROW_SCREEN = 360;
+
+/**
+ * The narrow form's type, in game px. On a `NARROW_SCREEN` phone a game pixel
+ * is half a CSS pixel, so every printed word is at least 12 CSS px and every
+ * typed value at least 20 (a test holds the floors: 11 and 18).
+ */
+export const NARROW_TYPE = {
+  /** Every printed word: the labels, the office, the receipt's two heads. */
+  print: 24,
+  /** A value typed on its rule. */
+  value: 40,
+  /** The cause, which is what the form is for. */
+  cause: 46,
+  /** The receipt's prose (`certificateLines`). */
+  receipt: 26,
+  /** The personal effects, under the prose. */
+  effects: 24,
+  /** "Certificate of Death", its capitals; the rest is set at 0.78 of it. */
+  title: 50,
+  /** "tap to live again", on the scrim under the sheet. */
+  hint: 32,
+} as const;
+
+/**
+ * The canvas the certificate asks for on a screen of this CSS size: null when
+ * the screen is not taller than wide (the 1280×720 form stands), otherwise
+ * `NARROW_WIDTH` wide and as tall as the screen's shape — or as `content`, when
+ * the form needs more, which FIT then letterboxes at the sides.
+ */
+export function narrowCanvas(
+  screen: { width: number; height: number },
+  content = 0,
+): { width: number; height: number } | null {
+  if (!(screen.width > 0) || !(screen.height > screen.width)) return null;
+  const shaped = Math.round((NARROW_WIDTH * screen.height) / screen.width);
+  return { width: NARROW_WIDTH, height: Math.max(shaped, Math.ceil(content)) };
+}
+
+/** One field's row on the narrow form: where its label, value and rule sit, and the value's size. */
+export interface NarrowRow {
+  key: CertificateField['key'];
+  /** Top of the printed label. */
+  label: number;
+  /** Top of the typed value. */
+  value: number;
+  /** The rule the value sits on. */
+  rule: number;
+  /** The value's size: `NARROW_TYPE.cause` for the cause, `.value` otherwise. */
+  size: number;
+}
+
+/**
+ * The fields one per row from `top`, in the order given (reading order): the
+ * label printed, the value typed under it, the rule under the value, and a
+ * gap before the next label. `bottom` is the last rule.
+ */
+export function narrowRows(fields: readonly CertificateField[], top: number): { rows: NarrowRow[]; bottom: number } {
+  const rows: NarrowRow[] = [];
+  let y = top;
+  for (const f of fields) {
+    const size = f.key === 'cause' ? NARROW_TYPE.cause : NARROW_TYPE.value;
+    const value = y + NARROW_TYPE.print + 10;
+    const rule = value + Math.round(size * 1.25);
+    rows.push({ key: f.key, label: y, value, rule, size });
+    y = rule + 24;
+  }
+  return { rows, bottom: rows.length > 0 ? rows[rows.length - 1]!.rule : top };
+}
