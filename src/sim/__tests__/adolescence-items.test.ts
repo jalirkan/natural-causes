@@ -278,14 +278,19 @@ describe('born at thirteen: neither is offered before Adolescence', () => {
     }
   });
 
-  it('every other item is in the pool from conception', () => {
+  it('every other item is in the pool from conception, or born after Adolescence', () => {
+    const adolescence = ALL_ACTS.indexOf(ADOLESCENCE);
     for (const def of Object.values(ITEMS)) {
-      if (born.includes(def.id)) continue;
-      expect(def.from, def.id).toBeUndefined();
+      if (born.includes(def.id) || def.from === undefined) continue;
+      // Calendar block, born in The Office (calendar-block.test.ts).
+      expect(ALL_ACTS.findIndex((a) => a.id === def.from), def.id).toBeGreaterThan(adolescence);
     }
-    // A sanity line: the field mode is Snooze's alone today.
-    expect(Object.values(ITEMS).filter((d) => isActive(d) && d.mode === 'field').map((d) => d.id)).toEqual([
-      'snooze',
-    ]);
+    // A sanity line: the field that slows is Snooze's alone today; Calendar
+    // block's field walls instead (`wall`).
+    expect(
+      Object.values(ITEMS)
+        .filter((d) => isActive(d) && d.mode === 'field' && !d.wall)
+        .map((d) => d.id),
+    ).toEqual(['snooze']);
   });
 });

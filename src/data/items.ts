@@ -42,6 +42,8 @@ export type ItemIcon =
   | 'magnet'
   | 'grow'
   | 'slow'
+  // The Office's (G-048): Calendar block's page, a day struck through.
+  | 'block'
   | 'aura'
   | 'sweep'
   | 'bolt'
@@ -228,6 +230,14 @@ export interface ActiveItem extends ItemBase {
    * `trail` (Rut, G-046) each footprint holds the same way as it hurts.
    */
   slow?: number;
+  /**
+   * `field` only: the field is a hold on `World.holds` instead of an area —
+   * the meeting's edge (OFFICE-ROSTER §3.4) turned inside out, placed by the
+   * player (Calendar block). Its edge walls the crowd both ways, as the
+   * meeting's does, and never the player; `slow` still applies inside it, and
+   * 1 is none. `range` is its seconds and `radius` its size, as a field's.
+   */
+  wall?: boolean;
   /**
    * `strike` only: seconds from the pick to the landing. Absent means
    * `STRIKE_DELAY` (world.ts). Zero is no telegraph: the bolt lands on the
@@ -1132,6 +1142,105 @@ export const ITEMS: Record<string, ItemDef> = {
       'Builds that want the crowd held where it is: Baggage lays more trail over a crowd that crosses it at half speed, Temper and Grudge get twice as long with everything inside, and an aimed shot through the field arrives late enough to step round.',
     tradesAway:
       'Escaping. The field is dropped where the player stands and holds the player too, so the one thing it cannot do is get anyone out of a crowd; a player caught inside it walks out at half speed with everything else.',
+  },
+
+  // --- Born at twenty-two: The Office (G-048) ------------------------------
+  //
+  // In the pool from The Office on, never before (`from`, G-039). The first
+  // item born there, and a control: the meeting's hold (OFFICE-ROSTER §3.4)
+  // turned inside out and placed by the player. It goes on `World.holds` with
+  // the meetings (`wall`), one registry for holds, owned by the player
+  // (`HoldState.owner`). PLACEHOLDER NUMBERS, every one, under OFFICE's
+  // `provisional` (the act's items): the cooldown, the seconds (`range`), the
+  // radius, each level's bonus and every path value were written to make it
+  // playable, not measured; a person playing at the link moves them. The
+  // "two minutes" in the copy is a word, not a figure: the card prints the
+  // figure from these fields (G-043).
+
+  'calendar-block': {
+    id: 'calendar-block',
+    name: 'Calendar Block',
+    kind: 'control',
+    from: 'office',
+    mode: 'field',
+    wall: true,
+    // Seconds between blocks at level 1; the generic per-level cooldown
+    // scaling (World.activeCooldown) makes every level come sooner too.
+    cooldown: 14,
+    damage: 0,
+    // Seconds it lasts, as a field's `range` is.
+    range: 2.5,
+    projectileSpeed: 0,
+    radius: 110,
+    pierce: 0,
+    // No slow: it walls, it does not hold anyone still.
+    slow: 1,
+    maxLevel: 5,
+    icon: 'block',
+    iconPending:
+      'Drawn at tools/art/svg/conception/icon-block.svg and through CHECK; the next `pnpm art:pack` puts its frame in the icon atlas and retires this note.',
+    blurb: 'Nothing gets in or out. The only two minutes nobody can book.',
+    levels: table(
+      [
+        'Nothing gets in or out. The only two minutes nobody can book.',
+        'Wider. You booked the big room.',
+        'Longer. It always runs over.',
+        'Sooner. You block it before anyone else can.',
+        'Wider and longer. The whole afternoon is taken.',
+      ],
+      { 2: { area: 1.1 }, 3: { duration: 1.2 }, 4: { cooldown: 0.9 }, 5: { area: 1.1, duration: 1.2 } },
+    ),
+    paths: [
+      {
+        id: 'recurring',
+        name: 'Recurring',
+        blurb: 'Sooner. It repeats until somebody notices.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Sooner. It is on every Tuesday now.',
+            'Sooner again. Every morning, first thing.',
+            'Sooner still. It has no end date.',
+          ],
+          {},
+          each(1, 3, { cooldown: 0.85 }),
+        ),
+      },
+      {
+        id: 'all-day',
+        name: 'All Day',
+        blurb: 'Lasts longer. Nobody asks what it was for.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Longer. It ran into lunch.',
+            'Longer again. It ran into the afternoon.',
+            'All day. It was marked busy for a reason.',
+          ],
+          {},
+          each(1, 3, { duration: 1.25 }),
+        ),
+      },
+      {
+        id: 'private',
+        name: 'Private',
+        blurb: 'Wider. The details are hidden from everyone.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Wider. The title just says busy.',
+            'Wider again. The room is booked under no name.',
+            'As wide as it goes. Nobody can see the details.',
+          ],
+          {},
+          each(1, 3, { area: 1.15 }),
+        ),
+      },
+    ],
+    enables:
+      'A breather build: for as long as it lasts nothing outside can reach the player and nothing inside can leave, so a cornered player gets a room with a fixed number of things in it, which is exactly what Temper, Personal Space and Grudge want.',
+    tradesAway:
+      'Anything but the walk: it deals nothing, slows nothing and stops no shot either way. It stays where it was put, it keeps whatever was already inside in there with the player, and a commute or a patrol walks straight through it.',
   },
 
   // --- 4.5 The classic three (G-044) --------------------------------------
