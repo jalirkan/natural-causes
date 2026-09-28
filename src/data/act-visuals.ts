@@ -4,6 +4,8 @@ import schoolAtlasPng from '../../assets/atlas/school.png';
 import schoolAtlasJson from '../../assets/atlas/school.json';
 import adolescenceAtlasPng from '../../assets/atlas/adolescence.png';
 import adolescenceAtlasJson from '../../assets/atlas/adolescence.json';
+import collegeAtlasPng from '../../assets/atlas/college.png';
+import collegeAtlasJson from '../../assets/atlas/college.json';
 
 export interface AtlasJson {
   frames: Record<string, unknown>;
@@ -38,9 +40,12 @@ export interface ActVisuals {
   bossBody?: { cy: number; r: number };
   /**
    * What an attach stack is drawn as on the player (`World.dragStacks`):
-   * the antibody in Conception, acne in Adolescence (ADOLESCENCE-ROSTER §5).
-   * Absent for an act with no attaching enemy; the scene never draws one
-   * there because the stacks come off at the crossing.
+   * the antibody in Conception, acne in Adolescence (ADOLESCENCE-ROSTER §5),
+   * the invoice in College (COLLEGE-ROSTER §3.3). Absent for an act with no
+   * attaching enemy; the scene never draws one there because the stacks come
+   * off at the crossing. Tuition's do not (`attach.persists`): the act after
+   * College inherits them, and the scene redraws every worn stack in THAT
+   * act's frame, so it needs an `attachFrame` (an invoice) of its own.
    */
   attachFrame?: string;
   /**
@@ -91,6 +96,23 @@ export const ACT_VISUALS: Record<string, ActVisuals> = {
     attachFrame: 'acne.png',
     // adolescence-light: blush, pickups only.
     pickup: 0xd6aebb,
+  },
+  college: {
+    // college-deep: burgundy.
+    background: 0x4e2233,
+    atlas: { key: 'college', png: collegeAtlasPng, json: collegeAtlasJson },
+    playerFrame: 'player-college.png',
+    bossFrame: 'boss-loan.png',
+    // The adding machine under its tape (COLLEGE-ROSTER §4). MEASURED, not
+    // read from the drawing: the machine is a box, so boss-loan.svg has no
+    // <circle> to read as Prom's does. Its teal spans 0.51–0.94 of the
+    // sprite's height and 0.12–0.88 of its width (the drawer's note in the
+    // SVG); this is the drawer's recommended circle for that box.
+    bossBody: { cy: 0.73, r: 0.3 },
+    // The worn invoice: tuition's stacks draw as tuition (§3.3).
+    attachFrame: 'tuition.png',
+    // college-light: old gold, pickups only.
+    pickup: 0xe6c98f,
   },
 };
 

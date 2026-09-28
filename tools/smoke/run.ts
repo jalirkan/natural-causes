@@ -17,7 +17,7 @@ import { createServer, type ViteDevServer } from 'vite';
  * reads NaN.
  *
  * It starts the Vite dev server, drives headless Chromium through one whole
- * life with the dev panel — god, 4x, skip to boss, kill, twice — and at every
+ * life with the dev panel — god, 4x, skip to boss, kill, once an act — and at every
  * milestone asserts: no console error, no page error, no failed request, no
  * Phaser texture warning, nothing visible drawn from `__MISSING`, no
  * NaN/undefined in any text on screen, and after the crossing the screen
@@ -371,9 +371,20 @@ async function main(): Promise<void> {
 
   await press('adolescence-boss', '1x');
   await press('adolescence-boss', 'kill');
+  p = await waitFor('college', (q) => q.act?.index === 3 && q.act.shown === 3 && q.act.zoom === 1 && hudAge(q));
+  await press('college', '4x');
+  p = await waitFor('college', (q) => q.act?.index === 3 && q.act.timeScale === 4 && populated(q));
+  await milestone('college', p, actLine(p));
+
+  await press('college-boss', 'skip to boss');
+  p = await waitFor('college-boss', (q) => !!q.act?.boss && q.act.bossSprite?.frame === q.act.bossFrame);
+  await milestone('college-boss', p, actLine(p));
+
+  await press('college-boss', '1x');
+  await press('college-boss', 'kill');
   p = await waitFor(
     'certificate',
-    (q) => !!q.act?.won && !!q.act.overlay?.includes('Natural causes.') && q.act.overlay.includes('Age 18.'),
+    (q) => !!q.act?.won && !!q.act.overlay?.includes('Natural causes.') && q.act.overlay.includes('Age 22.'),
   );
   await milestone('certificate', p, p.act!.overlay!.split('\n').slice(0, 2).join(' '));
 }

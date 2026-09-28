@@ -45,12 +45,12 @@ describe('College has a schedule, and it is provisional', () => {
     }
   });
 
-  it('is the fourth act of the life, and not yet one the browser plays', () => {
-    // In ALL_ACTS after Adolescence (G-045). Not in ACTS until its atlas, its
-    // player frame and The Loan's frame exist; content.test.ts ties ACTS to
-    // ACT_VISUALS, so moving it in is a one-line change that fails loudly.
+  it('is the fourth act of the life, and the browser plays it', () => {
+    // In ALL_ACTS after Adolescence (G-045), and in ACTS after it too, now its
+    // atlas, its player frame and The Loan's frame exist; content.test.ts ties
+    // ACTS to ACT_VISUALS and checks every frame it draws is in the atlas.
     expect(ALL_ACTS.indexOf(COLLEGE)).toBe(ALL_ACTS.indexOf(ADOLESCENCE) + 1);
-    expect(ACTS).not.toContain(COLLEGE);
+    expect(ACTS.indexOf(COLLEGE)).toBe(ACTS.indexOf(ADOLESCENCE) + 1);
   });
 
   it('runs 210 seconds from eighteen to twenty-two and ends on CONGRATULATIONS', () => {

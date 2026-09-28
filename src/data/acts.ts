@@ -411,9 +411,9 @@ export const ALL_ACTS: ActDef[] = [CONCEPTION, SCHOOL, ADOLESCENCE, COLLEGE];
  * The life the browser plays, in order: the prefix of `ALL_ACTS` with an
  * atlas, a player frame and a boss frame registered in `act-visuals.ts`.
  * School joined when its authored SVG sprites landed (G-038); its boss is the
- * Gym Teacher, picture and behaviour (SCHOOL-ROSTER §9). College waits on its
- * drawings (G-045): it has a schedule and no atlas. A test asserts this list and
- * `ACT_VISUALS` agree, so moving an act in is a one-line change that fails
- * loudly if the art is not there.
+ * Gym Teacher, picture and behaviour (SCHOOL-ROSTER §9). College joined when
+ * its seven drawings were packed (G-045), so the browser's life now ends at
+ * twenty-two. A test asserts this list and `ACT_VISUALS` agree, so moving an
+ * act in is a one-line change that fails loudly if the art is not there.
  */
-export const ACTS: ActDef[] = [CONCEPTION, SCHOOL, ADOLESCENCE];
+export const ACTS: ActDef[] = [CONCEPTION, SCHOOL, ADOLESCENCE, COLLEGE];
