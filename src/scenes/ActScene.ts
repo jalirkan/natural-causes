@@ -1920,6 +1920,11 @@ export class ActScene extends Phaser.Scene {
    * The meeting's own sprite is the ring of chairs, so its frame is drawn at
    * twice the live radius and the chairs sit on the edge as it closes. Until
    * the drawing lands in the act's atlas the ring is drawn alone.
+   *
+   * A hold the player put down (Calendar block, `owner: 'player'`) has no
+   * enemy def behind it: it is drawn as Snooze's field is, a bone ring at the
+   * radius it walls at, fading as it runs out, with the card's icon where it
+   * was put. Never the elite purple: that is the meeting's.
    */
   private syncHolds(): void {
     const list = this.world.holds;
@@ -1928,6 +1933,22 @@ export class ActScene extends Phaser.Scene {
     this.fit(this.holdChairs, list.length, () => this.add.image(0, 0, atlas).setDepth(3));
     for (let i = 0; i < list.length; i++) {
       const h = list[i]!;
+      const item = h.owner === 'player' ? ITEMS[h.source] : undefined;
+      if (item) {
+        const fade = 1 - h.age / (h.seconds + h.holdSeconds);
+        const [key, frame] = this.iconTexture(item.icon, item.name);
+        this.holdRings[i]!.setPosition(h.x, h.y)
+          .setRadius(h.radius)
+          .setFillStyle(PAPER, 0.06 * fade)
+          .setStrokeStyle(3, BONE, 0.25 + 0.4 * fade)
+          .setVisible(true);
+        this.holdChairs[i]!.setTexture(key, frame)
+          .setPosition(h.x, h.y)
+          .setDisplaySize(40, 40)
+          .setAlpha(0.8 * fade)
+          .setVisible(true);
+        continue;
+      }
       this.holdRings[i]!.setPosition(h.x, h.y)
         .setRadius(h.radius)
         .setFillStyle(THREAT_ELITE, 0.06)
@@ -1940,6 +1961,7 @@ export class ActScene extends Phaser.Scene {
           .setTexture(atlas, frame)
           .setPosition(h.x, h.y)
           .setDisplaySize(h.radius * 2, h.radius * 2)
+          .setAlpha(1)
           .setVisible(true);
       } else {
         chairs.setVisible(false);

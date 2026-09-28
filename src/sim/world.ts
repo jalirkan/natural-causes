@@ -600,8 +600,18 @@ export interface HoldState {
   holdSeconds: number;
   age: number;
   slow: number;
-  /** The enemy id it was spawned as. The renderer draws that def's frame. */
+  /**
+   * The enemy id it was spawned as, and the renderer draws that def's frame;
+   * for a player's hold, the item id that placed it.
+   */
   source: string;
+  /**
+   * Absent for an enemy's hold (the meeting). `'player'` for one an item put
+   * down (Calendar block's `wall`, OFFICE's first item): the same wall on the
+   * same list, with no enemy def behind `source`, so the renderer draws the
+   * item's icon for it instead of chairs.
+   */
+  owner?: 'player';
 }
 
 /**
@@ -2127,6 +2137,30 @@ export class World {
         return true;
       }
       case 'field': {
+        if (def.wall) {
+          // Calendar block: the meeting's hold turned inside out, put down
+          // where the player stands and left there. On `holds` with the
+          // meetings, so the one wall (`wallHolds`) keeps the crowd outside
+          // out and the crowd inside in, and never the player; it does not
+          // contract (`from` is `to`, no `seconds`) and ends `holdSeconds`
+          // later (`updateHolds`). Its `slow` of 1 holds nothing still
+          // (`slowInHolds` skips it). No dice.
+          const r = radius * reach;
+          this.holds.push({
+            x: this.x,
+            y: this.y,
+            radius: r,
+            from: r,
+            to: r,
+            seconds: 0,
+            holdSeconds: def.range * bonus.duration,
+            age: 0,
+            slow: def.slow ?? 1,
+            source: def.id,
+            owner: 'player',
+          });
+          return true;
+        }
         // Snooze: the attractor's area, dropped where the player stands, with
         // a hold instead of a pull. Movement reads it (`slowAt`); nothing that
         // deals damage does, because its damage is zero.

@@ -259,7 +259,10 @@ function activeTerms(def: ActiveItem, level: number, b: Required<LevelBonus>): A
       break;
     case 'field':
       terms = [
-        def.slow !== undefined && finite(def.slow) ? `slows to ${Math.round(def.slow * 100)}%` : null,
+        // Calendar block (The Office): a hold that walls rather than slows.
+        def.wall && within ? `walls within ${px(radius)}` : null,
+        // A slow of 1 holds nothing still, so it is not printed.
+        def.slow !== undefined && finite(def.slow) && def.slow < 1 ? `slows to ${Math.round(def.slow * 100)}%` : null,
         lasts,
         every,
       ];

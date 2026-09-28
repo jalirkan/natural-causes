@@ -859,6 +859,28 @@ export const ITEM_ICONS: AssetSpec[] = [
       'flat muted dusty rose case, pale warm face, bar and z',
     ].join(', '),
   },
+  // --- The Office (G-048): Calendar block ---------------------------------
+  // The first item born at twenty-two is drawn, like Snooze. Its icon also
+  // marks its hold on the field where it was put (ActScene syncHolds, 40px),
+  // so it keeps to rose, bone and ink: never the elite purple the meeting's
+  // chairs wear, since this ring is the meeting's wall turned inside out.
+  {
+    id: 'icon-block',
+    name: 'Calendar Block icon',
+    act: 'conception',
+    role: 'icon',
+    fieldRiding: true,
+    source: 'svg',
+    targetSize: 96,
+    seed: 61048,
+    tests: 'a calendar page with one day struck through, read at 52px on a card and 40px on its hold, never a grid of numbers',
+    subject: [
+      'one wall-calendar page seen flat and straight on, a sheet a little taller than it is wide, with two binder rings standing up off its top edge and a solid header band under them',
+      'below the band a grid of nine plain day cells, three by three, with no numbers, the middle one filled in and struck through with one bold diagonal bar',
+      'flat muted dusty rose header band and filled day, pale warm sheet, rings and cells, dark lines between the cells and the one strike',
+      'no text, no numbers, no figure, no clock, no purple',
+    ].join(', '),
+  },
   // Personal Space (G-044) is drawn. Its icon also rides the aura ring on the
   // field (about 32px), so it keeps to rose, bone and ink as Grudge does.
   {
