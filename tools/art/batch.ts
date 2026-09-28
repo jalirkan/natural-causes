@@ -679,80 +679,88 @@ export const SCHOOL_ROSTER: AssetSpec[] = [
  * instead of programmer line-art.
  *
  * The subjects are OBJECTS FROM THE LIFE, not game abstractions — the items
- * are the life script and the icons say so: a printer's pointing hand for the
- * reflex weapon, a sneaker for Youth, an umbrella for Adulthood, an alarm
+ * are the life script and the icons say so: a kid's pointing hand for the
+ * reflex weapon (G-054), a sneaker for Youth, an umbrella for Adulthood, an alarm
  * clock for the late bloomer. All conditions and objects; D-007 applies to
  * icons exactly as it does to enemies.
  */
 export const ITEM_ICONS: AssetSpec[] = [
+  // G-054: the weapons are the kid's things, drawn in G-053's greeting-card
+  // register. The ones that ride the field keep off paper, every threat
+  // colour and every light tone (law 10), so each glint is bone, not paper,
+  // and a mass that is itself bone carries none.
   {
     id: 'icon-strike',
-    name: 'Lash icon',
+    name: 'Pointing icon',
     act: 'conception',
     role: 'icon',
     fieldRiding: true,
     source: 'svg',
     targetSize: 96,
     seed: 61011,
-    tests: 'a manicule that reads at 40px on an ink card',
+    tests: "a kid's hand pointing, read at 52px on a card and 30px flying at the nearest thing, never a printer's manicule",
     subject: [
-      'a vintage printed pointing-hand ornament, a manicule, one hand with the index finger extended pointing to the right',
-      'a simple shirt cuff at the wrist, seen perfectly flat as printed on a page, filling most of the frame',
-      'flat muted dusty rose hand, pale warm cuff, dark interior lines between the fingers',
+      "a chubby child's hand, round as a mitten, pointing to the right, filling most of the frame",
+      'one short fat index finger held straight out, the thumb a round nub lying along its top, three curled fingers stacked below, a sweater cuff at the wrist',
+      'flat muted dusty rose (#A86A63) hand with one small pale warm (#D2C6AC) glint on its back, pale warm cuff, dark (#2A2521) lines where the fingers and thumb meet the hand',
+      'no face, no paper white, no red, no text',
     ].join(', '),
   },
   {
     id: 'icon-pierce',
-    name: 'Motility icon',
+    name: 'Spitball icon',
     act: 'conception',
     role: 'icon',
     fieldRiding: true,
-    // Drawn, not generated: fal's dart came back ranged gold, and Stubbornness
-    // fires this icon as its shot (G-036), so it keeps to bone, rose and ink.
+    // The straight shot wears it (G-036), so the wad is bone, never paper.
     source: 'svg',
     targetSize: 96,
     seed: 61022,
-    tests: 'a sleek dart, long and slender, unmistakably a paper aeroplane, read at 52px on a card and 42px in flight',
+    tests: 'a wet wad of notebook paper, read at 52px on a card and 42px in flight, never a cloud, a walnut or a stone',
     subject: [
-      'a folded paper dart made from a single sheet of folded paper, seen from directly above, a slim elegant triangle with the point to the right, filling most of the frame',
-      'two flat wing panels meeting at a centre crease, nothing but folded paper, not an aircraft, no fuselage, no tail, no engines',
-      'the sheet in flat pale warm tan (#D2C6AC) with one narrow flat dusty rose (#A86A63) shadow panel along the centre crease and the crease one dark warm near-black (#2A2521) line, no gold, no yellow, no paper white, no pale pink, no red',
+      'a wet wad of chewed notebook paper flying to the right, one slightly squashed ball, filling most of the frame',
+      'balled up into three rounded facets, the ruled lines of the page running a different way on each, one long crease corner to corner and one meeting it from the side',
+      'three small wet flecks flying off behind it',
+      'flat pale warm tan (#D2C6AC) wad and flecks, the ruled lines and the soaked lower right side in warm grey-brown (#6E6353), the creases warm near-black (#2A2521)',
+      'no face, no paper white, no blue, no red, no text',
     ].join(', '),
   },
   {
     id: 'icon-burst',
-    name: 'Acrosome icon',
+    name: 'Spilt Milk icon',
     act: 'conception',
     role: 'icon',
     fieldRiding: true,
     source: 'svg',
     targetSize: 96,
     seed: 61013,
-    tests: 'a starburst that stays a badge and never becomes a sun',
+    tests: 'a splat of spilt milk with its cup, read at 52px on a card and as the pop round the player, never a cloud, a germ or a sun',
     subject: [
-      'a retail price-tag starburst badge with about twelve irregular points, seen perfectly flat, filling most of the frame',
-      'flat muted dusty rose outer starburst with a smaller flat pale warm starburst inset inside it, a dark interior edge round the inset, no text, no numbers, no face',
+      'spilt milk seen from above: one big splat thrown out every way at once, filling most of the frame',
+      'uneven splashes reaching out from its edge, some long and thin, some short and fat, each ending round, and drops stretched along the way they fly',
+      "a child's sippy cup tipped over on its side at the lower left, its spout in the milk, no handles, a small surprised face on the cup with two dark eyes, blush cheeks and a round little mouth",
+      'flat pale warm tan (#D2C6AC) milk, dusty rose (#A86A63) cup with one pale warm glint, deep wine (#6B3A44) lid and spout, blush (#EBA39C) cheeks, warm near-black (#2A2521) eyes, mouth and the edge where the cup lies in the milk',
+      'no paper white, no red, no gold, no text',
     ].join(', '),
   },
-  // Drawn, not generated (G-038). Baggage stamps this on the field behind the
-  // player (G-036; ActScene syncAreas, 26px), and the generated sole was
-  // contact red all over, so the player's own trail read as a threat. It
-  // keeps to rose, bone and ink as Rut's slippers do, and stays a bare foot.
+  // Legos (G-054). The trail stamps this on the field behind the player
+  // (G-036; ActScene syncAreas, 26px), so the toy's red is rose here: contact
+  // red on the player's own trail would read as a threat.
   {
     id: 'icon-trail',
-    name: 'Wake icon',
+    name: 'Legos icon',
     act: 'conception',
     role: 'icon',
     fieldRiding: true,
     source: 'svg',
     targetSize: 96,
     seed: 61034,
-    tests: 'one bare footprint, read at 52px on a card and 26px stamped along a trail, never footwear',
+    tests: 'one toy brick, two studs by two, read at 52px on a card and 26px stamped along a trail, never a tile or a box',
     subject: [
-      'a bare footprint pressed in sand, seen from directly above, toes pointing up, as on a beach safety sign',
-      'one smooth foot-sole shape narrow at the arch and wide at the ball, with five fat round toe dots arranged in an arc above it',
-      'flat muted dusty rose (#A86A63) sole and toes, a muted tan (#D2C6AC) mark in the hollow of the inner arch, a warm near-black (#2A2521) edge where the ball meets the arch',
-      'no red, no pale paper tone, no light rose, no shoe, no sandal, no slipper, no text',
+      'one chunky plastic toy building brick, two studs by two, seen from low and a little to one side so all four round studs stand up along its top, filling most of the frame',
+      'rounded corners and straight sides, the front face lit, the side face in shadow, one small glint on the front',
+      'flat dusty rose (#A86A63) brick and studs, deep wine (#6B3A44) side face, one pale warm (#D2C6AC) glint, warm near-black (#2A2521) lines where the faces meet and round each stud',
+      'no face, no red, no paper white, no logo, no text',
     ].join(', '),
   },
   {
@@ -816,23 +824,46 @@ export const ITEM_ICONS: AssetSpec[] = [
     ].join(', '),
   },
   // G-038: the three icons added with Grudge, Gossip and Appetite are drawn,
-  // not generated. Grudge's and Gossip's also fly on the field (the orbiter
-  // and the shot wear the card's icon, G-036), so both keep to rose, bone and
-  // ink: no threat colour, no paper, no pickup tone. Appetite is card-only.
+  // not generated. Grudge's (the Mobile's star since G-054) and Gossip's also
+  // fly on the field (the orbiter and the shot wear the card's icon, G-036),
+  // so both keep off every threat colour, paper and every pickup tone.
+  // Appetite is card-only.
   {
     id: 'icon-orbit',
-    name: 'Grudge icon',
+    name: 'Mobile icon',
     act: 'conception',
     role: 'icon',
     fieldRiding: true,
     source: 'svg',
     targetSize: 96,
     seed: 61019,
-    tests: 'a fist that keeps going round, read at 52px on a card and 36px circling the player',
+    tests: 'one smiling star from a crib mobile, read at 52px on a card and 36px circling the player, never a badge or a medal',
     subject: [
-      'a clenched fist seen knuckles-on, four finger rolls over a short palm, the thumb folded across the front, no forearm',
-      'standing in a tilted orbit ring that passes behind it and across its foot, one bead riding the ring',
-      'flat muted dusty rose fist, pale warm ring and bead, dark interior lines between the fingers',
+      'one fat five-pointed star from a crib mobile, every point rounded, hanging point-up on a short ribbon tied off in a loop, filling most of the frame',
+      'a small pleased face: two big dark eyes each with one pale glint, a blush oval under each eye, a little smile',
+      'flat pale warm tan (#D2C6AC) star with one warm grey-brown (#6E6353) shadow along its lower right edges, dusty rose (#A86A63) ribbon and loop, blush (#EBA39C) cheeks, warm near-black (#2A2521) eyes and smile',
+      'no paper white, no gold, no yellow, no red, no text',
+    ].join(', '),
+  },
+  // G-054's new weapon: Cry, the ring from the player that shoves and stuns.
+  // Its icon is held at the top of the expanding ring on the field, so it
+  // rides the field and keeps off paper, every threat colour and every light
+  // tone: the drop is bone, the lightest colour a rider may wear.
+  {
+    id: 'icon-cry',
+    name: 'Cry icon',
+    act: 'conception',
+    role: 'icon',
+    fieldRiding: true,
+    source: 'svg',
+    targetSize: 96,
+    seed: 61052,
+    tests: 'one teardrop with a worried little face, read at 52px on a card and about 36px riding the top of the ring, never a flame, an onion or a ghost',
+    subject: [
+      'one big teardrop seen straight on, the point up and rounded, the belly round below, filling most of the frame',
+      'a faintly worried little face on the belly: two big dark eyes each with one pale glint, brows lifted in the middle, a blush oval under each eye, a small wobbly mouth',
+      'flat pale warm tan (#D2C6AC) drop with one warm grey-brown (#6E6353) shadow along its lower right, blush (#EBA39C) cheeks, warm near-black (#2A2521) eyes, brows and mouth',
+      'no paper white, no red, no gold, no text',
     ].join(', '),
   },
   {

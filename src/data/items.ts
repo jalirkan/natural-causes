@@ -57,7 +57,9 @@ export type ItemIcon =
   // Born in Family (G-050): the Strongly Worded Letter.
   | 'letter'
   // Born in Decline (G-051): the Nap's armchair, empty.
-  | 'nap';
+  | 'nap'
+  // G-054's new weapon: Cry's teardrop, held at the top of its ring.
+  | 'cry';
 
 interface ItemBase {
   id: string;
