@@ -154,17 +154,19 @@ export interface ReorgBoss {
 /**
  * The Mortgage (FAMILY-ROSTER §4): paid on a schedule, not in a hurry. Its
  * health is BOSS_HP owed in `instalments` equal parts; time runs in windows of
- * `instalmentSeconds`, damage in a window counts toward that window's
- * instalment only and caps at one — no prepayment, the overflow is lost — so
- * the fight lasts at least `instalments × instalmentSeconds` whatever the
- * build. At every window's end a `roomId` (the act's static, solid, merging
- * room) lands at the player's lead, and a missed window also sends one
- * `feeId` (the act's bill) from the door. Its statement is one aimed shot on
- * the Egg's timings. Never shields, never raced for, never moves. Every
- * number is a placeholder.
- *
- * DECLARED, NOT YET BUILT: world.ts runs this kind as the Egg (its fan, its
- * timings, BOSS_HP) until the instalments, the rooms and the fees exist.
+ * `instalmentSeconds` from its arrival, damage in a window counts toward that
+ * window's instalment only and caps at one — no prepayment, the overflow is
+ * lost — so the fight lasts at least `instalments × instalmentSeconds`
+ * whatever the build. A window whose instalment was met is paid; one short of
+ * it is missed and what it took is given back, so the balance does not move.
+ * It falls at the end of the window that pays the last instalment, not on the
+ * hit. At every other window's end a `roomId` (the act's static, solid,
+ * merging room) lands at the player's lead — behind them instead at a wall
+ * they face, where the lead would land on them — and a missed window also
+ * sends one `feeId` (the act's bill) from the door, straight below it. Its
+ * statement is one aimed shot, the Egg's, on the Egg's timings. Never
+ * shields, never raced for, never moves, and draws no dice. Every number is a
+ * placeholder.
  */
 export interface MortgageBoss {
   kind: 'mortgage';
@@ -507,16 +509,15 @@ export const FAMILY: ActDef = {
   // FAMILY-ROSTER §4: BOSS_HP owed in `instalments` windows of
   // `instalmentSeconds`, capped at one instalment a window; a `roomId` lands
   // at every window's end and a missed window sends a `feeId`. Every number
-  // is a PLACEHOLDER under `provisional`. Not built yet: world.ts runs the
-  // kind as the Egg (fan, timings, BOSS_HP) until the next agent builds the
-  // instalments, the rooms and the fees.
+  // is a PLACEHOLDER under `provisional`; its statement is the Egg's shot on
+  // the Egg's timings, one at a time.
   boss: { kind: 'mortgage', instalments: 12, instalmentSeconds: 5, roomId: 'room', feeId: 'bill' },
   // The door opens, and the act ends on one word.
   endWord: 'EQUITY',
   age: { from: 34, to: 55 },
   // No race: nobody else wants the house.
   provisional:
-    "Every rate, time and enemy number here, the bill's late fees (`accrue`: one each 8s it is alive, 2 at most, each set down touching it across its line to the player), the HOA letter's cost to reach (`attach.pickup`, 0.93 of the pickup radius a notice, persisting), the toddler's coyness (`coy`: 1.6 while the player moves away, 0.5 while they approach) and its hold (`engulf`: 3s at 0.3 speed, no damage, every cooldown at `engulf.cooldownMultiplier` 1.4, then `releases`), the phone's pull (`ranged.pull`, 180px toward it, after its 0.3s `ranged.stun`), and The Mortgage's numbers (`boss.instalments` 12, `instalmentSeconds` 5) were written as placeholders before anyone played the act (FAMILY-ROSTER §3.6 and §4), and until its instalments, rooms and fees are built The Mortgage fights with the Egg's fan, telegraph, idle, shot and BOSS_HP, unplayed; a person playing it at the link is what moves them (D-022).",
+    "Every rate, time and enemy number here, the bill's late fees (`accrue`: one each 8s it is alive, 2 at most, each set down touching it across its line to the player), the HOA letter's cost to reach (`attach.pickup`, 0.93 of the pickup radius a notice, persisting), the toddler's coyness (`coy`: 1.6 while the player moves away, 0.5 while they approach) and its hold (`engulf`: 3s at 0.3 speed, no damage, every cooldown at `engulf.cooldownMultiplier` 1.4, then `releases`), the phone's pull (`ranged.pull`, 180px toward it, after its 0.3s `ranged.stun`), and all of The Mortgage's numbers (`boss.instalments` 12 of BOSS_HP, `instalmentSeconds` 5, one room a window at the lead, one bill a missed window, and the Egg's idle, telegraph, shot speed and damage its one-shot statement borrows) were written as placeholders before anyone played the act (FAMILY-ROSTER §3.6 and §4); a person playing it at the link is what moves them (D-022).",
   // FAMILY-ROSTER.md §3.6, transcribed. The ORDER is the design and is under
   // test (family-act.test.ts): age runs 34 to 55, a year every seven seconds.
   // Bills from 0s, the first month; the flat-pack's stream at 20s (37), then
