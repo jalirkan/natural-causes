@@ -546,6 +546,7 @@ Gossip): the renderer tests `hostile` before `source` and the tallies key on
 - **A car's reversal drops its overshoot**, like the hall monitor's: same
   line and speed at every rate, but after 96s the car is 43px further along
   it at 144Hz than at 30 and 60Hz.
+  *Fixed 2026-09-28:* the reversal reflects the overshoot (patrol and bounce); the car ends within 2px at 30, 60 and 144Hz (`audit.test.ts`, part five, minor).
 - **The bots' sidestep cancels between two ring spots** (inside ~175px of the
   ball the two neighbours both threaten and their pushes sum to ≤0.39,
   outward along the spots): 133 steps over 42 fights with death off, no hit in

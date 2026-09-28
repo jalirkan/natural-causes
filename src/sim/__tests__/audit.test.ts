@@ -388,3 +388,51 @@ describe('part four, fixed', () => {
     expect(v.raceAbsorbed).toBe(0);
   });
 });
+
+/**
+ * Part five, 2026-09-28 (AUDIT.md), "Left, minor" — the ones fixed since.
+ */
+describe('part five, minor', () => {
+  /** No schedule, so nothing is on the field but what the test places there. */
+  const EMPTY: ActDef = {
+    id: 'audit-fixture',
+    name: 'Fixture',
+    durationSeconds: 300,
+    bossName: 'Fixture',
+    boss: { kind: 'egg' },
+    age: { from: 0, to: 0 },
+    waves: [],
+  };
+
+  it("a car's reversal carries its overshoot: the same place after 96s at 30, 60 and 144Hz", () => {
+    // The reversal flipped the velocity and kept the position, so the car
+    // turned round wherever the frame left it past the edge and drove that
+    // overshoot twice: a lag of up to two steps' travel per reversal, which
+    // is a function of the frame rate. After 96s the car was 43px further
+    // along its line at 144Hz than at 30 and 60Hz.
+    const def = ENEMIES['drivers-ed']!;
+    expect(def.movement).toBe('cross');
+    expect(def.patrol).toBe(true);
+    const endX = (hz: number): number => {
+      const w = new World({ act: EMPTY, seed: 1, startingItems: [] });
+      // A horizontal line far above the player, so nothing touches the car.
+      const e = {
+        uid: 3_000_000, hitBySerial: 0, hitByAreaSerial: 0, def, x: 1600, y: 200,
+        vx: def.speed, vy: 0, hp: def.hp, age: 0, hitFlash: 0, radius: def.radius,
+        displaySize: def.displaySize, xp: def.xp, consult: 0, reload: 0,
+      };
+      w.enemies.push(e);
+      for (let i = 0; i < 96 * hz; i++) {
+        w.step(1 / hz, { moveX: 0, moveY: 0 });
+        w.hp = w.maxHp;
+      }
+      expect(w.enemies, `${hz}Hz: the car left`).toContain(e);
+      expect(e.y, `${hz}Hz: the car left its line`).toBe(200);
+      return e.x;
+    };
+    const [a, b, c] = [30, 60, 144].map(endX) as [number, number, number];
+    expect(Math.abs(a - b), `${a.toFixed(1)} at 30Hz vs ${b.toFixed(1)} at 60Hz`).toBeLessThan(2);
+    expect(Math.abs(b - c), `${b.toFixed(1)} at 60Hz vs ${c.toFixed(1)} at 144Hz`).toBeLessThan(2);
+    expect(Math.abs(a - c), `${a.toFixed(1)} at 30Hz vs ${c.toFixed(1)} at 144Hz`).toBeLessThan(2);
+  });
+});
