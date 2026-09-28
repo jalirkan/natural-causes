@@ -1,18 +1,75 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100">
   <title>Clique</title>
-  <desc>One fused lumpy body with four heads, all wearing the same face and looking the same way.</desc>
-  <!-- One body. The heads grow out of it; there is no gap to walk through. -->
-  <path d="M6 98 C4 72 10 56 20 50 L100 50 C110 56 116 72 114 98 Z" fill="#6B7F53"/>
-  <path d="M6 98 C5 86 7 80 10 76 L110 76 C113 80 115 86 114 98 Z" fill="#6E6353"/>
-  <circle cx="24" cy="42" r="17" fill="#D2C6AC"/>
-  <circle cx="50" cy="34" r="17" fill="#D2C6AC"/>
-  <circle cx="75" cy="39" r="17" fill="#D2C6AC"/>
-  <circle cx="98" cy="45" r="16" fill="#D2C6AC"/>
-  <!-- The same face four times, all turned to the right. -->
+  <desc>One soft round fused body with four big round heads on top, every head wearing the same pleased face and all looking the same way, and a row of little feet underneath.</desc>
+  <!--
+    Clique (SCHOOL-ROSTER section 3.1), in the greeting-card register
+    (ART-DIRECTION section 2026-09-28, G-053). Kid proportions: big heads,
+    one soft round body, stubby feet.
+
+    Silhouette (law 11): the cluster. The only silhouette with more than one
+    head; one wide lumpy mass, fused at the shoulders, with no gap anywhere
+    to walk through. It is one enemy, not a group, so the body is a single
+    outline and the heads sit on it rather than beside each other.
+
+    No threat colour: contact red is the dodgeball's in School. The act's
+    mid green, with the one shadow tone across the lower third. The heads
+    are the act's mid green, the way School draws a person: no hair (the
+    cowlick is the player's), no features beyond the face (D-007). Each head
+    wears exactly the same face, turned the same way and not at the player:
+    two big ink eyes with one bone glint each, blush, a small pleased mouth.
+    The joke is the same face four times. One bone glint per mass, upper
+    left: one on each head and one on the body, never paper (law 10).
+    An ink rim of the outline's weight parts each head from the body and
+    from its neighbour, since all of them are the same green.
+    CONFORM adds the outline; there is none here and no strokes.
+    Colours: school-mid #6B7F53, shadow #6E6353, ink #2A2521, bone #D2C6AC,
+    blush #EBA39C.
+  -->
+  <defs>
+    <clipPath id="body">
+      <path d="M16,92 Q7,92 7.5,80 C8,62 14,50 28,47 L92,47 C106,50 112,62 112.5,80 Q113,92 104,92 Z"/>
+    </clipPath>
+    <!-- the one face, turned left; drawn once and worn by every head -->
+    <g id="face">
+      <ellipse cx="-8.2" cy="1" rx="4.3" ry="5.1" fill="#2A2521"/>
+      <ellipse cx="2.2" cy="1" rx="4.3" ry="5.1" fill="#2A2521"/>
+      <circle cx="-9.8" cy="-1.2" r="1.7" fill="#D2C6AC"/>
+      <circle cx="0.6" cy="-1.2" r="1.7" fill="#D2C6AC"/>
+      <ellipse cx="-11" cy="8.4" rx="2.7" ry="1.8" fill="#EBA39C"/>
+      <ellipse cx="6.6" cy="8.4" rx="2.7" ry="1.8" fill="#EBA39C"/>
+      <path d="M-5.8,7.6 Q-3,12 -0.2,7.6 Q-3,9.6 -5.8,7.6 Z" fill="#2A2521"/>
+      <!-- the head's one glint -->
+      <ellipse cx="-10" cy="-8.8" rx="1.8" ry="1.2" transform="rotate(-40 -10 -8.8)" fill="#D2C6AC"/>
+    </g>
+  </defs>
+  <!-- little feet, a pair under each head -->
   <g fill="#2A2521">
-    <ellipse cx="27" cy="40" rx="2.6" ry="4"/><ellipse cx="35" cy="40" rx="2.6" ry="4"/><rect x="28" y="49" width="7" height="2.6" rx="1.2"/>
-    <ellipse cx="53" cy="32" rx="2.6" ry="4"/><ellipse cx="61" cy="32" rx="2.6" ry="4"/><rect x="54" y="41" width="7" height="2.6" rx="1.2"/>
-    <ellipse cx="78" cy="37" rx="2.6" ry="4"/><ellipse cx="86" cy="37" rx="2.6" ry="4"/><rect x="79" y="46" width="7" height="2.6" rx="1.2"/>
-    <ellipse cx="101" cy="43" rx="2.6" ry="4"/><ellipse cx="108" cy="43" rx="2.6" ry="4"/><rect x="101" y="52" width="7" height="2.6" rx="1.2"/>
+    <ellipse cx="15" cy="93" rx="5.5" ry="4.2"/>
+    <ellipse cx="26" cy="93.5" rx="5.5" ry="4.2"/>
+    <ellipse cx="41" cy="93.5" rx="5.5" ry="4.2"/>
+    <ellipse cx="52" cy="93" rx="5.5" ry="4.2"/>
+    <ellipse cx="67" cy="93" rx="5.5" ry="4.2"/>
+    <ellipse cx="78" cy="93.5" rx="5.5" ry="4.2"/>
+    <ellipse cx="93" cy="93.5" rx="5.5" ry="4.2"/>
+    <ellipse cx="104" cy="93" rx="5.5" ry="4.2"/>
   </g>
+  <!-- one body -->
+  <path d="M16,92 Q7,92 7.5,80 C8,62 14,50 28,47 L92,47 C106,50 112,62 112.5,80 Q113,92 104,92 Z" fill="#6B7F53"/>
+  <rect x="0" y="81" width="120" height="12" fill="#6E6353" clip-path="url(#body)"/>
+  <!-- the body's one glint -->
+  <ellipse cx="11.6" cy="68" rx="2" ry="1.4" transform="rotate(-60 11.6 68)" fill="#D2C6AC"/>
+  <!-- four heads, left to right, each rimmed in ink and in front of the one
+       before it; the same face on each, all turned the same way -->
+  <ellipse cx="20" cy="38" rx="19.1" ry="17.6" fill="#2A2521"/>
+  <ellipse cx="20" cy="38" rx="16.5" ry="15" fill="#6B7F53"/>
+  <use href="#face" transform="translate(20 38)"/>
+  <ellipse cx="46" cy="31" rx="19.1" ry="17.6" fill="#2A2521"/>
+  <ellipse cx="46" cy="31" rx="16.5" ry="15" fill="#6B7F53"/>
+  <use href="#face" transform="translate(46 31)"/>
+  <ellipse cx="72" cy="35" rx="19.1" ry="17.6" fill="#2A2521"/>
+  <ellipse cx="72" cy="35" rx="16.5" ry="15" fill="#6B7F53"/>
+  <use href="#face" transform="translate(72 35)"/>
+  <ellipse cx="98" cy="40" rx="19.1" ry="17.6" fill="#2A2521"/>
+  <ellipse cx="98" cy="40" rx="16.5" ry="15" fill="#6B7F53"/>
+  <use href="#face" transform="translate(98 40)"/>
 </svg>
