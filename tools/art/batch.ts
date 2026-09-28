@@ -701,12 +701,13 @@ export const ITEM_ICONS: AssetSpec[] = [
     act: 'conception',
     role: 'icon',
     fieldRiding: true,
+    source: 'svg',
     targetSize: 96,
     seed: 61015,
     tests: 'the classroom magnet, instantly legible',
     subject: [
       'a classic horseshoe magnet with two clean parallel arms of even width and a smooth semicircular bend, pole tips pointing downward, seen perfectly flat, filling most of the frame',
-      'flat muted brick red body with flat pale warm rectangular tips',
+      'flat muted dusty rose horseshoe with flat pale warm rectangular tips, one dark line where each tip meets its arm',
     ].join(', '),
   },
   {

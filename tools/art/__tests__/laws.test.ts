@@ -148,15 +148,6 @@ describe('law 10 — a field-riding icon wears nothing reserved on the field', (
       },
     ],
     [
-      'icon-pull',
-      {
-        colours: ['conception-light', 'threat-contact'],
-        reason:
-          "Charisma's horseshoe magnet (chemotaxis), planted on the field: contact red body " +
-          '(2552 of 3888 px), conception-light (13 px).',
-      },
-    ],
-    [
       'icon-burst',
       {
         colours: ['conception-light', 'threat-contact', 'threat-ranged'],
