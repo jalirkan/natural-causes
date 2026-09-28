@@ -50,18 +50,24 @@ import {
   type ProjectileState,
 } from '../sim/world';
 import {
+  SPILT_MILK,
   borrowsAhem,
   consulting,
+  criesBegun,
+  criesOf,
   holdArrived,
   holdTaken,
   instalmentPaid,
   meetingCloses,
   memoDrafted,
   newestAbove,
+  splatAbove,
   statementDrafted,
+  sweepsSwung,
   timeTicks,
   vehiclesEntered,
   wornGained,
+  youngestCry,
 } from './edges';
 import {
   BONE,
@@ -306,6 +312,11 @@ export class ActScene extends Phaser.Scene {
   /** Sweep wedges (Backhand), redrawn every frame, and the hand crossing each. */
   private sweepFx!: Phaser.GameObjects.Graphics;
   private sweepIcons: Phaser.GameObjects.Image[] = [];
+  /** The Cry's rings (G-054), redrawn every frame under the crowd, and its icon riding each crest. */
+  private cryFx!: Phaser.GameObjects.Graphics;
+  private cryIcons: Phaser.GameObjects.Image[] = [];
+  /** Spilt Milk's puddles (G-054), redrawn every frame under everything but the floor. */
+  private puddleFx!: Phaser.GameObjects.Graphics;
   private attachedSprites: Phaser.GameObjects.Image[] = [];
   private bossSprite?: Phaser.GameObjects.Image;
   /** Prom's dance floor, drawn as a ring at floorRadius; only while its boss stands. */
@@ -386,7 +397,7 @@ export class ActScene extends Phaser.Scene {
    * way it notices everything else: by reading state and diffing. `worn` and
    * `holds` are copies, never the world's live map and array.
    */
-  private heard = { kills: 0, hp: 0, worn: new Map() as ReadonlyMap<string, number>, offers: false, boss: false, dead: false, won: false, xp: 0, level: 1, raced: 0, shot: 0, homework: 0, stun: 0, bossPhase: '', typing: 0, car: 0, bell: 0, interestIn: 0, time: 0, auraAt: -Infinity, holds: [] as readonly HoldState[], restructures: 0, bill: 0, ringing: 0, engulf: 0, paid: 0, medication: 0, denying: 0, secondsLeft: 0, filed: 0 };
+  private heard = { kills: 0, hp: 0, worn: new Map() as ReadonlyMap<string, number>, offers: false, boss: false, dead: false, won: false, xp: 0, level: 1, raced: 0, shot: 0, homework: 0, stun: 0, bossPhase: '', typing: 0, car: 0, bell: 0, interestIn: 0, time: 0, auraAt: -Infinity, holds: [] as readonly HoldState[], restructures: 0, bill: 0, ringing: 0, engulf: 0, paid: 0, medication: 0, denying: 0, secondsLeft: 0, filed: 0, cries: 0, youngestCry: Infinity, splat: 0 };
 
   /**
    * How long this run held each heading (§12.4's sixth question). Fed the
@@ -511,6 +522,7 @@ export class ActScene extends Phaser.Scene {
     this.auraRings = [];
     this.auraIcons = [];
     this.sweepIcons = [];
+    this.cryIcons = [];
     this.attachedSprites = [];
     delete this.bossSprite;
     delete this.bossHand;
@@ -541,6 +553,10 @@ export class ActScene extends Phaser.Scene {
     this.playerFx = this.add.graphics().setDepth(9);
     // Under the crowd, so what the swing hits is drawn on top of it.
     this.sweepFx = this.add.graphics().setDepth(4);
+    // The Cry's band likewise, so what it shoves is drawn over it; the milk
+    // lies on the floor, under the gems (3) and every area's ring (2).
+    this.cryFx = this.add.graphics().setDepth(4);
+    this.puddleFx = this.add.graphics().setDepth(1.5);
     // Over the crowd, so a marked enemy's hit flash does not dim its band, and
     // under the boss (6), whose band lies under its drawing (`syncMarks`).
     this.markFx = this.add.graphics().setDepth(5.5);
@@ -620,7 +636,7 @@ export class ActScene extends Phaser.Scene {
     // begins one, is tainted before its first step and on every restart of
     // it (D-030): R cannot make a life begun at Family an ancestor.
     this.dev.tainted = this.startTainted || reviewedLife(this.life);
-    this.heard = { kills: 0, hp: this.world.hp, worn: new Map(this.world.wornBy), offers: false, boss: false, dead: false, won: false, xp: 0, level: 1, raced: 0, shot: 0, homework: 0, stun: 0, bossPhase: '', typing: 0, car: 0, bell: 0, interestIn: 0, time: this.world.time, auraAt: -Infinity, holds: this.world.holds.slice(), restructures: 0, bill: 0, ringing: 0, engulf: 0, paid: 0, medication: 0, denying: 0, secondsLeft: 0, filed: 0 };
+    this.heard = { kills: 0, hp: this.world.hp, worn: new Map(this.world.wornBy), offers: false, boss: false, dead: false, won: false, xp: 0, level: 1, raced: 0, shot: 0, homework: 0, stun: 0, bossPhase: '', typing: 0, car: 0, bell: 0, interestIn: 0, time: this.world.time, auraAt: -Infinity, holds: this.world.holds.slice(), restructures: 0, bill: 0, ringing: 0, engulf: 0, paid: 0, medication: 0, denying: 0, secondsLeft: 0, filed: 0, cries: 0, youngestCry: Infinity, splat: 0 };
     this.inputLog = new InputLog();
     if (reviewMode()) {
       this.detachDev?.();
@@ -1293,6 +1309,7 @@ export class ActScene extends Phaser.Scene {
     this.syncOrbiters();
     this.syncAuras();
     this.syncSweeps();
+    this.syncCries();
     this.syncBoss();
     this.syncAttached();
     this.drawHud();
@@ -1454,11 +1471,14 @@ export class ActScene extends Phaser.Scene {
     const live = elapsed > 0 && !w.offers && !w.dead && !w.won;
     let auraAt = h.auraAt;
     if (live) {
-      // Backhand: arcs are aged before the swing (updateSweeps runs first), so
-      // one swung on this frame's step reads 0 and one from the frame before
-      // reads a whole step; half the frame's world time splits them with room
-      // for float. One swish however many arcs swung.
-      if (w.sweeps.some((s) => s.age < elapsed / 2)) sfx.sweep();
+      // A sweep swung this frame (`sweepsSwung`): one swish however many arcs
+      // swung, or the Rattle's rattle (G-054) — Decline's pill bottle, the
+      // same sound at both ends of the life — on its item id. Its own floor:
+      // PLACEHOLDER, 200ms, so a swing every second (sooner with Snap) is
+      // heard every time, where the dose's second-long floor would drop half.
+      const swung = sweepsSwung(w.sweeps, elapsed);
+      if (swung.swish) sfx.sweep();
+      if (swung.rattle) sfx.rattle(200);
       // Judgement: the landing, never the telegraph. A strike holds `delay`
       // above zero while it comes, then 0 with `age` counting from the moment
       // it landed, so an age inside this frame's world time landed this frame.
@@ -1498,6 +1518,17 @@ export class ActScene extends Phaser.Scene {
       if (firedBy.has('registrar')) sfx.stamp();
       if (w.boss?.kind === 'loan' && h.boss && w.boss.interestIn > h.interestIn) sfx.tapeTick();
     }
+    // G-054's kid's things, off their item ids and never the act. A cry
+    // begun is the waah (`criesBegun`: the count rising, or a cry younger
+    // than any heard, so one starting as the last ends is not lost), once a
+    // frame however many. Spilt Milk bursting is the splat, off the puddle
+    // each burst lays (`splatAbove`, serials as the hostile shots' are).
+    // Neither sits under `live`: both only move when the world steps, and a
+    // cry on the frame a card opens is still the player's panic.
+    const cries = criesOf(w);
+    if (criesBegun(cries, h) > 0) sfx.cry();
+    const splat = splatAbove(w.areas, h.splat);
+    if (splat > h.splat) sfx.splat();
     if (w.dead && !h.dead) sfx.death();
     if (w.won && !h.won) sfx.win();
     this.heard = {
@@ -1535,6 +1566,9 @@ export class ActScene extends Phaser.Scene {
       // Zero with no Time up: its arrival at 60 is a rise, never a tick.
       secondsLeft: w.boss?.secondsLeft ?? 0,
       filed: w.boss?.filed ?? 0,
+      cries: cries.length,
+      youngestCry: youngestCry(cries),
+      splat,
     };
   }
 
@@ -1924,12 +1958,14 @@ export class ActScene extends Phaser.Scene {
    * An AreaState says what it is without a source tag: an attractor is
    * `pull`, Wake's trail ticks, Acrosome's burst does not. Three different
    * objects on screen — a starburst pop, footprints, the classroom magnet —
-   * instead of three faint circles.
+   * instead of three faint circles. Spilt Milk's puddle (G-054) is the one
+   * told by its tag: a zero-damage slow is otherwise Snooze's field.
    */
   private syncAreas(): void {
     const list = this.world.areas;
     this.fit(this.areaSprites, list.length, () => this.add.circle(0, 0, 10).setDepth(2));
     this.fit(this.areaIcons, list.length, () => this.add.image(0, 0, 'nc-shot').setDepth(4));
+    this.puddleFx.clear();
 
     // Wake stamps point along the path, so each needs the NEXT footprint to
     // aim at. Collect the trail's indices once; the newest aims at the player.
@@ -1997,6 +2033,15 @@ export class ActScene extends Phaser.Scene {
             .setAlpha(fade)
             .setVisible(true);
         }
+      } else if (a.damage === 0 && a.source !== undefined && SPILT_MILK.has(a.source)) {
+        // Spilt Milk's puddle (G-054): what each burst leaves, a zero-damage
+        // slow like Rut's footprints and Snooze's field. Keyed on the item id
+        // (`SPILT_MILK`, the splat's registry too) before Snooze's branch,
+        // which it would otherwise match; the burst itself still pops its own
+        // drawing in the last branch.
+        circle.setVisible(false);
+        icon.setVisible(false);
+        this.drawPuddle(a);
       } else if (a.slow !== undefined && a.damage === 0) {
         // Snooze: the field it holds, drawn at its honest radius, with the
         // card's icon where it was dropped. Checked first: it ticks and does
@@ -2075,6 +2120,54 @@ export class ActScene extends Phaser.Scene {
           .setAlpha(0.75 * fade)
           .setVisible(true);
       }
+    }
+  }
+
+  /**
+   * One Spilt Milk puddle (G-054), into `puddleFx`: a flat rounded blob at
+   * the radius it slows in, with a few drops thrown clear of it, spreading in
+   * under the burst's pop and shrinking away over its last half second. Bone
+   * at low alpha on the floor, under the crowd — never paper, which is the
+   * player's (law 10), and never a threat colour: it does not hurt you.
+   *
+   * The blob is one polygon, so its fill is one even alpha (overlapping
+   * circles would darken where they meet), wobbled by two low harmonics so it
+   * stays round (the greeting card's first rule). The puddle's serial picks
+   * the wobble and the drops, so one puddle keeps its shape all its life and
+   * the next spills differently. PLACEHOLDER: every weight, alpha and time
+   * below; nobody has looked at it at the link.
+   */
+  private drawPuddle(a: World['areas'][number]): void {
+    const SPREAD = 0.12; // seconds to spread to full size
+    const DRY = 0.5; // seconds shrinking away at the end
+    const left = a.seconds - a.age;
+    if (left <= 0) return;
+    const spread = Math.min(1, a.age / SPREAD);
+    const scale = (0.6 + 0.4 * (1 - (1 - spread) ** 2)) * Math.min(1, left / DRY);
+    const r = a.radius * scale;
+    if (r < 1) return;
+    // Two phases and a drop count off the serial: a hash, not a random draw.
+    const seed = Math.imul(a.serial, 2654435761) >>> 0;
+    const p1 = ((seed & 0xff) / 255) * Math.PI * 2;
+    const p2 = (((seed >>> 8) & 0xff) / 255) * Math.PI * 2;
+    const drops = 2 + ((seed >>> 16) & 1);
+    const points: Phaser.Types.Math.Vector2Like[] = [];
+    const STEPS = 48;
+    for (let k = 0; k < STEPS; k++) {
+      const th = (k / STEPS) * Math.PI * 2;
+      const rr = r * (0.93 + 0.05 * Math.sin(2 * th + p1) + 0.04 * Math.sin(3 * th + p2));
+      points.push({ x: a.x + Math.cos(th) * rr, y: a.y + Math.sin(th) * rr });
+    }
+    const alpha = 0.2 + 0.05 * Math.min(1, left / DRY);
+    const g = this.puddleFx;
+    g.fillStyle(BONE, alpha).fillPoints(points, true, true);
+    g.lineStyle(2, BONE, alpha + 0.15).strokePoints(points, true, true);
+    // The drops: clear of the blob's widest reach (1.02r), so no fill overlaps.
+    for (let d = 0; d < drops; d++) {
+      const th = p1 * 0.7 + (d * Math.PI * 2) / drops + ((seed >>> (20 + d * 3)) & 7) * 0.12;
+      const dr = r * (0.1 + 0.05 * (((seed >>> (24 + d)) & 3) / 3));
+      const dist = r * 1.08 + dr * 1.6;
+      g.fillStyle(BONE, alpha).fillCircle(a.x + Math.cos(th) * dist, a.y + Math.sin(th) * dist, dr);
     }
   }
 
@@ -2199,11 +2292,61 @@ export class ActScene extends Phaser.Scene {
       const def = ITEMS[s.source];
       const [key, frame] = def ? this.iconTexture(def.icon, def.name) : ['nc-shot', undefined];
       const lead = s.angle - s.arc / 2 + s.arc * t;
+      // The icon turns about its own centre by how far the swing has come
+      // from its middle, not by where on the circle it is, and a swing facing
+      // left draws the mirror of one facing right. Turned by `lead` alone, a
+      // swing to the left drew the card upside down, and the Rattle (G-054)
+      // is a handle with a head on it: it reads as held only the right way
+      // up. Facing right this is the drawing it always was.
+      const mirrored = Math.cos(s.angle) < 0;
       this.sweepIcons[i]!.setTexture(key, frame)
         .setPosition(s.x + Math.cos(lead) * s.reach * 0.8, s.y + Math.sin(lead) * s.reach * 0.8)
         .setDisplaySize(36, 36)
-        .setRotation(lead)
+        .setRotation(lead - s.angle)
+        .setFlipX(mirrored)
         .setAlpha(1 - 0.5 * t)
+        .setVisible(true);
+    }
+  }
+
+  /**
+   * The Cry (G-054): each ring expanding from where it was cried, at the
+   * radius the sim shoves and stuns at this step (`maxRadius * age /
+   * seconds`), as a soft thick band — a wide faint stroke, a narrower one
+   * over it, and a thin crest on the honest edge — fading as it goes, with
+   * the card's icon held at the ring's top. Under the crowd, as the sweep's
+   * wedge is, so what it shoves is drawn over it; the icon over everything.
+   * Bone, never paper (law 10). Reads `criesOf`, so a world without a Cry
+   * draws none, and an icon not yet in the atlas draws `iconTexture`'s
+   * placeholder. PLACEHOLDER: the band widths and alphas; nobody has looked.
+   */
+  private syncCries(): void {
+    // The Cry's card icon, until `cry` joins ItemIcon with the item (the
+    // double cast compiles either side of that); `iconTexture` draws the
+    // placeholder ring for as long as the atlas has no frame for it.
+    const CRY_ICON = 'cry' as string as ItemIcon;
+    const list = criesOf(this.world);
+    this.cryFx.clear();
+    this.fit(this.cryIcons, list.length, () => this.add.image(0, 0, 'nc-shot').setDepth(8));
+    for (let i = 0; i < list.length; i++) {
+      const c = list[i]!;
+      const t = c.seconds > 0 ? Phaser.Math.Clamp(c.age / c.seconds, 0, 1) : 1;
+      const r = Math.max(1, c.maxRadius * t);
+      const fade = 1 - t;
+      this.cryFx
+        .lineStyle(28, BONE, 0.1 * fade)
+        .strokeCircle(c.x, c.y, r)
+        .lineStyle(14, BONE, 0.16 * fade)
+        .strokeCircle(c.x, c.y, r)
+        .lineStyle(3, BONE, 0.55 * fade)
+        .strokeCircle(c.x, c.y, r);
+      const def = ITEMS[c.source];
+      const [key, frame] = this.iconTexture(def?.icon ?? CRY_ICON, def?.name ?? 'Cry');
+      this.cryIcons[i]!.setTexture(key, frame)
+        .setPosition(c.x, c.y - r)
+        .setDisplaySize(36, 36)
+        .setRotation(0)
+        .setAlpha(0.4 + 0.6 * fade)
         .setVisible(true);
     }
   }

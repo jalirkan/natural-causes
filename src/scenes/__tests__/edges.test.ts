@@ -15,19 +15,26 @@ import {
 import { enemyDef, type EnemyDef } from '../../data/enemies';
 import { MAX_ACTIVE_ENEMIES, TIME_FILES_PER_TURN, World, type EnemyState, type HoldState } from '../../sim/world';
 import {
+  SPILT_MILK,
   TIME_COUNTDOWN,
   borrowsAhem,
   consulting,
+  criesBegun,
+  criesOf,
   holdArrived,
   holdTaken,
   instalmentPaid,
   meetingCloses,
   memoDrafted,
   newestAbove,
+  splatAbove,
   statementDrafted,
+  sweepsSwung,
   timeTicks,
   vehiclesEntered,
   wornGained,
+  youngestCry,
+  type CryState,
 } from '../edges';
 
 /**
@@ -993,4 +1000,189 @@ describe('each schedule hears its own things', () => {
     },
     WHOLE_MS,
   );
+});
+
+// --- The kid's things (G-054) ------------------------------------------------
+
+/** An act with nothing on its schedule: the player, their things, and the floor. */
+const CONCEPTION_QUIET: ActDef = { ...CONCEPTION, waves: [] };
+
+describe('the waah: a cry begun, once each', () => {
+  /** A cry as the contract describes it, `age` into its `seconds`. */
+  function cry(age: number, seconds = 0.6): CryState {
+    return { x: 0, y: 0, age, seconds, maxRadius: 240, source: 'cry' };
+  }
+
+  it('reads nothing off a world with no Cry, and the field when there is one', () => {
+    const w = new World({ act: CONCEPTION_QUIET, seed: 71, startingItems: [] });
+    expect(criesOf(w)).toEqual([]);
+    const cries = [cry(0.1)];
+    expect(criesOf({ cries })).toBe(cries);
+  });
+
+  it('counts the rise, holds still for a held world, and never hears an ending', () => {
+    const none = { cries: 0, youngestCry: Infinity };
+    expect(criesBegun([], none)).toBe(0);
+    expect(criesBegun([cry(0)], none)).toBe(1);
+    expect(criesBegun([cry(0), cry(0)], none)).toBe(2);
+    // A card up: the same cry at the same age, heard last frame.
+    const one = [cry(0.2)];
+    expect(criesBegun(one, { cries: 1, youngestCry: youngestCry(one) })).toBe(0);
+    // Ageing is not beginning; ending is not beginning.
+    expect(criesBegun([cry(0.22)], { cries: 1, youngestCry: 0.2 })).toBe(0);
+    expect(criesBegun([], { cries: 1, youngestCry: 0.58 })).toBe(0);
+    // A second begun beside a young first: the count says it.
+    expect(criesBegun([cry(0.02), cry(0.004)], { cries: 1, youngestCry: 0.001 })).toBe(1);
+  });
+
+  it('hears one begun on the frame the last one ends, which the count alone would miss', () => {
+    const heard = { cries: 1, youngestCry: 0.59 };
+    const now = [cry(0.01)];
+    expect(now.length - heard.cries).toBe(0);
+    expect(criesBegun(now, heard)).toBe(1);
+  });
+
+  it('a cry every half second, each lasting a half second, is heard every time and only once', () => {
+    // Frame by frame: each cry ages, ends at its seconds, and the next one
+    // begins on that same frame — the case the count cannot see. A 64th of a
+    // second, so thirty-two of them are exactly the half second.
+    const FRAME = 1 / 64;
+    let cries: CryState[] = [];
+    let heard = { cries: 0, youngestCry: Infinity };
+    let begun = 0;
+    let waahs = 0;
+    let rose = 0;
+    for (let f = 0; f < 5 * 64; f++) {
+      cries = cries.map((c) => ({ ...c, age: c.age + FRAME })).filter((c) => c.age < c.seconds);
+      if (f % 32 === 0) {
+        cries.push(cry(0, 0.5));
+        begun++;
+      }
+      if (cries.length > heard.cries) rose++;
+      waahs += criesBegun(cries, heard) > 0 ? 1 : 0;
+      heard = { cries: cries.length, youngestCry: youngestCry(cries) };
+    }
+    expect(begun).toBe(10);
+    expect(rose, 'the count alone hears only the first').toBe(1);
+    expect(waahs).toBe(begun);
+  });
+});
+
+describe("the splat: Spilt Milk's puddle landing, once a burst", () => {
+  /** A puddle as the contract describes it: a zero-damage slow at the player, carrying its item's id. */
+  function puddle(w: World, source: string, serial: number): void {
+    w.areas.push({ x: w.x, y: w.y, age: 0, seconds: 2.5, radius: 60, damage: 0, pull: false, slow: 0.5, tick: true, serial, source });
+  }
+
+  it('is the milk and its evolution, and nothing else', () => {
+    expect([...SPILT_MILK].sort()).toEqual(['acrosome', 'tantrum']);
+  });
+
+  it('hears a puddle once while it lies there, the next one again, and one a frame however many', () => {
+    const w = new World({ act: CONCEPTION_QUIET, seed: 72, startingItems: [] });
+    let heard = 0;
+    let splats = 0;
+    const listen = (): void => {
+      const top = splatAbove(w.areas, heard);
+      if (top > heard) splats++;
+      heard = top;
+    };
+    puddle(w, 'acrosome', 1_000_001);
+    for (let i = 0; i < 60; i++) {
+      w.step(DT, STILL);
+      listen();
+    }
+    expect(w.areas.some((a) => a.source === 'acrosome'), 'the puddle should still be lying there').toBe(true);
+    expect(splats).toBe(1);
+    // Tantrum's puddle and a burst tagged on the same step: one splat.
+    puddle(w, 'tantrum', 1_000_002);
+    puddle(w, 'tantrum', 1_000_003);
+    w.step(DT, STILL);
+    listen();
+    expect(splats).toBe(2);
+    // Run it dry: the sim takes both away, and nothing more is heard.
+    for (let i = 0; i < 200; i++) {
+      w.step(DT, STILL);
+      listen();
+    }
+    expect(w.areas.some((a) => a.source !== undefined && SPILT_MILK.has(a.source))).toBe(false);
+    expect(splats).toBe(2);
+  });
+
+  it("no other item's area splats: Snooze, Charisma, Baggage, Rut and Judgement, all laid for real", () => {
+    const w = new World({
+      act: CONCEPTION_QUIET,
+      seed: 73,
+      startingItems: ['snooze', 'chemotaxis', 'wake', 'rut', 'judgement'],
+    });
+    // Something to strike at that never dies, so no gem, no level, no card.
+    place(w, INERT, 120, 0);
+    place(w, INERT, -120, 40);
+    let heard = 0;
+    const kinds = new Set<string>();
+    for (let i = 0; i < 6 * 60; i++) {
+      // A lap, so the trails are laid.
+      const lap = Math.floor(i / 45) % 4;
+      w.step(DT, { moveX: [1, 0, -1, 0][lap]!, moveY: [0, 1, 0, -1][lap]! });
+      w.hp = w.maxHp;
+      for (const a of w.areas) kinds.add(a.source ?? (a.pull ? 'pull' : a.slow !== undefined ? 'slow' : a.tick ? 'trail' : 'burst'));
+      heard = splatAbove(w.areas, heard);
+    }
+    expect(w.offers, 'nothing here should have levelled').toBeNull();
+    // Each laid something (a strike carries its id; the rest are known by shape).
+    for (const k of ['judgement', 'pull', 'slow', 'trail']) expect(kinds, k).toContain(k);
+    expect(heard).toBe(0);
+  });
+
+  it.todo("an acrosome life and a tantrum life splat once a burst, off the sim's own puddle (at integration, when World lays it)");
+});
+
+describe("the Rattle's swing is Decline's rattle; any other sweep swishes", () => {
+  /** Swings for `seconds` with the field kept empty, counting what hearWorld's sweep edge would play. */
+  function swing(startingItems: string[], seed: number, seconds: number): { rattle: number; swish: number; swings: number; arcs: number } {
+    const w = new World({ act: CONCEPTION_QUIET, seed, startingItems });
+    let time = w.time;
+    const out = { rattle: 0, swish: 0, swings: 0, arcs: 0 };
+    for (let i = 0; i < Math.round(seconds / DT); i++) {
+      w.step(DT, STILL);
+      const elapsed = w.time - time;
+      time = w.time;
+      const fresh = w.sweeps.filter((s) => s.age === 0).length;
+      if (fresh > 0) out.swings++;
+      out.arcs = Math.max(out.arcs, fresh);
+      const swung = sweepsSwung(w.sweeps, elapsed);
+      if (swung.rattle) out.rattle++;
+      if (swung.swish) out.swish++;
+    }
+    return out;
+  }
+
+  it('the Rattle rattles once a swing and never swishes', () => {
+    const heard = swing(['backhand'], 81, 5.5);
+    expect(heard.swings).toBeGreaterThanOrEqual(4);
+    expect(heard).toMatchObject({ rattle: heard.swings, swish: 0 });
+  });
+
+  it('a Rattle swinging two arcs is still one rattle a swing', () => {
+    const w = new World({ act: CONCEPTION_QUIET, seed: 82, startingItems: ['backhand'] });
+    expect(w.sweeps).toEqual([]);
+    const two = sweepsSwung(
+      [
+        { age: 0, source: 'backhand' },
+        { age: 0, source: 'backhand' },
+      ],
+      DT,
+    );
+    expect(two).toEqual({ rattle: true, swish: false });
+    // An arc a frame old is last frame's swing, heard then.
+    expect(sweepsSwung([{ age: DT, source: 'backhand' }], DT)).toEqual({ rattle: false, swish: false });
+    // A held world (no time this frame) hears nothing, even a fresh arc.
+    expect(sweepsSwung([{ age: 0, source: 'backhand' }], 0)).toEqual({ rattle: false, swish: false });
+  });
+
+  it('its evolution, the adult Backhand (`reach`), swishes and never rattles', () => {
+    const heard = swing(['reach'], 83, 5.5);
+    expect(heard.swings).toBeGreaterThanOrEqual(4);
+    expect(heard).toMatchObject({ swish: heard.swings, rattle: 0 });
+  });
 });
