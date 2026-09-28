@@ -1043,8 +1043,6 @@ export const ITEMS: Record<string, ItemDef> = {
     pierce: 99,
     maxLevel: 8,
     icon: 'aura',
-    iconPending:
-      'The rope barrier is being drawn as tools/art/svg/conception/icon-aura.svg; its frame in the icon atlas retires this placeholder.',
     blurb: 'Whatever stands too close gets hurt. You did ask nicely.',
     levels: table(
       [
@@ -1128,8 +1126,6 @@ export const ITEMS: Record<string, ItemDef> = {
     arc: (100 * Math.PI) / 180,
     maxLevel: 8,
     icon: 'sweep',
-    iconPending:
-      'The open hand is being drawn as tools/art/svg/conception/icon-sweep.svg; its frame in the icon atlas retires this placeholder.',
     blurb: 'Swats whatever is in front of you. It was a compliment.',
     levels: table(
       [
@@ -1212,8 +1208,6 @@ export const ITEMS: Record<string, ItemDef> = {
     pierce: 99,
     maxLevel: 8,
     icon: 'bolt',
-    iconPending:
-      'The gavel is being drawn as tools/art/svg/conception/icon-bolt.svg; its frame in the icon atlas retires this placeholder.',
     blurb: 'Something up there has opinions. It comes down on one of them.',
     levels: table(
       [

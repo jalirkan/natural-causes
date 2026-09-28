@@ -1851,7 +1851,8 @@ export class World {
     for (const [id, level] of this.items) {
       const def = ITEMS[id];
       if (!def || !isActive(def) || def.mode !== 'aura') continue;
-      const radius = def.radius * levelBonus(def, level).area * this.reach;
+      // Through bonusFor, so a path (Boundaries) widens the ring (G-043).
+      const radius = def.radius * this.bonusFor(def, level).area * this.reach;
       const damage = this.activeDamage(def, level);
       // Through activeCooldown like every weapon: levels, paths and
       // Restlessness shorten the re-hit (AUDIT part three, 19).
