@@ -176,3 +176,219 @@ export function narrowRows(fields: readonly CertificateField[], top: number): { 
   }
   return { rows, bottom: rows.length > 0 ? rows[rows.length - 1]!.rule : top };
 }
+
+/**
+ * The 1280×720 form (`ActScene.showCertificate`) on a screen wider than tall.
+ * FIT shows the canvas at the screen's height, so a landscape phone (844×390)
+ * shows it 693 CSS px across — 0.54 of a CSS pixel per game pixel — and the
+ * form's 12–15px print came out at 7–8 CSS px. `wideLayout` raises each size
+ * to its floor at the ratio the canvas is shown at (`wideType`); where the
+ * raised labels no longer fit the 1280 form's rows it sets the compact form.
+ * A canvas shown 1280 CSS px across or more moves nothing: the smoke's
+ * `certificate.png` is that form.
+ */
+
+/** The wide sheet's width and inner margin, in game px. */
+export const WIDE_SHEET = { width: 1120, margin: 48 } as const;
+
+/** The wide form's type on a canvas shown 1280 CSS px across, in game px. */
+export const WIDE_TYPE = {
+  /** "OFFICE OF VITAL STATISTICS". */
+  office: 13,
+  /** A field's printed label. */
+  label: 14,
+  /** The receipt's two heads. */
+  head: 12,
+  /** The receipt's prose (`certificateLines`). */
+  receipt: 18,
+  /** The personal effects. */
+  effects: 15,
+  /** "tap to live again", on the scrim under the sheet. */
+  hint: 20,
+  /** A value typed on its rule. */
+  value: 38,
+  /** The cause. */
+  cause: 50,
+} as const;
+
+export type WideType = Record<keyof typeof WIDE_TYPE, number>;
+
+/**
+ * The least a word may come out at on screen, in CSS px: every printed word
+ * and the receipt's lines (`print`), every typed value (`value`).
+ */
+export const WIDE_FLOOR = { print: 11, value: 16 } as const;
+
+/** A canvas monospace's advance, in em (DejaVu, Menlo, Roboto Mono and Courier are all 0.6). */
+const MONO = 0.6;
+
+/** A line of `chars` characters of monospace at `px`, letterspaced by `spacing`, estimated. */
+function monoWidth(chars: number, px: number, spacing = 0): number {
+  return chars * (MONO * px + spacing);
+}
+
+/**
+ * The wide form's type for a canvas shown at `cssPerGamePx` CSS px per game px
+ * (its displayed width over 1280): each size is its 1280 size or its
+ * `WIDE_FLOOR` at that ratio, whichever is larger. Never smaller than 1280's.
+ */
+export function wideType(cssPerGamePx: number): WideType {
+  const r = cssPerGamePx > 0 ? Math.min(1, cssPerGamePx) : 1;
+  const type = { ...WIDE_TYPE } as WideType;
+  for (const k of Object.keys(type) as (keyof WideType)[]) {
+    const floor = k === 'value' || k === 'cause' ? WIDE_FLOOR.value : WIDE_FLOOR.print;
+    type[k] = Math.max(WIDE_TYPE[k], Math.ceil(floor / r - 1e-9));
+  }
+  return type;
+}
+
+/** One field on the wide form: its box, from the left margin, and where its label, value and rule sit. */
+export interface WideRow {
+  key: CertificateField['key'];
+  /** From the sheet's inner margin. */
+  x: number;
+  /** The rule's length. */
+  w: number;
+  /** Top of the printed label. */
+  label: number;
+  /** Top of the typed value. */
+  value: number;
+  /** The rule the value sits on. */
+  rule: number;
+  /** The value's size. */
+  size: number;
+}
+
+/** Where everything on the wide form goes, in game px; every y includes `top`. */
+export interface WideLayout {
+  type: WideType;
+  /**
+   * The 1280 form's middle row (age, act, time) cannot hold its labels at this
+   * type: two fields a row — name and age, act and time — and tighter leading.
+   */
+  compact: boolean;
+  /** The sheet's top edge. */
+  top: number;
+  /** Top of "OFFICE OF VITAL STATISTICS". */
+  office: number;
+  /** In reading order. */
+  rows: WideRow[];
+  /** The stamp's centre, beside the cause. */
+  stamp: number;
+  /** The perforation. */
+  perf: number;
+  /** Top of the receipt's two heads. */
+  receipt: number;
+  /** Top of the receipt's prose and of the personal effects. */
+  content: number;
+  /** Leading of the prose and of the effects. */
+  spacing: { prose: number; effects: number };
+  /** Paper under the receipt's lowest line. */
+  foot: number;
+  /** The sheet's bottom edge to the hint's centre. */
+  hint: number;
+}
+
+/** The 1280 form's vertical rhythm, and the compact form's (in `WideLayout` terms). */
+const WIDE_GAPS = {
+  top: 30,
+  office: 36,
+  fields: 136,
+  labelGap: 8,
+  rowGap: 22,
+  perf: 35,
+  receipt: 30,
+  head: 12,
+  prose: 6,
+  effects: 5,
+  foot: 26,
+  hint: 36,
+};
+const COMPACT_GAPS: typeof WIDE_GAPS = {
+  top: 14,
+  office: 28,
+  fields: 132,
+  labelGap: 6,
+  rowGap: 16,
+  perf: 28,
+  receipt: 26,
+  head: 8,
+  prose: 3,
+  effects: 3,
+  foot: 22,
+  hint: 30,
+};
+
+/**
+ * The wide form for a canvas shown at `cssPerGamePx` (see `wideType`). The
+ * 1280 form sets the name, then age, act and time, then the cause; when the
+ * raised labels overrun that middle row's boxes, the compact form sets the
+ * name beside the age and the act beside the time, the right-hand fields on
+ * one column as wide as the longer of their labels.
+ */
+export function wideLayout(fields: readonly CertificateField[], cssPerGamePx: number): WideLayout {
+  const type = wideType(cssPerGamePx);
+  const room = WIDE_SHEET.width - 2 * WIDE_SHEET.margin;
+  const labelWidth = (key: CertificateField['key']) => {
+    const i = fields.findIndex((f) => f.key === key);
+    return i < 0 ? 0 : monoWidth(`${i + 1}. ${fields[i]!.label}`.length, type.label, 1);
+  };
+  type Box = { x: number; w: number };
+  const wide: Record<CertificateField['key'], Box> = {
+    name: { x: 0, w: room },
+    age: { x: 0, w: 220 },
+    act: { x: 256, w: 372 },
+    time: { x: 664, w: room - 664 },
+    cause: { x: 0, w: room },
+  };
+  const keys = Object.keys(wide) as CertificateField['key'][];
+  const compact = keys.some((k) => labelWidth(k) > wide[k].w);
+  let boxes = wide;
+  let lines: CertificateField['key'][][] = [['name'], ['age', 'act', 'time'], ['cause']];
+  if (compact) {
+    const split = room - Math.ceil(Math.max(labelWidth('age'), labelWidth('time')));
+    const left = { x: 0, w: split - 36 };
+    const right = { x: split, w: room - split };
+    boxes = { name: left, age: right, act: left, time: right, cause: { x: 0, w: room } };
+    lines = [['name', 'age'], ['act', 'time'], ['cause']];
+  }
+  const g = compact ? COMPACT_GAPS : WIDE_GAPS;
+  const sizeOf = (k: CertificateField['key']) => (k === 'cause' ? type.cause : type.value);
+  const placed = new Map<CertificateField['key'], WideRow>();
+  let y = g.top + g.fields;
+  for (const line of lines) {
+    const value = y + type.label + g.labelGap;
+    const rule = value + Math.round(Math.max(...line.map(sizeOf)) * 1.25);
+    for (const k of line) placed.set(k, { key: k, ...boxes[k], label: y, value, rule, size: sizeOf(k) });
+    y = rule + g.rowGap;
+  }
+  const rows = fields.map((f) => placed.get(f.key)!).filter(Boolean);
+  const cause = placed.get('cause')!;
+  const perf = cause.rule + g.perf;
+  const receipt = perf + g.receipt;
+  return {
+    type,
+    compact,
+    top: g.top,
+    office: g.top + g.office,
+    rows,
+    stamp: cause.value + 24,
+    perf,
+    receipt,
+    content: receipt + type.head + g.head,
+    spacing: { prose: g.prose, effects: g.effects },
+    foot: g.foot,
+    hint: g.hint,
+  };
+}
+
+/**
+ * The personal effects' column beside the receipt's prose, which is `prose` px
+ * wide: where it starts, from the inner margin (472 at 1280, or clear of the
+ * prose), and how many characters of the effects' type a line of it holds.
+ */
+export function effectsColumn(prose: number, type: WideType): { x: number; chars: number } {
+  const room = WIDE_SHEET.width - 2 * WIDE_SHEET.margin;
+  const x = Math.max(472, Math.ceil(prose) + 36);
+  return { x, chars: Math.min(58, Math.floor((room - x) / (MONO * type.effects))) };
+}
