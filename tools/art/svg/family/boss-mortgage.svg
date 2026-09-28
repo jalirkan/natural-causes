@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <title>The Mortgage</title>
+  <desc>A house front seen straight on: a wide teal wall under one plain gabled teal roof, a small plain chimney on the right slope, standing on a low plinth. The two square windows on the upper floor are its eyes, a dark dot in each bone pane, level and looking straight out. The shut door in the middle of the ground floor is its mouth, and its letterbox is one short flat line. It is not in a hurry. It is paid on a schedule.</desc>
+  <!--
+    The Mortgage (FAMILY-ROSTER section 4): paid on a schedule, not in a
+    hurry. Law 9 and D-007: nobody is drawn and nobody is home. The house is
+    the whole boss; no path, no fence, no smoke, no number on the door, no
+    lettering, no text.
+
+    Silhouette (law 11, Family's seventh reservation): the house with a
+    face. A wide rectangular wall under one plain gable, the roof overhanging
+    the wall by 11 on each side so the eaves step out of the silhouette, and
+    a low plinth stepping out 3 at the foot. The only gable and the only roof
+    in the act. The chimney is the one thing the spec left open: kept, small
+    and plain, on the right slope, because the child's drawing law 5 cites
+    has one, and it is what stops the triangle-on-a-box reading as a tent, a
+    barn or a face in a hat at 48px. It carries no smoke.
+
+    Face (law 5): the windows are the eyes. Two square bone panes, 12.6 on a
+    side, each in an ink frame of the outline's weight, each turned a
+    fraction of a degree the other way (hand-cut, law 4); an ink dot r 3.2 in
+    each, centred across and a little low, so it looks level and straight
+    out, not up in alarm. The door is the mouth: shut, in shadow tone inside
+    an ink frame of the same weight, and the mouth line is its letterbox, a
+    short flat ink bar, 7.6 by 2, closed. Post comes through it; that is the
+    act. Patient.
+
+    The roof and the walls are one tone of boss teal (law 6). What separates
+    them is the eave: an ink line along the roof's lower edge over the wall,
+    level with the outline CONFORM draws under the overhangs, so it reads as
+    one line from eave to eave, and under it a band of shadow (#6E6353), the
+    roof's underside. Every interior ink line is 2 wide, which is the
+    outline's 8px at this scale (law 1): the eave, the window frames, the
+    door frame, the letterbox, the plinth seam and the chimney's cap.
+
+    The full register (D-018): halftone on the shadow side, the right of the
+    wall from the right window to the corner, dots growing toward the edge;
+    a flat bone gleam along the sunlit slope of the roof, upper left. TEXTURE
+    adds the grain. CONFORM adds the outline; none here.
+
+    For the renderer, measured on the 384 sprite (y from the top): roof teal
+    from 8 to 162, the eave line 163-170, the soffit 171-181, the wall to the
+    plinth seam at 352-359, the plinth to 374 and its outline to 382. The
+    wall's outline runs x 43-340. Window panes x 100-149 and 234-283, y
+    192-243. The door, frame included, x 160-223, y 266-351; the letterbox
+    y 301-308. The door opens on the twelfth payment (section 4): that is the
+    rectangle to swap.
+
+    Body (`bossBody` in src/data/act-visuals.ts): the wall from the eave
+    line (163) to the plinth seam (359) centres on y 261, 0.680. r 0.30
+    (115px) is the largest circle there inside the silhouette: its top only
+    reaches the eave band at 0.38, well clear of the peak and the chimney,
+    its sides stay 34 inside the walls, and its bottom stops on the plinth's
+    outline at 0.98. bossBody { cy: 0.68, r: 0.30 }.
+
+    Colours: threat-boss #2F7370, ink #2A2521, bone #D2C6AC, shadow #6E6353.
+  -->
+  <defs>
+    <clipPath id="wall"><path d="M15.4,42 L84.7,42 Q85.2,67 85.4,92 L14.7,92 Q14.9,67 15.4,42 Z"/></clipPath>
+  </defs>
+  <!-- the chimney, behind the roof: a plain stack, no smoke -->
+  <path d="M66.6,27 L66.9,12.6 L75.3,12.4 L75.6,27 Z" fill="#2F7370"/>
+  <path d="M65.2,13.6 L65.3,9.4 Q70.9,9 76.9,9.3 L77,13.6 Z" fill="#2F7370"/>
+  <path d="M66.9,13.4 L75.3,13.3 L75.3,15.3 L66.9,15.4 Z" fill="#2A2521"/>
+  <!-- the plinth the house stands on -->
+  <path d="M13.4,91 L86.6,91 Q88,91 88,92.4 L88,95.4 Q88,96.8 86.6,96.8 L13.4,96.8 Q12,96.8 12,95.4 L12,92.4 Q12,91 13.4,91 Z" fill="#2F7370"/>
+  <!-- the walls, and the halftone on their shadow side -->
+  <path d="M15.4,42 L84.7,42 Q85.2,67 85.4,92 L14.7,92 Q14.9,67 15.4,42 Z" fill="#2F7370"/>
+  <g fill="#2A2521" clip-path="url(#wall)"><circle cx="75.2" cy="48.2" r="0.26"/><circle cx="77.5" cy="48.2" r="0.41"/><circle cx="79.8" cy="48.2" r="0.56"/><circle cx="82.1" cy="48.2" r="0.71"/><circle cx="84.4" cy="48.2" r="0.86"/><circle cx="76.35" cy="50.2" r="0.33"/><circle cx="78.65" cy="50.2" r="0.48"/><circle cx="80.95" cy="50.2" r="0.63"/><circle cx="83.25" cy="50.2" r="0.78"/><circle cx="85.55" cy="50.2" r="0.93"/><circle cx="75.2" cy="52.2" r="0.26"/><circle cx="77.5" cy="52.2" r="0.41"/><circle cx="79.8" cy="52.2" r="0.56"/><circle cx="82.1" cy="52.2" r="0.71"/><circle cx="84.4" cy="52.2" r="0.86"/><circle cx="76.35" cy="54.2" r="0.33"/><circle cx="78.65" cy="54.2" r="0.48"/><circle cx="80.95" cy="54.2" r="0.63"/><circle cx="83.25" cy="54.2" r="0.78"/><circle cx="85.55" cy="54.2" r="0.93"/><circle cx="75.2" cy="56.2" r="0.26"/><circle cx="77.5" cy="56.2" r="0.41"/><circle cx="79.8" cy="56.2" r="0.56"/><circle cx="82.1" cy="56.2" r="0.71"/><circle cx="84.4" cy="56.2" r="0.86"/><circle cx="76.35" cy="58.2" r="0.33"/><circle cx="78.65" cy="58.2" r="0.48"/><circle cx="80.95" cy="58.2" r="0.63"/><circle cx="83.25" cy="58.2" r="0.78"/><circle cx="85.55" cy="58.2" r="0.93"/><circle cx="75.2" cy="60.2" r="0.26"/><circle cx="77.5" cy="60.2" r="0.41"/><circle cx="79.8" cy="60.2" r="0.56"/><circle cx="82.1" cy="60.2" r="0.71"/><circle cx="84.4" cy="60.2" r="0.86"/><circle cx="76.35" cy="62.2" r="0.33"/><circle cx="78.65" cy="62.2" r="0.48"/><circle cx="80.95" cy="62.2" r="0.63"/><circle cx="83.25" cy="62.2" r="0.78"/><circle cx="85.55" cy="62.2" r="0.93"/><circle cx="75.2" cy="64.2" r="0.26"/><circle cx="77.5" cy="64.2" r="0.41"/><circle cx="79.8" cy="64.2" r="0.56"/><circle cx="82.1" cy="64.2" r="0.71"/><circle cx="84.4" cy="64.2" r="0.86"/><circle cx="76.35" cy="66.2" r="0.33"/><circle cx="78.65" cy="66.2" r="0.48"/><circle cx="80.95" cy="66.2" r="0.63"/><circle cx="83.25" cy="66.2" r="0.78"/><circle cx="85.55" cy="66.2" r="0.93"/><circle cx="75.2" cy="68.2" r="0.26"/><circle cx="77.5" cy="68.2" r="0.41"/><circle cx="79.8" cy="68.2" r="0.56"/><circle cx="82.1" cy="68.2" r="0.71"/><circle cx="84.4" cy="68.2" r="0.86"/><circle cx="76.35" cy="70.2" r="0.33"/><circle cx="78.65" cy="70.2" r="0.48"/><circle cx="80.95" cy="70.2" r="0.63"/><circle cx="83.25" cy="70.2" r="0.78"/><circle cx="85.55" cy="70.2" r="0.93"/><circle cx="75.2" cy="72.2" r="0.26"/><circle cx="77.5" cy="72.2" r="0.41"/><circle cx="79.8" cy="72.2" r="0.56"/><circle cx="82.1" cy="72.2" r="0.71"/><circle cx="84.4" cy="72.2" r="0.86"/><circle cx="76.35" cy="74.2" r="0.33"/><circle cx="78.65" cy="74.2" r="0.48"/><circle cx="80.95" cy="74.2" r="0.63"/><circle cx="83.25" cy="74.2" r="0.78"/><circle cx="85.55" cy="74.2" r="0.93"/><circle cx="75.2" cy="76.2" r="0.26"/><circle cx="77.5" cy="76.2" r="0.41"/><circle cx="79.8" cy="76.2" r="0.56"/><circle cx="82.1" cy="76.2" r="0.71"/><circle cx="84.4" cy="76.2" r="0.86"/><circle cx="76.35" cy="78.2" r="0.33"/><circle cx="78.65" cy="78.2" r="0.48"/><circle cx="80.95" cy="78.2" r="0.63"/><circle cx="83.25" cy="78.2" r="0.78"/><circle cx="85.55" cy="78.2" r="0.93"/><circle cx="75.2" cy="80.2" r="0.26"/><circle cx="77.5" cy="80.2" r="0.41"/><circle cx="79.8" cy="80.2" r="0.56"/><circle cx="82.1" cy="80.2" r="0.71"/><circle cx="84.4" cy="80.2" r="0.86"/><circle cx="76.35" cy="82.2" r="0.33"/><circle cx="78.65" cy="82.2" r="0.48"/><circle cx="80.95" cy="82.2" r="0.63"/><circle cx="83.25" cy="82.2" r="0.78"/><circle cx="85.55" cy="82.2" r="0.93"/><circle cx="75.2" cy="84.2" r="0.26"/><circle cx="77.5" cy="84.2" r="0.41"/><circle cx="79.8" cy="84.2" r="0.56"/><circle cx="82.1" cy="84.2" r="0.71"/><circle cx="84.4" cy="84.2" r="0.86"/><circle cx="76.35" cy="86.2" r="0.33"/><circle cx="78.65" cy="86.2" r="0.48"/><circle cx="80.95" cy="86.2" r="0.63"/><circle cx="83.25" cy="86.2" r="0.78"/><circle cx="85.55" cy="86.2" r="0.93"/><circle cx="75.2" cy="88.2" r="0.26"/><circle cx="77.5" cy="88.2" r="0.41"/><circle cx="79.8" cy="88.2" r="0.56"/><circle cx="82.1" cy="88.2" r="0.71"/><circle cx="84.4" cy="88.2" r="0.86"/><circle cx="76.35" cy="90.2" r="0.33"/><circle cx="78.65" cy="90.2" r="0.48"/><circle cx="80.95" cy="90.2" r="0.63"/><circle cx="83.25" cy="90.2" r="0.78"/><circle cx="85.55" cy="90.2" r="0.93"/></g>
+  <!-- the seam where the walls sit on the plinth -->
+  <path d="M14.7,90.9 L85.4,90.9 L85.5,92.9 L14.6,92.9 Z" fill="#2A2521"/>
+  <!-- the roof: one gable, the only roof in the act -->
+  <path d="M4,43 L48.9,5.4 Q50,4.4 51.1,5.45 L96,43.2 Q50,43.6 4,43 Z" fill="#2F7370"/>
+  <!-- the eave: one ink line over the wall, level with the outline under the overhangs, and the roof's underside -->
+  <path d="M14.6,43.3 Q50,43.9 85.5,43.5 L85.5,45.5 Q50,45.9 14.6,45.3 Z" fill="#2A2521"/>
+  <path d="M14.8,45.3 Q50,45.9 85.4,45.5 L85.4,48.4 Q50,48.6 14.8,48.2 Z" fill="#6E6353"/>
+  <!-- gleam, the sunlit slope -->
+  <path d="M14.6,37.4 L33.2,21.9 L34.2,23.1 L16,38.6 Z" fill="#D2C6AC"/>
+  <!-- the windows are the eyes: two open dots on bone panes, level, straight out -->
+  <g transform="rotate(-0.8 33.3 57.6)"><rect x="25" y="49.3" width="16.6" height="16.6" rx="0.6" fill="#2A2521"/><rect x="27" y="51.3" width="12.6" height="12.6" fill="#D2C6AC"/></g><circle cx="33.3" cy="58.8" r="3.2" fill="#2A2521"/>
+  <g transform="rotate(0.7 66.8 57.3)"><rect x="58.5" y="49" width="16.6" height="16.6" rx="0.6" fill="#2A2521"/><rect x="60.5" y="51" width="12.6" height="12.6" fill="#D2C6AC"/></g><circle cx="66.8" cy="58.5" r="3.2" fill="#2A2521"/>
+  <!-- the door is the mouth: shut; its letterbox is one short flat line -->
+  <path d="M42.1,69.5 Q50,69.2 57.9,69.4 L58.1,91 L41.9,91 Z" fill="#2A2521"/>
+  <path d="M44.1,71.5 Q50,71.2 55.9,71.4 L56.1,91 L43.9,91 Z" fill="#6E6353"/>
+  <rect x="46.2" y="78.2" width="7.6" height="2" rx="1" fill="#2A2521"/>
+</svg>
