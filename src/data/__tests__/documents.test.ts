@@ -323,8 +323,15 @@ describe('every document fits its form', () => {
     ];
     // The life the browser plays, and every act with a schedule: a paper can be
     // written before its act is startable, and is held to the rule from then.
-    for (const act of new Set([...ACTS, ...ALL_ACTS]))
+    // Every act but Decline issues one; Decline's paper is the certificate
+    // itself (DECLINE-ROSTER §4, G-049), and "issues nothing" above pins that
+    // it has none. Any other act without a paper still fails here.
+    const acts = [...new Set([...ACTS, ...ALL_ACTS])];
+    expect(acts.filter((a) => !Object.hasOwn(DOCUMENTS, a.id)).map((a) => a.id)).toEqual(['decline']);
+    for (const act of acts) {
+      if (act.id === 'decline') continue;
       for (const w of worlds) for (const name of names) for (const clock of [0, 305.2, 5999]) expectClean(actDocument(w, name, act, clock));
+    }
   });
 });
 

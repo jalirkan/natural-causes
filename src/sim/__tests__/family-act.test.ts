@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ACTS, ALL_ACTS, FAMILY, OFFICE, spawnStreams } from '../../data/acts';
+import { ACTS, ALL_ACTS, DECLINE, FAMILY, OFFICE, spawnStreams } from '../../data/acts';
 import { ENEMIES } from '../../data/enemies';
 import { FAMILY_ROSTER } from '../../../tools/art/batch';
 import { BOSS_HP, World } from '../world';
@@ -55,7 +55,9 @@ describe('Family has a schedule, and it is provisional', () => {
     // ACT_VISUALS and checks every frame it draws is in the atlas). The
     // browser's life ends here, at fifty-five.
     expect(ALL_ACTS.indexOf(FAMILY)).toBe(ALL_ACTS.indexOf(OFFICE) + 1);
-    expect(ALL_ACTS[ALL_ACTS.length - 1]).toBe(FAMILY);
+    // It was the last of ALL_ACTS until Decline (DECLINE-ROSTER §5), which
+    // follows it there and not yet in ACTS (decline-act.test.ts).
+    expect(ALL_ACTS[ALL_ACTS.indexOf(FAMILY) + 1]).toBe(DECLINE);
     expect(ACTS.indexOf(FAMILY)).toBe(ACTS.indexOf(OFFICE) + 1);
     expect(ACTS[ACTS.length - 1]).toBe(FAMILY);
   });
@@ -324,7 +326,14 @@ describe('the life is six acts long now', () => {
   }
 
   it('The Reorg falling crosses into Family; The Mortgage, paid off, falls at its last window and it is natural causes at fifty-five', () => {
-    const w = new World({ acts: ALL_ACTS, seed: 5, startingItems: [] });
+    // The life up to and including Family. This was ALL_ACTS while Family was
+    // the last act; Decline follows it there now (DECLINE-ROSTER §5), and in
+    // it The Mortgage paid off is a crossing, not the end (decline-act.test.ts).
+    // The browser's life, ACTS, still ends here, and a life cut here still
+    // ends at fifty-five.
+    const life = ALL_ACTS.slice(0, ALL_ACTS.indexOf(FAMILY) + 1);
+    expect(life).toEqual(ACTS);
+    const w = new World({ acts: life, seed: 5, startingItems: [] });
     for (let i = 0; i < ALL_ACTS.indexOf(FAMILY); i++) cross(w);
     expect(w.act).toBe(FAMILY);
     expect(w.won).toBe(false);

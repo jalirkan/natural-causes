@@ -147,11 +147,22 @@ export interface EnemyDef {
    */
   coy?: { flee: number; approach: number };
   /**
+   * DECLINE-ROSTER §3.1: health restored to the player when this enemy is
+   * killed — by any weapon, through the one place a kill is counted
+   * (World.reapDead) — and never above the maximum (World.maxHp). Not on a
+   * despawn, not on a merge, and not once the outcome has latched: taking it
+   * is killing it. Whoever gets there first decides whether it is medicine.
+   */
+  killHeal?: number;
+  /**
    * OFFICE-ROSTER §3.4: a hold, not a mover. Spawned centred on the player
    * (`spawnAt: 'player'`), it contracts from `from` px to `to` over `seconds`,
    * holds at `to` for `holdSeconds`, then ends. Inside it everything moves at
    * `slow` (through `slowAt`); its edge is a wall for enemies both ways and
-   * never for the player. No damage, no drop.
+   * never for the player. No damage, no drop. DECLINE-ROSTER §3.4: `seconds`
+   * 0 is a hold at `to` from its first frame (nothing divides by it), and a
+   * `holdSeconds` longer than the act is one that never adjourns — the
+   * stairs, which land at the player's `lead` instead of on them.
    */
   hold?: { from: number; to: number; seconds: number; holdSeconds: number; slow: number };
   /**
@@ -236,6 +247,15 @@ export interface EnemyDef {
      * arena and never past the shooter. You were needed.
      */
     pull?: number;
+    /**
+     * DECLINE-ROSTER §3.5: the share of the player's CURRENT maximum health a
+     * landing shot removes, for the rest of the act (World.maxHp), after the
+     * damage; current health is held inside the new maximum. Never below the
+     * labelled floor (MAX_HP_FLOOR in world.ts, a share of the act's opening
+     * maximum): at the floor a decision takes nothing more. The form decides
+     * how much of you there is.
+     */
+    maxHpLoss?: number;
   };
   /**
    * Seconds the player's input is ignored after this enemy's contact damage
@@ -1109,6 +1129,165 @@ export const ENEMIES: Record<string, EnemyDef> = {
     spawnAt: 'lead',
     whyThisStage:
       'Family is the first stage where the place the player lives is built around them while they are standing in it.',
+  },
+
+  // --- Decline (DECLINE-ROSTER §3) ---
+  //
+  // Five enemies, four swarm-tier and one elite (the stairs). Two behaviours
+  // are new, each a field rather than a system: `killHeal` (the medication,
+  // §3.1) and `ranged.maxHpLoss` (the insurance form, §3.5). The stairs are
+  // The Office's `hold` in a form that never adjourns (`seconds: 0`, a
+  // `holdSeconds` longer than the act, §3.4), and the knees are the
+  // antibody's attach, verbatim (§3.3). Everything else is a field an earlier
+  // act already needed.
+  //
+  // EVERY NUMBER BELOW IS A PLACEHOLDER under `DECLINE.provisional` (acts.ts,
+  // D-022): §3.6's table transcribed, nothing chosen here and nothing played.
+  // The relationships are the roster's — the crowd is good for you if you
+  // get to it first, the weather is the act's heaviest hit and nobody can do
+  // anything about it, the knees cost speed and never health, the stairs are
+  // a refuge the crowd cannot enter, and the form decides how much of you
+  // there is — and a person at the link moves the figures, never the bots.
+  //
+  // The act's costume of the life script: the record is read back to you.
+  // Everything in it is medicine, weather, steps, joints or paperwork
+  // (D-007): nothing is a person, and the one part of a person in it is your
+  // own, drawn in bone (law 9 has nothing to render). Nothing in the act is
+  // paying attention to the player (law 8), Time least of all.
+  medication: {
+    id: 'medication',
+    name: 'Medication',
+    act: 'decline',
+    frame: 'medication.png',
+    hp: 6,
+    speed: 56,
+    contactDamage: 3,
+    radius: 12,
+    displaySize: 40,
+    xp: 2,
+    // The rivals, the hormones, the reading, the reply-all and the bills
+    // again, from the edge: slow, small and weak. A dose that reaches the
+    // player first hurts, at its `contactDamage`.
+    movement: 'chase',
+    contact: 'damage',
+    // Killed — taken — it restores `killHeal` health, never past the maximum
+    // (World.reapDead). A screen-clearing build is well; a build that lets
+    // the crowd arrive is not. No dice.
+    killHeal: 2,
+    whyThisStage:
+      'Decline is the first stage where taking care of yourself is a thing you chase, and it hurts when it catches you first.',
+  },
+
+  weather: {
+    id: 'weather',
+    name: 'Weather',
+    act: 'decline',
+    frame: 'weather.png',
+    hp: 48,
+    // Slower than the flat-pack and wider: a front. The act's heaviest hit,
+    // and its only red thing (the rain).
+    speed: 240,
+    contactDamage: 18,
+    radius: 28,
+    displaySize: 112,
+    xp: 8,
+    // Enters aimed at where the player stands and never steers. Not `patrol`:
+    // it leaves, and past DESPAWN_RADIUS it is culled as a crosser is. A
+    // crosser is never walled by a hold (AUDIT seven, 49), so the rain comes
+    // up the stairs.
+    movement: 'cross',
+    contact: 'damage',
+    whyThisStage: 'Decline is the first stage where the weather is something that happens to the player.',
+  },
+
+  'your-knees': {
+    id: 'your-knees',
+    name: 'Your knees',
+    act: 'decline',
+    frame: 'your-knees.png',
+    // hp is inert: it cannot be damaged. Kept at 1 so nothing divides by zero.
+    hp: 1,
+    invulnerable: true,
+    speed: 0,
+    // It costs speed and never health, and it is not a kill, so no XP.
+    contactDamage: 0,
+    radius: 12,
+    displaySize: 40,
+    xp: 0,
+    // The antibody's final costume, mechanically identical (§3.3): already
+    // where the player is going, and it stays; the only way off the floor is
+    // to wear it. Each worn stack is a drag stack on the antibody's curve
+    // (World.antibodyDrag), 0.03 verbatim. `persists` for form: nothing
+    // follows Decline, but the file is the file.
+    movement: 'static',
+    spawnAt: 'lead',
+    contact: 'attach',
+    attach: { drag: 0.03, persists: true },
+    whyThisStage:
+      'Decline is where the record the player has been accumulating since before they were a person is finally read back to them by their own body.',
+  },
+
+  stairs: {
+    id: 'stairs',
+    name: 'Stairs',
+    act: 'decline',
+    frame: 'stairs.png',
+    // The elite, and it has no body: the meeting's form (OFFICE-ROSTER §3.4).
+    // hp is inert (it cannot be damaged, kept at 1 so nothing divides by
+    // zero) and the radius is 0, because what it occupies is its hold, not a
+    // point. It touches nobody and drops nothing.
+    hp: 1,
+    invulnerable: true,
+    speed: 0,
+    contactDamage: 0,
+    radius: 0,
+    // The flight at spawn; the renderer scales it to the hold's radius.
+    displaySize: 96,
+    xp: 0,
+    movement: 'static',
+    contact: 'none',
+    // Lands at the player's lead (World.spawnEnemy) and becomes a hold that
+    // never adjourns: `seconds` 0 puts it at `to` from its first frame
+    // (World.addEnemy, World.updateHolds — nothing divides by it), and
+    // `holdSeconds` outlasts the act and Time together. Inside it everything
+    // moves at `slow`; its edge is a wall for the crowd both ways and never
+    // for the player. The meeting was a trap; the stairs are a refuge.
+    spawnAt: 'lead',
+    hold: { from: 130, to: 130, seconds: 0, holdSeconds: 600, slow: 0.45 },
+    whyThisStage: 'Decline is the first stage where the slow way up is the safe way, and the crowd cannot follow.',
+  },
+
+  'insurance-form': {
+    id: 'insurance-form',
+    name: 'Insurance form',
+    act: 'decline',
+    frame: 'insurance-form.png',
+    hp: 16,
+    speed: 0,
+    contactDamage: 0,
+    radius: 24,
+    displaySize: 80,
+    xp: 8,
+    // A board on the floor that never touches anyone. Zero damage AND `none`,
+    // for the reason `Contact` gives.
+    movement: 'static',
+    contact: 'none',
+    // The registrar's consult (G-010). In range and off cooldown it consults
+    // the file — the boxes tick one by one, the renderer's job — and fires one
+    // gold decision at where the player is (G-031: the gold is the
+    // decision's, never the board's; the renderer draws it as DENIED). A hit
+    // does small damage and lowers the maximum health by `maxHpLoss` of what
+    // it is now, for the rest of the act, never below MAX_HP_FLOOR
+    // (World.resolveContact).
+    ranged: {
+      range: 440,
+      consultSeconds: 1.2,
+      cooldownSeconds: 7,
+      projectileSpeed: 220,
+      damage: 4,
+      maxHpLoss: 0.05,
+    },
+    whyThisStage: 'Decline is the first stage where the aimed thing decides what the player is covered for.',
   },
 };
 
