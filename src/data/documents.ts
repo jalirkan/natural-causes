@@ -232,7 +232,7 @@ export const DOCUMENTS = {
     fields: (w, f, c) => {
       const weapon = ranked(w.items).find((e) => e.kind === 'weapon');
       const path = furthestPath(w.pathLevels);
-      const owed = Math.max(0, Math.floor(w.taxStacks));
+      const owed = whole(w.taxStacks);
       return [
         [c.name, nameOf(f)],
         [c.degree, (weapon && own(c.degrees, weapon.id)) ?? c.general],
