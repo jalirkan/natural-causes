@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <title>Medication</title>
+  <desc>A capsule lying flat and seen exactly side-on: a straight rounded pill, both ends half-round, in two equal halves, the left half bone and the right half shadow, with a straight ink seam standing between them. On the bone half, pushed up against the seam, two ink dots and a short flat mouth look sideways at the join. Nothing is written on it, and it has nothing else: the seam is the read.</desc>
+  <!--
+    Medication (DECLINE-ROSTER §3.1), the act's crowd. Reserved silhouette
+    (§1): the capsule, a pill in two halves, one darker, seen side-on; the
+    only capsule in the act and the smallest thing in it, as ping, tuition
+    and acne were in theirs. It deals contact damage but holds no threat
+    colour: the roster gives contact red to the weather, and the capsule is
+    bone, shadow and ink.
+
+    Drawn on the finished sprite's own pixel grid. The group maps one unit
+    to one pixel of the 40px sprite: the capsule is 38 units long (40 less
+    the 1px outline each side) and 16 tall, a 2.4 to 1 pill, centred, so
+    the rasteriser fits it on its length and each unit becomes one sprite
+    pixel. Everything is stated as steps on that grid, the ends included:
+    each end is a half-circle of radius 8 in rows inset 5, 3, 2, 1, 1, then
+    six rows flush, then back out, which is the row-rounded circle and what
+    the rasteriser itself drew from an arc, stated so it cannot drift.
+
+    A capsule, not a bean and not a battery. Both long sides are straight
+    and parallel, so it does not curve into a bean; both ends are fully
+    round, with no flat end and no nub, so it is not a cell. The halves
+    are equal, 18 units each either side of the seam.
+
+    The seam is the read: an ink band 2 units wide across the full height,
+    meeting the outline CONFORM adds at top and bottom, so at 48px the
+    turn from bone to shadow has a hard dark line in it rather than a soft
+    change of tone. Drawn 1 unit wide it still parted the halves at 48px,
+    but as a hairline, which the swarm tier does not draw (ART-DIRECTION,
+    detail budget); at 2 it is a band as bold as everything else here.
+
+    The face: two dots 2 by 3 and a flat mouth 5 by 1, on the bone half,
+    pushed toward the seam so a single bone column is left between the
+    near dot and the band: it is looking at the join, not at the viewer.
+    Nothing is on the shadow half. Chasers are flipped to face their
+    target (ActScene), so on the field the bone half trails and the face
+    looks across the seam the way the capsule is going.
+
+    Colours are palette hex values: bone #D2C6AC the left half, shadow
+    #6E6353 the right, ink #2A2521 the seam and the face. No threat colour,
+    no paper (the player's) and no decline-light, which is the pickups'
+    (law 10). CONFORM adds the outline; there is none here.
+  -->
+  <g shape-rendering="crispEdges" transform="scale(2.5) translate(1 12)">
+  <!-- the bone half: the left end, a half-circle of radius 8 stated in rows, then straight to the seam -->
+  <path d="M5,0 H19 V16 H5 V15 H3 V14 H2 V13 H1 V11 H0 V5 H1 V3 H2 V2 H3 V1 H5 Z" fill="#D2C6AC"/>
+  <!-- the shadow half: from the seam, straight, to the right end -->
+  <path d="M19,0 H33 V1 H35 V2 H36 V3 H37 V5 H38 V11 H37 V13 H36 V14 H35 V15 H33 V16 H19 Z" fill="#6E6353"/>
+  <!-- the seam: an ink band 2 wide, the full height of the pill -->
+  <path d="M18,0 H20 V16 H18 Z" fill="#2A2521"/>
+  <!-- the face, on the bone half against the seam: two dots and a flat mouth, looking at the join -->
+  <path fill="#2A2521" d="M11,4 h2 v3 h-2 Z M15,4 h2 v3 h-2 Z M12,10 h5 v1 h-5 Z"/>
+  </g>
+</svg>

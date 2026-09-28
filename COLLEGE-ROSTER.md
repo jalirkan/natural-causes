@@ -313,6 +313,7 @@ race and shield paths are untouched: `race` is inert on a `loan`, and
 - **The document at the crossing:** a diploma, from the run's stats.
 - **The branch.** When Service exists, Prom's crossing offers the choice.
 - **College's items.** What enters the pool at eighteen (G-039's `from`).
+- *2026-09-28:* **The Highlighter exists** (G-052, `highlighter`, `from: 'college'`): a stroke marks what it hits, and everything then hits the marked thing harder for a few seconds; paths Fluorescent, Every Page, Underline. Every number a placeholder under `COLLEGE.provisional`.
 - **Sounds:** the bell, the tape, the date.
 - *2026-09-28:* **The diploma exists** (G-049): the degree from the weapon held highest (a Master's for an evolution), honours in the path taken furthest, the balance carried forward in invoices, stamped PAID IN PART. **The sounds exist**: the bell at the crossing, the tape's tick, the stamp (`hearWorld`).
 

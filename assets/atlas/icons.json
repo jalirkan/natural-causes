@@ -260,7 +260,7 @@
         "h": 96
       }
     },
-    "icon-aura.png": {
+    "icon-block.png": {
       "frame": {
         "x": 296,
         "y": 100,
@@ -280,7 +280,7 @@
         "h": 96
       }
     },
-    "icon-bolt.png": {
+    "icon-aura.png": {
       "frame": {
         "x": 394,
         "y": 100,
@@ -300,7 +300,7 @@
         "h": 96
       }
     },
-    "icon-sweep.png": {
+    "icon-bolt.png": {
       "frame": {
         "x": 492,
         "y": 100,
@@ -320,7 +320,7 @@
         "h": 96
       }
     },
-    "icon-vendetta.png": {
+    "icon-sweep.png": {
       "frame": {
         "x": 590,
         "y": 100,
@@ -340,7 +340,7 @@
         "h": 96
       }
     },
-    "icon-jump.png": {
+    "icon-vendetta.png": {
       "frame": {
         "x": 688,
         "y": 100,
@@ -360,7 +360,7 @@
         "h": 96
       }
     },
-    "icon-reach.png": {
+    "icon-jump.png": {
       "frame": {
         "x": 786,
         "y": 100,
@@ -380,7 +380,7 @@
         "h": 96
       }
     },
-    "icon-hindsight.png": {
+    "icon-reach.png": {
       "frame": {
         "x": 884,
         "y": 100,
@@ -400,9 +400,89 @@
         "h": 96
       }
     },
-    "icon-rut.png": {
+    "icon-hindsight.png": {
       "frame": {
         "x": 2,
+        "y": 198,
+        "w": 96,
+        "h": 96
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 96,
+        "h": 96
+      },
+      "sourceSize": {
+        "w": 96,
+        "h": 96
+      }
+    },
+    "icon-rut.png": {
+      "frame": {
+        "x": 100,
+        "y": 198,
+        "w": 96,
+        "h": 96
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 96,
+        "h": 96
+      },
+      "sourceSize": {
+        "w": 96,
+        "h": 96
+      }
+    },
+    "icon-highlight.png": {
+      "frame": {
+        "x": 198,
+        "y": 198,
+        "w": 96,
+        "h": 96
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 96,
+        "h": 96
+      },
+      "sourceSize": {
+        "w": 96,
+        "h": 96
+      }
+    },
+    "icon-letter.png": {
+      "frame": {
+        "x": 296,
+        "y": 198,
+        "w": 96,
+        "h": 96
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 96,
+        "h": 96
+      },
+      "sourceSize": {
+        "w": 96,
+        "h": 96
+      }
+    },
+    "icon-nap.png": {
+      "frame": {
+        "x": 394,
         "y": 198,
         "w": 96,
         "h": 96

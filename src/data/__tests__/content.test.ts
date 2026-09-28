@@ -301,12 +301,15 @@ describe('upgrades gain (G-038)', () => {
     }
   });
 
-  it('a field holds and does nothing else: a slow below 1, no damage', () => {
+  it('a field holds and does nothing else: a slow below 1 or a wall, no damage', () => {
     for (const def of items) {
       if (!isActive(def) || def.mode !== 'field') continue;
       expect(def.slow, `"${def.id}" is a field with no slow`).toBeDefined();
       expect(def.slow!).toBeGreaterThan(0);
-      expect(def.slow!).toBeLessThan(1);
+      // Calendar block (The Office) walls instead of slowing: a slow of 1 is
+      // none, and a field that neither slows nor walls holds nothing.
+      if (def.wall) expect(def.slow!).toBeLessThanOrEqual(1);
+      else expect(def.slow!).toBeLessThan(1);
       expect(def.damage, `"${def.id}" field deals damage`).toBe(0);
       expect(def.kind, `"${def.id}"`).toBe('control');
     }

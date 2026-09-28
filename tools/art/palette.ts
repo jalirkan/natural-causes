@@ -110,6 +110,17 @@ const ACT_TONES = {
     c('family-mid', '#A3812F'), // mustard; the wallpaper, and the rooms
     c('family-light', '#F3E3A6'), // butter; the fridge light, pickups only (law 10, G-030)
   ],
+  // DECLINE-ROSTER.md §1, lifted. The ward's floor, the corridor's wall, the
+  // mint of the pickups: the palest, greyest act in the life, on purpose.
+  // Measured in Oklab, each tone's nearest neighbour in the catalogue is
+  // 0.046 or more away (the light is 0.046 from paper, the player's, so no
+  // enemy wears it; law 10, G-030). The catalogue is 32 of D-028's 32: the
+  // life's last act fills the last three.
+  decline: [
+    c('decline-deep', '#34433C'), // the ward's floor; the act background
+    c('decline-mid', '#7E9B8E'), // the corridor's wall, sage
+    c('decline-light', '#CDE5D2'), // mint; pickups only (law 10, G-030)
+  ],
 } as const;
 
 export type ActId = keyof typeof ACT_TONES;

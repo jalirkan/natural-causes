@@ -24,6 +24,33 @@ Running record of what the automated bots measured and what it means for design.
 
 ---
 
+# 2026-09-28 · After Decline — the whole life. Presence only.
+
+`pnpm playtest -- --runs=8 --life` (seeds 1000–1007, 96 lives, twelve policies) at the integration
+branch before its PR (`e91794d`), Decline in `ALL_ACTS`, Time's hand turning, the four act-born
+habits in the pool. Time cannot be hurt, so its column reads seconds left, not health.
+
+| policy | ended in | of |
+|---|---|---|
+| greedy-capacitation | decline 7, family 1 | natural causes 6, Time 1, The Mortgage 1 |
+| personal-space+membrane, judgement+appetite, acrosome+midpiece | decline 6 each | natural causes 6 each; The Mortgage or Someone else for the rest |
+| motility | decline 4, family 4 | The Mortgage 4, Time 2, natural causes 2 |
+| midpiece+wake | family 4, conception 4 | The Mortgage 4, Someone else 3, Rival sperm 1 |
+| the other seven arms | decline 2–5, the rest Family, Conception or Adolescence | natural causes; The Mortgage 1–4 each |
+| uptake, habits | Highlighter 10, Calendar Block 1, Strongly Worded Letter 1, Nap 0 of 96 | |
+
+Forty-six of ninety-six lives reached Decline and forty-three of those ended of natural causes at
+eighty-four: the life is winnable by the bots, and the certificate the title promised is the common
+ending for a build that gets past The Mortgage. Time killed three (the bots orbit inside its disc and
+cross the hand, AUDIT nine, 119), and The Mortgage remains the life's wall: twenty-six lives ended
+there, the same shape as the six-act run (79). Nothing else in Decline killed a bot, and every arm that
+reached Time arrived with the file worn (knees among the stacks), which the bots feel and never read.
+The habits are taken as the pool offers them — the Highlighter in one life in ten, the others once or
+never, the Nap never — so their presence is established and nothing about them is measured. Nothing
+here is calibration; the questions for a person are DECLINE-ROSTER §7's and README's 17 to 20.
+
+---
+
 # 2026-09-28 · After Family — the six-act life. Presence only.
 
 `pnpm playtest -- --runs=8 --life` (seeds 1000–1007, 96 lives, twelve policies) at the integration

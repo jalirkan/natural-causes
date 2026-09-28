@@ -34,6 +34,7 @@ import {
   BOSS_RADIUS,
   PLAYER_RADIUS,
   STRIKE_DELAY,
+  TIME_HAND_REST,
   World,
   type Certificate,
   type EnemyState,
@@ -42,12 +43,23 @@ import {
   type Input,
   type ProjectileState,
 } from '../sim/world';
-import { meetingCloses, memoDrafted, vehiclesEntered, wornGained } from './edges';
+import {
+  consulting,
+  holdTaken,
+  instalmentPaid,
+  meetingCloses,
+  memoDrafted,
+  newestAbove,
+  statementDrafted,
+  vehiclesEntered,
+  wornGained,
+} from './edges';
 import {
   BONE,
   INK,
   PAPER,
   SHADOW,
+  THREAT_BOSS,
   THREAT_CONTACT,
   THREAT_ELITE,
   THREAT_RANGED,
@@ -78,15 +90,16 @@ const MAX_ATTACHED_SPRITES = 16;
 /**
  * Enemies whose aimed shot is drawn as a word in the ranged gold instead of the
  * gold dot: the substitute's (the player's name, misspelled), the registrar's
- * (HOLD), the performance review's rating (MEETS, OFFICE-ROSTER §3.5) and the
- * phone's call (HELLO?, FAMILY-ROSTER §3.5). Keyed on the id because the word
- * is the drawing; `SHOT_WORDS` holds the fixed ones, and the substitute's is
- * the name.
+ * (HOLD), the performance review's rating (MEETS, OFFICE-ROSTER §3.5), the
+ * phone's call (HELLO?, FAMILY-ROSTER §3.5) and the insurance form's decision
+ * (DENIED, DECLINE-ROSTER §3.5). Keyed on the id because the word is the
+ * drawing; `SHOT_WORDS` holds the fixed ones, and the substitute's is the name.
  */
 const SHOT_WORDS: Readonly<Record<string, string>> = {
   registrar: 'HOLD',
   'performance-review': 'MEETS',
   'phone-call': 'HELLO?',
+  'insurance-form': 'DENIED',
 };
 const WORDED_SHOTS: ReadonlySet<string> = new Set(['substitute-teacher', ...Object.keys(SHOT_WORDS)]);
 /**
@@ -151,6 +164,39 @@ const HOLD_GRAB_SECONDS = 0.4;
 const HOLD_GRAB = 0.12;
 /** A body holding the player that is drawn smaller than them draws in front of them, between the player and what they wear. */
 const HOLDER_DEPTH = 10.5;
+/**
+ * Time's minute hand (DECLINE-ROSTER §4, AUDIT 96). boss-time.svg's note for
+ * the renderer, measured on the 384 sprite: the pivot where both hands turn
+ * and the face sits, as shares of the frame (a pixel from the boss point,
+ * which is `bossBody`'s cy 0.47), and the cap's ink edge, r 33px, which the
+ * hands pass under. The long hand's rest pose, ten past ten, is the sim's
+ * `TIME_HAND_REST`, where its hand starts. The drawn hand is the sim's honest
+ * rectangle (`sweepLength` × `sweepWidth` from the boss point, turned by
+ * `boss.hand`), in the boss teal because it hurts, from the cap's edge out, so
+ * the face stays on top as the drawing has it.
+ */
+const TIME_PIVOT = { x: 0.499, y: 0.472 };
+const TIME_CAP_R = 33 / 384;
+/**
+ * The baked long hand, covered (PLACEHOLDER as a picture, as the Mortgage's
+ * door and the Reorg's grey rows are, AUDIT seven 55): the sprite has its
+ * long hand at the rest pose, so once the drawn hand turns there would be two
+ * teal hands on the face and only one of them hurts. Until a frame without the
+ * long hand is drawn and packed, a strip of the dial's bone is laid over the
+ * baked one, from the cap's edge to past its ink tip (127px of 384) and wider
+ * than its ink edge (27px), at the rest pose, about the sprite's own pivot
+ * (`TIME_PIVOT`). Shares of the frame.
+ */
+const TIME_BAKED_HAND = { from: 30 / 384, to: 131 / 384, width: 31 / 384 };
+/**
+ * A Highlighter mark (College's first item): a flat level band with square
+ * ends laid under the marked body, as the icon's own stroke is, in the pen's
+ * rose (conception-mid, the colour the field-riding icons already wear; never
+ * the ranged gold, G-031, and never a threat colour, law 10). It fades over
+ * the mark's last `MARK_FADE` seconds. PLACEHOLDER, watched by nobody yet.
+ */
+const MARK_ROSE = 0xa86a63;
+const MARK_FADE = 0.5;
 /**
  * The boss's entrance (AUDIT 37). Every boss stands 420px above the player
  * and the view reaches 360, so on the boss's first frame the camera goes to
@@ -262,7 +308,7 @@ export class ActScene extends Phaser.Scene {
    * Shots drawn as words (`shotWord`): the substitute's, the player's name
    * spelled wrong (SCHOOL-ROSTER §3.5), the registrar's HOLD (COLLEGE §3.5),
    * the review's MEETS (OFFICE §3.5), the phone's HELLO? and the Mortgage's
-   * DUE (FAMILY §3.5, §4).
+   * DUE (FAMILY §3.5, §4), the insurance form's DENIED (DECLINE §3.5).
    */
   private nameShotTexts: Phaser.GameObjects.Text[] = [];
   /** The name on the form, read once per life; the sim never knows it. */
@@ -307,6 +353,14 @@ export class ActScene extends Phaser.Scene {
   private bossGrey?: Phaser.GameObjects.Image;
   /** The Mortgage's open door (`MORTGAGE_DOOR`), laid over the house from the last payment on. */
   private bossDoor?: Phaser.GameObjects.Rectangle;
+  /**
+   * Time's minute hand, drawn as its own shape over the clock (`syncTimeHand`),
+   * and the bone strip that covers the sprite's baked one (`TIME_BAKED_HAND`).
+   */
+  private bossHand?: Phaser.GameObjects.Rectangle;
+  private bossHandCover?: Phaser.GameObjects.Rectangle;
+  /** Highlighter marks (`MARK_ROSE`), redrawn every frame under the crowd. */
+  private markFx!: Phaser.GameObjects.Graphics;
   /**
    * The hold's cues (`HOLD_GRAB`): last frame's `engulfTimer`, which rising is
    * a new hold; the world time of that grab; and the swim's phase, advanced
@@ -358,7 +412,7 @@ export class ActScene extends Phaser.Scene {
    * way it notices everything else: by reading state and diffing. `worn` and
    * `holds` are copies, never the world's live map and array.
    */
-  private heard = { kills: 0, hp: 0, worn: new Map() as ReadonlyMap<string, number>, offers: false, boss: false, dead: false, won: false, xp: 0, level: 1, raced: 0, shot: 0, homework: 0, stun: 0, bossPhase: '', typing: 0, car: 0, bell: 0, interestIn: 0, time: 0, auraAt: -Infinity, holds: [] as readonly HoldState[], restructures: 0 };
+  private heard = { kills: 0, hp: 0, worn: new Map() as ReadonlyMap<string, number>, offers: false, boss: false, dead: false, won: false, xp: 0, level: 1, raced: 0, shot: 0, homework: 0, stun: 0, bossPhase: '', typing: 0, car: 0, bell: 0, interestIn: 0, time: 0, auraAt: -Infinity, holds: [] as readonly HoldState[], restructures: 0, bill: 0, ringing: 0, engulf: 0, paid: 0 };
 
   /**
    * How long this run held each heading (§12.4's sixth question). Fed the
@@ -374,6 +428,13 @@ export class ActScene extends Phaser.Scene {
   private hudBossLabel!: Phaser.GameObjects.Text;
   private hudRaceLabel!: Phaser.GameObjects.Text;
   private bars!: Phaser.GameObjects.Graphics;
+  /**
+   * The health bar's empty tail this frame, in HUD px: the part of the act's
+   * opening maximum the insurance form's decisions have taken (DECLINE-ROSTER
+   * §3.5, AUDIT 90). Zero with nothing taken. Kept for the smoke's probe
+   * (tools/smoke/run.ts), which cannot read a Graphics.
+   */
+  private hpTail = 0;
   /**
    * The certificate's words: `certificateLines`, typed on the receipt under
    * the form (showCertificate). The smoke reads this object's text for
@@ -476,6 +537,8 @@ export class ActScene extends Phaser.Scene {
     delete this.bossSprite;
     delete this.bossGrey;
     delete this.bossDoor;
+    delete this.bossHand;
+    delete this.bossHandCover;
     delete this.floorRing;
     this.heldFor = 0;
     this.grabAt = -Infinity;
@@ -503,6 +566,8 @@ export class ActScene extends Phaser.Scene {
     this.playerFx = this.add.graphics().setDepth(9);
     // Under the crowd, so what the swing hits is drawn on top of it.
     this.sweepFx = this.add.graphics().setDepth(4);
+    // Under the crowd too, so the marked thing is drawn on its stroke.
+    this.markFx = this.add.graphics().setDepth(4.5);
     this.player = this.add
       .image(this.world.x, this.world.y, this.visuals.atlas.key, this.visuals.playerFrame)
       .setDepth(10);
@@ -575,7 +640,7 @@ export class ActScene extends Phaser.Scene {
     this.resetArrivals();
 
     this.dev = neutralDevState();
-    this.heard = { kills: 0, hp: this.world.hp, worn: new Map(this.world.wornBy), offers: false, boss: false, dead: false, won: false, xp: 0, level: 1, raced: 0, shot: 0, homework: 0, stun: 0, bossPhase: '', typing: 0, car: 0, bell: 0, interestIn: 0, time: this.world.time, auraAt: -Infinity, holds: this.world.holds.slice(), restructures: 0 };
+    this.heard = { kills: 0, hp: this.world.hp, worn: new Map(this.world.wornBy), offers: false, boss: false, dead: false, won: false, xp: 0, level: 1, raced: 0, shot: 0, homework: 0, stun: 0, bossPhase: '', typing: 0, car: 0, bell: 0, interestIn: 0, time: this.world.time, auraAt: -Infinity, holds: this.world.holds.slice(), restructures: 0, bill: 0, ringing: 0, engulf: 0, paid: 0 };
     this.inputLog = new InputLog();
     if (import.meta.env.DEV) {
       this.detachDev?.();
@@ -633,6 +698,10 @@ export class ActScene extends Phaser.Scene {
     delete this.bossGrey;
     this.bossDoor?.destroy();
     delete this.bossDoor;
+    this.bossHand?.destroy();
+    delete this.bossHand;
+    this.bossHandCover?.destroy();
+    delete this.bossHandCover;
     this.endBossEntrance();
     this.floorRing?.destroy();
     delete this.floorRing;
@@ -1220,6 +1289,7 @@ export class ActScene extends Phaser.Scene {
     this.syncArrivals();
     this.syncPlayer();
     this.syncEnemies();
+    this.syncMarks();
     this.syncProjectiles();
     this.syncGems();
     this.syncRings();
@@ -1291,8 +1361,10 @@ export class ActScene extends Phaser.Scene {
     if (firedBy.has('group-chat')) sfx.notification();
     if (firedBy.has('substitute-teacher')) sfx.substituteShot();
     // Any ranged enemy nobody has given a voice yet borrows the substitute's.
-    // The registrar has one (its stamp, under the gate with College's below).
-    for (const id of firedBy) if (id !== 'group-chat' && id !== 'substitute-teacher' && id !== 'registrar') sfx.substituteShot();
+    // The registrar has one (its stamp, under the gate with College's below);
+    // the phone's is its ring on the consult (Family, below), and its HELLO?
+    // lands without an ah-hem after it.
+    for (const id of firedBy) if (id !== 'group-chat' && id !== 'substitute-teacher' && id !== 'registrar' && id !== 'phone-call') sfx.substituteShot();
     // The Gym Teacher's whistle (SCHOOL-ROSTER §9): rising on the telegraph,
     // one long blow on the exit. Read off the phase edge like everything else;
     // the Egg's phases make no sound of their own.
@@ -1311,6 +1383,13 @@ export class ActScene extends Phaser.Scene {
     // on one frame, and at the spawn cap a restructure seats no hold at all.
     if (memoDrafted(w.boss, h.bossPhase)) sfx.memo();
     if (meetingCloses(w.holds, w.boss, h)) sfx.chairs();
+    // The Mortgage (FAMILY-ROSTER §4): the statement drafted is its telegraph,
+    // the letterbox in its door, on the edge (DUE fires on `bossShot`); a
+    // window paid is `paid` rising, the till, once a window at most. A missed
+    // window sends a bill from the door, and the doorbell below hears that.
+    if (statementDrafted(w.boss, h.bossPhase)) sfx.statement();
+    const paid = w.boss?.paid ?? 0;
+    if (instalmentPaid(w.boss, h.paid)) sfx.ding();
     // The hall monitor's stop, on its leading edge. A touch during a running
     // stun refreshes it without an edge, and stays silent.
     if (w.stunTimer > 0 && h.stun <= 0) sfx.stun();
@@ -1339,6 +1418,20 @@ export class ActScene extends Phaser.Scene {
     const car = vehicles.highest;
     if (vehicles.sounds.has('carPass')) sfx.carPass();
     if (vehicles.sounds.has('carriage')) sfx.carriage();
+    // Family (§3.2): the flat-pack crosses on that engine as well and shares
+    // the counter; its arrival is the tape torn off the box, never a car.
+    if (vehicles.sounds.has('tape')) sfx.tape();
+    // Family (§6): a bill arriving is the doorbell — a bill uid above the
+    // highest heard, a late fee's included, one ring a frame. The phone
+    // consulting is the ring, the number consulting rising as the group
+    // chat's typing is. The toddler taking hold is the squeak: the hold's
+    // clock rising, and the one holding is a toddler — a white cell's or a
+    // standardised test's hold rises the same clock and stays silent.
+    const bill = newestAbove(w.enemies, 'bill', h.bill);
+    if (bill > h.bill) sfx.doorbell();
+    const ringing = consulting(w.enemies, 'phone-call');
+    if (ringing > h.ringing) sfx.ring();
+    if (holdTaken(w, h.engulf) === 'toddler') sfx.squeak();
     // G-044's three weapons. Unlike the counters above, their state sits still
     // while the world does (a card up, the run over), so an arc or a landed
     // bolt read off a held world would sound every frame. They hear only the
@@ -1419,6 +1512,11 @@ export class ActScene extends Phaser.Scene {
       auraAt,
       holds: w.holds.slice(),
       restructures: w.boss?.restructures ?? 0,
+      bill,
+      ringing,
+      // Copied every frame, the countdown included, so only a new hold rises.
+      engulf: w.engulfTimer,
+      paid,
     };
   }
 
@@ -1617,6 +1715,30 @@ export class ActScene extends Phaser.Scene {
     }
   }
 
+  /**
+   * The Highlighter's marks (College): a rose band (`MARK_ROSE`) under every
+   * enemy whose mark is still running on the world's clock, fading over its
+   * last `MARK_FADE` seconds. Before this a mark changed what every hit was
+   * worth and nothing on screen said which things were marked. Read off the
+   * enemy's own `markedUntil`; a mark past its time is not drawn, as the sim
+   * does not read it. The band's size is the body's as drawn.
+   */
+  private syncMarks(): void {
+    const w = this.world;
+    this.markFx.clear();
+    for (const e of w.enemies) {
+      if (e.markedUntil === undefined) continue;
+      const left = e.markedUntil - w.time;
+      if (!(left > 0)) continue;
+      const alpha = 0.85 * Math.min(1, left / MARK_FADE);
+      const width = e.displaySize * 1.2;
+      const height = Math.max(6, e.displaySize * 0.36);
+      this.markFx
+        .fillStyle(MARK_ROSE, alpha)
+        .fillRect(e.x - width / 2, e.y + e.displaySize * 0.2 - height / 2, width, height);
+    }
+  }
+
   private syncProjectiles(): void {
     const list: ProjectileState[] = this.world.projectiles;
     // The weapon IS the object (G-036): Lash fires the manicule — a little
@@ -1638,7 +1760,8 @@ export class ActScene extends Phaser.Scene {
     // The phone's call is HELLO? (FAMILY-ROSTER §3.5): it wants nothing but
     // you, over there. The Mortgage's statement is DUE (§4): the boss's shot,
     // keyed on its kind. The Reorg's memo has no word, so it is the Egg's
-    // hostile dot.
+    // hostile dot. The insurance form's decision is DENIED (DECLINE-ROSTER
+    // §3.5): the aimed thing decides what you are covered for.
     this.fit(this.projectileSprites, list.length, () => this.add.image(0, 0, 'nc-shot').setDepth(8));
     let named = 0;
     for (const p of list) if (this.shotWord(p) !== undefined) named++;
@@ -1797,11 +1920,15 @@ export class ActScene extends Phaser.Scene {
         // from twice its radius to its honest one and the card's icon comes
         // down onto it; on landing, a flash at the radius it hurts in with
         // the icon on the point. Checked first: a landed strike is one-shot
-        // and would otherwise draw as Temper's starburst.
+        // and would otherwise draw as Temper's starburst. The fraction is of
+        // the strike's own wait (`telegraph`): read against Judgement's
+        // STRIKE_DELAY, the Letter's five seconds would open the ring at
+        // over a dozen times its radius with the icon off the top of the
+        // screen. Clamped, so a wait nobody set still draws on the mark.
         const def = a.source ? ITEMS[a.source] : undefined;
         const [key, frame] = def ? this.iconTexture(def.icon, def.name) : ['nc-shot', undefined];
         if (a.delay > 0) {
-          const t = 1 - a.delay / STRIKE_DELAY;
+          const t = Phaser.Math.Clamp(1 - a.delay / (a.telegraph ?? STRIKE_DELAY), 0, 1);
           circle
             .setPosition(a.x, a.y)
             .setRadius(a.radius * (2 - t))
@@ -1920,6 +2047,11 @@ export class ActScene extends Phaser.Scene {
    * The meeting's own sprite is the ring of chairs, so its frame is drawn at
    * twice the live radius and the chairs sit on the edge as it closes. Until
    * the drawing lands in the act's atlas the ring is drawn alone.
+   *
+   * A hold the player put down (Calendar block, `owner: 'player'`) has no
+   * enemy def behind it: it is drawn as Snooze's field is, a bone ring at the
+   * radius it walls at, fading as it runs out, with the card's icon where it
+   * was put. Never the elite purple: that is the meeting's.
    */
   private syncHolds(): void {
     const list = this.world.holds;
@@ -1928,6 +2060,22 @@ export class ActScene extends Phaser.Scene {
     this.fit(this.holdChairs, list.length, () => this.add.image(0, 0, atlas).setDepth(3));
     for (let i = 0; i < list.length; i++) {
       const h = list[i]!;
+      const item = h.owner === 'player' ? ITEMS[h.source] : undefined;
+      if (item) {
+        const fade = 1 - h.age / (h.seconds + h.holdSeconds);
+        const [key, frame] = this.iconTexture(item.icon, item.name);
+        this.holdRings[i]!.setPosition(h.x, h.y)
+          .setRadius(h.radius)
+          .setFillStyle(PAPER, 0.06 * fade)
+          .setStrokeStyle(3, BONE, 0.25 + 0.4 * fade)
+          .setVisible(true);
+        this.holdChairs[i]!.setTexture(key, frame)
+          .setPosition(h.x, h.y)
+          .setDisplaySize(40, 40)
+          .setAlpha(0.8 * fade)
+          .setVisible(true);
+        continue;
+      }
       this.holdRings[i]!.setPosition(h.x, h.y)
         .setRadius(h.radius)
         .setFillStyle(THREAT_ELITE, 0.06)
@@ -1940,6 +2088,7 @@ export class ActScene extends Phaser.Scene {
           .setTexture(atlas, frame)
           .setPosition(h.x, h.y)
           .setDisplaySize(h.radius * 2, h.radius * 2)
+          .setAlpha(1)
           .setVisible(true);
       } else {
         chairs.setVisible(false);
@@ -2140,6 +2289,7 @@ export class ActScene extends Phaser.Scene {
       .setAlpha(alpha);
     if (this.world.act.boss.kind === 'reorg') this.syncChartGrey(b, alpha);
     if (this.world.act.boss.kind === 'mortgage') this.syncDoor(b, alpha);
+    if (this.world.act.boss.kind === 'time') this.syncTimeHand(b, alpha);
     // Behind a card nobody would see the look, so it waits for the choice.
     if (this.bossEntranceOwed && !this.world.offers) this.lookAtBoss(b.phase === 'absorbing');
   }
@@ -2211,6 +2361,62 @@ export class ActScene extends Phaser.Scene {
       .setFillStyle(this.visuals.background, 1)
       .setAlpha(alpha)
       .setVisible(true);
+  }
+
+  /**
+   * Time's minute hand (DECLINE-ROSTER §4, AUDIT 96). The sprite's own long
+   * hand is baked at the rest pose; the hazard is drawn as its own shape: a
+   * boss-teal rectangle (`THREAT_BOSS`: it hurts, law 10), `sweepLength` long
+   * and `sweepWidth` wide with a square tip, pivoted on the boss point where
+   * the sim's hand turns (`fromHand`), turned by the sim's `boss.hand` —
+   * radians clockwise from twelve, pointing along (sin, −cos), so a strip
+   * laid along +x takes Phaser's rotation `hand − π/2`. It starts at the
+   * cap's edge (`TIME_CAP_R`), where the drawn hands pass under the face; the
+   * part under the cap is inside the clock. On Time's first frame it lies
+   * over the baked hand at `TIME_HAND_REST`; the bone strip
+   * (`TIME_BAKED_HAND`) covers the baked one wherever the drawn one goes,
+   * laid about the sprite's own pivot as drawn this frame, since it covers
+   * pixels of the sprite. Ink-edged, as everything drawn is (law 1), so it
+   * reads where it crosses the teal rim. PLACEHOLDER as a picture: a
+   * rectangle at the sim's honest size, not a drawn blade, until the hand is
+   * drawn as its own frame.
+   */
+  private syncTimeHand(b: NonNullable<World['boss']>, alpha: number): void {
+    const owed = this.world.act.boss;
+    if (owed.kind !== 'time') return;
+    const s = this.bossSprite!;
+    const angle = Number.isFinite(b.hand) ? b.hand : TIME_HAND_REST;
+    const cap = TIME_CAP_R * s.displayWidth;
+    this.bossHandCover ??= this.add.rectangle(0, 0, 1, 1, BONE).setDepth(s.depth + 0.1);
+    this.bossHand ??= this.add.rectangle(0, 0, 1, 1, THREAT_BOSS).setStrokeStyle(3, INK, 1).setDepth(s.depth + 0.2);
+    // Each a strip lying along its rotation from `start` px out of (px, py).
+    const lay = (
+      r: Phaser.GameObjects.Rectangle,
+      px: number,
+      py: number,
+      start: number,
+      length: number,
+      width: number,
+      turn: number,
+    ) => {
+      // A resize rebuilds the shape's path and resets its display origin, so
+      // only on a change; the origin, which puts the pivot `start` px behind
+      // the strip's near end, goes back on every frame after it.
+      const l = Math.round(length);
+      const w = Math.round(width);
+      if (r.width !== l || r.height !== w) r.setSize(l, w);
+      r.setDisplayOrigin(-start, w / 2)
+        .setPosition(px, py)
+        .setRotation(turn - Math.PI / 2)
+        .setAlpha(alpha)
+        .setVisible(true);
+    };
+    const d = s.displayWidth;
+    const cx = s.x + (TIME_PIVOT.x - s.originX) * d;
+    const cy = s.y + (TIME_PIVOT.y - s.originY) * s.displayHeight;
+    const baked = TIME_BAKED_HAND;
+    lay(this.bossHandCover, cx, cy, baked.from * d, (baked.to - baked.from) * d, baked.width * d, TIME_HAND_REST);
+    lay(this.bossHand, b.x, b.y, cap, Math.max(1, owed.sweepLength - cap), owed.sweepWidth, angle);
   }
 
   /**
@@ -2370,7 +2576,9 @@ export class ActScene extends Phaser.Scene {
       const pathLevel = path
         ? ((this.world as { pathLevels?: Map<string, number> }).pathLevels?.get(id) ?? 0)
         : 0;
-      const owned = { level, pathLevel };
+      // Every path held, so a path card can total the weapon (item-text.ts
+      // `OwnedLevels.pathLevels`: the Letter's arrival under Registered).
+      const owned = { level, pathLevel, pathLevels: this.world.pathLevels };
       const x = cam.width / 2 - total / 2 + W / 2 + i * (W + GAP);
 
       const g = this.add.graphics();
@@ -2532,14 +2740,26 @@ export class ActScene extends Phaser.Scene {
     // The plate: one quiet ink surface holding both bars, so the corner reads
     // as an instrument instead of two floating rectangles.
     this.bars.fillStyle(INK, 0.4).fillRoundedRect(12, 8, 236, 46, 7);
-    // Health.
-    this.bars.fillStyle(INK, 0.55).fillRect(22, 30, 216, 9);
+    // Health. The track is the act's opening maximum (`openingMaxHp`), or the
+    // maximum now if the items have raised it past that since, so a decision
+    // that lowers the maximum (DECLINE-ROSTER §3.5, AUDIT 90) visibly
+    // shortens what you have: the live track ends at the maximum and the
+    // part taken stays as an empty tail — an outline with nothing in it,
+    // value only and never a threat colour (law 10). Every other act's
+    // maximum is its opening one or more, and the tail is never drawn.
+    const track = Math.max(w.openingMaxHp > 0 ? w.openingMaxHp : w.maxHp, w.maxHp);
+    const live = Math.round((216 * w.maxHp) / track);
+    this.hpTail = 216 - live;
+    this.bars.fillStyle(INK, 0.55).fillRect(22, 30, live, 9);
+    if (this.hpTail > 0) {
+      this.bars.lineStyle(1, BONE, 0.5).strokeRect(22 + live + 0.5, 30.5, this.hpTail - 1, 8);
+    }
     // Law 10 names this case directly: damage feedback goes to value, never to
     // tint, because a player flashing contact-red makes the colour mean
     // "someone is being hurt" instead of "this hurts". The player sprite
     // already dims on i-frames, which is the value channel doing the job.
     this.bars.fillStyle(PAPER, w.invulnerable > 0 ? 0.45 : 1);
-    this.bars.fillRect(22, 30, (216 * Math.max(0, w.hp)) / w.maxHp, 9);
+    this.bars.fillRect(22, 30, (216 * Math.min(w.maxHp, Math.max(0, w.hp))) / track, 9);
     // Experience.
     this.bars.fillStyle(INK, 0.55).fillRect(22, 43, 216, 4);
     this.bars.fillStyle(UI_FILL, 1).fillRect(22, 43, (216 * w.xp) / w.xpToNext, 4);
@@ -2547,18 +2767,33 @@ export class ActScene extends Phaser.Scene {
     // Shielded (the Gym Teacher with a ball still on the floor): the bar
     // dims and the label says why, because hitting him does nothing and the
     // bots showed a player who never learns that sits in the fight forever.
-    const bossLabel = w.boss?.shielded && w.act.boss.shieldHint
-      ? `${w.act.bossName.toLowerCase()} \u00b7 ${w.act.boss.shieldHint}`
-      : w.act.bossName.toLowerCase();
+    // Time's bar is its clock (DECLINE-ROSTER §4, AUDIT 96): the label says
+    // how many seconds are left, never health, which it has none of.
+    const clock = w.boss?.kind === 'time' ? Math.ceil(Math.max(0, w.boss.secondsLeft)) : -1;
+    const bossLabel = clock >= 0
+      ? `${w.act.bossName.toLowerCase()} \u00b7 ${clock} ${clock === 1 ? 'second' : 'seconds'}`
+      : w.boss?.shielded && w.act.boss.shieldHint
+        ? `${w.act.bossName.toLowerCase()} \u00b7 ${w.act.boss.shieldHint}`
+        : w.act.bossName.toLowerCase();
     this.hudBossLabel.setText(bossLabel).setVisible(!!w.boss);
     if (w.boss) {
       const width = this.cameras.main.width - 480;
       this.bars.fillStyle(INK, 0.6).fillRoundedRect(240, 68, width, 8, 4);
       // Debatable — the bar represents a thing that does hurt — but law 10
       // says UI chrome, without an exception. Flagged rather than argued.
-      const frac = w.boss.hp / w.boss.maxHp;
-      if (frac > 0.02) {
-        this.bars.fillStyle(UI_FILL, w.boss.shielded ? 0.35 : 1).fillRoundedRect(240, 68, width * frac, 8, 4);
+      const owed = w.act.boss;
+      if (w.boss.kind === 'time' && owed.kind === 'time') {
+        // Time has no health (§4): its hp stays at its maximum, inert, so the
+        // bar reads the clock instead — the seconds left of `seconds`,
+        // emptying left to right: what has gone is on the left, and what is
+        // left sits at the right end and shrinks toward it.
+        const left = owed.seconds > 0 ? Phaser.Math.Clamp(w.boss.secondsLeft / owed.seconds, 0, 1) : 0;
+        if (left > 0.02) this.bars.fillStyle(UI_FILL, 1).fillRoundedRect(240 + width * (1 - left), 68, width * left, 8, 4);
+      } else {
+        const frac = w.boss.hp / w.boss.maxHp;
+        if (frac > 0.02) {
+          this.bars.fillStyle(UI_FILL, w.boss.shielded ? 0.35 : 1).fillRoundedRect(240, 68, width * frac, 8, 4);
+        }
       }
       // The Mortgage is paid on a schedule (FAMILY-ROSTER §4): its bar is cut
       // into `instalments` cells by an ink notch at every instalment, over the
@@ -2573,7 +2808,6 @@ export class ActScene extends Phaser.Scene {
       // time left to pay it, and after the last one is met, the time until
       // the house lets go. PLACEHOLDER as a picture: the smooth bar stays
       // under the notches until a person has read them, as §4 says.
-      const owed = w.act.boss;
       if (w.boss.kind === 'mortgage' && owed.kind === 'mortgage' && owed.instalments > 1) {
         const n = owed.instalments;
         this.bars.fillStyle(INK, 0.9);

@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <title>Insurance form</title>
+  <desc>A portrait clipboard seen from the front: a grey-brown board with rounded corners, a bone sheet on it, and a dark clip across the top of the sheet with a rounded lever standing up above the board. Three square ink tick boxes down the sheet's left side, all of them empty. Beside the middle box a face on the sheet, two ink dots with their tops cut flat and the lower corner away from the boxes cut off, looking sideways and down at the boxes, and one short flat mouth. No ticks, no writing, no lines, nobody filling it in.</desc>
+  <!--
+    Insurance form (DECLINE-ROSTER §3.5), the act's ranged enemy. Reserved
+    silhouette (§1): the form on a board, a portrait sheet on a clipboard
+    with three tick boxes down its left side. The only board and the only
+    boxes in the act (the Office's clip is the Office's; the list is per
+    act). Drawn as the role (law 9): the form is being filled in by nobody.
+    It stands still and consults the file, and the face on the sheet is
+    looking at its own boxes, never at the player.
+
+    The boxes are the read. Three ink squares 11 across, a 2px rule round
+    7px of bone, all empty: the telegraph ticks them one by one and that is
+    the renderer's job, so nothing here is ticked. At 11 the hollow survives
+    to 48px as a light centre in a dark square; any smaller and the rule
+    closes over it and the column becomes a dark stripe. They sit five in
+    from the sheet's left edge, the gaps between them 5 and 6.
+
+    The board is shadow, a margin round the sheet (5 left, 4 right, 6 below)
+    and a band above it where the clip bites. Shadow sits 0.138 Oklab L from
+    decline-deep, just over the contrast floor; the outline CONFORM adds
+    carries the edge. The clip is an ink plate across the sheet's top with a
+    rounded lever standing above the board, the tallest thing on it, so the
+    outline is a board with a clip on and not a plain rectangle. Drawn as a
+    narrow nub the lever read as a tab; widened, it reads as the clip's.
+
+    Hand-cut (law 4): no two of the board's corners are rounded alike, the
+    clip's shoulders and the lever's two sides are not the same, and the
+    boxes are not evenly spaced.
+
+    Drawn on the finished sprite's pixel grid: the group maps one unit to
+    one pixel of the 80px sprite (76 tall inside the 2px outline). The
+    lever's flat crown and the board's foot are the top and bottom, the
+    board's straight sides the left and right, so every straight edge and
+    the face land on whole pixels.
+
+    Face (law 5): beside the middle box, two ink dots with the tops cut
+    flat, lids down, and the corner away from the boxes cut in two steps,
+    so the dark sits low and toward the column and the look goes sideways
+    and down at it; and one short flat mouth, set toward the boxes, so the
+    face is turned to its column. With one corner cut the eyes looked
+    straight down at nothing.
+
+    Ink sits 0.098 Oklab L from decline-deep, under the contrast floor, so
+    the clip, the boxes, the face and the outline CONFORM adds must stay
+    under 0.4 of the sprite: the boxes are rules round bone, not solid.
+
+    No gold anywhere (G-031, law 6): the ranged colour rides the decision it
+    fires, which the renderer draws. No paper (the player's), no
+    decline-light (law 10, pickups), no red, no purple, no teal. Colours:
+    shadow #6E6353 board, bone #D2C6AC sheet, ink #2A2521 clip, boxes and
+    face. CONFORM adds the outline; there is none here.
+  -->
+  <g transform="scale(1.25) translate(12 2)">
+    <!-- the board, 56 by 70; no two corners alike -->
+    <path d="M 3 6 H 52.5 Q 56 6 56 9.5 V 72 Q 56 76 52 76 H 4.5 Q 0 76 0 71.5 V 9 Q 0 6 3 6 Z" fill="#6E6353"/>
+    <!-- the sheet: 5 in on the left, 4 on the right, 6 above the board's foot -->
+    <path d="M 5 12 H 52 V 70 H 5 Z" fill="#D2C6AC"/>
+    <!-- the clip: a plate across the sheet's top, its lever standing above the board, the lever's crown flat -->
+    <path d="M 15 15 V 8 Q 15 4 19 4 H 20 Q 21 0 25 0 H 31 Q 35 0 36.5 4 H 37.5 Q 41 4 41 7.5 V 15 Z" fill="#2A2521"/>
+    <!-- the boxes: 11 across, a 2px rule round 7px of bone, all empty; gaps 5 and 6 -->
+    <path fill-rule="evenodd" fill="#2A2521" d="
+      M 10 21 H 21 V 32 H 10 Z M 12 23 V 30 H 19 V 23 Z
+      M 10 37 H 21 V 48 H 10 Z M 12 39 V 46 H 19 V 39 Z
+      M 10 54 H 21 V 65 H 10 Z M 12 56 V 63 H 19 V 56 Z"/>
+    <!-- the face, beside the middle box, looking sideways and down at the column -->
+    <g fill="#2A2521">
+      <path d="M 26 36 H 31 V 38 H 30 V 39 H 29 V 40 H 26 Z"/>
+      <path d="M 35 36 H 40 V 38 H 39 V 39 H 38 V 40 H 35 Z"/>
+      <rect x="27" y="45" width="7" height="2"/>
+    </g>
+  </g>
+</svg>

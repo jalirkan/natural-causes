@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ACTS, ALL_ACTS, FAMILY, OFFICE, spawnStreams } from '../../data/acts';
+import { ACTS, ALL_ACTS, DECLINE, FAMILY, OFFICE, spawnStreams } from '../../data/acts';
 import { ENEMIES } from '../../data/enemies';
 import { FAMILY_ROSTER } from '../../../tools/art/batch';
 import { BOSS_HP, World } from '../world';
@@ -52,12 +52,14 @@ describe('Family has a schedule, and it is provisional', () => {
     // In ALL_ACTS after The Office, so the bots and the content rules run it;
     // and in ACTS after The Office too, now its atlas, `player-family` and
     // `boss-mortgage` exist (FAMILY-ROSTER §5; content.test.ts ties ACTS to
-    // ACT_VISUALS and checks every frame it draws is in the atlas). The
-    // browser's life ends here, at fifty-five.
+    // ACT_VISUALS and checks every frame it draws is in the atlas).
     expect(ALL_ACTS.indexOf(FAMILY)).toBe(ALL_ACTS.indexOf(OFFICE) + 1);
-    expect(ALL_ACTS[ALL_ACTS.length - 1]).toBe(FAMILY);
+    // It was the last act of both until Decline (DECLINE-ROSTER §5), which
+    // follows it in each now (decline-act.test.ts): the browser's life no
+    // longer ends at fifty-five.
+    expect(ALL_ACTS[ALL_ACTS.indexOf(FAMILY) + 1]).toBe(DECLINE);
     expect(ACTS.indexOf(FAMILY)).toBe(ACTS.indexOf(OFFICE) + 1);
-    expect(ACTS[ACTS.length - 1]).toBe(FAMILY);
+    expect(ACTS[ACTS.indexOf(FAMILY) + 1]).toBe(DECLINE);
   });
 
   it('runs 150 seconds from thirty-four to fifty-five and ends on EQUITY', () => {
@@ -324,7 +326,13 @@ describe('the life is six acts long now', () => {
   }
 
   it('The Reorg falling crosses into Family; The Mortgage, paid off, falls at its last window and it is natural causes at fifty-five', () => {
-    const w = new World({ acts: ALL_ACTS, seed: 5, startingItems: [] });
+    // The life up to and including Family. This was ALL_ACTS, and then ACTS,
+    // while Family was the last act; Decline follows it in both now
+    // (DECLINE-ROSTER §5), and there The Mortgage paid off is a crossing, not
+    // the end (decline-act.test.ts). A life cut here still ends at fifty-five.
+    const life = ALL_ACTS.slice(0, ALL_ACTS.indexOf(FAMILY) + 1);
+    expect(life).toEqual(ACTS.slice(0, ACTS.indexOf(FAMILY) + 1));
+    const w = new World({ acts: life, seed: 5, startingItems: [] });
     for (let i = 0; i < ALL_ACTS.indexOf(FAMILY); i++) cross(w);
     expect(w.act).toBe(FAMILY);
     expect(w.won).toBe(false);

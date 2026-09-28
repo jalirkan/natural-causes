@@ -3,6 +3,7 @@ import { ITEMS, OFFER_PATH_SEPARATOR, isActive } from '../../src/data/items';
 import type { EnemyDef } from '../../src/data/enemies';
 import {
   World,
+  fromHand,
   type EnemyState,
   type Input,
   type ProjectileState,
@@ -25,7 +26,8 @@ import {
  * and none of them is a game number — moving one changes the player the bot
  * is, never the game: the decision cadence (`cadenceSeconds`, 0.2s), the
  * aimed-shot sidestep (`SHOT_LOOKAHEAD_SECONDS` 0.6s, `SHOT_SIDESTEP_WEIGHT`
- * 0.8, `SHOT_MARGIN_PX` 8px), the shield reading (`SHIELD_PULL_WEIGHT` 0.7,
+ * 0.8, `SHOT_MARGIN_PX` 8px) and Time's hand in it (`HAND_CLEARANCE_PX`
+ * 24px), the shield reading (`SHIELD_PULL_WEIGHT` 0.7,
  * `HUNT_CLEARANCE_PX` 40px, `FLOOR_HOLD_FRACTION` 0.8) and the toddler
  * (`COY_WEIGHT_PER_HELD_SECOND` 0.25, `COY_RADIUS_PX` 150px,
  * `COY_CLEARANCE_PX` 24px). What retires them is a human input log (§11.5),
@@ -151,12 +153,21 @@ export interface RunResult {
   /** Realised mean speed across the crowd phase. Endogenous: stacks lower it. */
   meanSpeed: number;
   /**
-   * How much of the boss was left when the run ended. Null if it never spawned.
+   * How much of the boss was left when the run ended. Null if it never spawned,
+   * and null for Time, which has no health to leave (`bossSecondsLeft`).
    * For The Loan it is the balance, which opens at 1/cap and fills (AUDIT 41);
    * the report names the column for it.
    */
   bossHpLeft: number | null;
   bossHpFraction: number | null;
+  /**
+   * Time (DECLINE-ROSTER §4): seconds still on its clock when the run ended
+   * (`boss.secondsLeft`) — 0 for a life it ended won. Null when the run did
+   * not end at Time. The bots cannot hurt it and its health never moves, so
+   * this is its column, never hp/maxHp. Optional so a result written before
+   * the field existed still reads.
+   */
+  bossSecondsLeft?: number | null;
   /**
    * The Mortgage (FAMILY-ROSTER §4): instalments still owed when the run
    * ended — `instalments` less the windows paid (`boss.paid`). Null when the
@@ -403,12 +414,77 @@ export function threatens(w: World, p: ProjectileState): boolean {
   return mx * mx + my * my <= reach * reach;
 }
 
-/** One threatening shot as the sidestep reads it. */
-interface Push {
-  /** Unit, perpendicular to the path, toward the side the player stands on. */
+// DECLINE-ROSTER §4: Time's long hand is a path that moves — a blade from the
+// clock's centre, turning clockwise — and the bot steers by it as it steers by
+// a shot's path. Its number is the bot's, not the game's.
+
+/**
+ * PLACEHOLDER, 24px. How wide of the hand's contact reach (player radius +
+ * half the hand's width) the bot keeps: a bot this near the moving blade
+ * steps off it, and one a pixel clear of contact is not left standing where
+ * the next step's turn sweeps it. The same job as SHOT_MARGIN_PX, wider,
+ * because the blade comes at the bot side-on. Awaiting a human input log
+ * (§11.5), like the cadence.
+ */
+export const HAND_CLEARANCE_PX = 24;
+
+/**
+ * Time's long hand, as the sidestep reads it: null when it is no threat.
+ * The hand is the sim's own shape (`fromHand`, the rectangle `sweepLength`
+ * × `sweepWidth` from the boss point along `boss.hand`), read as a shot's
+ * path is read, except that the path moves: where it will be at the bot's
+ * next decision is `hand` plus the turn rate times `lookahead` (the cadence,
+ * which is as long as the bot holds a heading), and everything it sweeps
+ * between now and then is in its light. The bot is threatened when its
+ * centre is within the contact reach plus HAND_CLEARANCE_PX of that moving
+ * band — the hand now, the hand at the next decision, or the wedge between.
+ *
+ * The push is always behind the hand: counterclockwise at the bot's own
+ * bearing from the pivot, against the hand's turn. Beside the line on the
+ * side it has passed, that is off the line; ahead of it, where it is about to
+ * sweep, that is across it, head-on, where the contact is shortest — never
+ * with it, ahead of its motion, where a bot slower than the blade is
+ * overtaken and held in it. Standing still is a hit every turn; walking with
+ * it is what a bot slowed by its knees or the stairs cannot keep up. Presence,
+ * not calibration.
+ */
+export function handPush(w: World, lookahead: number = cadenceSeconds): Push | null {
+  const b = w.boss;
+  const def = w.act.boss;
+  if (!b || def.kind !== 'time' || b.phase === 'absorbing') return null;
+  const turn = (Math.PI * 2) / def.sweepSeconds;
+  const ahead = turn * Math.max(0, lookahead);
+  const dx = w.x - b.x;
+  const dy = w.y - b.y;
+  const d = Math.hypot(dx, dy);
+  // Reach from the hand's centre line, as a shot's is from its path.
+  const reach = w.playerRadius + def.sweepWidth / 2;
+  // The bot's bearing from the pivot, measured as `hand` is: clockwise from twelve.
+  const bearing = Math.atan2(dx, -dy);
+  // How far round, clockwise, the bot stands from the hand now, in (-π, π].
+  const round = Math.atan2(Math.sin(bearing - b.hand), Math.cos(bearing - b.hand));
+  const swept = round >= 0 && round <= ahead && d <= def.sweepLength + reach;
+  const off = swept
+    ? 0
+    : Math.min(
+        fromHand(b.x, b.y, b.hand, def.sweepLength, 0, w.x, w.y),
+        fromHand(b.x, b.y, b.hand + ahead, def.sweepLength, 0, w.x, w.y),
+      );
+  if (off >= reach + HAND_CLEARANCE_PX) return null;
+  // Counterclockwise at the bot's bearing: (−cos, −sin), the clockwise
+  // tangent (cos, sin) turned round. On the pivot exactly, bearing 0: −x.
+  return { x: -Math.cos(bearing), y: -Math.sin(bearing), off, reach };
+}
+
+/** One threatening path as the sidestep reads it: a shot's, or Time's hand. */
+export interface Push {
+  /**
+   * Unit. A shot's: perpendicular to its path, toward the side the player
+   * stands on. The hand's: behind it, whichever side (`handPush`).
+   */
   x: number;
   y: number;
-  /** The player's distance from the path's line. */
+  /** The player's distance from the path's line; the hand's, from the band it sweeps before the next decision. */
   off: number;
   /** Contact reach: inside `off < reach` the path, left alone, hits. */
   reach: number;
@@ -419,8 +495,9 @@ interface Push {
  * path, toward the side of the path the player already stands on. A shot dead
  * on (the Egg's centre shot is aimed exactly at the player) has no side, so
  * the bot keeps going the way it was already heading — which is what a person
- * does. Summed, then capped at SHOT_SIDESTEP_WEIGHT — unless the bot stands
- * in one path's light with another pushing back (`intoTheGap`).
+ * does. Time's hand is one more path, moving (`handPush`): its push is always
+ * behind it. Summed, then capped at SHOT_SIDESTEP_WEIGHT — unless the bot
+ * stands in one path's light with another pushing back (`intoTheGap`).
  */
 export function sidestep(
   w: World,
@@ -444,6 +521,12 @@ export function sidestep(
     sx += nx * s;
     sy += ny * s;
     pushes.push({ x: nx * s, y: ny * s, off, reach: w.playerRadius + p.radius });
+  }
+  const hand = handPush(w);
+  if (hand) {
+    sx += hand.x;
+    sy += hand.y;
+    pushes.push(hand);
   }
   const gap = intoTheGap(pushes);
   if (gap) return { x: gap.x * SHOT_SIDESTEP_WEIGHT, y: gap.y * SHOT_SIDESTEP_WEIGHT };
@@ -958,6 +1041,17 @@ export function instalmentsLeft(w: Pick<World, 'boss' | 'act'>): number | null {
   return Math.max(0, def.instalments - paid);
 }
 
+/**
+ * What is left on Time's clock, if the run is at Time: `boss.secondsLeft`,
+ * to a tenth. Null for any other boss and for no boss. Presence, not
+ * calibration: the bots cannot hurt it, and their job is to live.
+ */
+export function timeLeft(w: Pick<World, 'boss' | 'act'>): number | null {
+  const b = w.boss;
+  if (!b || w.act.boss.kind !== 'time') return null;
+  return +Math.max(0, b.secondsLeft).toFixed(1);
+}
+
 export function runOnce(
   policy: BotPolicy,
   seed: number,
@@ -1074,9 +1168,12 @@ export function runOnce(
     actId: world.act.id,
     age: +world.age.toFixed(1),
     cause: world.certificate?.cause ?? null,
-    bossHpLeft: world.boss ? Math.round(world.boss.hp) : null,
-    bossHpFraction: world.boss ? +(world.boss.hp / world.boss.maxHp).toFixed(3) : null,
+    // Time has no health to leave: its figure is its clock (`bossSecondsLeft`).
+    bossHpLeft: world.boss && world.boss.kind !== 'time' ? Math.round(world.boss.hp) : null,
+    bossHpFraction:
+      world.boss && world.boss.kind !== 'time' ? +(world.boss.hp / world.boss.maxHp).toFixed(3) : null,
     bossInstalmentsLeft: instalmentsLeft(world),
+    bossSecondsLeft: timeLeft(world),
     seconds: +world.time.toFixed(1),
     kills: world.kills,
     level: world.level,
@@ -1219,6 +1316,8 @@ export interface PolicySummary {
    * keeping count (`bossInstalmentsLeft`); null if none did.
    */
   medianInstalmentsLeft: number | null;
+  /** Median seconds left on Time's clock, over the runs that ended at Time; null if none did. */
+  medianSecondsLeft: number | null;
   reachedBoss: number;
   /** The life: median age at the end, and how many runs ended in each act. */
   medianAge: number;
@@ -1286,7 +1385,7 @@ export function summarise(results: RunResult[]): PolicySummary[] {
       medianHpFractionAt300: median(runs.filter((r) => r.reached300).map((r) => r.hpFractionAt300)),
       medianKillsAt300: median(runs.filter((r) => r.reached300).map((r) => r.killsAt300)),
       medianEnemiesAt300: median(runs.filter((r) => r.reached300).map((r) => r.enemiesAt300)),
-      reachedBoss: runs.filter((r) => r.bossHpFraction !== null).length,
+      reachedBoss: runs.filter((r) => r.bossHpFraction !== null || r.bossSecondsLeft != null).length,
       medianBossLeft: (() => {
         const reached = runs.filter((r) => r.bossHpFraction !== null);
         return reached.length ? median(reached.map((r) => r.bossHpFraction!)) : null;
@@ -1294,6 +1393,10 @@ export function summarise(results: RunResult[]): PolicySummary[] {
       medianInstalmentsLeft: (() => {
         const owed = runs.flatMap((r) => (r.bossInstalmentsLeft == null ? [] : [r.bossInstalmentsLeft]));
         return owed.length ? median(owed) : null;
+      })(),
+      medianSecondsLeft: (() => {
+        const left = runs.flatMap((r) => (r.bossSecondsLeft == null ? [] : [r.bossSecondsLeft]));
+        return left.length ? median(left) : null;
       })(),
       medianAge: median(runs.map((r) => r.age)),
       endedIn: runs.reduce<Record<string, number>>((acc, r) => {

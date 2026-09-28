@@ -377,6 +377,58 @@ export const RESERVATIONS: Partial<Record<ActId, ActReservations>> = {
       boss: 'boss-mortgage',
     },
   },
+
+  // Lifted from DECLINE-ROSTER.md §1, consequences verbatim. Everything in the
+  // act is what the body and the building now do to you; the one thing that
+  // is part of a person is your own, and the boss is the only thing in the
+  // life that was there the whole time.
+  decline: {
+    silhouettes: [
+      {
+        silhouette: 'capsule',
+        heldBy: 'medication',
+        consequence: 'The only capsule, and the smallest thing in the act.',
+      },
+      {
+        silhouette: 'front',
+        heldBy: 'weather',
+        consequence:
+          'The only cloud, and the widest thing; the only thing with lines falling from it.',
+      },
+      {
+        silhouette: 'flight of stairs',
+        heldBy: 'stairs',
+        consequence: 'The only steps, and the only rail.',
+      },
+      {
+        silhouette: 'knees',
+        heldBy: 'your-knees',
+        consequence: 'The only pair in the act: nothing else comes in twos.',
+      },
+      {
+        silhouette: 'form on a board',
+        heldBy: 'insurance-form',
+        consequence:
+          "The only board and the only boxes. (The Office's clip is the Office's; the list is per act.)",
+      },
+      {
+        silhouette: 'clock face',
+        heldBy: 'boss-time',
+        consequence: 'The only circle in the act, and the only hands.',
+      },
+    ],
+    reservedThreat: {
+      // The act's heaviest hit is its only red thing: the rain.
+      contact: 'weather',
+      // The meeting's colour on the steps: the slow heavy thing you climb.
+      elite: 'stairs',
+      // G-031: the form's gold is on the decision it fires, never its body,
+      // and it is the act's only gold.
+      ranged: PROJECTILE_HOLDER,
+      // The clock's rim and its hands.
+      boss: 'boss-time',
+    },
+  },
 };
 
 /**

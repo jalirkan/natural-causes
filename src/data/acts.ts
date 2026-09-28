@@ -181,8 +181,42 @@ export interface MortgageBoss {
   shieldHint?: never;
 }
 
+/**
+ * Time (DECLINE-ROSTER §4): a clock face where the boss spawns, and the only
+ * boss in the life with no health — only a clock. It never moves, never
+ * shields, is never raced for and never restructures, and it cannot be hurt:
+ * the gate every damage path goes through (`bossTakes`) accepts nothing from
+ * it, ever, so no bar moves for it. Its bar is `seconds`, counting down from
+ * its arrival (`BossState.secondsLeft`); when they run out the hands stop and
+ * the life ends WON — the act's `endWord` first, then natural causes at the
+ * act's `age.to`. Surviving it is the win, and you die anyway.
+ *
+ * Its long (minute) hand is a rectangle `sweepLength` px from its centre
+ * and `sweepWidth` wide, on one side of the pivot only, turning clockwise
+ * once every `sweepSeconds` from its arrival, never faster, from the drawn
+ * rest pose (TIME_HAND_REST in world.ts, pointing at two); its angle is
+ * `BossState.hand`. Touching it is the Egg's shot damage with the usual
+ * i-frames. At every quarter turn (TIME_FILES_PER_TURN in world.ts) one of
+ * the act's knees (TIME_FILE_ID) lands at the player's lead, or behind them
+ * at a wall, as the Mortgage's room lands; `BossState.filed` counts them.
+ * The short hand is drawn and harmless. When `seconds` run out the hands
+ * stop. Every number is a placeholder (`DECLINE.provisional`).
+ */
+export interface TimeBoss {
+  kind: 'time';
+  /** Seconds from its arrival until the life ends, won. */
+  seconds: number;
+  /** Seconds for one turn of the long hand, clockwise; the file is read at each quarter of it. */
+  sweepSeconds: number;
+  /** Pixels from the boss's centre to the long hand's tip. */
+  sweepLength: number;
+  /** Pixels across the long hand. */
+  sweepWidth: number;
+  shieldHint?: never;
+}
+
 /** Which boss an act fights. world.ts branches on `kind`. */
-export type BossDef = EggBoss | GymTeacherBoss | PromBoss | LoanBoss | ReorgBoss | MortgageBoss;
+export type BossDef = EggBoss | GymTeacherBoss | PromBoss | LoanBoss | ReorgBoss | MortgageBoss | TimeBoss;
 
 /**
  * Seconds between the Gym Teacher's whistles at this share of his health: the
@@ -416,7 +450,7 @@ export const COLLEGE: ActDef = {
   age: { from: 18, to: 22 },
   // No race: nobody else wants the balance.
   provisional:
-    "Every rate, time and enemy number here, tuition's tax on each gem (`attach.tax`, 0.08 a stack), the registrar's stop (`ranged.stun`, 0.5s), the group project's weak point (one quadrant of four, rolled at spawn, and what counts as landing there), and all four of The Loan's numbers (`boss.interestSeconds` 5, `interestRate` 0.06, `cap` 3, `invoices` 3) were written as placeholders before anyone played the act (COLLEGE-ROSTER §3.6 and §4, G-045), as was the tenth of its health each worn invoice adds to its opening balance; a person playing it at the link is what moves them (D-022).",
+    "Every rate, time and enemy number here, tuition's tax on each gem (`attach.tax`, 0.08 a stack), the registrar's stop (`ranged.stun`, 0.5s), the group project's weak point (one quadrant of four, rolled at spawn, and what counts as landing there), and all four of The Loan's numbers (`boss.interestSeconds` 5, `interestRate` 0.06, `cap` 3, `invoices` 3) were written as placeholders before anyone played the act (COLLEGE-ROSTER §3.6 and §4, G-045), as was the tenth of its health each worn invoice adds to its opening balance, and the item born here, the Highlighter, carries numbers nobody has played (its mark's seconds and multiplier, `marks` 3 and 1.5, its cooldown, damage, levels table and paths in items.ts); a person playing it at the link is what moves them (D-022).",
   // COLLEGE-ROSTER.md §3.6, transcribed. The ORDER is the design and is under
   // test (college-act.test.ts): age runs 18 to 22, a year every 52.5 seconds.
   // Reading from 0s (18), the first week; tuition at 20s, the first bill; the
@@ -471,7 +505,7 @@ export const OFFICE: ActDef = {
   age: { from: 22, to: 34 },
   // No race: nobody else wants the job.
   provisional:
-    "Every rate, time and enemy number here, reply-all's split (`split`: 2 children, 3 generations, at 0.75 scale), the ping's cost to cadence (`attach.cooldownMultiplier`, 1.06 a stack), the meeting's hold (`hold`: from 260px to 120px over 30s, held 12s, at 0.6 speed), the review's cut of the level bar (`ranged.xpLoss`, 0.15), and all of The Reorg's numbers (`boss.thresholds` at two thirds and one third, `lateralMove` 220, `memoShots` 5, `memoSpacing` 64, the 300px it relocates beyond, and the Egg's telegraph, idle, shot and BOSS_HP it borrows) were written as placeholders before anyone played the act (OFFICE-ROSTER §3.6 and §4, G-048); a person playing it at the link is what moves them (D-022).",
+    "Every rate, time and enemy number here, reply-all's split (`split`: 2 children, 3 generations, at 0.75 scale), the ping's cost to cadence (`attach.cooldownMultiplier`, 1.06 a stack), the meeting's hold (`hold`: from 260px to 120px over 30s, held 12s, at 0.6 speed), the review's cut of the level bar (`ranged.xpLoss`, 0.15), and all of The Reorg's numbers (`boss.thresholds` at two thirds and one third, `lateralMove` 220, `memoShots` 5, `memoSpacing` 64, the 300px it relocates beyond, and the Egg's telegraph, idle, shot and BOSS_HP it borrows) were written as placeholders before anyone played the act (OFFICE-ROSTER §3.6 and §4, G-048), and so were the numbers of the one item born here, Calendar Block (its cooldown, seconds, radius, level table and paths in items.ts); a person playing it at the link is what moves them (D-022).",
   // OFFICE-ROSTER.md §3.6, transcribed. The ORDER is the design and is under
   // test (office-act.test.ts): age runs 22 to 34, a year every 15 seconds.
   // Reply-all from 0s, the first day; pings at 15s; the meeting's stream at
@@ -517,7 +551,7 @@ export const FAMILY: ActDef = {
   age: { from: 34, to: 55 },
   // No race: nobody else wants the house.
   provisional:
-    "Every rate, time and enemy number here, the bill's late fees (`accrue`: one each 8s it is alive, 2 at most, each set down touching it across its line to the player), the HOA letter's cost to reach (`attach.pickup`, 0.93 of the pickup radius a notice, persisting), the toddler's coyness (`coy`: 1.6 while the player moves away, 0.5 while they approach) and its hold (`engulf`: 3s at 0.3 speed, no damage, every cooldown at `engulf.cooldownMultiplier` 1.4, then `releases`), the phone's pull (`ranged.pull`, 180px toward it, after its 0.3s `ranged.stun`), and all of The Mortgage's numbers (`boss.instalments` 12 of BOSS_HP, `instalmentSeconds` 5, one room a window at the lead, one bill a missed window, and the Egg's idle, telegraph, shot speed and damage its one-shot statement borrows) were written as placeholders before anyone played the act (FAMILY-ROSTER §3.6 and §4); a person playing it at the link is what moves them (D-022).",
+    "Every rate, time and enemy number here, the bill's late fees (`accrue`: one each 8s it is alive, 2 at most, each set down touching it across its line to the player), the HOA letter's cost to reach (`attach.pickup`, 0.93 of the pickup radius a notice, persisting), the toddler's coyness (`coy`: 1.6 while the player moves away, 0.5 while they approach) and its hold (`engulf`: 3s at 0.3 speed, no damage, every cooldown at `engulf.cooldownMultiplier` 1.4, then `releases`), the phone's pull (`ranged.pull`, 180px toward it, after its 0.3s `ranged.stun`), and all of The Mortgage's numbers (`boss.instalments` 12 of BOSS_HP, `instalmentSeconds` 5, one room a window at the lead, one bill a missed window, and the Egg's idle, telegraph, shot speed and damage its one-shot statement borrows) were written as placeholders before anyone played the act (FAMILY-ROSTER §3.6 and §4), and the item born here, the Strongly Worded Letter, carries numbers written from the direction panel's sketch (its cooldown, damage, range, radius and delay, its level table and its three paths in items.ts); a person playing it at the link is what moves them (D-022).",
   // FAMILY-ROSTER.md §3.6, transcribed. The ORDER is the design and is under
   // test (family-act.test.ts): age runs 34 to 55, a year every seven seconds.
   // Bills from 0s, the first month; the flat-pack's stream at 20s (37), then
@@ -551,6 +585,52 @@ export const FAMILY: ActDef = {
   ],
 };
 
+export const DECLINE: ActDef = {
+  id: 'decline',
+  name: 'Decline',
+  // The clock keeps shrinking: 300, 300, 240, 210, 180, 150, 120 (the
+  // roster's header) — twenty-nine years in two minutes, and the game never
+  // says so, until here, where the boss is a clock.
+  durationSeconds: 120,
+  bossName: 'Time',
+  // DECLINE-ROSTER §4: no health, only `seconds`; the life ends won when they
+  // run out. The long hand (`sweepSeconds`, `sweepLength`, `sweepWidth`) turns
+  // and touches, and a knee is filed at each quarter turn (world.ts,
+  // `turnHand`). Every number is a PLACEHOLDER under `provisional`.
+  boss: { kind: 'time', seconds: 60, sweepSeconds: 12, sweepLength: 520, sweepWidth: 40 },
+  // The hands stop, and the life ends on one word.
+  endWord: 'EVENTUALLY',
+  age: { from: 55, to: 84 },
+  // No race: nobody else wants the time.
+  provisional:
+    "Every rate, time and enemy number here, the medication's heal on a kill (`killHeal`, 2 health, never past the maximum), the form's decision (`ranged.maxHpLoss`, 0.05 of the current maximum a landing shot, for the rest of the act, never below MAX_HP_FLOOR, a fifth of the act's opening maximum, in world.ts), the knees' drag (`attach.drag` 0.03, the antibody's, persisting), the stairs' hold that never adjourns (`hold`: 130px, `seconds` 0, held 600s, at 0.45 speed, landing ANTIBODY_LEAD ahead or behind the player at a wall), and all of Time's numbers (`boss.seconds` 60 to survive it, `sweepSeconds` 12 a turn of the long hand, `sweepLength` 520, `sweepWidth` 40, a knee filed each quarter turn, TIME_FILES_PER_TURN 4 in world.ts, and the Egg's shot damage, 12, on a touch of the hand with the usual i-frames) were written as placeholders before anyone played the act (DECLINE-ROSTER §3.6 and §4), and so were the numbers of the one item born here, the Nap (under `nap.threshold` 0.3 of the maximum, off its 45s `cooldown`, asleep for `range` 1.5s, healing `nap.heal` 0.25 of the maximum over it, its level table and its three paths in items.ts), from the direction panel's sketch; the hand's rest pose (TIME_HAND_REST, 60.6 degrees) is the drawing's measurement, not a placeholder; a person playing it at the link is what moves them (D-022).",
+  // DECLINE-ROSTER.md §3.6, transcribed. The ORDER is the design and is under
+  // test (decline-act.test.ts): age runs 55 to 84, a year about every four
+  // seconds. Medications from 0s, the first prescription; the knees' stream
+  // at 15s (59); the stairs' at 30s (62); the weather's at 45s (66), then
+  // about one every half minute; the form's at 60s (70). Nothing new after
+  // 60s; the last sixty seconds are escalation, then Time.
+  //
+  // The rates are placeholders, and they are streams, not arrivals (AUDIT
+  // 44): a stream that opens at t with rate r first delivers when its
+  // accumulator fills, at t + 1/r — the stairs' at 30s and 0.03 first land
+  // at about 63s, the weather's at about 74s, the form's at 80s. Medications
+  // chase and are never culled, the knees, the stairs and the forms are
+  // static, and the weather crosses and leaves; medications are the density,
+  // and the only density in the life that heals.
+  waves: [
+    { fromSeconds: 0, enemyId: 'medication', rate: 0.7 },
+    { fromSeconds: 15, enemyId: 'your-knees', rate: 0.12 },
+    { fromSeconds: 30, enemyId: 'stairs', rate: 0.03 },
+    { fromSeconds: 45, enemyId: 'weather', rate: 0.034 },
+    { fromSeconds: 45, enemyId: 'medication', rate: 1.1 },
+    { fromSeconds: 60, enemyId: 'insurance-form', rate: 0.05 },
+    { fromSeconds: 80, enemyId: 'medication', rate: 1.6 },
+    { fromSeconds: 80, enemyId: 'your-knees', rate: 0.25 },
+    { fromSeconds: 100, enemyId: 'insurance-form', rate: 0.1 },
+  ],
+};
+
 /**
  * Every act with a schedule, in life order. The content rules iterate THIS
  * list, so an act cannot escape them by not being startable yet (the
@@ -562,7 +642,7 @@ export const FAMILY: ActDef = {
  * `ACTS`, the prefix whose art exists, so the life gets longer as acts become
  * startable and nothing about the sim changes when one does.
  */
-export const ALL_ACTS: ActDef[] = [CONCEPTION, SCHOOL, ADOLESCENCE, COLLEGE, OFFICE, FAMILY];
+export const ALL_ACTS: ActDef[] = [CONCEPTION, SCHOOL, ADOLESCENCE, COLLEGE, OFFICE, FAMILY, DECLINE];
 
 /**
  * The life the browser plays, in order: the prefix of `ALL_ACTS` with an
@@ -571,9 +651,11 @@ export const ALL_ACTS: ActDef[] = [CONCEPTION, SCHOOL, ADOLESCENCE, COLLEGE, OFF
  * Gym Teacher, picture and behaviour (SCHOOL-ROSTER §9). College joined when
  * its seven drawings were packed (G-045); The Office joined when its seven
  * were (G-048); Family joined when its atlas, `player-family` and
- * `boss-mortgage` were packed (FAMILY-ROSTER §5), so the browser's life now
- * ends at fifty-five. A test asserts this list and `ACT_VISUALS` agree, so
+ * `boss-mortgage` were packed (FAMILY-ROSTER §5); Decline joined when its
+ * atlas, `player-decline` and `boss-time` were (DECLINE-ROSTER §5), so the
+ * browser plays the whole life now, and it ends at eighty-four, of natural
+ * causes. A test asserts this list and `ACT_VISUALS` agree, so
  * moving an act in is a one-line change that fails loudly if the art is not
  * there.
  */
-export const ACTS: ActDef[] = [CONCEPTION, SCHOOL, ADOLESCENCE, COLLEGE, OFFICE, FAMILY];
+export const ACTS: ActDef[] = [CONCEPTION, SCHOOL, ADOLESCENCE, COLLEGE, OFFICE, FAMILY, DECLINE];

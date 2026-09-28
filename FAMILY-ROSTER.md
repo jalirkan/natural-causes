@@ -339,9 +339,11 @@ is a whole bill, which accrues fees of its own. The boss state carries `paid`,
 - **Family's items.** What enters the pool at 34 (G-039's `from`): the
   panel's Strongly Worded Letter is a strike with a longer delay, so a path
   on Judgement before a new weapon.
+- *2026-09-28:* **The Strongly Worded Letter is a weapon of its own** (`strongly-worded-letter`, `from: 'family'`): it marks the nearest enemy's position and lands there five seconds later, with paths Cc, Registered and Capital Letters. A path on Judgement would have inherited Judgement's dice; the letter draws none.
 - **Decline**, where the life goes at fifty-five; **Service**, the other
   branch at eighteen.
 - **Sounds:** the doorbell, the phone, the tape, the toddler's squeak of a toy.
+- *2026-09-28:* **The sounds exist** (`edges.ts`): the doorbell for a bill, the ring for a phone consulting (its call is silent now), the tape for a flat-pack, the squeak for the toddler's hold, the statement for the Mortgage's telegraph and a ding for a paid window. The doorbell rings about once a second from 45s on: a reaction question, charming or grating.
 
 ## 7 · Open question
 

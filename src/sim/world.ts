@@ -1,4 +1,14 @@
-import type { ActDef, BossDef, GymTeacherBoss, LoanBoss, MortgageBoss, PromBoss, ReorgBoss, SpawnWave } from '../data/acts';
+import type {
+  ActDef,
+  BossDef,
+  GymTeacherBoss,
+  LoanBoss,
+  MortgageBoss,
+  PromBoss,
+  ReorgBoss,
+  SpawnWave,
+  TimeBoss,
+} from '../data/acts';
 import { ALL_ACTS, rateAt, spawnStreams, whistleInterval } from '../data/acts';
 import { ENEMIES, enemyDef, type EnemyDef } from '../data/enemies';
 import {
@@ -13,6 +23,7 @@ import {
   levelBonus,
   offerIdFor,
   parseOfferId,
+  strikeDelayAt,
   type ActiveItem,
   type ItemDef,
   type LevelBonus,
@@ -230,6 +241,45 @@ export const REORG_RELOCATE_TRIES = 8;
 export const MORTGAGE_DOOR_BELOW = ((0.8 - 0.68) * BOSS_RADIUS) / 0.3;
 
 /**
+ * The floor under the insurance form's decisions (DECLINE-ROSTER §3.5,
+ * `ranged.maxHpLoss`), as a share of the act's opening maximum health
+ * (`World.openingMaxHp`, captured at the act's start): a landing decision
+ * takes `maxHpLoss` of the maximum as it stands, and never takes it below
+ * this share of what it was when the act began. At the floor a decision
+ * takes nothing more. Read as `World.maxHpFloor`.
+ *
+ * PLACEHOLDER, a fifth — §3.5's own "a fifth of the act's opening maximum",
+ * under `DECLINE.provisional`. Nobody has played it. It exists so the form
+ * cannot decide the player out of existence without landing a hit; a person
+ * who feels the ceiling come down at the link is what moves it.
+ */
+export const MAX_HP_FLOOR = 1 / 5;
+
+/**
+ * Time's long hand at rest (DECLINE-ROSTER §4, AUDIT 96), in radians: 60.6°
+ * clockwise from twelve, pointing at two. Measured, not chosen: the drawer
+ * measured it on `boss-time` (tools/art/svg/decline/boss-time.svg, "ten past
+ * ten"), where the pose is baked into the sprite. `BossState.hand` is this at
+ * Time's arrival, so the drawn pose and the sim's hazard agree on the first
+ * frame. If the drawing's rest pose moves, this follows it.
+ */
+export const TIME_HAND_REST = (60.6 * Math.PI) / 180;
+
+/**
+ * The file (DECLINE-ROSTER §4): one of `TIME_FILE_ID` at the player's lead
+ * at every 1/TIME_FILES_PER_TURN of a turn of Time's long hand, counted from
+ * its arrival, so the first lands a quarter turn in (`World.turnHand`). The
+ * id is the roster's knee (§3.3), and a test pins it to a Decline enemy:
+ * `TimeBoss` carries no id of its own (the Mortgage's `roomId` is the shape
+ * that would), so it lives here, beside its cadence.
+ *
+ * PLACEHOLDER, 4 — §4's "a knee a quarter turn", under `DECLINE.provisional`.
+ * Nobody has played it.
+ */
+export const TIME_FILES_PER_TURN = 4;
+export const TIME_FILE_ID = 'your-knees';
+
+/**
  * How long ago "recently" is, for an enemy that lands where the player has
  * been (`spawnAt: 'trail'` — homework, SCHOOL-ROSTER §3.3).
  *
@@ -403,6 +453,21 @@ export interface EnemyState {
    */
   accrued?: number;
   fee?: boolean;
+  /**
+   * College (the Highlighter's `marks`): the life clock (`World.time`) at
+   * which this enemy's mark runs out, and what the mark multiplies every hit
+   * by until then. Set by a marking shot's hit (`markFrom`), paid in
+   * `damageEnemy`; a mark past its time is simply not read. Absent on
+   * anything never marked; optional so hand-built states need not carry them.
+   */
+  markedUntil?: number;
+  markMultiplier?: number;
+}
+
+/** What a mark is written on: an enemy or the boss (College, `markFrom`). */
+interface Markable {
+  markedUntil?: number;
+  markMultiplier?: number;
 }
 
 export interface ProjectileState {
@@ -443,6 +508,13 @@ export interface ProjectileState {
   shooter?: EnemyState;
   fromX?: number;
   fromY?: number;
+  /**
+   * College: a shot from a def with `marks` (the Highlighter) carries the
+   * mark it leaves, levels and paths already folded in: seconds (`duration`
+   * applied) and multiplier (`mark` applied). Absent on every other shot.
+   */
+  markSeconds?: number;
+  markMultiplier?: number;
 }
 
 /**
@@ -575,6 +647,12 @@ export interface AreaState {
    * other area.
    */
   delay?: number;
+  /**
+   * A strike: the seconds `delay` started from, so the renderer can draw the
+   * telegraph as a fraction of its own wait (the Letter's five seconds, not
+   * Judgement's STRIKE_DELAY). Presentation metadata, like `source`.
+   */
+  telegraph?: number;
   /** The item that made this area, where one did and the renderer needs it. Presentation metadata. */
   source?: string;
 }
@@ -600,8 +678,18 @@ export interface HoldState {
   holdSeconds: number;
   age: number;
   slow: number;
-  /** The enemy id it was spawned as. The renderer draws that def's frame. */
+  /**
+   * The enemy id it was spawned as, and the renderer draws that def's frame;
+   * for a player's hold, the item id that placed it.
+   */
   source: string;
+  /**
+   * Absent for an enemy's hold (the meeting). `'player'` for one an item put
+   * down (Calendar block's `wall`, OFFICE's first item): the same wall on the
+   * same list, with no enemy def behind `source`, so the renderer draws the
+   * item's icon for it instead of chairs.
+   */
+  owner?: 'player';
 }
 
 /**
@@ -626,7 +714,9 @@ export interface BossState {
   /**
    * For the Loan, the balance: it opens at 1/`cap` of `maxHp` and compounds
    * toward it, so a bar drawn as hp/maxHp starts part full and fills — the
-   * filling is the fight. For every other kind, health left.
+   * filling is the fight. For Time, inert: BOSS_HP from its arrival to its
+   * end, because nothing is accepted from anything (`bossTakes`); its bar is
+   * `secondsLeft`. For every other kind, health left.
    */
   hp: number;
   /** For the Loan, the cap: `cap` × the opening balance, where it forecloses. */
@@ -639,10 +729,12 @@ export interface BossState {
    * for the Reorg it is the memo drafted and `attack` begins on the memo, and
    * a restructure sets it back to `idle`; for the Mortgage it is the
    * statement drafted and `attack` begins on its one shot (DUE). The
-   * Mortgage's window clock (`windowTimer`) runs beside it, not in it.
+   * Mortgage's window clock (`windowTimer`) runs beside it, not in it. Time
+   * stays `idle` until its clock (`secondsLeft`) runs out.
    * The exit, for every kind, is `absorbing`: the word is the Egg's, and it
    * means the outcome has latched (G-033) and `finishAct` follows the timer —
-   * the Gym Teacher's stopwatch click and `ActDef.endWord` play in it.
+   * the Gym Teacher's stopwatch click and `ActDef.endWord` play in it. Time
+   * reaches it by running out, not by falling (`timePhase`).
    */
   phase: 'idle' | 'telegraph' | 'attack' | 'absorbing';
   /** Seconds left in the current phase. */
@@ -652,7 +744,10 @@ export interface BossState {
    * `enemyId` alive on the field (§9); Prom with the player farther than its
    * `floorRadius` from the ball (ADOLESCENCE-ROSTER §4). Always false for the
    * Egg, the Loan, the Reorg and the Mortgage. Plain state for the renderer and the bots;
-   * the sim reads the field and the player itself.
+   * the sim reads the field and the player itself. Always false for Time too:
+   * a shield is a thing that opens, and nothing opens Time — it is not
+   * shielded, it is untouchable (`bossTakes`), and nothing reads it as a
+   * shield to be got round.
    */
   shielded: boolean;
   /**
@@ -701,6 +796,43 @@ export interface BossState {
    * every other kind.
    */
   accepted: number;
+  /**
+   * Time's clock (DECLINE-ROSTER §4): seconds until the life ends, won,
+   * counting down from `TimeBoss.seconds` at its arrival and held at 0 once
+   * it gets there, the step the outcome latches (`timePhase`). Its bar: the
+   * renderer and the bots read this, never `hp`, which Time's gate never
+   * moves (hp and maxHp stay BOSS_HP, inert). Zero for every other kind.
+   */
+  secondsLeft: number;
+  /**
+   * Time's long hand (DECLINE-ROSTER §4): its angle in radians, clockwise
+   * from twelve, wrapped to [0, 2π). World axes are the screen's, +x right
+   * and +y down, so 0 points up the screen (twelve), π/2 at three, π at six,
+   * and the hand points along (sin hand, −cos hand); increasing is clockwise
+   * as the player sees it, the sense of Phaser's `rotation`. TIME_HAND_REST
+   * (pointing at two, the drawn pose) at Time's arrival, then 2π every
+   * `TimeBoss.sweepSeconds` while its clock runs — never faster, never reset
+   * — and where it is when the clock runs out: the hands stop. The hazard is
+   * `sweepLength` × `sweepWidth` from the boss point along it (`fromHand`);
+   * the short hand is drawing only. Zero for every other kind.
+   */
+  hand: number;
+  /**
+   * Time's file (DECLINE-ROSTER §4): how many times it has been read since
+   * Time's arrival, one at every 1/TIME_FILES_PER_TURN of the long hand's
+   * turn (a quarter turn), each a knee at the player's lead — or none, at
+   * MAX_ACTIVE_ENEMIES, and still counted. A whole count. Zero for every
+   * other kind.
+   */
+  filed: number;
+  /**
+   * College: a Highlighter stroke marks the boss as it marks an enemy (the
+   * same fields, `EnemyState.markedUntil`), and `bossTakes` pays the mark on
+   * every kind — a marked Loan pays down faster; a marked Mortgage still takes
+   * no more than its instalment. Absent until the first mark.
+   */
+  markedUntil?: number;
+  markMultiplier?: number;
 }
 
 export interface Input {
@@ -777,6 +909,44 @@ function clamp(v: number, lo: number, hi: number): number {
   return v < lo ? lo : v > hi ? hi : v;
 }
 
+/** An angle in radians, wrapped to [0, 2π). */
+function turnOf(angle: number): number {
+  const TAU = Math.PI * 2;
+  const a = angle % TAU;
+  return a < 0 ? a + TAU : a;
+}
+
+/**
+ * How far the point (x, y) is from Time's long hand (DECLINE-ROSTER §4): a
+ * rectangle `length` px long and `width` px across, from the pivot (px, py)
+ * along `angle` — radians clockwise from twelve in world axes, where +x is
+ * right and +y is down, so the hand points along (sin angle, −cos angle).
+ * One side of the pivot only: the long hand, and nothing behind it (the
+ * short hand is drawn and harmless). 0 on or inside the rectangle. A body of
+ * radius r touches the hand when this is at most r. The sim's contact
+ * (`World.turnHand`) and the bots' reading of it both call this, so they
+ * read one shape.
+ */
+export function fromHand(
+  px: number,
+  py: number,
+  angle: number,
+  length: number,
+  width: number,
+  x: number,
+  y: number,
+): number {
+  const ux = Math.sin(angle);
+  const uy = -Math.cos(angle);
+  const dx = x - px;
+  const dy = y - py;
+  const along = dx * ux + dy * uy;
+  const across = Math.abs(dx * uy - dy * ux);
+  const a = along < 0 ? -along : along > length ? along - length : 0;
+  const c = Math.max(0, across - width / 2);
+  return Math.hypot(a, c);
+}
+
 /** Removes index `i` in O(1). Reorders the array — walk backwards. */
 function swapRemove<T>(arr: T[], i: number): void {
   const last = arr.pop()!;
@@ -840,6 +1010,13 @@ export class World {
   private nextUid = 1;
   private nextSerial = 1;
   private bossHitSerial = 0;
+  /**
+   * Seconds Time's long hand has run since its arrival (`turnHand`): the
+   * hand's angle and the file's count are both read off this one sum, so
+   * neither drifts from the other. Set at every boss's arrival; only Time
+   * reads it.
+   */
+  private handSeconds = 0;
   /** A second query buffer, for a lookup made while `near` is being walked. */
   private readonly near2: EnemyState[] = [];
   /** Snooze fields this pass, so 1500 movers do not each walk every area. */
@@ -916,6 +1093,20 @@ export class World {
    */
   private movedX = 0;
   private movedY = 0;
+  /**
+   * The insurance form's decisions this act (DECLINE-ROSTER §3.5,
+   * `ranged.maxHpLoss`): the share of the maximum health the items give that
+   * is left, the product of (1 − maxHpLoss) over every decision that landed,
+   * held at the floor (`maxHpFloor`). 1 until one lands, and back to 1 at
+   * every crossing: "for the rest of the act". Read through `maxHp`.
+   */
+  private maxHpShare = 1;
+  /**
+   * The maximum health the items gave when this act began, before any
+   * decision: what MAX_HP_FLOOR is a share of. Set by the constructor and by
+   * `beginAct`, and read through `openingMaxHp`.
+   */
+  private actOpeningMaxHp = PLAYER_BASE_HP;
 
   /**
    * Set to the middle of the arena by the constructor.
@@ -975,6 +1166,14 @@ export class World {
    * `movePlayer` ignores input. Refreshed by a touch, never extended past it.
    */
   stunTimer = 0;
+  /**
+   * Decline's Nap (items.ts `nap`, world.ts `nap`): seconds left asleep, 0
+   * awake. Public so the renderer and the bots can see it; while it runs no
+   * contact hurts the player, and the stop itself is `stunTimer`'s. `napRate`
+   * is the health a second the nap running now gives back.
+   */
+  napTimer = 0;
+  private napRate = 0;
   /**
    * Where the player has been: a ring of (time, x, y), one sample every
    * TRAIL_SAMPLE_SECONDS, for `spawnAt: 'trail'`. Typed arrays so the step
@@ -1046,6 +1245,7 @@ export class World {
     this.x = ARENA_WIDTH / 2;
     this.y = ARENA_HEIGHT / 2;
     for (const id of options.startingItems ?? ['lash']) this.items.set(id, 1);
+    this.actOpeningMaxHp = this.itemMaxHp;
   }
 
   /** The act that is playing. */
@@ -1114,8 +1314,40 @@ export class World {
     return out;
   }
 
+  /**
+   * The ceiling on health: what the items give (`itemMaxHp`), less what the
+   * insurance form has decided this act (DECLINE-ROSTER §3.5) — each landing
+   * decision took `maxHpLoss` of it as it stood — and never below the floor
+   * (`maxHpFloor`) nor above what the items give. Every reader of the
+   * maximum reads this: the HUD's bar, the pause sheet's `health`, a heal,
+   * the crossing's refill. Exactly `itemMaxHp` in every act nothing decides.
+   */
   get maxHp(): number {
+    const full = this.itemMaxHp;
+    if (this.maxHpShare >= 1) return full;
+    return Math.min(full, Math.max(full * this.maxHpShare, this.maxHpFloor));
+  }
+
+  /** The maximum health the items give, before any decision (Thick Skin's line). */
+  private get itemMaxHp(): number {
     return PLAYER_BASE_HP * this.passiveProduct((d) => d.healthMultiplier);
+  }
+
+  /**
+   * The maximum health this act began with, before any decision: the length a
+   * HUD can draw the maximum's bar against, so a shrinking maximum shows as a
+   * shrinking bar rather than as a full one (DECLINE-ROSTER §5). Read-only.
+   */
+  get openingMaxHp(): number {
+    return this.actOpeningMaxHp;
+  }
+
+  /**
+   * Where the insurance form's decisions stop (MAX_HP_FLOOR of the act's
+   * opening maximum), in health. Read-only; the HUD can mark it.
+   */
+  get maxHpFloor(): number {
+    return MAX_HP_FLOOR * this.actOpeningMaxHp;
   }
 
   /**
@@ -1526,8 +1758,19 @@ export class World {
       // react — the player's own forward motion does all the closing, which is
       // the most law-8-compliant behaviour available. It is also whyThisStage
       // made literal: the record was opened before they arrived.
-      x = this.x + this.facingX * ANTIBODY_LEAD;
-      y = this.y + this.facingY * ANTIBODY_LEAD;
+      let fx = this.facingX;
+      let fy = this.facingY;
+      // A hold that would land with the player inside it — the stairs at a
+      // wall the player faces, pulled back onto them by the clamp below
+      // (AUDIT 93) — lands at the lead behind them instead, as the Mortgage's
+      // room does (`landOffPlayer`): a refuge set down over the player walls
+      // the crowd in with them. Read off where they stand; no dice.
+      if (def.hold && this.leadLandsOnPlayer(def, fx, fy)) {
+        fx = -fx;
+        fy = -fy;
+      }
+      x = this.x + fx * ANTIBODY_LEAD;
+      y = this.y + fy * ANTIBODY_LEAD;
       // What stays where it lands is held inside the arena (AUDIT 31): acne
       // spawned past a wall the player faced was never reachable again.
       if (def.movement === 'static') {
@@ -1627,7 +1870,11 @@ export class World {
     // the Reorg's threshold) gets a hold and nothing else. No dice drawn.
     if (def.hold) {
       const { from, to, seconds, holdSeconds, slow } = def.hold;
-      this.holds.push({ x, y, radius: from, from, to, seconds, holdSeconds, age: 0, slow, source: def.id });
+      // A hold with no contraction (the stairs, DECLINE-ROSTER §3.4:
+      // `seconds` 0) is at `to` from the step it lands, before its first
+      // `updateHolds` — the walk that walls this step reads the radius here.
+      const radius = seconds > 0 ? from : to;
+      this.holds.push({ x, y, radius, from, to, seconds, holdSeconds, age: 0, slow, source: def.id });
       return null;
     }
     const e: EnemyState = {
@@ -1925,10 +2172,14 @@ export class World {
     }
   }
 
-  /** The boss as a seeking target, if it exists and is in range of its edge. */
+  /**
+   * The boss as a seeking target, if it exists and is in range of its edge.
+   * Never Time (DECLINE-ROSTER §4): nothing hurts it, and a weapon does not
+   * aim at what it cannot hurt (AUDIT part three, 22; `nearestEnemies`).
+   */
   private bossAsTarget(within: number): { x: number; y: number } | null {
     const b = this.boss;
-    if (!b || b.phase === 'absorbing') return null;
+    if (!b || b.phase === 'absorbing' || b.kind === 'time') return null;
     const d = Math.hypot(b.x - this.x, b.y - this.y);
     return d - BOSS_RADIUS <= within ? { x: b.x, y: b.y } : null;
   }
@@ -1986,6 +2237,8 @@ export class World {
       if (def.mode === 'orbit') continue;
       // Nor does an aura (updateAuras).
       if (def.mode === 'aura') continue;
+      // Nor a nap: it waits for low health, not a cooldown (`nap`).
+      if (def.mode === 'nap') continue;
 
       const remaining = (this.cooldowns.get(id) ?? 0) - dt;
       if (remaining > 0) {
@@ -2033,7 +2286,7 @@ export class World {
         const speed = def.projectileSpeed * bonus.speed;
         for (const target of targets) {
           const d = Math.hypot(target.x - this.x, target.y - this.y) || 1;
-          this.projectiles.push({
+          const shot: ProjectileState = {
             x: this.x,
             y: this.y,
             vx: ((target.x - this.x) / d) * speed,
@@ -2046,7 +2299,14 @@ export class World {
             source: def.id,
             serial: this.nextSerial++,
             chain: bonus.chain,
-          });
+          };
+          // College (the Highlighter): the stroke carries its mark, with
+          // `duration` on the seconds and `mark` on the multiplier.
+          if (def.marks) {
+            shot.markSeconds = def.marks.seconds * bonus.duration;
+            shot.markMultiplier = def.marks.multiplier * bonus.mark;
+          }
+          this.projectiles.push(shot);
         }
         return true;
       }
@@ -2127,6 +2387,30 @@ export class World {
         return true;
       }
       case 'field': {
+        if (def.wall) {
+          // Calendar block: the meeting's hold turned inside out, put down
+          // where the player stands and left there. On `holds` with the
+          // meetings, so the one wall (`wallHolds`) keeps the crowd outside
+          // out and the crowd inside in, and never the player; it does not
+          // contract (`from` is `to`, no `seconds`) and ends `holdSeconds`
+          // later (`updateHolds`). Its `slow` of 1 holds nothing still
+          // (`slowInHolds` skips it). No dice.
+          const r = radius * reach;
+          this.holds.push({
+            x: this.x,
+            y: this.y,
+            radius: r,
+            from: r,
+            to: r,
+            seconds: 0,
+            holdSeconds: def.range * bonus.duration,
+            age: 0,
+            slow: def.slow ?? 1,
+            source: def.id,
+            owner: 'player',
+          });
+          return true;
+        }
         // Snooze: the attractor's area, dropped where the player stands, with
         // a hold instead of a pull. Movement reads it (`slowAt`); nothing that
         // deals damage does, because its damage is zero.
@@ -2149,6 +2433,9 @@ export class World {
         return false;
       case 'aura':
         // Never fired; see updateAuras.
+        return false;
+      case 'nap':
+        // Never fired; see `nap`, which resolveContact runs.
         return false;
       case 'sweep': {
         // Backhand (G-044): an arc along the facing, swung on its cooldown
@@ -2173,7 +2460,7 @@ export class World {
             this.swept.add(e.uid);
             // A sweep lands on the side the player swung from (§3.4).
             if (!hitsWeakPoint(e, this.x, this.y)) continue;
-            e.hp -= damage;
+            this.damageEnemy(e, damage);
             e.hitFlash = 0.08;
             if (knockback > 0) this.knockBack(e, knockback);
           }
@@ -2199,8 +2486,11 @@ export class World {
         // with the world's own dice so a seed replays them, and after
         // STRIKE_DELAY a one-shot area where each one WAS. With fewer
         // enemies than bolts the boss takes one, as a seeking weapon's
-        // spare shot does. Nothing in range: retry sooner.
+        // spare shot does. Nothing in range: retry sooner. The Letter
+        // (`strikeNearest`, G-050) marks the nearest instead and draws no
+        // dice; every strike's wait divides by its `speed` bonus.
         const bolts = 1 + bonus.projectiles;
+        const delay = strikeDelayAt(def.strikeDelay ?? STRIKE_DELAY, bonus.speed);
         const range = def.range * reach;
         const limit = range * range;
         const pool = this.strikeCandidates;
@@ -2213,19 +2503,19 @@ export class World {
         }
         let aimed = 0;
         while (aimed < bolts && pool.length > 0) {
-          const pick = Math.floor(this.rng() * pool.length);
+          const pick = def.strikeNearest ? this.nearestIndex(pool) : Math.floor(this.rng() * pool.length);
           const e = pool[pick]!;
           swapRemove(pool, pick);
           // A bolt with no delay (Hindsight) has already landed: not at what it killed.
           if (e.hp <= 0) continue;
-          this.strikeAt(def, e.x, e.y, radius, damage);
+          this.strikeAt(def, e.x, e.y, radius, damage, delay);
           aimed++;
         }
         pool.length = 0;
         if (aimed < bolts) {
           const boss = this.bossAsTarget(range);
           if (boss) {
-            this.strikeAt(def, boss.x, boss.y, radius, damage);
+            this.strikeAt(def, boss.x, boss.y, radius, damage, delay);
             aimed++;
           }
         }
@@ -2258,13 +2548,34 @@ export class World {
   }
 
   /**
-   * One strike, telegraphed: it lands after its item's `strikeDelay`, or
-   * STRIKE_DELAY (updateAreas → landStrike). A delay of zero (Hindsight,
-   * G-046) lands here, on the fire step. `fireItems` runs before
-   * `updateAreas`, but `updateStrike` reads a delay of zero as already landed
-   * and only ages the flash, so waiting for it would never land at all.
+   * The index in `pool` of the enemy nearest the player; the first on a tie,
+   * so the pick is the grid's order and never the dice (`strikeNearest`).
    */
-  private strikeAt(def: ActiveItem, x: number, y: number, radius: number, damage: number): void {
+  private nearestIndex(pool: readonly EnemyState[]): number {
+    let best = 0;
+    let bestD = Infinity;
+    for (let i = 0; i < pool.length; i++) {
+      const e = pool[i]!;
+      const d2 = (e.x - this.x) ** 2 + (e.y - this.y) ** 2;
+      if (d2 < bestD) {
+        bestD = d2;
+        best = i;
+      }
+    }
+    return best;
+  }
+
+  /**
+   * One strike, telegraphed: it lands after `delay` — its item's
+   * `strikeDelay`, or STRIKE_DELAY, divided by its `speed` bonus
+   * (`strikeDelayAt`) — through updateAreas → landStrike, at (x, y) whatever
+   * has moved since. A delay of zero (Hindsight, G-046) lands here, on the
+   * fire step. `fireItems` runs before `updateAreas`, but `updateStrike`
+   * reads a delay of zero as already landed and only ages the flash, so
+   * waiting for it would never land at all.
+   */
+  private strikeAt(def: ActiveItem, x: number, y: number, radius: number, damage: number, delay: number): void {
+    const wait = Math.max(0, delay);
     const a: AreaState = {
       x,
       y,
@@ -2275,7 +2586,8 @@ export class World {
       pull: false,
       tick: false,
       serial: this.nextSerial++,
-      delay: Math.max(0, def.strikeDelay ?? STRIKE_DELAY),
+      delay: wait,
+      telegraph: wait,
       source: def.id,
     };
     this.areas.push(a);
@@ -2308,7 +2620,7 @@ export class World {
       const r = a.radius + e.radius;
       if ((e.x - a.x) ** 2 + (e.y - a.y) ** 2 > r * r) continue;
       if (!hitsWeakPoint(e, a.x, a.y, a.radius)) continue;
-      e.hp -= a.damage;
+      this.damageEnemy(e, a.damage);
       e.hitFlash = 0.08;
     }
     const b = this.boss;
@@ -2366,7 +2678,7 @@ export class World {
         // Off the weak point it does nothing, the re-hit clock included (§3.4).
         if (!hitsWeakPoint(e, this.x, this.y, radius)) continue;
         hits.set(e.uid, this.nextAuraHit(next, cooldown, dt));
-        e.hp -= damage;
+        this.damageEnemy(e, damage);
         e.hitFlash = 0.08;
       }
 
@@ -2413,6 +2725,40 @@ export class World {
   }
 
   /**
+   * The one gate every damage path to an enemy goes through: shots, a boss
+   * shot on a racer, orbiters, auras, sweeps, landing strikes, bursts and
+   * ticking areas. Its callers have already decided the enemy is hit (in
+   * reach, on its weak point, not already hit by this serial); this decides
+   * what the hit is worth. The flash, the knockback and the reap stay with
+   * the callers.
+   *
+   * College (the Highlighter): while an enemy is marked, every hit is worth
+   * its mark's multiplier. One multiplication, here and in `bossTakes`, so no
+   * weapon can be written that forgets it; a damage path that subtracts hp
+   * any other way is a path the mark does not reach.
+   */
+  private damageEnemy(e: EnemyState, amount: number): void {
+    e.hp -= amount * this.markOn(e);
+  }
+
+  /** What a mark multiplies a hit on `t` by now: its multiplier while it runs, else 1. */
+  private markOn(t: Markable): number {
+    return t.markedUntil !== undefined && this._time < t.markedUntil ? (t.markMultiplier ?? 1) : 1;
+  }
+
+  /**
+   * A marking shot (`ProjectileState.markSeconds`) has landed on `t`: it is
+   * marked from now for the shot's seconds at the shot's multiplier. A mark on
+   * a marked target replaces it — the clock restarts, the multiplier is the
+   * newer one, and nothing multiplies twice. No dice.
+   */
+  private markFrom(p: ProjectileState, t: Markable): void {
+    if (p.markSeconds === undefined) return;
+    t.markedUntil = this._time + p.markSeconds;
+    t.markMultiplier = p.markMultiplier ?? 1;
+  }
+
+  /**
    * Damage to the boss from anything but the two older paths in updateBoss.
    * The shield is read live, not off `b.shielded`: orbiters run before
    * `updateBoss` refreshes it, and a ball this step killed has stopped
@@ -2444,9 +2790,19 @@ export class World {
    * hair short of it. It never latches here, even at zero: whether the
    * window was paid, and whether that was the last, is `mortgagePhase`'s,
    * at the window's end — so the fight lasts every window of the schedule.
+   *
+   * Time (DECLINE-ROSTER §4): accepts nothing, ever. Every path above reaches
+   * it and does nothing — a shot is spent on the clock as on a shield, an
+   * area, an orbiter, an aura, a sweep or a strike leave no mark — and its
+   * health never moves. Its fight ends on its clock (`timePhase`), never here.
    */
   private bossTakes(b: BossState, amount: number): boolean {
+    // College: the mark is paid here for every path to the boss, as
+    // `damageEnemy` pays it for the crowd — before the Mortgage's cap below,
+    // so a marked Mortgage still takes no more than the window owes.
+    amount *= this.markOn(b);
     const boss = this.act.boss;
+    if (boss.kind === 'time') return false;
     if (boss.kind === 'mortgage') {
       const instalment = b.maxHp / boss.instalments;
       const owed = instalment - b.accepted;
@@ -2512,7 +2868,7 @@ export class World {
           // By where it is; off the weak point the touch spends nothing (§3.4).
           if (!hitsWeakPoint(e, o.x, o.y)) continue;
           hits.set(key, this._time);
-          e.hp -= damage;
+          this.damageEnemy(e, damage);
           e.hitFlash = 0.08;
           // Vendetta (G-046): a fist that shoves. Grudge carries no knockback and never pushes.
           if (def.knockback) this.knockBack(e, def.knockback + bonus.knockback);
@@ -2585,11 +2941,11 @@ export class World {
         // misses here keeps its one hit, and lands if the centre comes under it.
         if (!hitsWeakPoint(e, a.x, a.y, a.radius)) continue;
         if (a.tick) {
-          e.hp -= a.damage * dt * 6;
+          this.damageEnemy(e, a.damage * dt * 6);
         } else {
           if (e.hitByAreaSerial === a.serial) continue;
           e.hitByAreaSerial = a.serial;
-          e.hp -= a.damage;
+          this.damageEnemy(e, a.damage);
           if (a.knockback) this.knockBack(e, a.knockback);
         }
         e.hitFlash = 0.08;
@@ -2618,6 +2974,7 @@ export class World {
         continue;
       }
       const was = h.radius;
+      // `seconds` 0 (the stairs, DECLINE-ROSTER §3.4) divides by nothing: at `to`.
       const t = h.seconds > 0 ? Math.min(1, h.age / h.seconds) : 1;
       h.radius = h.from + (h.to - h.from) * t;
       if (h.radius !== was) this.moveHoldEdge(h, was);
@@ -2764,8 +3121,10 @@ export class World {
         // hit, so a seeking shot does not pass through and take it from the
         // far side on the same flight.
         if (hitsWeakPoint(e, p.x, p.y)) {
-          e.hp -= p.damage;
+          this.damageEnemy(e, p.damage);
           e.hitFlash = 0.08;
+          // Paid first, then written: the stroke that marks is not itself marked.
+          this.markFrom(p, e);
           if (p.chain && p.chain > 0) this.chainFrom(p, e);
         }
         if (--p.pierce <= 0) {
@@ -2795,7 +3154,7 @@ export class World {
       if (e.hp <= 0 || e.def.invulnerable || !this.isRacing(e)) continue;
       const r = e.radius + p.radius;
       if ((e.x - p.x) ** 2 + (e.y - p.y) ** 2 > r * r) continue;
-      e.hp -= p.damage;
+      this.damageEnemy(e, p.damage);
       e.hitFlash = 0.08;
       swapRemove(this.projectiles, pi);
       return;
@@ -2863,6 +3222,13 @@ export class World {
       // any children are pushed past it and are alive, so none is reaped here.
       swapRemove(this.enemies, i);
       this.kills++;
+      // The medication (DECLINE-ROSTER §3.1): taking it is killing it. Never
+      // past the maximum, never lowering a health already at it, and nothing
+      // once the outcome has latched. No dice.
+      const heal = e.def.killHeal;
+      if (heal !== undefined && heal > 0 && !this.outcomeDecided && this.hp < this.maxHp) {
+        this.hp = Math.min(this.maxHp, this.hp + heal);
+      }
       const split = e.def.split;
       const generation = e.generation ?? 0;
       if (split && generation < split.generations - 1) this.splitFrom(e, split, generation + 1);
@@ -2953,7 +3319,8 @@ export class World {
         }
         continue;
       }
-      if (this.invulnerable > 0) continue;
+      // Asleep (Decline's Nap): no touch lands, as i-frames skip it; a shot below still does.
+      if (this.invulnerable > 0 || this.napTimer > 0) continue;
       this.hurt(e.def.contactDamage, e.def);
       if (e.def.contactStun !== undefined) {
         this.stun(e.def.contactStun);
@@ -2988,6 +3355,11 @@ export class World {
       // a level already reached is never taken back.
       const xpLoss = p.owner?.ranged?.xpLoss;
       if (xpLoss !== undefined) this.xp = Math.max(0, this.xp - xpLoss * this.xpToNext);
+      // The insurance form's decision (DECLINE-ROSTER §3.5): after the damage,
+      // the maximum loses `maxHpLoss` of what it is now, for the rest of the
+      // act, never below the floor. Not on a body the decision just killed.
+      const maxHpLoss = p.owner?.ranged?.maxHpLoss;
+      if (maxHpLoss !== undefined && !this.dead) this.decide(maxHpLoss);
       // The registrar's hold (COLLEGE-ROSTER §3.5): the monitor's stop, by
       // post, and its i-frames run from the END of the stop for the reason the
       // contact branch above gives (AUDIT part three, 18).
@@ -3001,6 +3373,12 @@ export class World {
       const pull = p.owner?.ranged?.pull;
       if (pull !== undefined && !this.dead) this.pullToward(p, pull);
     }
+
+    // Decline's Nap (`nap`), last in the pass the engulf's tick opens: it
+    // reads the health the touches and shots above left, and a nap's final
+    // step still sleeps through them, because the timer they read runs down
+    // here, after them.
+    this.nap(dt);
   }
 
   /**
@@ -3053,6 +3431,22 @@ export class World {
     this.x += nx * reach;
     this.y += ny * reach;
     this.clampPlayer();
+  }
+
+  /**
+   * One landing decision (DECLINE-ROSTER §3.5, `ranged.maxHpLoss`): the
+   * maximum health is multiplied by (1 − `share`) and current health held
+   * inside it, never below `maxHpFloor` — at the floor it takes nothing more.
+   * Stored as a share of what the items give (`maxHpShare`), so a Thick Skin
+   * taken after a decision raises the maximum by its own multiplier and the
+   * decision still stands. Never raises health. No dice.
+   */
+  private decide(share: number): void {
+    const full = this.itemMaxHp;
+    if (!(full > 0) || !(share > 0)) return;
+    const floor = Math.min(1, this.maxHpFloor / full);
+    this.maxHpShare = Math.max(floor, this.maxHpShare * (1 - share));
+    if (this.hp > this.maxHp) this.hp = this.maxHp;
   }
 
   /**
@@ -3205,6 +3599,46 @@ export class World {
     return true;
   }
 
+  /**
+   * Decline's Nap (items.ts `nap`, DECLINE-ROSTER §6, G-051): the one verb a
+   * `nap` item has, run at the end of `resolveContact`. Generic: it names no
+   * item, only the mode and its `nap` numbers.
+   *
+   * Asleep (`napTimer`), health comes back at `napRate`, evenly over the
+   * window, never past the maximum. Every held nap counts its cooldown down
+   * on `cooldowns` (fireItems skips it); off cooldown, awake, and with
+   * health under its `threshold` share of the maximum, the player falls
+   * asleep for `range` × `duration` seconds and `heal` × `damage` of the
+   * maximum is owed over them. The stop is the hall monitor's (`stun`, so
+   * movePlayer ignores the input and the renderer squashes the swim); the
+   * touches are skipped in `resolveContact` while `napTimer` runs; a hostile
+   * shot still lands. The clock keeps running: that is the joke, and the
+   * only cost (G-038). Never once the outcome has latched — the absorb, a
+   * death, the win — and in any act once held, as every item is. No dice.
+   */
+  private nap(dt: number): void {
+    if (this.outcomeDecided) return;
+    if (this.napTimer > 0) {
+      const t = Math.min(dt, this.napTimer);
+      this.napTimer -= t;
+      this.hp = Math.min(this.maxHp, this.hp + this.napRate * t);
+    }
+    for (const [id, level] of this.items) {
+      const def = ITEMS[id];
+      if (!def || !isActive(def) || def.mode !== 'nap' || !def.nap) continue;
+      const left = Math.max(0, (this.cooldowns.get(id) ?? 0) - dt);
+      this.cooldowns.set(id, left);
+      if (left > 0 || this.napTimer > 0 || !(this.hp < def.nap.threshold * this.maxHp)) continue;
+      const b = this.bonusFor(def, level);
+      const seconds = def.range * b.duration;
+      if (!(seconds > 0)) continue;
+      this.napTimer = seconds;
+      this.napRate = (def.nap.heal * b.damage * this.maxHp) / seconds;
+      this.stun(seconds);
+      this.cooldowns.set(id, this.activeCooldown(def, level));
+    }
+  }
+
   /** Writes the player's position to the trail, at most once per sample interval. */
   private recordTrail(): void {
     if (this.trailCount > 0) {
@@ -3238,8 +3672,9 @@ export class World {
   // --- the life ---------------------------------------------------------
 
   /**
-   * The boss is down and its exit has played. Either the next act begins or,
-   * after the last one, the player dies of natural causes and that is the win.
+   * The boss is down, or Time has run out (`timePhase`), and its exit has
+   * played. Either the next act begins or, after the last one, the player
+   * dies of natural causes and that is the win.
    */
   private finishAct(): void {
     if (this.actIndex + 1 < this.life.length) {
@@ -3325,8 +3760,15 @@ export class World {
     this.movedY = 0;
     this.invulnerable = 0;
     this.stunTimer = 0;
+    this.napTimer = 0;
+    this.napRate = 0;
     if (!this.inheritance) this.inherit();
     this.takeUnaskedLevels();
+    // The form's decisions are "for the rest of the act" (DECLINE-ROSTER
+    // §3.5): off at the door, and the floor re-read from the maximum the next
+    // act opens with, after the unasked levels (a Thick Skin among them).
+    this.maxHpShare = 1;
+    this.actOpeningMaxHp = this.itemMaxHp;
     this.hp = this.maxHp;
     // Levels earned from that XP, and any owed from the absorb (AUDIT 29),
     // are offered before the new act's first step, exactly as a mid-act
@@ -3557,7 +3999,11 @@ export class World {
       paid: 0,
       windowTimer: 0,
       accepted: 0,
+      secondsLeft: 0,
+      hand: 0,
+      filed: 0,
     };
+    this.handSeconds = 0;
     // The Loan opens at what the player carried in (COLLEGE-ROSTER §4): a
     // tenth more per invoice worn, and its cap is `cap` times that, so the bar
     // opens 1/cap full. The act's only attach is tuition, so every stack
@@ -3573,6 +4019,14 @@ export class World {
     // from here every one is `instalmentSeconds` long.
     const mortgage = this.act.boss;
     if (mortgage.kind === 'mortgage') this.boss.windowTimer = mortgage.instalmentSeconds;
+    // Time's clock starts as it stands (DECLINE-ROSTER §4). Its health stays
+    // BOSS_HP and nothing ever moves it: its bar is `secondsLeft`. Its long
+    // hand starts at the drawn rest pose and turns from here.
+    const time = this.act.boss;
+    if (time.kind === 'time') {
+      this.boss.secondsLeft = time.seconds;
+      this.boss.hand = TIME_HAND_REST;
+    }
     // Read once it stands: Prom's shield is the player's distance from it.
     this.boss.shielded = this.shieldUp();
     this.partRace(this.boss);
@@ -3659,7 +4113,11 @@ export class World {
       // Spent either way: a shot into a window already met is the overflow,
       // and it is lost, not held for the next one (FAMILY-ROSTER §4).
       swapRemove(this.projectiles, i);
-      if (this.bossTakes(b, p.damage)) return;
+      const ended = this.bossTakes(b, p.damage);
+      // A Highlighter stroke marks him as it marks the crowd; shielded, above,
+      // it reached him and did nothing, the mark included.
+      this.markFrom(p, b);
+      if (ended) return;
     }
     for (const a of this.areas) {
       // A strike deals its one hit on the boss where it lands (landStrike).
@@ -3683,6 +4141,8 @@ export class World {
     if (this.act.boss.kind === 'reorg') return this.reorgPhase(b, this.act.boss, dt);
     // And the window clock: it runs every step, beside the statement.
     if (this.act.boss.kind === 'mortgage') return this.mortgagePhase(b, this.act.boss, dt);
+    // And Time's: its clock, its hand and its file run every step.
+    if (this.act.boss.kind === 'time') return this.timePhase(b, this.act.boss, dt);
 
     // It does not move from where it is. It has already decided.
     b.timer -= dt;
@@ -4148,34 +4608,47 @@ export class World {
     return Math.min(boss.instalments, Math.max(0, paid));
   }
 
-  /**
-   * A room at the player's lead, through `spawnEnemy`: the act's own arrival
-   * (§3.6's room is `spawnAt: 'lead'`, static, merging), so where it lands,
-   * the clamp that holds a static inside the arena and the merge onto a room
-   * already there are all written once, there. The lead is ANTIBODY_LEAD
-   * ahead, farther than a room's radius, so it never lands on the player —
-   * except at a wall they face, where the clamp pulls it back onto them: then
-   * it lands at the lead behind them instead, the heading turned for the call
-   * and put back after, as the Loan's statement turns it. The turn is read
-   * off where the player stands, never rolled. A lead placement draws no
-   * dice; under a `spawnOverride` of 'edge' the room draws its angle, as
-   * every arrival does there.
-   */
+  /** A room at the player's lead, or behind them at a wall (`landOffPlayer`). */
   private buildRoom(boss: MortgageBoss): void {
+    this.landOffPlayer(boss.roomId);
+  }
+
+  /**
+   * One `id` at the player's lead, through `spawnEnemy`: the act's own
+   * arrival (the Mortgage's room is `spawnAt: 'lead'`, static, merging; Time's
+   * knee is `spawnAt: 'lead'`, static, attaching), so where it lands, the
+   * clamp that holds a static inside the arena and the merge onto a room
+   * already there are all written once, there. The lead is ANTIBODY_LEAD
+   * ahead, farther than a room's or a knee's radius, so it never lands on
+   * the player — except at a wall they face, where the clamp pulls it back
+   * onto them: then it lands at the lead behind them instead, the heading
+   * turned for the call and put back after, as the Loan's statement turns it.
+   * The turn is read off where the player stands, never rolled. A lead
+   * placement draws no dice; under a `spawnOverride` of 'edge' it draws its
+   * angle, as every arrival does there. Capped by MAX_ACTIVE_ENEMIES like any
+   * spawn. The Mortgage's rooms and Time's file land here.
+   */
+  private landOffPlayer(id: string): void {
     if (this.enemies.length >= MAX_ACTIVE_ENEMIES) return;
-    const def = enemyDef(boss.roomId);
+    const def = enemyDef(id);
     const fx = this.facingX;
     const fy = this.facingY;
     if ((this.spawnOverride ?? def.spawnAt) === 'lead' && this.leadLandsOnPlayer(def, fx, fy)) {
       this.facingX = -fx;
       this.facingY = -fy;
     }
-    this.spawnEnemy(boss.roomId);
+    this.spawnEnemy(id);
     this.facingX = fx;
     this.facingY = fy;
   }
 
-  /** True when `def` set at the lead along (fx, fy), as `spawnEnemy` would, overlaps the player. */
+  /**
+   * True when `def` set at the lead along (fx, fy), as `spawnEnemy` would,
+   * overlaps the player: its body, or for a hold (the stairs) the hold as it
+   * lands — `to` for one that never contracts, `from` otherwise — so a hold
+   * turned by this never lands with the player inside it, which is more than
+   * never on its centre (AUDIT 93).
+   */
   private leadLandsOnPlayer(def: EnemyDef, fx: number, fy: number): boolean {
     let x = this.x + fx * ANTIBODY_LEAD;
     let y = this.y + fy * ANTIBODY_LEAD;
@@ -4183,7 +4656,9 @@ export class World {
       x = clamp(x, def.radius, ARENA_WIDTH - def.radius);
       y = clamp(y, def.radius, ARENA_HEIGHT - def.radius);
     }
-    return Math.hypot(x - this.x, y - this.y) < def.radius + this.playerRadius;
+    const hold = def.hold;
+    const r = hold ? (hold.seconds > 0 ? hold.from : hold.to) : def.radius;
+    return Math.hypot(x - this.x, y - this.y) < r + this.playerRadius;
   }
 
   /**
@@ -4225,5 +4700,76 @@ export class World {
       source: 'boss',
       serial: this.nextSerial++,
     });
+  }
+
+  /**
+   * Time (DECLINE-ROSTER §4): its clock runs down from `seconds`, and while it
+   * runs the long hand turns and the file is read (`turnHand`). When it
+   * reaches zero the hands stop — the step the clock runs out does not turn
+   * them — and the outcome latches exactly as a boss falling latches it
+   * (`bossTakes`): `absorbing` for the exit every boss takes (1.8s, the act's
+   * `endWord` shown in it), then `finishAct`, which after the last act is the
+   * win — natural causes at the act's `age.to`. A Time before the last act
+   * would be a crossing, as any boss is.
+   *
+   * Nothing hurts it, so the only other way its fight ends is a write from
+   * outside the sim: the dev panel's kill sets `absorbing` itself (handled
+   * above, in `updateBoss`), and health written to zero alone is read as the
+   * clock run out, so no boss stands at zero forever. Nothing of it runs
+   * once the player has died this step: a death on the last step is a death.
+   * No shots, no fan, no phases. No dice.
+   */
+  private timePhase(b: BossState, time: TimeBoss, dt: number): void {
+    if (this.dead) return;
+    b.secondsLeft = Math.max(0, b.secondsLeft - dt);
+    if (b.secondsLeft > 0 && b.hp > 0) {
+      this.turnHand(b, time, dt);
+      return;
+    }
+    b.secondsLeft = 0;
+    b.phase = 'absorbing';
+    b.timer = 1.8;
+  }
+
+  /**
+   * Time's long hand and its file (DECLINE-ROSTER §4), one step of each.
+   *
+   *   1. The hand turns: `hand` is TIME_HAND_REST plus a full turn for every
+   *      `sweepSeconds` it has run (`handSeconds`), clockwise, wrapped to
+   *      [0, 2π). Read off the sum each step, never added to itself, so it
+   *      neither drifts nor runs faster at a longer step.
+   *   2. The hand touches: a player whose body reaches the rectangle
+   *      `sweepLength` × `sweepWidth` from the boss point along it
+   *      (`fromHand`) takes the Egg's shot damage (EGG_SHOT.damage) through
+   *      `hurt`, which gives the usual IFRAMES, unless i-frames are already
+   *      running. A death to it names the act's `bossName`, Time. It is not
+   *      a touch: the Nap's sleep (`napTimer`), which skips touches, does not
+   *      skip it, and a sleeper on the line is hit — the clock keeps running.
+   *      The hand passes over everything else: it walls nothing and nothing
+   *      walls it, a hold included.
+   *   3. The file: at every 1/TIME_FILES_PER_TURN of a turn since its
+   *      arrival (`filed` counts them), one TIME_FILE_ID at the player's lead
+   *      through the Mortgage's room placement (`landOffPlayer`): at the
+   *      lead, or behind the player at a wall — never on them — and none at
+   *      MAX_ACTIVE_ENEMIES. Not on a body the hand has just killed.
+   *
+   * Every number it reads is a PLACEHOLDER under `DECLINE.provisional` but
+   * TIME_HAND_REST, which is the drawing's. No dice.
+   */
+  private turnHand(b: BossState, time: TimeBoss, dt: number): void {
+    this.handSeconds += dt;
+    b.hand = turnOf(TIME_HAND_REST + (Math.PI * 2 * this.handSeconds) / time.sweepSeconds);
+    if (
+      this.invulnerable <= 0 &&
+      fromHand(b.x, b.y, b.hand, time.sweepLength, time.sweepWidth, this.x, this.y) <= this.playerRadius
+    ) {
+      this.hurt(EGG_SHOT.damage, 'boss');
+      if (this.dead) return;
+    }
+    const due = Math.floor((this.handSeconds * TIME_FILES_PER_TURN) / time.sweepSeconds);
+    while (b.filed < due) {
+      b.filed++;
+      this.landOffPlayer(TIME_FILE_ID);
+    }
   }
 }

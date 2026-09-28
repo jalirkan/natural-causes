@@ -159,6 +159,7 @@ const ACT_DEFAULT_GEOMETRY: Record<ActId, Geometry> = {
   service: 'hand-cut',
   office: 'hand-cut',
   family: 'hand-cut',
+  decline: 'hand-cut',
 };
 
 export function styleSuffix(
@@ -858,6 +859,28 @@ export const ITEM_ICONS: AssetSpec[] = [
       'flat muted dusty rose case, pale warm face, bar and z',
     ].join(', '),
   },
+  // --- The Office (G-048): Calendar block ---------------------------------
+  // The first item born at twenty-two is drawn, like Snooze. Its icon also
+  // marks its hold on the field where it was put (ActScene syncHolds, 40px),
+  // so it keeps to rose, bone and ink: never the elite purple the meeting's
+  // chairs wear, since this ring is the meeting's wall turned inside out.
+  {
+    id: 'icon-block',
+    name: 'Calendar Block icon',
+    act: 'conception',
+    role: 'icon',
+    fieldRiding: true,
+    source: 'svg',
+    targetSize: 96,
+    seed: 61048,
+    tests: 'a calendar page with one day struck through, read at 52px on a card and 40px on its hold, never a grid of numbers',
+    subject: [
+      'one wall-calendar page seen flat and straight on, a sheet a little taller than it is wide, with two binder rings standing up off its top edge and a solid header band under them',
+      'below the band a grid of nine plain day cells, three by three, with no numbers, the middle one filled in and struck through with one bold diagonal bar',
+      'flat muted dusty rose header band and filled day, pale warm sheet, rings and cells, dark lines between the cells and the one strike',
+      'no text, no numbers, no figure, no clock, no purple',
+    ].join(', '),
+  },
   // Personal Space (G-044) is drawn. Its icon also rides the aura ring on the
   // field (about 32px), so it keeps to rose, bone and ink as Grudge does.
   {
@@ -1005,6 +1028,79 @@ export const ITEM_ICONS: AssetSpec[] = [
       'a pair of soft house slippers seen from directly above, toes up, side by side and slightly splayed, each a rounded sole with a low toe pocket',
       'flat muted dusty rose slippers, pale warm inner soles showing at the heels, a dark interior line along each toe pocket edge',
       'no feet in them, no floor, no laces, no text',
+    ].join(', '),
+  },
+  // College: the Highlighter, the first item born at eighteen, is drawn.
+  // Its icon is also the stroke it fires (a seeking shot wears its card's
+  // icon, ActScene syncProjectiles, 30px turned to its heading), so it keeps
+  // to rose, bone and ink like Reflex's manicule — never the highlighter
+  // yellow people expect, which is the ranged threat's gold (G-031).
+  {
+    id: 'icon-highlight',
+    name: 'Highlighter icon',
+    act: 'conception',
+    role: 'icon',
+    fieldRiding: true,
+    source: 'svg',
+    targetSize: 96,
+    seed: 61041,
+    tests: 'a chisel-tip marker laying one broad stroke, read at 52px on a card and 30px in flight, never a pencil, a crayon or a syringe',
+    subject: [
+      'a fat chisel-tip highlighter marker seen from the side, the cap off, tilted down to the right as if writing, a short clip along the top of the barrel',
+      'its slanted chisel tip pressed onto the right-hand end of one broad flat stroke it has just laid, a level band with square ends running back to the left, as if drawn under a line of text',
+      'flat muted dusty rose barrel and felt tip, pale warm back plug, clip, collar and stroke, dark interior lines either side of the collar, under the clip and along the chisel face',
+      'no yellow, no paper, no text, no hand, no page',
+    ].join(', '),
+  },
+  // --- Born in Family (G-050): the Strongly Worded Letter ------------------
+  // A strike (mode `strike`, `strikeNearest`): its icon comes down onto the
+  // mark during the telegraph (~36px) and sits on the landing (~40px),
+  // through the same syncAreas code as Judgement's gavel, so it keeps to
+  // rose, bone and ink. Family reserves the windowed envelope (the bill) and
+  // the sealed, folded letter (the HOA letter: "the only seal, and the only
+  // thing folded"), and this rides that field, so it is neither: one flat
+  // sheet, never an envelope, never folded, never sealed, in the player's
+  // rose where the act's post is bone.
+  {
+    id: 'icon-letter',
+    name: 'Strongly Worded Letter icon',
+    act: 'conception',
+    role: 'icon',
+    fieldRiding: true,
+    source: 'svg',
+    targetSize: 96,
+    seed: 61050,
+    tests: 'a written letter, one flat sheet, read at 52px on a card and 36px coming down on the mark, never an envelope, never folded, never sealed',
+    subject: [
+      'one flat sheet of writing paper, taller than wide, tipped a little to the left as if just sent, seen straight on',
+      'a letter laid out as a letter: one short line top left for the greeting, a block of four heavy lines of writing, one short line bottom right for the signature',
+      'the last line of the block underlined twice, hard',
+      'flat muted dusty rose sheet, pale warm lines of writing, the double underline dark',
+      'no envelope, no fold, no dog-ear, no seal, no stamp, no window, no hand, no figure, no legible text',
+    ].join(', '),
+  },
+  // --- Born in Decline (G-051): the Nap ------------------------------------
+  // A control that fires nothing, so its icon is card-only: nothing of it is
+  // drawn on the field (the nap shows as the stop, the swim held still).
+  // The panel's line is "You fell asleep in the chair", so it is the chair,
+  // seen from the front and empty: the one who napped in it is off playing.
+  // Rose, bone and ink like the others. Never the Office's ring of chairs
+  // (upholstered, winged, one on its own) and never a clock (Time's).
+  {
+    id: 'icon-nap',
+    name: 'Nap icon',
+    act: 'conception',
+    role: 'icon',
+    source: 'svg',
+    targetSize: 96,
+    seed: 61051,
+    tests: 'an empty wingback armchair seen from the front, read at 52px on a card, never an office chair, a throne or a sofa',
+    subject: [
+      'one upholstered wingback armchair seen straight from the front, empty, a tall back with a wing standing out at each top corner',
+      'two fat rolled arms either side of one deep seat cushion, two short stubby legs under the front',
+      'a small cloth laid over the top of the back where a head would rest, and a soft dent in the seat cushion',
+      'flat muted dusty rose frame, back, wings and arms, pale warm cushion and head cloth, dark interior lines where the cushion meets the arms and the back',
+      'nobody sitting in it, no figure, no clock, no blanket, no text',
     ].join(', '),
   },
 ];
@@ -1613,6 +1709,142 @@ export const FAMILY_ROSTER: AssetSpec[] = [
   },
 ];
 
+/**
+ * DECLINE-ROSTER.md §1–§4, lifted. What the body and the building now do to
+ * you; nothing is a person and the knees are your own (law 9 has nothing to
+ * render); no enemy wears the act's mint (law 10); the rain is the act's
+ * only red, the steps its only purple, the clock its only teal, and gold
+ * rides the form's decision alone (G-031). Every sprite is drawn.
+ */
+export const DECLINE_ROSTER: AssetSpec[] = [
+  {
+    id: 'medication',
+    name: 'Medication',
+    act: 'decline',
+    role: 'swarm',
+    tests: 'the capsule — the only capsule and the smallest thing in the act, read by its seam',
+    targetSize: 40,
+    seed: 50050,
+    source: 'svg',
+    whyThisStage:
+      'Decline is the first stage where taking care of yourself is a thing you chase, and it hurts when it catches you first.',
+    subject: [
+      'a rounded capsule seen exactly side-on, two halves with a seam between them',
+      'the left half in muted tan (#D2C6AC), the right half in warm grey-brown (#6E6353), the seam and the outline in warm near-black (#2A2521)',
+      'two small dark dots for eyes and one short flat line for a mouth on the tan half, looking at the seam',
+      'no text, no red, no purple, no gold, no yellow, no teal anywhere',
+    ].join(', '),
+  },
+  {
+    id: 'weather',
+    name: 'Weather',
+    act: 'decline',
+    role: 'swarm',
+    tests: 'the front — the only cloud and the widest thing, read side-on crossing; red on the rain only',
+    targetSize: 112,
+    seed: 51051,
+    source: 'svg',
+    whyThisStage: 'Decline is the first stage where the weather is something that happens to the player.',
+    subject: [
+      'a long low bank of cloud seen side-on, twice as wide as it is tall, with five short straight rain lines falling from its underside',
+      'muted tan (#D2C6AC) cloud with warm near-black (#2A2521) edges, the rain lines in flat muted red (#C4472E), the contact threat colour, the only red on it',
+      'two small dark dots for eyes and one short flat line for a mouth in the cloud looking down at its own rain, not at the viewer',
+      'no sun, no lightning, no text, no purple, no gold, no yellow, no teal anywhere',
+    ].join(', '),
+  },
+  {
+    id: 'stairs',
+    name: 'Stairs',
+    act: 'decline',
+    role: 'swarm',
+    tests: 'the flight of stairs — the only steps and the only rail in the act; the elite purple on the steps',
+    targetSize: 96,
+    seed: 52052,
+    source: 'svg',
+    whyThisStage: 'Decline is the first stage where the slow way up is the safe way, and the crowd cannot follow.',
+    subject: [
+      'a flight of six steps rising from left to right seen exactly side-on, one straight rail above them on two posts',
+      'flat muted purple (#7C5C8A), the elite threat colour, on every step, one solid tone, the rail and posts and the outline in warm near-black (#2A2521)',
+      'two small dark dots for eyes and one short flat line for a mouth on the riser of the top step, looking down the flight, not at the viewer',
+      'no carpet, no banister curl, no text, no red, no gold, no yellow, no teal anywhere',
+    ].join(', '),
+  },
+  {
+    id: 'your-knees',
+    name: 'Your knees',
+    act: 'decline',
+    role: 'swarm',
+    tests: 'the knees — the only pair in the act, two domes side by side with one face between them',
+    targetSize: 40,
+    seed: 53053,
+    source: 'svg',
+    // DECLINE-ROSTER §3.3: the antibody's final costume. Bone, never skin;
+    // the frown between them is the only one in the life.
+    whyThisStage:
+      'Decline is where the record the player has been accumulating since before they were a person is finally read back to them by their own body.',
+    subject: [
+      'two rounded kneecaps side by side seen from the front, two domes of equal size one face apart, a low hollow between them',
+      'muted tan (#D2C6AC) domes with warm near-black (#2A2521) outlines',
+      'the hollow between the domes in warm grey-brown (#6E6353) carries the face: two small dark dots for eyes and one short line for a mouth turned down one step at each end, worried',
+      'no legs, no skin, no text, no red, no purple, no gold, no yellow, no teal anywhere',
+    ].join(', '),
+  },
+  {
+    id: 'insurance-form',
+    name: 'Insurance form',
+    act: 'decline',
+    role: 'swarm',
+    tests: 'the form on a board — the only board and the only boxes in the act; no gold on it',
+    targetSize: 80,
+    seed: 54054,
+    source: 'svg',
+    whyThisStage: 'Decline is the first stage where the aimed thing decides what the player is covered for.',
+    subject: [
+      'a portrait clipboard seen from the front, a sheet of paper on a board with a clip at its top and three small square tick boxes down the left side of the sheet, all empty',
+      'the board in warm grey-brown (#6E6353), the sheet in muted tan (#D2C6AC), the clip, the boxes and the outline in warm near-black (#2A2521)',
+      'two small dark dots for eyes and one short flat line for a mouth on the sheet beside the boxes, looking at the boxes, not at the viewer',
+      'no text, no ticks, no gold, no yellow, no red, no purple, no teal anywhere',
+    ].join(', '),
+  },
+  {
+    id: 'boss-time',
+    name: 'Time',
+    act: 'decline',
+    role: 'boss',
+    tests: 'the clock face — boss teal at boss scale, a round dial with two hands and no numbers, the only circle in the act',
+    targetSize: 384,
+    seed: 55055,
+    source: 'svg',
+    // DECLINE-ROSTER §4: it cannot be hurt and its running out is the win.
+    // Law 5: a clock has had a face since the word.
+    whyThisStage: 'Decline is the last stage, and the thing that ends it was there the whole time.',
+    subject: [
+      'a round clock face seen straight on at boss scale, a wide rim, a plain dial with no numbers and no marks, two hands of different lengths meeting at the centre',
+      'flat muted deep teal (#2F7370), the boss colour, on the rim and both hands, one solid tone with warm near-black (#2A2521) edges, the dial in muted tan (#D2C6AC)',
+      'a small face at the centre where the hands meet: two open dark dots for eyes and one short flat line for a mouth, calm',
+      'no numbers, no ticks, no pendulum, no text, no red, no purple, no gold, no yellow anywhere',
+    ].join(', '),
+  },
+  {
+    id: 'player-decline',
+    name: 'The player — fifty-five',
+    act: 'decline',
+    role: 'player',
+    tests: 'G-003 at fifty-five: the same face and cowlick, one frame, a cardigan and a cane',
+    source: 'svg',
+    targetSize: 112,
+    seed: 56056,
+    subject: [
+      'the player at fifty-five: the same small round-headed figure as every act, standing, no taller',
+      'the same face as every act: two flat eyes and one short flat line for a mouth',
+      'the same single asymmetric cowlick sticking up above the left eye, one tuft and no other hair',
+      'a buttoned cardigan down the front and a plain cane held in one hand, its tip on the floor',
+      'paper coloured (#EFE7D6) head and body, warm grey-brown (#6E6353) as the only second tone',
+      'no threat colour anywhere, no tote bag, no keys, no glasses, no lettering',
+    ].join(', '),
+  },
+];
+
 export const ALL_ASSETS: AssetSpec[] = [
   ...TEST_BATCH,
   ...CONCEPTION_ROSTER,
@@ -1621,5 +1853,6 @@ export const ALL_ASSETS: AssetSpec[] = [
   ...COLLEGE_ROSTER,
   ...OFFICE_ROSTER,
   ...FAMILY_ROSTER,
+  ...DECLINE_ROSTER,
   ...ITEM_ICONS,
 ];

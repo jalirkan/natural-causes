@@ -42,6 +42,8 @@ export type ItemIcon =
   | 'magnet'
   | 'grow'
   | 'slow'
+  // The Office's (G-048): Calendar block's page, a day struck through.
+  | 'block'
   | 'aura'
   | 'sweep'
   | 'bolt'
@@ -49,7 +51,13 @@ export type ItemIcon =
   | 'jump'
   | 'reach'
   | 'hindsight'
-  | 'rut';
+  | 'rut'
+  // College: the Highlighter's stroke.
+  | 'highlight'
+  // Born in Family (G-050): the Strongly Worded Letter.
+  | 'letter'
+  // Born in Decline (G-051): the Nap's armchair, empty.
+  | 'nap';
 
 interface ItemBase {
   id: string;
@@ -111,20 +119,39 @@ export interface LevelBonus {
   pierce?: number;
   /** Multiplier on radius: burst, trail, pull, shot size, orbit distance. */
   area?: number;
-  /** Multiplier on how long a trail or attractor lasts. */
+  /**
+   * Multiplier on how long a trail or attractor lasts. On a `nap` it is how
+   * long the player sleeps, and below 1 is the upgrade: a nap that ends
+   * sooner heals the same amount faster (Power Nap).
+   */
   duration?: number;
   /** A burst repeats once, 0.25s later, wherever the player is then. */
   echo?: boolean;
   /** On hit, a seeking shot jumps to this many further nearby enemies. */
   chain?: number;
-  /** Multiplier on damage per hit, on top of the generic per-level scaling. */
+  /**
+   * Multiplier on damage per hit, on top of the generic per-level scaling.
+   * A `nap` hurts nothing, so on a nap it multiplies the heal instead
+   * (`nap.heal`, Deep Sleep), and the generic scaling does not apply to it.
+   */
   damage?: number;
   /** Multiplier on the cooldown (orbit and aura: the per-enemy re-hit). Below 1 is sooner. */
   cooldown?: number;
-  /** Multiplier on projectile speed; for `orbit`, on how fast the orbiters go round. */
+  /**
+   * Multiplier on projectile speed; for `orbit`, on how fast the orbiters go round.
+   * A `strike`'s delay divides by it (`strikeDelayAt`): the Letter's Registered arrives sooner.
+   */
   speed?: number;
   /** Extra pixels a hit pushes a non-boss enemy away from the player. Adds to `knockback`. */
   knockback?: number;
+  /**
+   * College (the Highlighter): multiplier on a marking weapon's
+   * `marks.multiplier` — how much more a marked enemy takes from everything.
+   * Multiplies the multiplier itself (×1.5 with a `mark` of 1.1 is ×1.65),
+   * like every multiplier here. How long the mark lasts is `duration`'s, as a
+   * trail's is. Ignored by a weapon with no `marks`.
+   */
+  mark?: number;
 }
 
 export interface ItemLevel extends LevelBonus {
@@ -192,14 +219,17 @@ export interface ActiveItem extends ItemBase {
    * activates, like `orbit`: a ring of `radius` around the player hurts what
    * stands in it, each enemy once per cooldown. `sweep` swings an arc of `arc`
    * radians and `range` reach along the facing on its cooldown. `strike` picks
-   * a random enemy within `range` and, after a telegraph, lands a one-shot
-   * area of `radius` where it was (G-044).
+   * a random enemy within `range` (the nearest, with `strikeNearest`) and,
+   * after a telegraph, lands a one-shot area of `radius` where it was (G-044).
+   * `nap` never fires either: it waits for health to fall under its
+   * `nap.threshold` and then stops the player (Decline, G-051; world.ts `nap`).
    */
-  mode: 'seeking' | 'line' | 'burst' | 'trail' | 'attractor' | 'orbit' | 'field' | 'aura' | 'sweep' | 'strike';
+  mode: 'seeking' | 'line' | 'burst' | 'trail' | 'attractor' | 'orbit' | 'field' | 'aura' | 'sweep' | 'strike' | 'nap';
   /**
    * Pixels. Meaning depends on mode: travel range, burst radius, pull radius,
    * orbit distance, a sweep's reach, a strike's targeting range. Seconds for
-   * `trail` and `field`. Unused by `aura`, whose ring is `radius`.
+   * `trail`, `field` and `nap` (how long the player sleeps). Unused by
+   * `aura`, whose ring is `radius`.
    */
   range: number;
   /** Pixels per second. For `orbit`, the orbiters' speed along the circle. */
@@ -229,17 +259,52 @@ export interface ActiveItem extends ItemBase {
    */
   slow?: number;
   /**
+   * `field` only: the field is a hold on `World.holds` instead of an area —
+   * the meeting's edge (OFFICE-ROSTER §3.4) turned inside out, placed by the
+   * player (Calendar block). Its edge walls the crowd both ways, as the
+   * meeting's does, and never the player; `slow` still applies inside it, and
+   * 1 is none. `range` is its seconds and `radius` its size, as a field's.
+   */
+  wall?: boolean;
+  /**
    * `strike` only: seconds from the pick to the landing. Absent means
    * `STRIKE_DELAY` (world.ts). Zero is no telegraph: the bolt lands on the
-   * step it is fired (Hindsight, G-046).
+   * step it is fired (Hindsight, G-046). Either way it is divided by the
+   * `speed` bonus (`strikeDelayAt`).
    */
   strikeDelay?: number;
+  /**
+   * `strike` only: mark the nearest enemies in range, nearest first, instead
+   * of picking at random; no dice are drawn (the Letter, G-050). The mark is
+   * where the target stood when it was picked, as every strike's is.
+   */
+  strikeNearest?: boolean;
   /**
    * Present on an evolution. It is never in the normal offer pool: when
    * `weapon` is at its max level and `with` is owned, the next level-up is
    * this one card, and taking it replaces `weapon`.
    */
   evolvesFrom?: { weapon: string; with: string };
+  /**
+   * College (the Highlighter): a shot from this weapon MARKS the enemy (or
+   * the boss) it lands on. For `seconds` after the hit, everything that
+   * damages it deals `multiplier` times as much — every shot, orbiter, area,
+   * sweep, strike and aura, and this weapon's own next stroke. A second mark
+   * on a marked enemy restarts the clock and does not multiply again.
+   * `duration` (a level's or a path's) lengthens `seconds`; `mark` multiplies
+   * `multiplier`. Read at the hit (world.ts `markFrom`, paid in `damageEnemy`
+   * and, for the boss, `bossTakes`). `seeking` only: other modes ignore it.
+   */
+  marks?: { seconds: number; multiplier: number };
+  /**
+   * Decline (the Nap, G-051): `nap` mode only. When health is under
+   * `threshold` of the maximum and the item is off its cooldown, the player
+   * falls asleep for `range` seconds (times `duration`): they cannot move,
+   * no contact hurts them (a hostile shot still does), and `heal` of the
+   * maximum (times the `damage` bonus) comes back, evenly, over the window.
+   * The clock keeps running. Read by world.ts `nap`; no dice.
+   */
+  nap?: { threshold: number; heal: number };
 }
 
 /** Changes the player rather than the field. Every multiplier is per level. */
@@ -1134,6 +1199,200 @@ export const ITEMS: Record<string, ItemDef> = {
       'Escaping. The field is dropped where the player stands and holds the player too, so the one thing it cannot do is get anyone out of a crowd; a player caught inside it walks out at half speed with everything else.',
   },
 
+  // --- Born at twenty-two: The Office (G-048) ------------------------------
+  //
+  // In the pool from The Office on, never before (`from`, G-039). The first
+  // item born there, and a control: the meeting's hold (OFFICE-ROSTER §3.4)
+  // turned inside out and placed by the player. It goes on `World.holds` with
+  // the meetings (`wall`), one registry for holds, owned by the player
+  // (`HoldState.owner`). PLACEHOLDER NUMBERS, every one, under OFFICE's
+  // `provisional` (the act's items): the cooldown, the seconds (`range`), the
+  // radius, each level's bonus and every path value were written to make it
+  // playable, not measured; a person playing at the link moves them. The
+  // "two minutes" in the copy is a word, not a figure: the card prints the
+  // figure from these fields (G-043).
+
+  'calendar-block': {
+    id: 'calendar-block',
+    name: 'Calendar Block',
+    kind: 'control',
+    from: 'office',
+    mode: 'field',
+    wall: true,
+    // Seconds between blocks at level 1; the generic per-level cooldown
+    // scaling (World.activeCooldown) makes every level come sooner too.
+    cooldown: 14,
+    damage: 0,
+    // Seconds it lasts, as a field's `range` is.
+    range: 2.5,
+    projectileSpeed: 0,
+    radius: 110,
+    pierce: 0,
+    // No slow: it walls, it does not hold anyone still.
+    slow: 1,
+    maxLevel: 5,
+    icon: 'block',
+    blurb: 'Nothing gets in or out. The only two minutes nobody can book.',
+    levels: table(
+      [
+        'Nothing gets in or out. The only two minutes nobody can book.',
+        'Wider. You booked the big room.',
+        'Longer. It always runs over.',
+        'Sooner. You block it before anyone else can.',
+        'Wider and longer. The whole afternoon is taken.',
+      ],
+      { 2: { area: 1.1 }, 3: { duration: 1.2 }, 4: { cooldown: 0.9 }, 5: { area: 1.1, duration: 1.2 } },
+    ),
+    paths: [
+      {
+        id: 'recurring',
+        name: 'Recurring',
+        blurb: 'Sooner. It repeats until somebody notices.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Sooner. It is on every Tuesday now.',
+            'Sooner again. Every morning, first thing.',
+            'Sooner still. It has no end date.',
+          ],
+          {},
+          each(1, 3, { cooldown: 0.85 }),
+        ),
+      },
+      {
+        id: 'all-day',
+        name: 'All Day',
+        blurb: 'Lasts longer. Nobody asks what it was for.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Longer. It ran into lunch.',
+            'Longer again. It ran into the afternoon.',
+            'All day. It was marked busy for a reason.',
+          ],
+          {},
+          each(1, 3, { duration: 1.25 }),
+        ),
+      },
+      {
+        id: 'private',
+        name: 'Private',
+        blurb: 'Wider. The details are hidden from everyone.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Wider. The title just says busy.',
+            'Wider again. The room is booked under no name.',
+            'As wide as it goes. Nobody can see the details.',
+          ],
+          {},
+          each(1, 3, { area: 1.15 }),
+        ),
+      },
+    ],
+    enables:
+      'A breather build: for as long as it lasts nothing outside can reach the player and nothing inside can leave, so a cornered player gets a room with a fixed number of things in it, which is exactly what Temper, Personal Space and Grudge want.',
+    tradesAway:
+      'Anything but the walk: it deals nothing, slows nothing and stops no shot either way. It stays where it was put, it keeps whatever was already inside in there with the player, and a commute or a patrol walks straight through it.',
+  },
+
+  // --- Born at eighteen (College) ------------------------------------------
+  //
+  // In the pool from College on, never before (`from`, G-039): the first
+  // item that arrives at eighteen, with one name for the rest of the life.
+  // A weapon that barely hurts and makes everything else hurt more: its
+  // stroke MARKS what it lands on (`marks`), and every damage path in the sim
+  // pays the mark through one gate (world.ts `damageEnemy`; `bossTakes` for
+  // the boss). It is the pen, not the argument.
+  // PLACEHOLDER NUMBERS, every one, under COLLEGE's `provisional`: the
+  // cooldown, damage, range, speed, the mark's seconds and multiplier, the
+  // levels table and every path were written to make it playable, not
+  // measured, and nobody has played it. A person playing it at the link is
+  // what moves them. The copy carries no numbers: the card prints them from
+  // these fields (G-043).
+
+  highlighter: {
+    id: 'highlighter',
+    name: 'Highlighter',
+    kind: 'weapon',
+    from: 'college',
+    mode: 'seeking',
+    cooldown: 1,
+    // Low on purpose: the damage is everyone else's.
+    damage: 1,
+    range: 360,
+    projectileSpeed: 480,
+    radius: 7,
+    pierce: 1,
+    marks: { seconds: 3, multiplier: 1.5 },
+    maxLevel: 8,
+    icon: 'highlight',
+    blurb: 'Marks what matters. Everything then hits what matters.',
+    levels: table(
+      [
+        'Marks what matters. Everything then hits what matters.',
+        'Marks last longer. You pressed down harder.',
+        'A second stroke, on the next-nearest thing.',
+        'Marked things take more. You went over it twice.',
+        'Longer again. It shows through the back of the page.',
+        'A third stroke. Most of the chapter matters now.',
+        'Sooner. You highlight while you read, not after.',
+        'Marked things take more again. It will be on the exam.',
+      ],
+      { 2: { duration: 1.2 }, 3: { projectiles: 1 }, 4: { mark: 1.1 }, 5: { duration: 1.2 }, 6: { projectiles: 1 }, 7: { cooldown: 0.85 }, 8: { mark: 1.1 } },
+    ),
+    paths: [
+      {
+        id: 'fluorescent',
+        name: 'Fluorescent',
+        blurb: 'The mark lasts longer. It does not come out in the wash.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Longer. It bleeds through to the next page.',
+            'Longer again. It is on your fingers too.',
+            'It never fades. The book cannot be resold.',
+          ],
+          {},
+          each(1, 3, { duration: 1.25 }),
+        ),
+      },
+      {
+        id: 'every-page',
+        name: 'Every Page',
+        blurb: 'More strokes at once. Nothing gets left out.',
+        maxLevel: 2,
+        levels: table(
+          [
+            'One more stroke. The next line seemed important too.',
+            'Another. The whole page is highlighted, so nothing is.',
+          ],
+          {},
+          each(1, 2, { projectiles: 1 }),
+        ),
+      },
+      {
+        id: 'underline',
+        name: 'Underline',
+        blurb: 'Marked things take even more. It is underlined as well.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Underlined once. It might be on the test.',
+            'Twice. It is definitely on the test.',
+            'Three times, in pen. It is the whole test.',
+          ],
+          {},
+          each(1, 3, { mark: 1.1 }),
+        ),
+      },
+    ],
+    enables:
+      'A build for everything else the player holds: whatever it marks takes more from every weapon, area, orbit, sweep and strike for a few seconds, so it multiplies Judgement, Temper and Grudge instead of competing with them, and it marks the boss as readily as the crowd.',
+    tradesAway:
+      'Damage of its own, which is barely any, and anything alone: held with nothing else it marks things nobody then hits, and like Reflex it marks whatever is nearest rather than whatever matters.',
+  },
+
   // --- 4.5 The classic three (G-044) --------------------------------------
   //
   // The aura, the melee swing and the caster a survivors player reaches for
@@ -1532,6 +1791,208 @@ export const ITEMS: Record<string, ItemDef> = {
     tradesAway:
       'Baggage, which it replaces with any path taken on it, and the choosing. It holds only what follows: the player walks their own trail at full speed, and a cornered player is still holding a weapon that has stopped existing.',
   },
+
+  // --- 4.7 Born at thirty-four: Family (G-050) ----------------------------
+  //
+  // In the pool from Family on, never before (`from`), and the first item
+  // the life meets there: the direction panel's Strongly Worded Letter. A
+  // strike that marks the NEAREST problem where it stands now
+  // (`strikeNearest`, no dice) and lands on that spot long after
+  // (`strikeDelay`), whether or not the problem is still there. It holds its
+  // mark as Judgement's bolt does: a strike's area is placed at the pick and
+  // never follows the target. Its Registered path is a `speed` path because a
+  // strike's delay divides by `speed` (`strikeDelayAt`).
+  //
+  // PLACEHOLDER NUMBERS, every one, under FAMILY's `provisional` (the item
+  // born there): the cooldown, damage, range, radius and delay come from the
+  // panel's sketch (five seconds, 40, a 120px circle), and every level-table
+  // entry, path value and path maxLevel was written to make it playable, not
+  // measured. Nobody has played it; a person playing it at the link is what
+  // moves them. The copy carries no figures (G-043): the card prints them,
+  // and the blurb's "four to six" is an estimate a test holds the delay to.
+
+  'strongly-worded-letter': {
+    id: 'strongly-worded-letter',
+    name: 'Strongly Worded Letter',
+    kind: 'weapon',
+    from: 'family',
+    mode: 'strike',
+    cooldown: 6,
+    damage: 40,
+    // How far away the nearest problem may be marked, in pixels.
+    range: 360,
+    projectileSpeed: 0,
+    // What the letter hits where it lands: the mark, not the problem.
+    radius: 120,
+    pierce: 99,
+    // Seconds from the mark to the landing, before Registered divides it.
+    strikeDelay: 5,
+    strikeNearest: true,
+    maxLevel: 8,
+    icon: 'letter',
+    blurb: 'Arrives in four to six seconds. The problem has usually moved.',
+    levels: table(
+      [
+        'Arrives in four to six seconds. The problem has usually moved.',
+        'Harder. It went through several drafts.',
+        'A second letter, about the next problem along.',
+        'Wider. It raises the wider issue as well.',
+        'A third letter. You have a folder for these now.',
+        'Harder. It is printed on letterhead.',
+        'Sent sooner. You no longer sleep on it.',
+        'Wider. It lands exactly where the problem was. Usually.',
+      ],
+      { 2: { damage: 1.2 }, 3: { projectiles: 1 }, 4: { area: 1.15 }, 5: { projectiles: 1 }, 6: { damage: 1.2 }, 7: { cooldown: 0.85 }, 8: { area: 1.15 } },
+    ),
+    paths: [
+      {
+        id: 'cc',
+        name: 'Cc',
+        blurb: 'More letters at once. There is always a copy.',
+        maxLevel: 2,
+        levels: table(
+          ['A copy, to the next problem along.', 'Another copy. The file is getting thick.'],
+          {},
+          each(1, 2, { projectiles: 1 }),
+        ),
+      },
+      {
+        id: 'registered',
+        name: 'Registered',
+        blurb: 'Arrives sooner. It has to be signed for.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Sooner. It has a tracking number now.',
+            'Sooner again. Next day, before noon.',
+            'Sooner still. The problem barely had time to move.',
+          ],
+          {},
+          each(1, 3, { speed: 1.25 }),
+        ),
+      },
+      {
+        id: 'capital-letters',
+        name: 'Capital Letters',
+        blurb: 'Lands harder. Some of it is in capitals.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Harder. The subject line is in capitals.',
+            'Harder again. The whole thing is underlined.',
+            'As hard as it gets. Every word is in capitals.',
+          ],
+          {},
+          each(1, 3, { damage: 1.3 }),
+        ),
+      },
+    ],
+    enables:
+      'A build that brings the problem back to the mark: Charisma’s pull or Snooze’s hold keeps a crowd standing where the letter was aimed, and then the heaviest single landing in the life comes down on all of it at once.',
+    tradesAway:
+      'Timing, entirely. It lands where the problem stood when the letter was sent, long after, so anything that moves has usually left; it never favours what is touching the player, and nothing it marks is hurt until it arrives.',
+  },
+
+  // --- 4.8 Born at fifty-five: Decline (G-051) ----------------------------
+  //
+  // In the pool from Decline on, never before (`from`), and the last item the
+  // life meets: the direction panel's Nap (DECLINE-ROSTER §6), a control that
+  // fires nothing. When health falls under its threshold and it is off its
+  // cooldown the player falls asleep in the chair: stopped as the hall
+  // monitor stops them (world.ts `nap`, through `stun`), untouched by
+  // contact while it lasts, still hit by anything aimed, and healing evenly
+  // across the window. The clock keeps running, and that is the joke, not a
+  // tax (G-038): nothing else is taken. Its three levers are the ones a
+  // control already has — `duration` (below 1: a shorter nap, the upgrade),
+  // `cooldown` (sooner), and `damage`, which on a nap multiplies the heal.
+  //
+  // PLACEHOLDER NUMBERS, every one, under DECLINE's `provisional` (the item
+  // born there): the threshold, the cooldown, the seconds (`range`) and the
+  // heal come from the panel's sketch (under 30%, 45s, 1.5s, a quarter; its
+  // "Lv5: 0.8s" is where the level table lands), and every level-table
+  // entry, path value and path maxLevel was written to make it playable, not
+  // measured. Nobody has played it; a person playing it at the link is what
+  // moves them. The copy carries no figures (G-043): the card prints them.
+
+  nap: {
+    id: 'nap',
+    name: 'Nap',
+    kind: 'control',
+    from: 'decline',
+    mode: 'nap',
+    // Seconds between naps at level 1; the generic per-level cooldown
+    // scaling (World.activeCooldown) makes every level come sooner too.
+    cooldown: 45,
+    damage: 0,
+    // Seconds asleep, as a field's `range` is its seconds.
+    range: 1.5,
+    projectileSpeed: 0,
+    radius: 0,
+    pierce: 0,
+    // Under this share of the maximum it falls asleep; this share comes back.
+    nap: { threshold: 0.3, heal: 0.25 },
+    maxLevel: 5,
+    icon: 'nap',
+    blurb: 'You fell asleep in the chair. You feel better. It is later.',
+    levels: table(
+      [
+        'You fell asleep in the chair. You feel better. It is later.',
+        'Shorter. You were only resting your eyes.',
+        'Heals more. You were properly out.',
+        'Sooner. You nod off during the news now.',
+        'Shorter still. Out and back before the adverts end.',
+      ],
+      // Level five lands on the panel's 0.8s: 1.5 × 0.8 × 2/3.
+      { 2: { duration: 0.8 }, 3: { damage: 1.2 }, 4: { cooldown: 0.85 }, 5: { duration: 2 / 3 } },
+    ),
+    paths: [
+      {
+        id: 'power-nap',
+        name: 'Power Nap',
+        blurb: 'Shorter naps. You wake up before anyone notices.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Shorter. You set an alarm for it.',
+            'Shorter again. You wake before your head drops.',
+            'Barely a blink. Nobody saw you go.',
+          ],
+          {},
+          each(1, 3, { duration: 0.85 }),
+        ),
+      },
+      {
+        id: 'habit',
+        name: 'Habit',
+        blurb: 'Sooner. Same chair, same time, every afternoon.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Sooner. Straight after lunch, as usual.',
+            'Sooner again. After breakfast as well.',
+            'Sooner still. Whenever you sit down.',
+          ],
+          {},
+          each(1, 3, { cooldown: 0.85 }),
+        ),
+      },
+      {
+        id: 'deep-sleep',
+        name: 'Deep Sleep',
+        blurb: 'Heals more. Nothing wakes you, not even the phone.',
+        maxLevel: 2,
+        levels: table(
+          ['More. You drooled a little.', 'You wake up and ask what year it is.'],
+          {},
+          each(1, 2, { damage: 1.25 }),
+        ),
+      },
+    ],
+    enables:
+      'A second wind for a build that stands in the crowd until it cannot: once health runs low the crowd’s touches stop landing for a moment and part of the maximum comes back, so Thick Skin, Personal Space and Temper get up again instead of getting a certificate.',
+    tradesAway:
+      'Anything above the threshold, and anything soon after the last one: it waits for health to run low and then for its cooldown. Asleep, the player cannot move and a hostile shot still lands, and whatever walked up meanwhile is still there on waking.',
+  },
 };
 
 export const ITEM_IDS = Object.keys(ITEMS);
@@ -1560,9 +2021,18 @@ export function cooldownScale(level: number): number {
   return Math.max(0.4, 1 - 0.08 * (level - 1));
 }
 
+/**
+ * A strike's seconds from mark to landing: its delay divided by the `speed`
+ * bonus its levels and paths add (the Letter's Registered). The sim lands it
+ * by this and the card prints "arrives in" from it, so the two cannot drift.
+ */
+export function strikeDelayAt(delay: number, speed: number): number {
+  return speed > 0 ? delay / speed : delay;
+}
+
 /** Every field a `Required<LevelBonus>` starts from: the identity for each. */
 export function emptyBonus(): Required<LevelBonus> {
-  return { projectiles: 0, pierce: 0, area: 1, duration: 1, echo: false, chain: 0, damage: 1, cooldown: 1, speed: 1, knockback: 0 };
+  return { projectiles: 0, pierce: 0, area: 1, duration: 1, echo: false, chain: 0, damage: 1, cooldown: 1, speed: 1, knockback: 0, mark: 1 };
 }
 
 /** Folds one level's bonus into a running total, in place. Counts sum, multipliers multiply, echo latches. */
@@ -1577,6 +2047,8 @@ export function foldBonus(into: Required<LevelBonus>, l: LevelBonus): void {
   into.cooldown *= l.cooldown ?? 1;
   into.speed *= l.speed ?? 1;
   into.knockback += l.knockback ?? 0;
+  // College (the Highlighter): a multiplier on the mark's multiplier, so it multiplies.
+  into.mark *= l.mark ?? 1;
 }
 
 /**
