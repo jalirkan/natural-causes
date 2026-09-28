@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <title>Rut icon</title>
+  <desc>A pair of soft house slippers seen from directly above, toes up, side by side and slightly splayed, each a rounded sole with a low toe pocket and the inner sole showing at the heel.</desc>
+  <!--
+    Rut (G-046: Baggage evolved beside Snooze). A card icon, and
+    also the stamp Baggage's trail leaves on the field (ActScene syncAreas,
+    26px, rotated along the path, alternate stamps flipped), where it takes
+    the footprint's place. So it keeps off the field's reserved colours: no
+    threat colour, no paper, no conception-light.
+    The same slippers every day: an empty pair, never feet and never shoes.
+    What says empty is the dark line under each toe pocket's lip; a foot in
+    the slipper would cover it. What says slipper and not shoe is the open
+    back: the pocket is low and puffed a little past the sole, and behind
+    it the inner sole runs flat to a thin edge, with no collar and no laces.
+    A first draft, narrower, with the pocket past halfway and a thick rim
+    all round, read as a pair of slip-on shoes: the rim was a collar.
+    At 26px the pair has to read as one object, so the two sit heel to heel
+    and the splay opens only at the toes.
+    Each slipper is the same drawing; the left is the right one mirrored.
+    CONFORM adds the outer outline; the pocket lines are drawn here.
+    Colours: conception-mid #A86A63, bone #D2C6AC, ink #2A2521.
+  -->
+  <defs>
+    <!-- one right slipper's sole, toe up, centred on its own origin -->
+    <clipPath id="sole">
+      <path d="M -1.8 -41 C 9.2 -41, 17.5 -31, 17.5 -17 C 17.5 0, 15.6 16, 14.7 27 C 13.8 37, 8.3 41, 0.9 41
+               C -6.4 41, -12.9 37, -12.9 28 C -12.9 16, -12 6, -12.9 -3 C -13.8 -11, -17.5 -15, -17.5 -23
+               C -17.5 -35, -11 -41, -1.8 -41 Z"/>
+    </clipPath>
+    <!-- everything in front of the pocket's lip -->
+    <clipPath id="front">
+      <path d="M -30 -50 L 30 -50 L 30 7 L 20 7 C 14 -8, -14 -8, -20 7 L -30 7 Z"/>
+    </clipPath>
+  </defs>
+  <g shape-rendering="crispEdges">
+    <!-- right slipper, toes turned a little out -->
+    <g transform="translate(67.7 50) rotate(8)">
+      <g clip-path="url(#sole)">
+        <!-- the inner sole, and the sole's thin edge round it -->
+        <rect x="-30" y="-50" width="60" height="100" fill="#D2C6AC"/>
+        <path d="M -1.8 -41 C 9.2 -41, 17.5 -31, 17.5 -17 C 17.5 0, 15.6 16, 14.7 27 C 13.8 37, 8.3 41, 0.9 41
+                 C -6.4 41, -12.9 37, -12.9 28 C -12.9 16, -12 6, -12.9 -3 C -13.8 -11, -17.5 -15, -17.5 -23
+                 C -17.5 -35, -11 -41, -1.8 -41 Z" fill="none" stroke="#A86A63" stroke-width="6"/>
+        <!-- the dark under the pocket's lip -->
+        <path d="M -20 7 C -14 -8, 14 -8, 20 7 L 20 9.5 C 14 -2.5, -14 -2.5, -20 9.5 Z" fill="#2A2521"/>
+      </g>
+      <!-- the toe pocket, puffed a little past the sole -->
+      <g clip-path="url(#front)">
+        <path d="M -1.8 -41 C 9.2 -41, 17.5 -31, 17.5 -17 C 17.5 0, 15.6 16, 14.7 27 C 13.8 37, 8.3 41, 0.9 41
+                 C -6.4 41, -12.9 37, -12.9 28 C -12.9 16, -12 6, -12.9 -3 C -13.8 -11, -17.5 -15, -17.5 -23
+                 C -17.5 -35, -11 -41, -1.8 -41 Z" fill="#A86A63" stroke="#A86A63" stroke-width="3"/>
+      </g>
+    </g>
+    <!-- left slipper: the same one, mirrored -->
+    <g transform="translate(32.3 50) scale(-1 1) rotate(8)">
+      <g clip-path="url(#sole)">
+        <rect x="-30" y="-50" width="60" height="100" fill="#D2C6AC"/>
+        <path d="M -1.8 -41 C 9.2 -41, 17.5 -31, 17.5 -17 C 17.5 0, 15.6 16, 14.7 27 C 13.8 37, 8.3 41, 0.9 41
+                 C -6.4 41, -12.9 37, -12.9 28 C -12.9 16, -12 6, -12.9 -3 C -13.8 -11, -17.5 -15, -17.5 -23
+                 C -17.5 -35, -11 -41, -1.8 -41 Z" fill="none" stroke="#A86A63" stroke-width="6"/>
+        <path d="M -20 7 C -14 -8, 14 -8, 20 7 L 20 9.5 C 14 -2.5, -14 -2.5, -20 9.5 Z" fill="#2A2521"/>
+      </g>
+      <g clip-path="url(#front)">
+        <path d="M -1.8 -41 C 9.2 -41, 17.5 -31, 17.5 -17 C 17.5 0, 15.6 16, 14.7 27 C 13.8 37, 8.3 41, 0.9 41
+                 C -6.4 41, -12.9 37, -12.9 28 C -12.9 16, -12 6, -12.9 -3 C -13.8 -11, -17.5 -15, -17.5 -23
+                 C -17.5 -35, -11 -41, -1.8 -41 Z" fill="#A86A63" stroke="#A86A63" stroke-width="3"/>
+      </g>
+    </g>
+  </g>
+</svg>
