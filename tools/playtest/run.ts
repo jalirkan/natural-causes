@@ -105,7 +105,16 @@ out.push(
     `, cadence ${cadence}s, threat weighting ${threat ? 'on' : 'off'})`,
 );
 out.push('');
-out.push('policy                 runs   win rate (95% CI)      median s   kills   lvl   boss left');
+// AUDIT 41: The Loan's hp is a balance. It opens at 1/cap of its bar and
+// fills toward foreclosure, so its share is not "boss left": an untouched Loan
+// reads 33%. The figure is kept (hp/maxHp: the bar, 0 paid, 100% foreclosed)
+// and the column is named for what the runs that reached a boss met.
+const loanRuns = results.filter(
+  (r) => r.bossHpFraction !== null && ALL_ACTS.find((a) => a.id === r.actId)?.boss.kind === 'loan',
+).length;
+const bossRuns = results.filter((r) => r.bossHpFraction !== null).length;
+const bossColumn = loanRuns === 0 ? 'boss left' : loanRuns === bossRuns ? 'balance' : 'boss left*';
+out.push(`policy                 runs   win rate (95% CI)      median s   kills   lvl   ${bossColumn}`);
 out.push('-'.repeat(84));
 for (const s of summarise(results)) {
   const [lo, hi] = s.winRateInterval;
@@ -119,6 +128,9 @@ for (const s of summarise(results)) {
       `${String(s.medianKills).padStart(5)}   ${String(s.medianLevel).padStart(3)}   ` +
       `${s.medianBossLeft === null ? '     -' : pct(s.medianBossLeft).padStart(6)}`,
   );
+}
+if (bossColumn.endsWith('*')) {
+  out.push(`* ${loanRuns} of ${bossRuns} runs ended at The Loan: theirs is its balance, which opens at 1/cap and fills`);
 }
 
 // Everything from here to "state on arrival" is about the antibody, and only

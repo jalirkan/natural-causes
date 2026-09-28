@@ -200,6 +200,22 @@ describe('the invoices do not come off at the crossing (attach.persists, §3.3)'
   });
 });
 
+describe('the dev panel\'s "no drag" takes the tax off too (World.shedWornStacks, AUDIT 42)', () => {
+  it('stacks and tax both go; the persisting part is kept, and the next crossing restores it', () => {
+    const w = new World({ acts: [COLLEGE, COLLEGE], seed: 10, startingItems: [] });
+    wear(w, TUITION, 2);
+    w.shedWornStacks();
+    expect(w.dragStacks).toBe(0);
+    expect(w.taxStacks).toBe(0);
+    expect(w.xpTax).toBe(1);
+    expect(collect(w, 10)).toBe(10);
+    cross(w);
+    expect(w.actIndex).toBe(1);
+    expect(w.taxStacks).toBe(2);
+    expect(w.xpTax).toBeCloseTo((1 - TAX) ** 2, 12);
+  });
+});
+
 /** The quadrant (0–3) of the bearing from `e`'s centre to (x, y): the rule, written out again. */
 function quadrantOf(e: EnemyState, x: number, y: number): number {
   let a = Math.atan2(y - e.y, x - e.x);

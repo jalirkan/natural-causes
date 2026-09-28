@@ -17,7 +17,9 @@ import { createServer, type ViteDevServer } from 'vite';
  * reads NaN.
  *
  * It starts the Vite dev server, drives headless Chromium through one whole
- * life with the dev panel — god, 4x, skip to boss, kill, once an act — and at every
+ * life with the dev panel — god, 4x, skip to boss, kill, once an act; in
+ * College it also walks the player into a tuition and a registrar's HOLD, the
+ * act's own drawings (AUDIT 39) — and at every
  * milestone asserts: no console error, no page error, no failed request, no
  * Phaser texture warning, nothing visible drawn from `__MISSING`, no
  * NaN/undefined in any text on screen, and after the crossing the screen
@@ -91,6 +93,12 @@ interface Probe {
     timeScale: number;
     tainted: boolean;
     fps: number;
+    /** The sprites worn on the player (`attachedSprites`), visible ones, counted by frame name. */
+    worn: Record<string, number>;
+    /** The words drawn as shots this frame (`nameShotTexts`, visible): HOLD, a misspelled name. */
+    words: string[];
+    /** The nearest enemy of each kind, from the player, in world pixels. For steering only. */
+    nearest: Record<string, { dx: number; dy: number }>;
   };
 }
 
@@ -146,7 +154,17 @@ const PROBE = String.raw`(() => {
       timeScale: s.dev.timeScale,
       tainted: s.dev.tainted,
       fps: Math.round(game.loop.actualFps),
+      worn: {},
+      words: [...new Set(s.nameShotTexts.filter((t) => t.visible).map((t) => t.text))],
+      nearest: {},
     };
+    for (const a of s.attachedSprites) if (a.visible) act.worn[a.frame.name] = (act.worn[a.frame.name] || 0) + 1;
+    for (const e of w.enemies) {
+      const dx = e.x - w.x;
+      const dy = e.y - w.y;
+      const n = act.nearest[e.def.id];
+      if (!n || dx * dx + dy * dy < n.dx * n.dx + n.dy * n.dy) act.nearest[e.def.id] = { dx, dy };
+    }
     if (!Number.isFinite(w.x) || !Number.isFinite(w.y) || !Number.isFinite(w.hp))
       bad.push('world: player at ' + w.x + ',' + w.y + ' hp ' + w.hp);
     // Once the screen has caught up with the world, it must be dressed for it.
@@ -198,10 +216,15 @@ const deadline = () => Math.min(since + MILESTONE_MS, started + BUDGET_MS);
 /**
  * Polls until `ready` holds, answering any level-up offer with "1" on the way
  * (an open offer freezes the world, so nothing downstream of it can arrive).
- * Fails on the first problem seen, or at the milestone's 20s or the run's 90s,
- * whichever is first.
+ * `each` runs on every poll that is not yet ready: the College milestone steers
+ * with it. Fails on the first problem seen, or at the milestone's 20s or the
+ * run's 90s, whichever is first.
  */
-async function waitFor(milestone: string, ready: (p: Probe) => boolean): Promise<Probe> {
+async function waitFor(
+  milestone: string,
+  ready: (p: Probe) => boolean,
+  each?: (p: Probe) => Promise<void>,
+): Promise<Probe> {
   let last: Probe | undefined;
   while (Date.now() < deadline()) {
     last = await probe();
@@ -209,6 +232,7 @@ async function waitFor(milestone: string, ready: (p: Probe) => boolean): Promise
       throw new SmokeFailure(milestone, [...problems, ...last.bad].join('\n  '), last);
     }
     if (ready(last)) return last;
+    await each?.(last);
     if (last.act?.offers) await page!.keyboard.press('1');
     await sleep(100);
   }
@@ -234,6 +258,35 @@ async function press(milestone: string, label: string): Promise<void> {
     await page!.getByRole('button', { name: label, exact: true }).dispatchEvent('click', undefined, { timeout });
   } catch (err) {
     throw new SmokeFailure(milestone, `dev panel button "${label}" could not be clicked: ${(err as Error).message.split('\n')[0]}`);
+  }
+}
+
+/** Arrow keys the smoke is holding down, so a milestone can let go of every one. */
+const held = new Set<string>();
+
+/**
+ * Walks the player toward a point `dx, dy` away with the arrow keys, as a
+ * person would, and stands still within `stop` pixels of it. Eight headings:
+ * an axis inside 6px is not pressed, so an overshoot turns back through the
+ * point. Only the keys that change are sent.
+ */
+async function steer(dx: number, dy: number, stop: number): Promise<void> {
+  const want = new Set<string>();
+  if (Math.hypot(dx, dy) > stop) {
+    if (dx > 6) want.add('ArrowRight');
+    else if (dx < -6) want.add('ArrowLeft');
+    if (dy > 6) want.add('ArrowDown');
+    else if (dy < -6) want.add('ArrowUp');
+  }
+  for (const key of [...held]) {
+    if (want.has(key)) continue;
+    await page!.keyboard.up(key);
+    held.delete(key);
+  }
+  for (const key of want) {
+    if (held.has(key)) continue;
+    await page!.keyboard.down(key);
+    held.add(key);
   }
 }
 
@@ -375,6 +428,45 @@ async function main(): Promise<void> {
   await press('college', '4x');
   p = await waitFor('college', (q) => q.act?.index === 3 && q.act.timeScale === 4 && populated(q));
   await milestone('college', p, actLine(p));
+
+  // College's own drawings (AUDIT 39), at 4x under god as every act here is
+  // played: a worn tuition on the player, and a registrar's HOLD in flight.
+  // Neither comes to a player who stands still — tuition waits at the lead
+  // and the registrar is a counter that fires inside 440px — so the smoke
+  // walks: to the nearest tuition until one is worn, then to within 300px of
+  // the nearest registrar until a HOLD is drawn. Both are spawned from the
+  // panel so the act's own schedule (the first registrar near 65s) is not
+  // waited on, and asked for again if the field has none (tuition), or every
+  // 10s without a HOLD (a registrar off the arena's edge, or shot first).
+  // Each sighting latches: a HOLD lives a second or two, and this waits for it
+  // to have been drawn at some poll, not at a given instant.
+  const college = { worn: 0, hold: false };
+  const asked = { tuition: 0, registrar: 0 };
+  await press('college-play', '1x Tuition');
+  await press('college-play', '1x Registrar');
+  asked.tuition = asked.registrar = Date.now();
+  p = await waitFor(
+    'college-play',
+    (q) => {
+      college.worn = Math.max(college.worn, q.act?.worn['tuition.png'] ?? 0);
+      college.hold ||= q.act?.words.includes('HOLD') ?? false;
+      return q.act?.index === 3 && college.worn > 0 && college.hold;
+    },
+    async (q) => {
+      if (!q.act || q.act.index !== 3) return;
+      const kind = college.worn === 0 ? 'tuition' : 'registrar';
+      const target = q.act.nearest[kind];
+      const again = kind === 'tuition' ? !target && Date.now() - asked.tuition > 4000 : Date.now() - asked.registrar > 10_000;
+      if (again && !college.hold) {
+        await press('college-play', kind === 'tuition' ? '1x Tuition' : '1x Registrar');
+        asked[kind] = Date.now();
+      }
+      if (target) await steer(target.dx, target.dy, kind === 'tuition' ? 0 : 300);
+      else await steer(0, 0, 0);
+    },
+  );
+  await steer(0, 0, 0);
+  await milestone('college-play', p, `${actLine(p)}  worn tuition ${college.worn}  HOLD drawn`);
 
   await press('college-boss', 'skip to boss');
   p = await waitFor('college-boss', (q) => !!q.act?.boss && q.act.bossSprite?.frame === q.act.bossFrame);

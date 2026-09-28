@@ -262,11 +262,17 @@ export function attachDevPanel(host: DevPanelHost): () => void {
         ),
       ),
       line(
-        // Through the real path — a gem worth exactly the remaining XP — so
-        // this exercises the offer queue rather than going around it.
+        // Through the real path — a gem worth the remaining XP — so this
+        // exercises the offer queue rather than going around it. Worth it
+        // AFTER the tax (AUDIT 42): collection multiplies by `xpTax`, so with
+        // an invoice worn a gem of exactly what is left fell short and
+        // levelled nobody. Rounded up past float, so it cannot land a hair under.
         button(
           'level up',
-          act(() => w.gems.push({ x: w.x, y: w.y, value: Math.max(1, w.xpToNext - w.xp) })),
+          act(() => {
+            const need = (w.xpToNext - w.xp) / w.xpTax;
+            w.gems.push({ x: w.x, y: w.y, value: Math.max(1, Math.ceil(need + 1e-9)) });
+          }),
         ),
       ),
     );
@@ -288,9 +294,11 @@ export function attachDevPanel(host: DevPanelHost): () => void {
     );
 
     if (w.boss) {
+      // Named by the act (AUDIT 42): every act has a boss now, and only one is the Egg.
       section(
-        'the Egg',
-        line(document.createTextNode(`${Math.ceil(w.boss.hp)} / ${w.boss.maxHp} hp`)),
+        w.act.bossName,
+        // Rounded both sides: the Loan's cap is its opening times `cap`, a float.
+        line(document.createTextNode(`${Math.ceil(w.boss.hp)} / ${Math.round(w.boss.maxHp)} hp`)),
         line(
           button('−50%', act(() => (w.boss!.hp = Math.max(1, w.boss!.hp - w.boss!.maxHp / 2)))),
           button(
