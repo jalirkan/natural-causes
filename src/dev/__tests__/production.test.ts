@@ -3,17 +3,21 @@ import { dirname, join, relative, resolve, sep } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 /**
- * None of the dev panel ships (CLAUDE.md: dev cheats never live in `World`,
- * and none of it ships in production builds, the Pages build included).
+ * The dev panel is in no page that did not ask for it (D-030, CLAUDE.md: dev
+ * cheats never live in `World`; the panel reaches the Pages build only behind
+ * `?review`, a lazily loaded chunk mounted only with the flag).
  *
- * How it stays out: the game imports `dev/state` statically (plain data and
- * a neutral default, no cheat in it) and `dev/panel` only by a dynamic
- * `import()` inside `if (import.meta.env.DEV)`, which Vite folds to `false`
- * in a production build, so Rollup drops the branch, the chunk and
- * everything only the panel imports (`dev/boss-cheats`). This reads the
- * import graph that makes that true; the build itself is checked by
- * grepping `dist/` for the panel's labels (the commit that added this says
- * which).
+ * How it stays out: the game imports `dev/state` (plain data and a neutral
+ * default, no cheat in it) and `dev/review` (the flag, the badge's words, the
+ * rule that a life begun past the title's first act is tainted) statically,
+ * and `dev/panel` only by a dynamic `import()` inside `if (reviewMode()) {`.
+ * A dynamic import is a split point: Rollup emits the panel and everything
+ * only it imports (`dev/boss-cheats`, `dev/review-cheats`) as a chunk of
+ * their own, fetched only when that branch runs, which without the flag it
+ * never does. This reads the import graph that makes that true; the build is
+ * checked by grepping `dist/assets/*.js` for a panel label (`miss window`)
+ * and finding it in one chunk that is not the entry (the commit that changed
+ * this says so, with the output).
  */
 
 const SRC = resolve(process.cwd(), 'src');
@@ -65,18 +69,20 @@ function devImports(): Import[] {
   return out;
 }
 
-describe('the dev panel is out of the production bundle', () => {
+/** What the game may import statically: no cheat, nothing of the panel's. */
+const STATIC_OK = ['dev/state', 'dev/review'];
+
+describe('the dev panel is in no page without the flag', () => {
   const all = devImports();
   const fromGame = all.filter((i) => !i.file.startsWith('dev/'));
 
-  it('the game imports only dev/state statically', () => {
-    expect(fromGame.filter((i) => !i.dynamic).map((i) => i.target)).toEqual(
-      expect.arrayContaining(['dev/state']),
-    );
-    for (const i of fromGame.filter((x) => !x.dynamic)) expect(i.target, i.file).toBe('dev/state');
+  it('the game imports only dev/state and dev/review statically', () => {
+    const statics = fromGame.filter((i) => !i.dynamic);
+    expect(statics.map((i) => i.target)).toEqual(expect.arrayContaining(STATIC_OK));
+    for (const i of statics) expect(STATIC_OK, `${i.file} imports ${i.target}`).toContain(i.target);
   });
 
-  it('the panel is reached only by a dynamic import behind import.meta.env.DEV', () => {
+  it('the panel is reached only by a dynamic import behind reviewMode()', () => {
     const dynamic = fromGame.filter((i) => i.dynamic);
     expect(dynamic.length).toBeGreaterThan(0);
     for (const i of dynamic) {
@@ -86,17 +92,33 @@ describe('the dev panel is out of the production bundle', () => {
       const indent = (s: string) => s.length - s.trimStart().length;
       let open = i.line - 1;
       while (open >= 0 && (!lines[open]!.trim() || indent(lines[open]!) >= indent(lines[i.line]!))) open--;
-      expect(lines[open] ?? '', `${i.file}:${i.line + 1}`).toMatch(/^\s*if \(import\.meta\.env\.DEV\) \{$/);
+      expect(lines[open] ?? '', `${i.file}:${i.line + 1}`).toMatch(/^\s*if \(reviewMode\(\)\) \{$/);
     }
   });
 
-  it('what the game imports statically imports nothing of the panel’s', () => {
-    const fromState = all.filter((i) => i.file === 'dev/state.ts');
-    expect(fromState).toEqual([]);
+  it('reviewMode() is the flag: a dev build, or ?review in the URL, and nothing else', () => {
+    const text = readFileSync(join(DEV, 'review.ts'), 'utf8');
+    const body = /export function reviewMode\(\): boolean \{([\s\S]*?)\n\}/.exec(text)?.[1] ?? '';
+    expect(body.replace(/\s+/g, ' ').trim()).toBe(
+      "memo ??= import.meta.env.DEV || (typeof location !== 'undefined' && new URLSearchParams(location.search).has('review')); return memo;",
+    );
   });
 
-  it('the boss row’s cheats are imported by the panel alone', () => {
-    const importers = all.filter((i) => i.target === 'dev/boss-cheats').map((i) => i.file);
-    expect(importers).toEqual(['dev/panel.ts']);
+  it('what the game imports statically imports nothing under src/dev', () => {
+    const fromStatic = all.filter((i) => i.file === 'dev/state.ts' || i.file === 'dev/review.ts');
+    expect(fromStatic).toEqual([]);
+  });
+
+  it('the boss row’s and the review row’s cheats are imported inside the panel’s chunk alone', () => {
+    const importers = (target: string) =>
+      all
+        .filter((i) => i.target === target)
+        .map((i) => i.file)
+        .sort();
+    expect(importers('dev/review-cheats')).toEqual(['dev/panel.ts']);
+    expect(importers('dev/boss-cheats')).toEqual(['dev/panel.ts', 'dev/review-cheats.ts']);
+    // Statically, so they ride the panel's chunk rather than splitting again.
+    for (const i of all.filter((x) => x.target === 'dev/review-cheats' || x.target === 'dev/boss-cheats'))
+      expect(i.dynamic, `${i.file} -> ${i.target}`).toBe(false);
   });
 });

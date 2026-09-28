@@ -5,9 +5,9 @@ import type { BossState } from '../sim/world';
  * The dev panel's boss row, with no DOM in it: what the row reads and which
  * cheats it offers for the boss standing, so the choice per kind and every
  * write can be tested against a real `World` (`__tests__/boss-cheats.test.ts`).
- * Imported by `panel.ts` alone, so it rides the panel's DEV-only dynamic
- * import out of a production bundle; the guard test fails if anything else
- * imports it.
+ * Imported by `panel.ts` alone (and by `review-cheats.ts`, which the panel
+ * alone imports), so it rides the panel's lazy chunk, loaded only under
+ * `reviewMode()` (D-030); the guard test fails if anything else imports it.
  *
  * Every write here is from outside the sim, as every cheat is, and the panel
  * taints the run for each (`act` in panel.ts). None goes through the boss's
