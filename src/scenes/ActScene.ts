@@ -5,6 +5,8 @@ import { ITEMS, isActive, itemDef, type ItemIcon } from '../data/items';
 import { neutralDevState, type DevState } from '../dev/state';
 import { addVignette, ensureFieldTile, ensureGemTexture, ensureShotTextures } from './dressing';
 import { ITEM_ICON_ATLAS, itemIconFrame } from '../data/item-visuals';
+import { parseOfferId } from '../data/items';
+import { offerPips, offerTitle, statLines } from '../data/item-text';
 import { sfx } from '../audio/sfx';
 import { combineMoves, stickVector, type Move } from './touch';
 import { oncePerEvent } from './keys';
@@ -28,6 +30,7 @@ import { DEFAULT_NAME, misspell, readPlayerName } from '../meta/name';
 import {
   BOSS_RADIUS,
   PLAYER_RADIUS,
+  STRIKE_DELAY,
   World,
   type Certificate,
   type EnemyState,
@@ -36,6 +39,7 @@ import {
   type ProjectileState,
 } from '../sim/world';
 import {
+  BONE,
   INK,
   PAPER,
   SHADOW,
@@ -145,6 +149,12 @@ export class ActScene extends Phaser.Scene {
   private areaSprites: Phaser.GameObjects.Arc[] = [];
   /** Orbit items' objects (Grudge), each wearing its card's icon (G-036). */
   private orbiterSprites: Phaser.GameObjects.Image[] = [];
+  /** Aura rings (Personal Space, G-044) at their honest radius, and the icon riding each. */
+  private auraRings: Phaser.GameObjects.Arc[] = [];
+  private auraIcons: Phaser.GameObjects.Image[] = [];
+  /** Sweep wedges (Backhand), redrawn every frame, and the hand crossing each. */
+  private sweepFx!: Phaser.GameObjects.Graphics;
+  private sweepIcons: Phaser.GameObjects.Image[] = [];
   private attachedSprites: Phaser.GameObjects.Image[] = [];
   private bossSprite?: Phaser.GameObjects.Image;
   /** Prom's dance floor, drawn as a ring at floorRadius; only while its boss stands. */
@@ -277,6 +287,9 @@ export class ActScene extends Phaser.Scene {
     this.ringSprites = [];
     this.areaSprites = [];
     this.orbiterSprites = [];
+    this.auraRings = [];
+    this.auraIcons = [];
+    this.sweepIcons = [];
     this.attachedSprites = [];
     delete this.bossSprite;
     delete this.floorRing;
@@ -296,6 +309,8 @@ export class ActScene extends Phaser.Scene {
     addVignette(this, VIEW_WIDTH, VIEW_HEIGHT, 90);
 
     this.playerFx = this.add.graphics().setDepth(9);
+    // Under the crowd, so what the swing hits is drawn on top of it.
+    this.sweepFx = this.add.graphics().setDepth(4);
     this.player = this.add
       .image(this.world.x, this.world.y, this.visuals.atlas.key, this.visuals.playerFrame)
       .setDepth(10);
@@ -856,6 +871,8 @@ export class ActScene extends Phaser.Scene {
     this.syncRings();
     this.syncAreas();
     this.syncOrbiters();
+    this.syncAuras();
+    this.syncSweeps();
     this.syncBoss();
     this.syncAttached();
     this.drawHud();
@@ -1273,7 +1290,47 @@ export class ActScene extends Phaser.Scene {
       const circle = this.areaSprites[i]!;
       const icon = this.areaIcons[i]!;
 
-      if (a.slow !== undefined) {
+      if (a.delay !== undefined) {
+        // Judgement (G-044): while it is coming, a ring closes on the spot
+        // from twice its radius to its honest one and the card's icon comes
+        // down onto it; on landing, a flash at the radius it hurts in with
+        // the icon on the point. Checked first: a landed strike is one-shot
+        // and would otherwise draw as Temper's starburst.
+        const def = a.source ? ITEMS[a.source] : undefined;
+        const [key, frame] = def ? this.iconTexture(def.icon, def.name) : ['nc-shot', undefined];
+        if (a.delay > 0) {
+          const t = 1 - a.delay / STRIKE_DELAY;
+          circle
+            .setPosition(a.x, a.y)
+            .setRadius(a.radius * (2 - t))
+            .setFillStyle()
+            .setStrokeStyle(2, BONE, 0.35 + 0.45 * t)
+            .setVisible(true);
+          icon
+            .setTexture(key, frame)
+            .setPosition(a.x, a.y - 60 * (1 - t))
+            .setDisplaySize(36, 36)
+            .setRotation(0)
+            .setFlipX(false)
+            .setAlpha(0.5 + 0.5 * t)
+            .setVisible(true);
+        } else {
+          circle
+            .setPosition(a.x, a.y)
+            .setRadius(a.radius)
+            .setFillStyle(PAPER, 0.2 * fade)
+            .setStrokeStyle(2, BONE, 0.6 * fade)
+            .setVisible(true);
+          icon
+            .setTexture(key, frame)
+            .setPosition(a.x, a.y)
+            .setDisplaySize(40, 40)
+            .setRotation(0)
+            .setFlipX(false)
+            .setAlpha(fade)
+            .setVisible(true);
+        }
+      } else if (a.slow !== undefined) {
         // Snooze: the field it holds, drawn at its honest radius, with the
         // card's icon where it was dropped. Checked first: it ticks and does
         // not pull, which would otherwise draw it as Wake's footprints.
@@ -1365,6 +1422,64 @@ export class ActScene extends Phaser.Scene {
         .setPosition(o.x, o.y)
         .setDisplaySize(o.radius * 2.6, o.radius * 2.6)
         .setRotation(this.world.time * 2)
+        .setVisible(true);
+    }
+  }
+
+  /**
+   * Personal Space and anything else that rings the player (G-044): the ring
+   * at the radius the sim hurts in, faint, and the card's icon riding it like
+   * a satellite. Under the player; bone and paper, never a threat colour (law
+   * 10), and wider and fainter than Thick Skin's ring hugging the body.
+   */
+  private syncAuras(): void {
+    const list = this.world.auras;
+    this.fit(this.auraRings, list.length, () => this.add.circle(0, 0, 10).setDepth(2));
+    this.fit(this.auraIcons, list.length, () => this.add.image(0, 0, 'nc-shot').setDepth(8));
+    const t = this.world.time;
+    for (let i = 0; i < list.length; i++) {
+      const a = list[i]!;
+      const def = ITEMS[a.source];
+      this.auraRings[i]!.setPosition(a.x, a.y)
+        .setRadius(a.radius)
+        .setFillStyle(PAPER, 0.05)
+        .setStrokeStyle(2, BONE, 0.3)
+        .setVisible(true);
+      const angle = t * 0.8 + (i * Math.PI * 2) / list.length;
+      const [key, frame] = def ? this.iconTexture(def.icon, def.name) : ['nc-shot', undefined];
+      this.auraIcons[i]!.setTexture(key, frame)
+        .setPosition(a.x + Math.cos(angle) * a.radius, a.y + Math.sin(angle) * a.radius)
+        .setDisplaySize(32, 32)
+        .setRotation(0)
+        .setAlpha(0.85)
+        .setVisible(true);
+    }
+  }
+
+  /**
+   * Backhand's swings (G-044): each arc as a wedge at its honest reach and
+   * width, fading over the moment it is drawn, with the card's icon crossing
+   * it edge to edge — the swat. The hit was dealt on the step it swung.
+   */
+  private syncSweeps(): void {
+    const list = this.world.sweeps;
+    this.sweepFx.clear();
+    this.fit(this.sweepIcons, list.length, () => this.add.image(0, 0, 'nc-shot').setDepth(8));
+    for (let i = 0; i < list.length; i++) {
+      const s = list[i]!;
+      const t = Math.min(1, s.age / s.seconds);
+      this.sweepFx
+        .fillStyle(PAPER, 0.18 * (1 - t))
+        .slice(s.x, s.y, s.reach, s.angle - s.arc / 2, s.angle + s.arc / 2, false)
+        .fillPath();
+      const def = ITEMS[s.source];
+      const [key, frame] = def ? this.iconTexture(def.icon, def.name) : ['nc-shot', undefined];
+      const lead = s.angle - s.arc / 2 + s.arc * t;
+      this.sweepIcons[i]!.setTexture(key, frame)
+        .setPosition(s.x + Math.cos(lead) * s.reach * 0.8, s.y + Math.sin(lead) * s.reach * 0.8)
+        .setDisplaySize(36, 36)
+        .setRotation(lead)
+        .setAlpha(1 - 0.5 * t)
         .setVisible(true);
     }
   }
@@ -1484,18 +1599,27 @@ export class ActScene extends Phaser.Scene {
     }
   }
 
-  /** One card per offer: glyph, name, level pips, one line of copy. */
+  /**
+   * One card per offer: glyph, name, level pips, one line of copy, and under
+   * it what the level is worth (G-043), from `item-text.ts` and never typed
+   * here. An offer id is an item or a path (`grudge/company`); the card reads
+   * both through `parseOfferId`, and the tap passes the id back unchanged.
+   */
   private buildOfferUi(offers: string[]): void {
     const cam = this.cameras.main;
+    // Cards centred where they always were; the header rides above them.
+    const HEADER_Y = 226;
+    const CARD_Y = 396;
     this.offerScrim = this.add
       .rectangle(cam.width / 2, cam.height / 2, cam.width, cam.height, INK, 0.45)
       .setScrollFactor(0)
       .setDepth(195);
     // An evolution arrives alone and is not a choice; the header says what it is.
-    const first = offers.length === 1 ? itemDef(offers[0]!) : null;
-    const evolution = first && isActive(first) && first.evolvesFrom ? first.evolvesFrom : null;
+    const first = offers.length === 1 ? parseOfferId(offers[0]!) : null;
+    const evolution =
+      first && !first.path && isActive(first.item) && first.item.evolvesFrom ? first.item.evolvesFrom : null;
     this.offerHeader = this.add
-      .text(cam.width / 2, 232, evolution ? 'EVOLUTION' : `LEVEL ${this.world.level}`, {
+      .text(cam.width / 2, HEADER_Y, evolution ? 'EVOLUTION' : `LEVEL ${this.world.level}`, {
         fontFamily: 'monospace',
         fontSize: '15px',
         color: '#D2C6AC',
@@ -1505,14 +1629,27 @@ export class ActScene extends Phaser.Scene {
       .setScrollFactor(0)
       .setDepth(200);
 
-    const W = 350;
-    const H = 176;
-    const GAP = 26;
+    // Wide enough for a 44-character stat line at 13px monospace (≈7.8px a
+    // character), tall enough for two lines of copy and two of stats; three
+    // cards and their gaps stay inside the 1280 view.
+    const W = 390;
+    const H = 210;
+    const GAP = 20;
     const total = offers.length * W + (offers.length - 1) * GAP;
+    // The medallion's centre; the name sits above it, the pips beside it,
+    // the copy and the stat lines below.
+    const MID = -38;
+    const STATS_Y = 56;
 
     offers.forEach((id, i) => {
-      const def = itemDef(id);
-      const owned = this.world.items.get(id) ?? 0;
+      const { item: def, path } = parseOfferId(id);
+      const level = this.world.items.get(def.id) ?? 0;
+      // G-043's other half (the path roll) gives World `pathLevels`, keyed by
+      // offer id; until it lands no offer is a path and this reads 0.
+      const pathLevel = path
+        ? ((this.world as { pathLevels?: Map<string, number> }).pathLevels?.get(id) ?? 0)
+        : 0;
+      const owned = { level, pathLevel };
       const x = cam.width / 2 - total / 2 + W / 2 + i * (W + GAP);
 
       const g = this.add.graphics();
@@ -1521,9 +1658,11 @@ export class ActScene extends Phaser.Scene {
       // The medallion: a quiet plate under the icon, so the art sits IN the
       // card instead of floating on it. A drawn keycap box for the number,
       // for the same reason.
-      g.fillStyle(SHADOW, 0.3).fillCircle(-W / 2 + 54, -12, 36);
-      g.lineStyle(1.5, UI_FILL, 0.25).strokeCircle(-W / 2 + 54, -12, 36);
+      g.fillStyle(SHADOW, 0.3).fillCircle(-W / 2 + 54, MID, 36);
+      g.lineStyle(1.5, UI_FILL, 0.25).strokeCircle(-W / 2 + 54, MID, 36);
       g.lineStyle(1.5, UI_FILL, 0.4).strokeRoundedRect(-W / 2 + 12, -H / 2 + 10, 22, 22, 5);
+      // A hairline between the joke and the numbers.
+      g.lineStyle(1, UI_FILL, 0.18).lineBetween(-W / 2 + 22, STATS_Y - 9, W / 2 - 22, STATS_Y - 9);
 
       const keycap = this.add
         .text(-W / 2 + 23, -H / 2 + 21, String(i + 1), {
@@ -1532,32 +1671,45 @@ export class ActScene extends Phaser.Scene {
           color: '#D2C6AC',
         })
         .setOrigin(0.5);
+      // A path wears its weapon's icon: it is the same object, pushed one way.
       const [iconKey, iconFrame] = this.iconTexture(def.icon, def.name);
-      const icon = this.add.image(-W / 2 + 54, -12, iconKey, iconFrame).setDisplaySize(52, 52);
-      const name = this.add.text(-W / 2 + 100, -42, def.name, {
+      const icon = this.add.image(-W / 2 + 54, MID, iconKey, iconFrame).setDisplaySize(52, 52);
+      const name = this.add.text(-W / 2 + 100, MID - 30, offerTitle(id), {
         fontFamily: 'monospace',
         fontSize: '20px',
         color: '#EFE7D6',
         letterSpacing: 1,
       });
+      // A weapon and a path named together ("Stubbornness · Something") can
+      // be wider than the room right of the medallion at 20px; a long title
+      // steps its type down rather than running off the card.
+      const room = W - 116;
+      if (name.width > room) name.setFontSize(Math.max(13, Math.floor((20 * room) / name.width)));
+      if (name.width > room) name.setScale(room / name.width);
       // Pips: up to eight now. Spaced when they fit, packed when they do not;
-      // either way inside the 250px right of the medallion.
-      const gap = def.maxLevel > 6 ? '' : ' ';
+      // either way inside the room right of the medallion. A path card shows
+      // the path's own levels.
+      const pip = offerPips(id, owned);
+      const gap = pip.max > 6 ? '' : ' ';
       const evolvedFrom =
         isActive(def) && def.evolvesFrom
           ? `${itemDef(def.evolvesFrom.weapon).name} + ${itemDef(def.evolvesFrom.with).name}`
           : null;
       const pips = this.add.text(
         -W / 2 + 100,
-        -12,
+        MID,
         evolvedFrom ??
-          (owned === 0 ? 'new' : ('●' + gap).repeat(owned) + ('○' + gap).repeat(def.maxLevel - owned)),
+          (pip.owned === 0
+            ? 'new'
+            : ('●' + gap).repeat(pip.owned) + ('○' + gap).repeat(Math.max(0, pip.max - pip.owned))),
         { fontFamily: 'monospace', fontSize: '13px', color: '#D2C6AC' },
       );
-      // New: what it is. Owned: what the next level adds.
-      const next = owned > 0 && isActive(def) ? def.levels[owned]?.text : undefined;
+      // New: what it is. Owned: what the next level adds. A path: its own line.
+      const copy = path
+        ? (path.levels[pathLevel]?.text ?? path.blurb)
+        : ((level > 0 && isActive(def) ? def.levels[level]?.text : undefined) ?? def.blurb);
       const blurb = this.add
-        .text(-W / 2 + 24, 20, next ?? def.blurb, {
+        .text(-W / 2 + 24, MID + 32, copy, {
           fontFamily: 'monospace',
           fontSize: '15px',
           color: '#EFE7D6',
@@ -1565,9 +1717,20 @@ export class ActScene extends Phaser.Scene {
           wordWrap: { width: W - 48, useAdvancedWrap: true },
         })
         .setAlpha(0.88);
+      // What the level is worth, in a survivors player's terms. Lines are
+      // already split to fit; the scale is a guard for a wide system font.
+      const stats = this.add
+        .text(-W / 2 + 22, STATS_Y, statLines(id, owned).join('\n'), {
+          fontFamily: 'monospace',
+          fontSize: '13px',
+          color: '#D2C6AC',
+          lineSpacing: 4,
+        })
+        .setAlpha(0.9);
+      if (stats.width > W - 44) stats.setScale((W - 44) / stats.width);
 
       const card = this.add
-        .container(x, 396, [g, keycap, icon, name, pips, blurb])
+        .container(x, CARD_Y, [g, keycap, icon, name, pips, blurb, stats])
         .setDepth(200)
         .setScrollFactor(0)
         .setSize(W, H)
@@ -1666,9 +1829,11 @@ export class ActScene extends Phaser.Scene {
     // Cards, not a text panel. drawHud runs every frame; the key turns
     // build-vs-teardown into a string comparison instead of a state machine.
     // Owned levels are part of the key: two queued level-ups can roll the
-    // same three items, and the pips must not show the pre-choice level.
+    // same three items, and the pips must not show the pre-choice level. A
+    // path card's level lives in `pathLevels` (G-043); an id is in one map or
+    // the other, never both.
     const offerKey = w.offers
-      ? `${w.level}:${w.offers.map((id) => `${id}@${w.items.get(id) ?? 0}`).join(',')}`
+      ? `${w.level}:${w.offers.map((id) => `${id}@${w.pathLevels.get(id) ?? w.items.get(id) ?? 0}`).join(',')}`
       : '';
     if (offerKey !== this.shownOffers) {
       this.destroyOfferUi();

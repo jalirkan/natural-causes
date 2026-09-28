@@ -1,7 +1,23 @@
 import type { ActDef, BossDef, GymTeacherBoss, PromBoss, SpawnWave } from '../data/acts';
 import { ALL_ACTS, rateAt, spawnStreams, whistleInterval } from '../data/acts';
 import { enemyDef, type EnemyDef } from '../data/enemies';
-import { ITEMS, isActive, itemDef, levelBonus, type ActiveItem, type ItemDef, type PassiveItem } from '../data/items';
+import {
+  ITEMS,
+  OFFER_PATH_SEPARATOR,
+  PATH_OPENS_AT,
+  cooldownScale,
+  damageScale,
+  foldBonus,
+  isActive,
+  itemDef,
+  levelBonus,
+  offerIdFor,
+  parseOfferId,
+  type ActiveItem,
+  type ItemDef,
+  type LevelBonus,
+  type PassiveItem,
+} from '../data/items';
 import { INHERITANCES, INHERITANCE_IDS, type InheritanceDef, type StatLine } from '../data/inheritances';
 import { Grid } from './grid';
 
@@ -222,6 +238,35 @@ export const CHAIN_RADIUS = 180;
 export const CHAIN_DAMAGE = 0.7;
 
 /**
+ * Seconds between Judgement picking its target and the bolt landing where
+ * the target WAS (G-044): the telegraph, drawn as a ring closing on the spot.
+ *
+ * PLACEHOLDER, under Conception's `provisional` (its weapon tables clause):
+ * long enough to see where it will land, short enough that a slow crowd is
+ * still standing there. A person playing it at the link, asked "did you see
+ * where it was going to land, and did anything get out of the way?", is what
+ * moves it.
+ */
+export const STRIKE_DELAY = 0.35;
+/**
+ * How long a landed strike's flash is drawn. Its one hit is dealt on the
+ * landing step (`landStrike`); this is presentation, a burst's 0.12s.
+ * PLACEHOLDER, a reading-speed number nobody has looked at at the link.
+ */
+export const STRIKE_FLASH_SECONDS = 0.12;
+/**
+ * How long a sweep's arc is drawn after it swings. The hit is dealt on the
+ * fire step; this is presentation only. PLACEHOLDER, like the flash.
+ */
+export const SWEEP_SECONDS = 0.18;
+/**
+ * The directions a sweep's arcs take, as turns from the facing: front, back,
+ * left, right (G-044) — the line weapon's k order, in quarters. Its length is
+ * the most arcs a sweep swings, whatever its level bonuses say.
+ */
+const SWEEP_TURNS = [0, Math.PI, -Math.PI / 2, Math.PI / 2] as const;
+
+/**
  * XP from level `level` to the next. Fast early, steeper later, the survivors
  * shape: a first minute of rapid choices, then each level has to be earned.
  *
@@ -303,6 +348,20 @@ export interface ProjectileState {
 }
 
 /**
+ * One weapon's merged bonus (`World.bonusFor`) and the levels it was folded
+ * at, which every read compares against the live ones.
+ */
+interface MergedBonus {
+  def: ActiveItem;
+  level: number;
+  /** The offer id of each of `def.paths`, in order. Made once, never per read. */
+  keys: string[];
+  /** Each path's level when `bonus` was folded, in the same order. */
+  at: number[];
+  bonus: Required<LevelBonus>;
+}
+
+/**
  * Something circling the player. Recomputed from `time` every step, so it is
  * deterministic and has no state of its own; the renderer reads positions.
  */
@@ -312,6 +371,38 @@ export interface OrbiterState {
   /** The item this belongs to. */
   source: string;
   radius: number;
+}
+
+/**
+ * An aura's ring around the player (Personal Space, G-044), this step. Pooled
+ * and rebuilt every step like the orbiters; the renderer reads it.
+ */
+export interface AuraState {
+  x: number;
+  y: number;
+  /** Honest: the radius the sim hurts within, bonuses and reach applied. */
+  radius: number;
+  /** The item this belongs to. */
+  source: string;
+}
+
+/**
+ * One arc a sweep swung (Backhand, G-044). Its hit was dealt on the step it
+ * swung; this lives `seconds` so the renderer can draw where it went.
+ */
+export interface SweepState {
+  /** Where the player stood when it swung. */
+  x: number;
+  y: number;
+  /** The arc's centre line, radians. */
+  angle: number;
+  /** Pixels, bonuses and reach applied. */
+  reach: number;
+  /** Full width, radians. */
+  arc: number;
+  age: number;
+  seconds: number;
+  source: string;
 }
 
 export interface RingState {
@@ -378,6 +469,16 @@ export interface AreaState {
   serial: number;
   /** Pixels a hit pushes a non-boss enemy away from the player. */
   knockback?: number;
+  /**
+   * A strike (Judgement, G-044): seconds until it lands. While above zero
+   * nothing is hurt and `age` does not run; on landing it deals its one hit
+   * (`landStrike`) and then stays at zero, so the renderer and the boss's area
+   * pass can tell a strike from a burst for its whole life. Absent on every
+   * other area.
+   */
+  delay?: number;
+  /** The item that made this area, where one did and the renderer needs it. Presentation metadata. */
+  source?: string;
 }
 
 export interface GemState {
@@ -550,8 +651,30 @@ export class World {
   private readonly orbitBossHits = new Map<string, Map<number, number>>();
   /** Orbiter objects, reused across steps; `orbiters` holds this step's. */
   private readonly orbiterPool: OrbiterState[] = [];
+  /**
+   * `bonusFor`'s cache, per weapon id. Validated on every read by comparing
+   * the weapon's level and each path's level with the ones it was folded at
+   * (numbers; the offer ids are made once), not by a version counter: the dev
+   * panel and tests write `items` and `pathLevels` directly, and a counter
+   * only sees writes that go through the sim.
+   */
+  private readonly mergedBonus = new Map<string, MergedBonus>();
   /** Where each trail item last dropped an area, for WAKE_MIN_SPACING. Per act. */
   private readonly trailDrops = new Map<string, { x: number; y: number }>();
+  /**
+   * When each enemy may next be hurt by each aura item, keyed by uid: the
+   * time, not the last hit, so a continuous re-hit carries its overshoot and
+   * the rate is the same at every frame rate (AUDIT 23). Pruned when large.
+   */
+  private readonly auraHits = new Map<string, Map<number, number>>();
+  /** The same for the boss, per aura item. */
+  private readonly auraBossHits = new Map<string, number>();
+  /** Aura rings, reused across steps; `auras` holds this step's. */
+  private readonly auraPool: AuraState[] = [];
+  /** Uids one sweep has hit, so overlapping arcs hit an enemy once. Reused. */
+  private readonly swept = new Set<number>();
+  /** A strike's candidates, reused. Emptied after every pick. */
+  private readonly strikeCandidates: EnemyState[] = [];
 
   /**
    * The life clock, in seconds. Assigning it moves the ACT clock by the same
@@ -622,6 +745,13 @@ export class World {
   offers: string[] | null = null;
   readonly items = new Map<string, number>();
   /**
+   * G-043: each weapon path's level, keyed by its offer id (`grudge/company`),
+   * levelled apart from the weapon and folded into its bonus by `bonusFor`.
+   * Read-only outside the sim (the renderer draws pips from it); the dev
+   * panel and tests may write it, and the next read of the bonus sees that.
+   */
+  readonly pathLevels = new Map<string, number>();
+  /**
    * The Egg's drop (G-017, G-042): dealt once, from `rng`, at the first
    * crossing, and kept for every act after it. Null in Conception. Its stat
    * line goes through `passiveProduct`, its XP price through `xpCost`, and
@@ -636,6 +766,10 @@ export class World {
   gems: GemState[] = [];
   /** Everything circling the player this step. Read-only outside the sim. */
   orbiters: OrbiterState[] = [];
+  /** Every aura ring around the player this step (G-044). Read-only outside the sim. */
+  readonly auras: AuraState[] = [];
+  /** Arcs swung in the last SWEEP_SECONDS, for drawing (G-044). Read-only outside the sim. */
+  readonly sweeps: SweepState[] = [];
   boss: BossState | null = null;
   /**
    * Racers that reached the boss this act (`ActDef.race`). Reset per act.
@@ -827,12 +961,51 @@ export class World {
 
   private activeDamage(def: ItemDef, level: number): number {
     if (!isActive(def)) return 0;
-    return def.damage * (1 + 0.2 * (level - 1)) * this.damageDealt;
+    return def.damage * damageScale(level) * this.bonusFor(def, level).damage * this.damageDealt;
   }
 
   private activeCooldown(def: ItemDef, level: number): number {
     if (!isActive(def)) return Infinity;
-    return def.cooldown * Math.max(0.4, 1 - 0.08 * (level - 1)) * this.cooldownFactor;
+    return def.cooldown * cooldownScale(level) * this.bonusFor(def, level).cooldown * this.cooldownFactor;
+  }
+
+  /**
+   * Everything a weapon's own levels and its paths' levels add, as one total
+   * (G-043): the sim's only reading of a weapon's bonus. It runs every step
+   * for an orbit and on every shot otherwise, so it allocates only when a
+   * level has changed (AUDIT part three, 21) and otherwise returns the object
+   * it returned last time. A weapon with no paths, or none taken, gets
+   * `levelBonus` itself. Callers read it and never mutate it.
+   */
+  private bonusFor(def: ActiveItem, level: number): Required<LevelBonus> {
+    const paths = def.paths;
+    if (!paths || paths.length === 0) return levelBonus(def, level);
+    let m = this.mergedBonus.get(def.id);
+    if (!m || m.def !== def) {
+      const keys = paths.map((p) => offerIdFor(def, p));
+      m = { def, level: NaN, keys, at: keys.map(() => NaN), bonus: levelBonus(def, level) };
+      this.mergedBonus.set(def.id, m);
+    }
+    let fresh = m.level === level;
+    for (let i = 0; fresh && i < m.keys.length; i++) fresh = (this.pathLevels.get(m.keys[i]!) ?? 0) === m.at[i];
+    if (fresh) return m.bonus;
+
+    m.level = level;
+    let bonus = levelBonus(def, level);
+    let copied = false;
+    for (let i = 0; i < paths.length; i++) {
+      const owned = this.pathLevels.get(m.keys[i]!) ?? 0;
+      m.at[i] = owned;
+      if (owned <= 0) continue;
+      // `levelBonus` is shared by every World: copy before the first fold.
+      if (!copied) {
+        bonus = { ...bonus };
+        copied = true;
+      }
+      for (const l of paths[i]!.levels.slice(0, owned)) foldBonus(bonus, l);
+    }
+    m.bonus = bonus;
+    return bonus;
   }
 
   // --- the step ---------------------------------------------------------
@@ -860,11 +1033,14 @@ export class World {
     this.grid.build(this.enemies);
     this.resolveSolids();
     this.applyAttractors(dt);
+    // Aged before firing, so an arc swung this step is drawn from age zero.
+    this.updateSweeps(dt);
     this.fireItems(dt);
     this.moveProjectiles(dt);
     this.updateRings(dt);
     this.updateAreas(dt);
     this.updateOrbiters();
+    this.updateAuras(dt);
     this.updateGems(dt);
     this.resolveHits();
     this.resolveContact(dt);
@@ -1345,6 +1521,8 @@ export class World {
       if (!isActive(def)) continue;
       // Orbiters do not activate; they are always there (updateOrbiters).
       if (def.mode === 'orbit') continue;
+      // Nor does an aura (updateAuras).
+      if (def.mode === 'aura') continue;
 
       const remaining = (this.cooldowns.get(id) ?? 0) - dt;
       if (remaining > 0) {
@@ -1362,9 +1540,9 @@ export class World {
   /** Returns false if the item had nothing to do, so it retries sooner. */
   private fireOne(def: ItemDef, level: number, damage: number): boolean {
     if (!isActive(def)) return false;
-    // What the levels owned add (items.ts `levels`). Generic: no item is
-    // named below, only the bonus fields.
-    const bonus = levelBonus(def, level);
+    // What the levels owned add (items.ts `levels`, and its paths' levels).
+    // Generic: no item is named below, only the bonus fields.
+    const bonus = this.bonusFor(def, level);
     const radius = def.radius * bonus.area;
     const pierce = def.pierce + bonus.pierce;
     // Growth Spurt. A shot's range, a pull's or a field's radius; the burst
@@ -1389,14 +1567,15 @@ export class World {
           if (boss) targets.push(boss);
         }
         if (targets.length === 0) return false;
+        const speed = def.projectileSpeed * bonus.speed;
         for (const target of targets) {
           const d = Math.hypot(target.x - this.x, target.y - this.y) || 1;
           this.projectiles.push({
             x: this.x,
             y: this.y,
-            vx: ((target.x - this.x) / d) * def.projectileSpeed,
-            vy: ((target.y - this.y) / d) * def.projectileSpeed,
-            life: range / def.projectileSpeed,
+            vx: ((target.x - this.x) / d) * speed,
+            vy: ((target.y - this.y) / d) * speed,
+            life: range / speed,
             damage,
             pierce,
             radius,
@@ -1412,6 +1591,7 @@ export class World {
         // Along the player's facing, whatever is there. Extra shots: first
         // straight backwards, then pairs either side of forward, 15° apart.
         const facing = Math.atan2(this.facingY, this.facingX);
+        const speed = def.projectileSpeed * bonus.speed;
         for (let k = 0; k <= bonus.projectiles; k++) {
           let angle = facing;
           if (k === 1) angle += Math.PI;
@@ -1422,9 +1602,9 @@ export class World {
           this.projectiles.push({
             x: this.x,
             y: this.y,
-            vx: Math.cos(angle) * def.projectileSpeed,
-            vy: Math.sin(angle) * def.projectileSpeed,
-            life: (def.range * reach) / def.projectileSpeed,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            life: (def.range * reach) / speed,
             damage,
             pierce,
             radius,
@@ -1499,23 +1679,249 @@ export class World {
       case 'orbit':
         // Never fired; see updateOrbiters.
         return false;
+      case 'aura':
+        // Never fired; see updateAuras.
+        return false;
+      case 'sweep': {
+        // Backhand (G-044): an arc along the facing, swung on its cooldown
+        // whether or not anything is in it — a swat does not wait for a
+        // target. Extra arcs go behind, then left, then right (SWEEP_TURNS).
+        // Every enemy in any arc is hit once per swing, however the arcs
+        // overlap; the boss likewise.
+        const facing = Math.atan2(this.facingY, this.facingX);
+        const arcs = Math.min(SWEEP_TURNS.length, 1 + bonus.projectiles);
+        const sweepReach = def.range * bonus.area * reach;
+        const width = def.arc ?? Math.PI / 2;
+        const knockback = (def.knockback ?? 0) + bonus.knockback;
+        const b = this.boss;
+        let bossHit = false;
+        this.swept.clear();
+        this.grid.query(this.x, this.y, sweepReach + this.queryPad, this.near);
+        for (let k = 0; k < arcs; k++) {
+          const angle = facing + SWEEP_TURNS[k]!;
+          for (const e of this.near) {
+            if (e.def.invulnerable || e.hp <= 0 || this.swept.has(e.uid)) continue;
+            if (!this.inArc(e.x, e.y, e.radius, angle, width, sweepReach)) continue;
+            this.swept.add(e.uid);
+            e.hp -= damage;
+            e.hitFlash = 0.08;
+            if (knockback > 0) this.knockBack(e, knockback);
+          }
+          if (!bossHit && b && this.inArc(b.x, b.y, BOSS_RADIUS, angle, width, sweepReach)) {
+            bossHit = true;
+            this.damageBoss(damage);
+          }
+          this.sweeps.push({
+            x: this.x,
+            y: this.y,
+            angle,
+            reach: sweepReach,
+            arc: width,
+            age: 0,
+            seconds: SWEEP_SECONDS,
+            source: def.id,
+          });
+        }
+        return true;
+      }
+      case 'strike': {
+        // Judgement (G-044): distinct random enemies within range, picked
+        // with the world's own dice so a seed replays them, and after
+        // STRIKE_DELAY a one-shot area where each one WAS. With fewer
+        // enemies than bolts the boss takes one, as a seeking weapon's
+        // spare shot does. Nothing in range: retry sooner.
+        const bolts = 1 + bonus.projectiles;
+        const range = def.range * reach;
+        const limit = range * range;
+        const pool = this.strikeCandidates;
+        pool.length = 0;
+        this.grid.query(this.x, this.y, range, this.near);
+        for (const e of this.near) {
+          // Not at what it cannot hurt (AUDIT part three, 22).
+          if (e.def.invulnerable || e.hp <= 0) continue;
+          if ((e.x - this.x) ** 2 + (e.y - this.y) ** 2 <= limit) pool.push(e);
+        }
+        let aimed = 0;
+        while (aimed < bolts && pool.length > 0) {
+          const pick = Math.floor(this.rng() * pool.length);
+          const e = pool[pick]!;
+          swapRemove(pool, pick);
+          this.strikeAt(def, e.x, e.y, radius, damage);
+          aimed++;
+        }
+        pool.length = 0;
+        if (aimed < bolts) {
+          const boss = this.bossAsTarget(range);
+          if (boss) {
+            this.strikeAt(def, boss.x, boss.y, radius, damage);
+            aimed++;
+          }
+        }
+        return aimed > 0;
+      }
     }
+  }
+
+  /**
+   * Whether a body of radius `r` at (x, y) is inside a sweep's arc: within
+   * reach of its edge, and within half the arc of its bearing from the
+   * player, widened by the body's own angular size so what overlaps the drawn
+   * wedge is what is hit. A body over the player's centre is in every arc.
+   */
+  private inArc(x: number, y: number, r: number, angle: number, width: number, reach: number): boolean {
+    const dx = x - this.x;
+    const dy = y - this.y;
+    const d2 = dx * dx + dy * dy;
+    if (d2 > (reach + r) * (reach + r)) return false;
+    const d = Math.sqrt(d2);
+    if (d <= r) return true;
+    // Wrapped to [-π, π]: a bearing of 179° and an arc at -179° are 2° apart.
+    let off = Math.atan2(dy, dx) - angle;
+    off -= Math.PI * 2 * Math.floor((off + Math.PI) / (Math.PI * 2));
+    return Math.abs(off) <= width / 2 + Math.asin(r / d);
+  }
+
+  /** One strike, telegraphed: it lands after STRIKE_DELAY (updateAreas → landStrike). */
+  private strikeAt(def: ActiveItem, x: number, y: number, radius: number, damage: number): void {
+    this.areas.push({
+      x,
+      y,
+      age: 0,
+      seconds: STRIKE_FLASH_SECONDS,
+      radius,
+      damage,
+      pull: false,
+      tick: false,
+      serial: this.nextSerial++,
+      delay: STRIKE_DELAY,
+      source: def.id,
+    });
+  }
+
+  /**
+   * A strike's life inside `updateAreas`: held for its telegraph, one hit on
+   * landing, then its flash. It never reaches the burst path below it, whose
+   * one-hit mark is a single serial per enemy: two bolts landing on one crowd
+   * would take turns re-arming each other and hit every step of the flash.
+   */
+  private updateStrike(a: AreaState, i: number, dt: number): void {
+    if (a.delay! > 0) {
+      a.delay! -= dt;
+      if (a.delay! > 0) return;
+      // The overshoot is time since it landed (AUDIT 23's carry).
+      a.age = -a.delay!;
+      a.delay = 0;
+      this.landStrike(a);
+    } else a.age += dt;
+    if (a.age >= a.seconds) swapRemove(this.areas, i);
+  }
+
+  /** The bolt lands: everything within its radius takes its damage once, the boss too. */
+  private landStrike(a: AreaState): void {
+    this.grid.query(a.x, a.y, a.radius + this.queryPad, this.near);
+    for (const e of this.near) {
+      if (e.def.invulnerable || e.hp <= 0) continue;
+      const r = a.radius + e.radius;
+      if ((e.x - a.x) ** 2 + (e.y - a.y) ** 2 > r * r) continue;
+      e.hp -= a.damage;
+      e.hitFlash = 0.08;
+    }
+    const b = this.boss;
+    if (b && (b.x - a.x) ** 2 + (b.y - a.y) ** 2 <= (a.radius + BOSS_RADIUS) ** 2) this.damageBoss(a.damage);
+  }
+
+  /** Sweeps are drawn for SWEEP_SECONDS after they swing, then dropped. */
+  private updateSweeps(dt: number): void {
+    for (let i = this.sweeps.length - 1; i >= 0; i--) {
+      const s = this.sweeps[i]!;
+      s.age += dt;
+      if (s.age >= s.seconds) swapRemove(this.sweeps, i);
+    }
+  }
+
+  /**
+   * Aura items (Personal Space, G-044): a ring of the item's radius around
+   * the player, always on, hurting each enemy whose body reaches into it at
+   * most once per the item's cooldown, and the boss likewise. Like the orbit
+   * it never activates. `auras` is rebuilt from a pool every step, so holding
+   * it does not allocate (AUDIT part three, 21).
+   */
+  private updateAuras(dt: number): void {
+    this.auras.length = 0;
+    for (const [id, level] of this.items) {
+      const def = ITEMS[id];
+      if (!def || !isActive(def) || def.mode !== 'aura') continue;
+      // Through bonusFor, so a path (Boundaries) widens the ring (G-043).
+      const radius = def.radius * this.bonusFor(def, level).area * this.reach;
+      const damage = this.activeDamage(def, level);
+      // Through activeCooldown like every weapon: levels, paths and
+      // Restlessness shorten the re-hit (AUDIT part three, 19).
+      const cooldown = this.activeCooldown(def, level);
+
+      let a = this.auraPool[this.auras.length];
+      if (!a) this.auraPool.push((a = { x: 0, y: 0, radius: 0, source: id }));
+      a.x = this.x;
+      a.y = this.y;
+      a.radius = radius;
+      a.source = id;
+      this.auras.push(a);
+
+      let hits = this.auraHits.get(id);
+      if (!hits) this.auraHits.set(id, (hits = new Map()));
+      if (hits.size > 4096) {
+        for (const [uid, next] of hits) if (this._time - next >= cooldown) hits.delete(uid);
+      }
+      this.grid.query(this.x, this.y, radius + this.queryPad, this.near);
+      for (const e of this.near) {
+        if (e.def.invulnerable || e.hp <= 0) continue;
+        const r = radius + e.radius;
+        if ((e.x - this.x) ** 2 + (e.y - this.y) ** 2 > r * r) continue;
+        const next = hits.get(e.uid);
+        if (next !== undefined && this._time < next) continue;
+        hits.set(e.uid, this.nextAuraHit(next, cooldown, dt));
+        e.hp -= damage;
+        e.hitFlash = 0.08;
+      }
+
+      const b = this.boss;
+      if (b && b.phase !== 'absorbing') {
+        const r = radius + BOSS_RADIUS;
+        const next = this.auraBossHits.get(id);
+        if ((b.x - this.x) ** 2 + (b.y - this.y) ** 2 <= r * r && (next === undefined || this._time >= next)) {
+          this.auraBossHits.set(id, this.nextAuraHit(next, cooldown, dt));
+          this.damageBoss(damage);
+        }
+      }
+    }
+    this.reapDead();
+  }
+
+  /**
+   * When an aura may next hurt what it just hurt. Held inside continuously it
+   * is `cooldown` after the time it was due, so the step's overshoot carries
+   * (AUDIT 23); due longer ago than a step (it walked out and back in), a full
+   * cooldown from now, so a return is never hit twice inside one cooldown.
+   */
+  private nextAuraHit(due: number | undefined, cooldown: number, dt: number): number {
+    return due !== undefined && this._time - due < dt ? due + cooldown : this._time + cooldown;
   }
 
   /** One burst at the player, sized by the item's level bonuses. */
   private burst(def: ActiveItem, level: number, damage: number): void {
+    const bonus = this.bonusFor(def, level);
     const area: AreaState = {
       x: this.x,
       y: this.y,
       age: 0,
       seconds: 0.12,
-      radius: def.radius * levelBonus(def, level).area * this.reach,
+      radius: def.radius * bonus.area * this.reach,
       damage,
       pull: false,
       tick: false,
       serial: this.nextSerial++,
     };
-    if (def.knockback) area.knockback = def.knockback;
+    const knockback = (def.knockback ?? 0) + bonus.knockback;
+    if (knockback > 0) area.knockback = knockback;
     this.areas.push(area);
   }
 
@@ -1546,10 +1952,11 @@ export class World {
     for (const [id, level] of this.items) {
       const def = ITEMS[id];
       if (!def || !isActive(def) || def.mode !== 'orbit') continue;
-      const bonus = levelBonus(def, level);
+      const bonus = this.bonusFor(def, level);
       const count = 1 + bonus.projectiles;
       const distance = def.range * bonus.area * this.reach;
-      const omega = def.projectileSpeed / distance;
+      // `speed` (a path's spin) multiplies the angular rate, not the distance.
+      const omega = (def.projectileSpeed * bonus.speed) / distance;
       const damage = this.activeDamage(def, level);
       // Through activeCooldown like every other weapon, so levels and
       // Restlessness shorten the re-hit (AUDIT part three, 19).
@@ -1634,6 +2041,10 @@ export class World {
   private updateAreas(dt: number): void {
     for (let i = this.areas.length - 1; i >= 0; i--) {
       const a = this.areas[i]!;
+      if (a.delay !== undefined) {
+        this.updateStrike(a, i, dt);
+        continue;
+      }
       a.age += dt;
       if (a.age >= a.seconds) {
         swapRemove(this.areas, i);
@@ -2070,6 +2481,10 @@ export class World {
     this.orbitBossHits.clear();
     this.trailDrops.clear();
     this.orbiters.length = 0;
+    this.auraHits.clear();
+    this.auraBossHits.clear();
+    this.auras.length = 0;
+    this.sweeps.length = 0;
     this.enemies.length = 0;
     this.projectiles.length = 0;
     this.rings.length = 0;
@@ -2118,7 +2533,8 @@ export class World {
       if (!id) return;
       this.level++;
       this.xpToNext = this.xpCost(this.level);
-      this.items.set(id, (this.items.get(id) ?? 0) + 1);
+      // A path card is as dealable as an item (G-043); `take` levels either.
+      this.take(id);
     }
   }
 
@@ -2195,7 +2611,10 @@ export class World {
     return null;
   }
 
-  /** Three choices: upgrades to what you have, and things you do not. */
+  /**
+   * Three choices: upgrades to what you have, things you do not, and (G-043)
+   * the paths of every weapon that has opened.
+   */
   private rollOffers(): string[] {
     // Evolutions are never rolled, and a weapon an owned evolution replaced
     // is not offered again as if it were new.
@@ -2215,6 +2634,22 @@ export class World {
       if (def.from !== undefined && ALL_ACTS.findIndex((a) => a.id === def.from) > here) return false;
       return (this.items.get(id) ?? 0) < def.maxLevel;
     });
+    // G-043: each path of an owned weapon at PATH_OPENS_AT or above, until the
+    // path is at its own max. Appended after the items, in registry order, so
+    // a life with no weapon opened rolls the pool, and draws the rng, exactly
+    // as it did before paths existed; once one opens, the pool is longer and
+    // every later draw moves. A replaced weapon's paths stay out with it.
+    // PLACEHOLDER: no cap on how many path cards one offer may hold, so three
+    // directions of one weapon is a legal offer.
+    for (const id of Object.keys(ITEMS)) {
+      const def = ITEMS[id]!;
+      if (!isActive(def) || !def.paths || replaced.has(id)) continue;
+      if ((this.items.get(id) ?? 0) < PATH_OPENS_AT) continue;
+      for (const path of def.paths) {
+        const offer = offerIdFor(def, path);
+        if ((this.pathLevels.get(offer) ?? 0) < path.maxLevel) pool.push(offer);
+      }
+    }
     const picked: string[] = [];
     while (picked.length < 3 && picked.length < pool.length) {
       const candidate = pool[Math.floor(this.rng() * pool.length)]!;
@@ -2227,13 +2662,7 @@ export class World {
   choose(id: string): void {
     if (!this.offers || !this.offers.includes(id)) return;
     const before = this.maxHp;
-    const def = itemDef(id);
-    if (isActive(def) && def.evolvesFrom) {
-      // The weapon becomes the evolution; it does not sit beside it.
-      this.items.delete(def.evolvesFrom.weapon);
-      this.cooldowns.delete(def.evolvesFrom.weapon);
-    }
-    this.items.set(id, (this.items.get(id) ?? 0) + 1);
+    this.take(id);
     // No passive lowers max health any more (G-038), but the clamp costs
     // nothing and a future one would need it: keep current health inside the
     // new ceiling without silently healing past it.
@@ -2242,6 +2671,32 @@ export class World {
     else this.hp += after - before;
     this.offers = null;
     this.presentOffers();
+  }
+
+  /**
+   * One level of what an offer id names, asked (`choose`) or not
+   * (`takeUnaskedLevels`): a path's own level (G-043), or an item's, where an
+   * evolution replaces its weapon.
+   */
+  private take(id: string): void {
+    const { item, path } = parseOfferId(id);
+    if (path) {
+      this.pathLevels.set(id, (this.pathLevels.get(id) ?? 0) + 1);
+      return;
+    }
+    if (isActive(item) && item.evolvesFrom) {
+      // The weapon becomes the evolution; it does not sit beside it.
+      const weapon = item.evolvesFrom.weapon;
+      this.items.delete(weapon);
+      this.cooldowns.delete(weapon);
+      // PLACEHOLDER decision: its paths go with it. The evolution is a new
+      // item, not the weapon grown, and Tantrum's card already says it
+      // replaces Temper; a directed Temper is still replaced.
+      const prefix = weapon + OFFER_PATH_SEPARATOR;
+      for (const key of this.pathLevels.keys()) if (key.startsWith(prefix)) this.pathLevels.delete(key);
+      this.mergedBonus.delete(weapon);
+    }
+    this.items.set(id, (this.items.get(id) ?? 0) + 1);
   }
 
   // --- the boss ---------------------------------------------------------
@@ -2365,6 +2820,8 @@ export class World {
       }
     }
     for (const a of this.areas) {
+      // A strike deals its one hit on the boss where it lands (landStrike).
+      if (a.delay !== undefined) continue;
       // Shielded, a burst does not spend its one hit on him either: if the
       // shield drops inside its lifetime, it lands then.
       if (a.pull || a.damage <= 0 || b.shielded) continue;

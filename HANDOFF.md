@@ -13,6 +13,7 @@ and write your name against it here, on `main`, before you start.
 |---|---|---|
 | The game | <https://jalirkan.github.io/natural-causes/> | `main`: a three-act life, Conception → School → Adolescence, every sprite authored SVG; CI's fifth check plays it end to end in Chromium. Deploys on every push. |
 | The sim | `src/sim/world.ts` | One life (D-024); upgrades are gains (G-038, G-039); the Egg is a race (G-040); the inheritance (G-042); School's placeholders (D-027); AUDIT parts three to five in, and five's patches applied. Every enemy is named on arrival; the substitute's shot is your name spelled wrong; the life ends on a certificate of death with your name on it, legible on a phone either way up. |
+| Upgrades | `src/data/items.ts`, `src/data/item-text.ts` | G-043: every weapon has two or three paths, its own cards from level 2, folded into one bonus (`World.bonusFor`); every card prints its number from the data. G-044: Personal Space (aura), Backhand (sweep), Judgement (strike), drawn and in the pool from conception. Every value a placeholder; nobody has played any of it. |
 | Art | `tools/art/svg/<act>/<id>.svg`, `pnpm art:svg` | Main's stage (D-025). Every field sprite plus the Gym Teacher drawn. The review page: `pnpm art:sheet`. |
 | The Gym Teacher | `SCHOOL-ROSTER.md` §9 | Designed, drawn and fighting: the whistle, the shield, PARTICIPATION. Every number a placeholder; nobody has played him. |
 | Adolescence | `ADOLESCENCE-ROSTER.md` | Designed, data, drawn, startable; Prom fights (the race, the floor, the ring); Growth Spurt and Snooze; its sounds. AUDIT part five read it. |
@@ -21,7 +22,7 @@ and write your name against it here, on `main`, before you start.
 
 ## Waiting on Justin — reactions, not values
 
-Play the link once through (about fourteen minutes; README's eight
+Play the link once through (about fourteen minutes; README's ten
 questions). What felt wrong? In particular: does the art read as a register
 worth keeping; does the Egg race feel like a race; is School anything with a
 build carried in (no bot dies there any more); the Gym Teacher, a fight or a
@@ -38,6 +39,8 @@ substitute spelling your name wrong land; did the certificate.
 | Service or College: the fourth act's roster, only after a person has played three | unowned — needs Justin's reactions first |
 | AUDIT part five's open 35/36 were taken as (a); its "left, minor" trail-off-screen note is covered by TRAIL_SECONDS's label | nothing owed |
 | The bots' sidestep cancelling between two of Prom's ring spots (AUDIT part five, minor) | unowned |
+| A test that a card icon which also rides the field (`orbit`, `chain`, `slow`, `aura`, `sweep`, `bolt`) keeps off the field's reserved colours; the dry run's law-11 line still calls every icon card-only (G-035), which is stale | unowned |
+| Paths for the two controls (Charisma, Snooze) and Tantrum; a cap on path cards per offer if three directions of one weapon reads as no choice | unowned — after Justin's reaction to question 9 |
 
 ## The prompt for the next session
 

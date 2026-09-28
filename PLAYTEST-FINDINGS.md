@@ -24,6 +24,33 @@ Running record of what the automated bots measured and what it means for design.
 
 ---
 
+# 2026-09-28 · After G-043 and G-044 — paths, stat lines, three archetypes. Presence only.
+
+`pnpm playtest -- --runs=8 --life` (seeds 1000–1007, 80 lives, ten policies) at `dd522c0`, the merged
+branch before its PR. Three new arms take the three new weapons and one path each; every older arm
+names one path of its weapon right after it (`bots.ts`).
+
+| policy | ended in | of | took its path |
+|---|---|---|---|
+| personal-space+membrane | adolescence 6, conception 2 | natural causes 6, Someone else 2 | yes |
+| backhand+midpiece | adolescence 7, conception 1 | natural causes 6, Someone else 1, Group chat 1 | yes |
+| judgement+appetite | adolescence 8 | natural causes 7, Hormones 1 | yes |
+| the seven older arms | as the entry below, within noise | Someone else remains the Conception death | yes, each |
+
+Every one of the ten policies finished eight lives without a crash, and every arm's first-named path
+was taken in its lives (a throwaway probe on the same seeds; the report does not yet print paths).
+Uptake over the life: Backhand 84%, Personal Space 83%, Judgement 71% of 80 lives, all three above
+the older weapons, which says only that they are in the pool from conception and get offered, not
+that any of them is good. Tantrum fell to 3 of 80 lives (it was 0 of 28 in the paths agent's own run):
+path cards now compete with Temper's level cards for the same offer slots, which is a reaction
+question for Justin — does the evolution still arrive when it should? — and not a number to move.
+Judgement is the first weapon on the world's shared dice, so a seed's spawn angles and later rolls
+differ once it is held; the bots and the browser still agree, since both run `world.ts`. Nothing here
+is calibration (G-026, G-027): the arms establish that the paths roll, the cards choose, the three
+modes kill, and a life still ends on the certificate.
+
+---
+
 # 2026-09-28 · After the shield-reading bots and AUDIT five — endings, inheritance, two shields. Presence only.
 
 `pnpm playtest -- --runs=16 --life` (seeds 1000–1015, 112 lives), `--runs=12 --act=school` and

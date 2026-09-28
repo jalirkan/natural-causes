@@ -833,6 +833,68 @@ export const ITEM_ICONS: AssetSpec[] = [
       'flat muted dusty rose case, pale warm face, bar and z',
     ].join(', '),
   },
+  // Personal Space (G-044) is drawn. Its icon also rides the aura ring on the
+  // field (about 32px), so it keeps to rose, bone and ink as Grudge does.
+  {
+    id: 'icon-aura',
+    name: 'Personal Space icon',
+    act: 'conception',
+    role: 'icon',
+    source: 'svg',
+    targetSize: 96,
+    seed: 61025,
+    tests: 'a rope barrier that says keep your distance, read at 52px on a card and 32px riding the ring',
+    subject: [
+      'a velvet rope barrier seen straight on: two short stanchion posts, each with a round ball finial on a cap and a flat round base',
+      'one thick rope hooked to the inner face of each post just under the cap, drooping between them in a single sag',
+      'pale warm posts, finials, bases and rope ends, flat muted dusty rose rope, dark interior lines under the finials and caps, at the bases and where the rope meets each post',
+      'nothing else: no sign, no carpet, no queue, no figure, no text',
+    ].join(', '),
+  },
+  // Judgement (G-044) is drawn too. Its gavel also comes down on the target
+  // during the telegraph and sits at the impact point (~36px), so it keeps to
+  // rose, bone and ink like Grudge, Gossip and Snooze.
+  {
+    id: 'icon-bolt',
+    name: 'Judgement icon',
+    act: 'conception',
+    role: 'icon',
+    source: 'svg',
+    targetSize: 96,
+    seed: 61027,
+    tests: 'a gavel about to land, read at 52px on a card and 36px dropping onto the field, never a hammer',
+    subject: [
+      'a gavel seen from the side, its head a thick horizontal cylinder with a flat pale face at each end, no claw',
+      'a short handle leaving the middle of the head and running down-left at about forty degrees, a round knob at its end',
+      'held just above a small round sound block seen at a slight angle, its near rim one dark line',
+      'three tiny flat impact ticks fanned up off the block in the gap under the head',
+      'flat muted dusty rose head and handle, pale warm end faces, block and ticks, dark lines where the head meets the handle and the faces meet the head',
+    ].join(', '),
+  },
+  // Backhand (G-044, mode sweep) is drawn like the five above. Its icon also
+  // rides the leading edge of each sweep on the field (~36px, rotated to the
+  // sweep's angle), so it keeps to rose, bone and ink as Grudge does. It is a
+  // hand with a cuff, as Reflex's manicule is, so everything else about it
+  // differs: leaning diagonally where that one lies level, every finger out
+  // where that one points one, and moving where that one aims.
+  {
+    id: 'icon-sweep',
+    name: 'Backhand icon',
+    act: 'conception',
+    role: 'icon',
+    source: 'svg',
+    targetSize: 96,
+    seed: 61026,
+    tests: 'a backhand mid-swing, unmistakably a slap and never the manicule, read at 52px on a card and 36px on the field',
+    subject: [
+      'an open hand seen from the back, four fingers held together and only slightly fanned, the thumb out on the leading side',
+      'leaning well over into a swing to the right, as if caught halfway through it',
+      'three short flat motion arcs trailing off its heel, pieces of the swing\'s own curve, none at the fingertips',
+      'a simple shirt cuff with one button at the wrist, as on the printed pointing hand, and no forearm past it',
+      'no finger pointing, no palm showing, never a wave',
+      'flat muted dusty rose hand, pale warm cuff and motion arcs, dark interior lines between the fingers',
+    ].join(', '),
+  },
 ];
 
 /**

@@ -25,7 +25,8 @@ export type ItemKind = 'weapon' | 'control' | 'passive';
 
 /**
  * The offer-card glyph vocabulary. One per item today; categories if it grows.
- * Every one has authored art in the icon atlas (tools/art/svg/conception/icon-*).
+ * Every one has authored art in the icon atlas (tools/art/svg/conception/icon-*),
+ * or its item's `iconPending` says the drawing is on its way.
  */
 export type ItemIcon =
   | 'strike'
@@ -40,7 +41,10 @@ export type ItemIcon =
   | 'chain'
   | 'magnet'
   | 'grow'
-  | 'slow';
+  | 'slow'
+  | 'aura'
+  | 'sweep'
+  | 'bolt';
 
 interface ItemBase {
   id: string;
@@ -108,11 +112,64 @@ export interface LevelBonus {
   echo?: boolean;
   /** On hit, a seeking shot jumps to this many further nearby enemies. */
   chain?: number;
+  /** Multiplier on damage per hit, on top of the generic per-level scaling. */
+  damage?: number;
+  /** Multiplier on the cooldown (orbit and aura: the per-enemy re-hit). Below 1 is sooner. */
+  cooldown?: number;
+  /** Multiplier on projectile speed; for `orbit`, on how fast the orbiters go round. */
+  speed?: number;
+  /** Extra pixels a hit pushes a non-boss enemy away from the player. Adds to `knockback`. */
+  knockback?: number;
 }
 
 export interface ItemLevel extends LevelBonus {
   /** The offer-card line for REACHING this level. Under 64 characters. */
   text: string;
+}
+
+/**
+ * A branch of a weapon (G-043): a named direction its owner can push it in,
+ * offered as its own card ("Grudge · Company") once the weapon has opened
+ * (`PATH_OPENS_AT`), levelled separately from the weapon, and read into the
+ * same `LevelBonus` total as the weapon's own levels. Every field is
+ * cumulative like a weapon's levels. A path has no `enables`/`tradesAway`:
+ * the weapon's stand for it; what a path says is in its name and its lines.
+ */
+export interface ItemPath {
+  /** Unique within the weapon; the offer id is `${weapon.id}/${path.id}`. */
+  id: string;
+  /** The life name, in the weapon's register: what this direction is called. */
+  name: string;
+  /** ONE line, under 64 characters: what pushing this way does. */
+  blurb: string;
+  maxLevel: number;
+  /** Index = level - 1; length = maxLevel. */
+  levels: ItemLevel[];
+}
+
+/** Separates weapon id and path id in an offer id. Neither side may contain it. */
+export const OFFER_PATH_SEPARATOR = '/';
+
+/**
+ * PLACEHOLDER: the weapon level at which its paths join the offer pool. One
+ * would offer a direction before the weapon has shown what it does; a person
+ * playing at the link moves it.
+ */
+export const PATH_OPENS_AT = 2;
+
+/** The item and, for a path offer (`weapon/path`), the path an offer id names. */
+export function parseOfferId(id: string): { item: ItemDef; path?: ItemPath } {
+  const at = id.indexOf(OFFER_PATH_SEPARATOR);
+  if (at < 0) return { item: itemDef(id) };
+  const item = itemDef(id.slice(0, at));
+  if (!isActive(item)) throw new Error(`"${id}": paths belong to active items only`);
+  const path = item.paths?.find((p) => p.id === id.slice(at + 1));
+  if (!path) throw new Error(`Unknown path "${id}"`);
+  return { item, path };
+}
+
+export function offerIdFor(item: Pick<ItemBase, 'id'>, path?: Pick<ItemPath, 'id'>): string {
+  return path ? `${item.id}${OFFER_PATH_SEPARATOR}${path.id}` : item.id;
 }
 
 /** Fires something. `control` fires something that does no damage. */
@@ -125,11 +182,19 @@ export interface ActiveItem extends ItemBase {
   cooldown: number;
   /** Damage per hit at level 1. Zero for control items. */
   damage: number;
-  /** How the effect is delivered. The sim switches on this. */
-  mode: 'seeking' | 'line' | 'burst' | 'trail' | 'attractor' | 'orbit' | 'field';
+  /**
+   * How the effect is delivered. The sim switches on this. `aura` never
+   * activates, like `orbit`: a ring of `radius` around the player hurts what
+   * stands in it, each enemy once per cooldown. `sweep` swings an arc of `arc`
+   * radians and `range` reach along the facing on its cooldown. `strike` picks
+   * a random enemy within `range` and, after a telegraph, lands a one-shot
+   * area of `radius` where it was (G-044).
+   */
+  mode: 'seeking' | 'line' | 'burst' | 'trail' | 'attractor' | 'orbit' | 'field' | 'aura' | 'sweep' | 'strike';
   /**
    * Pixels. Meaning depends on mode: travel range, burst radius, pull radius,
-   * orbit distance. Seconds for `trail` and `field`.
+   * orbit distance, a sweep's reach, a strike's targeting range. Seconds for
+   * `trail` and `field`. Unused by `aura`, whose ring is `radius`.
    */
   range: number;
   /** Pixels per second. For `orbit`, the orbiters' speed along the circle. */
@@ -138,8 +203,19 @@ export interface ActiveItem extends ItemBase {
   pierce: number;
   /** Index = level - 1; length = maxLevel. What each level adds. */
   levels: ItemLevel[];
+  /**
+   * G-043: the directions this weapon can be pushed in, each its own card
+   * from `PATH_OPENS_AT`. Absent means the weapon only levels. The sim reads
+   * a path's levels into the same bonus total as the weapon's own.
+   */
+  paths?: ItemPath[];
   /** Pixels a hit pushes a non-boss enemy away from the player. */
   knockback?: number;
+  /**
+   * `sweep` only: the arc's full width, in radians, centred on the direction
+   * it swings. Level bonuses do not widen it; `area` lengthens its reach.
+   */
+  arc?: number;
   /**
    * `field` only: the attractor's area with a hold instead of a pull. Inside
    * it enemies, every projectile and the player move at this fraction of
@@ -249,6 +325,58 @@ export const ITEMS: Record<string, ItemDef> = {
       ],
       { 3: { projectiles: 1 }, 4: { pierce: 1 }, 5: { projectiles: 1 }, 7: { projectiles: 1 }, 8: { pierce: 1 } },
     ),
+    // G-043 paths. PLACEHOLDER VALUES, every one: each path level's single
+    // bonus field, each path's maxLevel and PATH_OPENS_AT were written to
+    // make the branch playable, not measured, and a person playing at the
+    // link moves them. They fold into the same total as the weapon's own
+    // levels. The copy carries no numbers: the card prints them from these
+    // fields (G-043).
+    paths: [
+      {
+        id: 'twitch',
+        name: 'Twitch',
+        blurb: 'Flinches sooner every time. It saw that coming.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Flinches sooner. You were already braced.',
+            'Sooner again. You flinch at your own shadow.',
+            'Before anything happens. Jumpy is a lifestyle.',
+          ],
+          {},
+          each(1, 3, { cooldown: 0.85 }),
+        ),
+      },
+      {
+        id: 'overreaction',
+        name: 'Overreaction',
+        blurb: 'Every flinch hits harder than the thing deserved.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Harder than it needed to be. Much harder.',
+            'Harder again. Someone brushed past you.',
+            'Wildly out of proportion. It felt justified.',
+          ],
+          {},
+          each(1, 3, { damage: 1.25 }),
+        ),
+      },
+      {
+        id: 'nerves',
+        name: 'Nerves',
+        blurb: 'More flinches at once. Everything is a threat now.',
+        maxLevel: 2,
+        levels: table(
+          [
+            'One more flinch at once. You are on edge.',
+            'Another. You have not relaxed since conception.',
+          ],
+          {},
+          each(1, 2, { projectiles: 1 }),
+        ),
+      },
+    ],
     enables:
       'The default build. Fires at whatever is nearest, so it rewards nothing and asks nothing — the baseline every other weapon is measured against.',
     tradesAway:
@@ -282,6 +410,53 @@ export const ITEMS: Record<string, ItemDef> = {
       ],
       { 3: { projectiles: 1 }, 5: { projectiles: 2 }, 7: { area: 1.35 } },
     ),
+    paths: [
+      {
+        id: 'conviction',
+        name: 'Conviction',
+        blurb: 'Hits harder. You are not changing your mind.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Harder. You have never once been wrong.',
+            'Harder again. Evidence only makes it worse.',
+            'Unshakeable. You would die on this hill.',
+          ],
+          {},
+          each(1, 3, { damage: 1.25 }),
+        ),
+      },
+      {
+        id: 'momentum',
+        name: 'Momentum',
+        blurb: 'Faster shots. Stopping was never the plan.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Faster. You decided before you left.',
+            'Faster again. Brakes are for people with doubts.',
+            'Nothing slows it down. Nothing ever has.',
+          ],
+          {},
+          each(1, 3, { speed: 1.3 }),
+        ),
+      },
+      {
+        id: 'broadside',
+        name: 'Broadside',
+        blurb: 'More shots at once. Stubborn in several directions.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'One more shot. Still forward, just more of it.',
+            'Another. You are right in more directions now.',
+            'Another. A whole front of being right.',
+          ],
+          {},
+          each(1, 3, { projectiles: 1 }),
+        ),
+      },
+    ],
     enables:
       'A positioning build: line the crowd up along one axis and the whole column dies at once, which turns the act’s density from a threat into the reason the weapon works.',
     tradesAway:
@@ -316,6 +491,53 @@ export const ITEMS: Record<string, ItemDef> = {
       { 4: { echo: true } },
       each(2, 8, { area: 1.1 }),
     ),
+    paths: [
+      {
+        id: 'short-fuse',
+        name: 'Short Fuse',
+        blurb: 'Goes off sooner. It never took much.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Sooner. It does not take much any more.',
+            'Sooner again. Breakfast was enough.',
+            'Goes off at nothing. Everyone walks on eggshells.',
+          ],
+          {},
+          each(1, 3, { cooldown: 0.85 }),
+        ),
+      },
+      {
+        id: 'blast-radius',
+        name: 'Blast Radius',
+        blurb: 'Wider. The bystanders are involved now.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Wider. The next table can hear it.',
+            'Wider again. The neighbours can hear it.',
+            'The whole street heard. Nobody mentions it.',
+          ],
+          {},
+          each(1, 3, { area: 1.15 }),
+        ),
+      },
+      {
+        id: 'slammed-door',
+        name: 'Slammed Door',
+        blurb: 'Throws them back. You needed the room anyway.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Pushes them away. The frame rattles.',
+            'Further. The pictures fall off the wall.',
+            'Further still. The door will not close again.',
+          ],
+          {},
+          each(1, 3, { knockback: 25 }),
+        ),
+      },
+    ],
     enables:
       'A body-check build that wants to be inside the crowd rather than away from it, and the only weapon in the act that scales with how bad the player’s position is. Maxed beside Restlessness, it becomes Tantrum.',
     tradesAway:
@@ -350,6 +572,53 @@ export const ITEMS: Record<string, ItemDef> = {
       { 5: { area: 1.2 }, 8: { area: 1.2 } },
       each(2, 8, { duration: 1.15 }),
     ),
+    paths: [
+      {
+        id: 'hoarding',
+        name: 'Hoarding',
+        blurb: 'Lingers longer. You never throw anything away.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Lingers longer. You kept the receipts.',
+            'Longer again. The boxes have boxes.',
+            'It never goes. You might need it someday.',
+          ],
+          {},
+          each(1, 3, { duration: 1.25 }),
+        ),
+      },
+      {
+        id: 'dead-weight',
+        name: 'Dead Weight',
+        blurb: 'Hurts more. Some of it was always heavy.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Heavier. It hurts whoever steps in it.',
+            'Heavier again. You feel it in your back.',
+            'The heaviest thing you own. You still own it.',
+          ],
+          {},
+          each(1, 3, { damage: 1.25 }),
+        ),
+      },
+      {
+        id: 'sprawl',
+        name: 'Sprawl',
+        blurb: 'A wider trail. Your things are everywhere.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Wider. It spills into the next lane.',
+            'Wider again. It needs a room of its own.',
+            'Wider still. It takes up the whole hallway.',
+          ],
+          {},
+          each(1, 3, { area: 1.15 }),
+        ),
+      },
+    ],
     enables:
       'A kiting build where the player never faces the crowd at all and kills by having already been somewhere, which is the only build in the act that rewards retreating.',
     tradesAway:
@@ -410,6 +679,53 @@ export const ITEMS: Record<string, ItemDef> = {
       ],
       { 3: { projectiles: 1 }, 4: { area: 1.15 }, 5: { projectiles: 1 }, 7: { projectiles: 1 }, 8: { area: 1.15 } },
     ),
+    paths: [
+      {
+        id: 'company',
+        name: 'Company',
+        blurb: 'More fists. A grudge loves company.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'One more fist. It found an old friend.',
+            'Another. They meet on Thursdays.',
+            'Another. It is a support group now.',
+          ],
+          {},
+          each(1, 3, { projectiles: 1 }),
+        ),
+      },
+      {
+        id: 'spiralling',
+        name: 'Spiralling',
+        blurb: 'Faster round. You cannot stop thinking about it.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Faster. You went over it again last night.',
+            'Faster again. You replay it in the shower.',
+            'It never stops. You win the argument every time.',
+          ],
+          {},
+          each(1, 3, { speed: 1.3 }),
+        ),
+      },
+      {
+        id: 'weight',
+        name: 'Weight',
+        blurb: 'Hits harder. It gets heavier every year.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Heavier. You add to it every day.',
+            'Heavier again. It is accruing interest.',
+            'It weighs a ton. You would never put it down.',
+          ],
+          {},
+          each(1, 3, { damage: 1.3 }),
+        ),
+      },
+    ],
     enables:
       'A build that stands its ground: the orbiters work at a fixed short distance whatever the player does, so it pairs with anything that brings the crowd close — Charisma, Thick Skin, Temper.',
     tradesAway:
@@ -445,6 +761,53 @@ export const ITEMS: Record<string, ItemDef> = {
       ],
       { 1: { chain: 2 }, 4: { chain: 1 }, 7: { chain: 1 } },
     ),
+    paths: [
+      {
+        id: 'mutuals',
+        name: 'Mutuals',
+        blurb: 'Jumps to more of them. Everyone knows someone.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Reaches one more. You have a friend in common.',
+            'Another. They were in the same year.',
+            'Another. Nobody here is a stranger.',
+          ],
+          {},
+          each(1, 3, { chain: 1 }),
+        ),
+      },
+      {
+        id: 'screenshots',
+        name: 'Screenshots',
+        blurb: 'Hits harder. There is proof, and it is cropped.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Harder. Somebody took a screenshot.',
+            'Harder again. It was cropped for context.',
+            'It will outlive you. Nothing is ever deleted.',
+          ],
+          {},
+          each(1, 3, { damage: 1.25 }),
+        ),
+      },
+      {
+        id: 'notifications',
+        name: 'Notifications',
+        blurb: 'Sends sooner. Nobody has their phone on silent.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Sooner. Someone is always typing.',
+            'Sooner again. The badge never clears.',
+            'Constant. You check it in your sleep.',
+          ],
+          {},
+          each(1, 3, { cooldown: 0.85 }),
+        ),
+      },
+    ],
     enables:
       'A crowd-clearing build for a seeking player: one shot becomes three in a dense crowd, so it scales with exactly the density that ends a Reflex run.',
     tradesAway:
@@ -654,6 +1017,259 @@ export const ITEMS: Record<string, ItemDef> = {
     tradesAway:
       'Escaping. The field is dropped where the player stands and holds the player too, so the one thing it cannot do is get anyone out of a crowd; a player caught inside it walks out at half speed with everything else.',
   },
+
+  // --- 4.5 The classic three (G-044) --------------------------------------
+  //
+  // The aura, the melee swing and the caster a survivors player reaches for
+  // in the first minute, each with one life-name (G-039), in the pool from
+  // conception. PLACEHOLDER NUMBERS, all of them: the cooldowns, damage,
+  // reaches, radii, the sweep's arc and knockback, every level table and
+  // every path were written to make the three playable and have not been
+  // played. They sit under Conception's `provisional` (its weapon level
+  // tables clause); a person playing them at the link is what moves them.
+
+  'personal-space': {
+    id: 'personal-space',
+    name: 'Personal Space',
+    kind: 'weapon',
+    mode: 'aura',
+    // Aura never activates; this is how often one enemy inside may be hit again.
+    cooldown: 0.6,
+    damage: 2,
+    // Unused: the ring is `radius`.
+    range: 0,
+    projectileSpeed: 0,
+    radius: 90,
+    pierce: 99,
+    maxLevel: 8,
+    icon: 'aura',
+    blurb: 'Whatever stands too close gets hurt. You did ask nicely.',
+    levels: table(
+      [
+        'Whatever stands too close gets hurt. You did ask nicely.',
+        'A little more room. You need it.',
+        'More room again. People have started to notice.',
+        'It hurts more to be near you now.',
+        'Wider. You take both armrests.',
+        'Wider. Strangers cross the road.',
+        'It hurts more. Hugging is off the table.',
+        'As much room as it gets. Nobody sits next to you.',
+      ],
+      { 2: { area: 1.1 }, 3: { area: 1.1 }, 4: { damage: 1.2 }, 5: { area: 1.1 }, 6: { area: 1.1 }, 7: { damage: 1.2 }, 8: { area: 1.1 } },
+    ),
+    paths: [
+      {
+        id: 'boundaries',
+        name: 'Boundaries',
+        blurb: 'A wider ring. You have been reading about this.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Wider. You said it out loud this time.',
+            'Wider again. You have a therapist now.',
+            'As wide as it goes. It is healthy, apparently.',
+          ],
+          {},
+          each(1, 3, { area: 1.15 }),
+        ),
+      },
+      {
+        id: 'cold-shoulder',
+        name: 'Cold Shoulder',
+        blurb: 'It hurts more to be near you. You do not look up.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Hurts more. You answer in single words.',
+            'Hurts more again. You have stopped answering.',
+            'It hurts to be in the same room as you.',
+          ],
+          {},
+          each(1, 3, { damage: 1.3 }),
+        ),
+      },
+      {
+        id: 'hovering',
+        name: 'Hovering',
+        blurb: 'They hover. It costs them sooner every time.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Sooner. They are still standing there.',
+            'Sooner again. They read over your shoulder.',
+            'Sooner still. They have not taken the hint.',
+          ],
+          {},
+          each(1, 3, { cooldown: 0.85 }),
+        ),
+      },
+    ],
+    enables:
+      'A build that never aims and never stops: the ring hurts whatever stands in it, so it rewards being inside the crowd for exactly as long as the player can afford it, and pairs with Thick Skin, Charisma and Grudge.',
+    tradesAway:
+      'Reach and burst. It touches nothing further than arm’s length, it deals little to any one thing at a time, and a crowd it cannot kill fast enough is standing exactly where it also hurts the player.',
+  },
+
+  backhand: {
+    id: 'backhand',
+    name: 'Backhand',
+    kind: 'weapon',
+    mode: 'sweep',
+    cooldown: 1.0,
+    damage: 6,
+    // The arc's reach, in pixels.
+    range: 110,
+    projectileSpeed: 0,
+    radius: 0,
+    pierce: 99,
+    knockback: 20,
+    arc: (100 * Math.PI) / 180,
+    maxLevel: 8,
+    icon: 'sweep',
+    blurb: 'Swats whatever is in front of you. It was a compliment.',
+    levels: table(
+      [
+        'Swats whatever is in front of you. It was a compliment.',
+        'Harder. You are only being honest.',
+        'One behind you as well. You had eyes back there.',
+        'Longer reach. You mean it in the nicest way.',
+        'Harder. It is not a criticism, it is a note.',
+        'Longer reach again. It lands from across the room.',
+        'One to your left. That hand has opinions too.',
+        'Knocks them further. They will think about it later.',
+      ],
+      { 3: { projectiles: 1 }, 4: { area: 1.15 }, 5: { damage: 1.2 }, 6: { area: 1.15 }, 7: { projectiles: 1 }, 8: { knockback: 20 } },
+    ),
+    paths: [
+      {
+        id: 'wingspan',
+        name: 'Wingspan',
+        blurb: 'Longer reach. You were always going to grow into it.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Longer. Your arms caught up with your opinions.',
+            'Longer again. You can reach the top shelf.',
+            'As long as it gets. Nobody is out of range.',
+          ],
+          {},
+          each(1, 3, { area: 1.15 }),
+        ),
+      },
+      {
+        id: 'follow-through',
+        name: 'Follow-Through',
+        blurb: 'Sends them further. You always finish the thought.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Further. You meant every word.',
+            'Further again. You said it louder.',
+            'As far as it goes. They will not be back soon.',
+          ],
+          {},
+          each(1, 3, { knockback: 25 }),
+        ),
+      },
+      {
+        id: 'snap',
+        name: 'Snap',
+        blurb: 'Swats sooner. You have stopped counting first.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Sooner. You did not let them finish.',
+            'Sooner again. You started before they did.',
+            'Sooner still. There is no pause to regret it in.',
+          ],
+          {},
+          each(1, 3, { cooldown: 0.85 }),
+        ),
+      },
+    ],
+    enables:
+      'A melee build that aims by walking: the arc hits everything in front of the player at once and shoves it back, so it rewards facing the crowd and pushing into it, and it clears the flanks a Stubbornness line leaves open.',
+    tradesAway:
+      'Everything behind and beside the player until the extra swats arrive, and anything past arm’s reach. It swings on its cooldown whether or not anything is there, so a player walking away from the crowd is swatting the air.',
+  },
+
+  judgement: {
+    id: 'judgement',
+    name: 'Judgement',
+    kind: 'weapon',
+    mode: 'strike',
+    cooldown: 1.6,
+    damage: 9,
+    // How far away a target may be picked, in pixels.
+    range: 300,
+    projectileSpeed: 0,
+    // What the bolt hits where it lands.
+    radius: 48,
+    pierce: 99,
+    maxLevel: 8,
+    icon: 'bolt',
+    blurb: 'Something up there has opinions. It comes down on one of them.',
+    levels: table(
+      [
+        'Something up there has opinions. It comes down on one of them.',
+        'Harder. The opinions have hardened into views.',
+        'A second one, on someone else. There is a list.',
+        'Wider. It takes the neighbours with it.',
+        'Harder. It has read your file.',
+        'A third, on someone else again. The list is long.',
+        'Sooner. It no longer waits for all the facts.',
+        'As wide as it gets. Everyone nearby is implicated.',
+      ],
+      { 3: { projectiles: 1 }, 4: { area: 1.2 }, 5: { damage: 1.2 }, 6: { projectiles: 1 }, 7: { cooldown: 0.85 }, 8: { area: 1.2 } },
+    ),
+    paths: [
+      {
+        id: 'verdict',
+        name: 'Verdict',
+        blurb: 'Lands harder. The deliberation was brief.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Harder. Nobody else was consulted.',
+            'Harder again. The appeal was denied.',
+            'As hard as it gets. The ruling is not reviewed.',
+          ],
+          {},
+          each(1, 3, { damage: 1.3 }),
+        ),
+      },
+      {
+        id: 'docket',
+        name: 'Docket',
+        blurb: 'One more name on the list, every time.',
+        maxLevel: 2,
+        levels: table(
+          ['Another one. The list gets longer.', 'Another. You were on it once yourself.'],
+          {},
+          each(1, 2, { projectiles: 1 }),
+        ),
+      },
+      {
+        id: 'summary',
+        name: 'Summary',
+        blurb: 'Sooner. Nobody has time for a full hearing.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Sooner. The hearing was a formality.',
+            'Sooner again. It skips the hearing.',
+            'Sooner still. It decided before you arrived.',
+          ],
+          {},
+          each(1, 3, { cooldown: 0.85 }),
+        ),
+      },
+    ],
+    enables:
+      'A caster build for a player busy staying alive: it picks its own target anywhere in range, so it needs no aiming and no positioning, and a crowd packed tight takes the neighbours of whoever was picked.',
+    tradesAway:
+      'Choice and timing. It picks at random rather than what is dangerous, it lands where the target was a moment ago so anything fast has already left, and it never favours what is touching the player.',
+  },
 };
 
 export const ITEM_IDS = Object.keys(ITEMS);
@@ -666,6 +1282,39 @@ export function itemDef(id: string): ItemDef {
 
 export function isActive(def: ItemDef): def is ActiveItem {
   return def.kind === 'weapon' || def.kind === 'control';
+}
+
+/**
+ * The generic per-level scaling every active item gets, whatever its levels
+ * table adds (PLACEHOLDERS, like the tables). Exported so the offer card can
+ * print what the next level is worth from the same formula the sim uses.
+ */
+export function damageScale(level: number): number {
+  return 1 + 0.2 * (level - 1);
+}
+
+/** Below 1 is sooner. Floors at 0.4, so no weapon fires more than 2.5x its base rate. */
+export function cooldownScale(level: number): number {
+  return Math.max(0.4, 1 - 0.08 * (level - 1));
+}
+
+/** Every field a `Required<LevelBonus>` starts from: the identity for each. */
+export function emptyBonus(): Required<LevelBonus> {
+  return { projectiles: 0, pierce: 0, area: 1, duration: 1, echo: false, chain: 0, damage: 1, cooldown: 1, speed: 1, knockback: 0 };
+}
+
+/** Folds one level's bonus into a running total, in place. Counts sum, multipliers multiply, echo latches. */
+export function foldBonus(into: Required<LevelBonus>, l: LevelBonus): void {
+  into.projectiles += l.projectiles ?? 0;
+  into.pierce += l.pierce ?? 0;
+  into.area *= l.area ?? 1;
+  into.duration *= l.duration ?? 1;
+  into.echo ||= l.echo ?? false;
+  into.chain += l.chain ?? 0;
+  into.damage *= l.damage ?? 1;
+  into.cooldown *= l.cooldown ?? 1;
+  into.speed *= l.speed ?? 1;
+  into.knockback += l.knockback ?? 0;
 }
 
 /**
@@ -684,15 +1333,8 @@ export function levelBonus(def: ActiveItem, level: number): Required<LevelBonus>
   if (!perLevel) bonusCache.set(def, (perLevel = []));
   const hit = perLevel[level];
   if (hit) return hit;
-  const out: Required<LevelBonus> = { projectiles: 0, pierce: 0, area: 1, duration: 1, echo: false, chain: 0 };
+  const out = emptyBonus();
   perLevel[level] = out;
-  for (const l of def.levels.slice(0, Math.max(0, level))) {
-    out.projectiles += l.projectiles ?? 0;
-    out.pierce += l.pierce ?? 0;
-    out.area *= l.area ?? 1;
-    out.duration *= l.duration ?? 1;
-    out.echo ||= l.echo ?? false;
-    out.chain += l.chain ?? 0;
-  }
+  for (const l of def.levels.slice(0, Math.max(0, level))) foldBonus(out, l);
   return out;
 }
