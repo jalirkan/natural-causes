@@ -1,7 +1,17 @@
 import type { ActDef, BossDef, GymTeacherBoss, PromBoss, SpawnWave } from '../data/acts';
 import { ALL_ACTS, rateAt, spawnStreams, whistleInterval } from '../data/acts';
 import { enemyDef, type EnemyDef } from '../data/enemies';
-import { ITEMS, isActive, itemDef, levelBonus, type ActiveItem, type ItemDef, type PassiveItem } from '../data/items';
+import {
+  ITEMS,
+  cooldownScale,
+  damageScale,
+  isActive,
+  itemDef,
+  levelBonus,
+  type ActiveItem,
+  type ItemDef,
+  type PassiveItem,
+} from '../data/items';
 import { INHERITANCES, INHERITANCE_IDS, type InheritanceDef, type StatLine } from '../data/inheritances';
 import { Grid } from './grid';
 
@@ -827,12 +837,12 @@ export class World {
 
   private activeDamage(def: ItemDef, level: number): number {
     if (!isActive(def)) return 0;
-    return def.damage * (1 + 0.2 * (level - 1)) * this.damageDealt;
+    return def.damage * damageScale(level) * levelBonus(def, level).damage * this.damageDealt;
   }
 
   private activeCooldown(def: ItemDef, level: number): number {
     if (!isActive(def)) return Infinity;
-    return def.cooldown * Math.max(0.4, 1 - 0.08 * (level - 1)) * this.cooldownFactor;
+    return def.cooldown * cooldownScale(level) * levelBonus(def, level).cooldown * this.cooldownFactor;
   }
 
   // --- the step ---------------------------------------------------------
@@ -1389,14 +1399,15 @@ export class World {
           if (boss) targets.push(boss);
         }
         if (targets.length === 0) return false;
+        const speed = def.projectileSpeed * bonus.speed;
         for (const target of targets) {
           const d = Math.hypot(target.x - this.x, target.y - this.y) || 1;
           this.projectiles.push({
             x: this.x,
             y: this.y,
-            vx: ((target.x - this.x) / d) * def.projectileSpeed,
-            vy: ((target.y - this.y) / d) * def.projectileSpeed,
-            life: range / def.projectileSpeed,
+            vx: ((target.x - this.x) / d) * speed,
+            vy: ((target.y - this.y) / d) * speed,
+            life: range / speed,
             damage,
             pierce,
             radius,
@@ -1412,6 +1423,7 @@ export class World {
         // Along the player's facing, whatever is there. Extra shots: first
         // straight backwards, then pairs either side of forward, 15° apart.
         const facing = Math.atan2(this.facingY, this.facingX);
+        const speed = def.projectileSpeed * bonus.speed;
         for (let k = 0; k <= bonus.projectiles; k++) {
           let angle = facing;
           if (k === 1) angle += Math.PI;
@@ -1422,9 +1434,9 @@ export class World {
           this.projectiles.push({
             x: this.x,
             y: this.y,
-            vx: Math.cos(angle) * def.projectileSpeed,
-            vy: Math.sin(angle) * def.projectileSpeed,
-            life: (def.range * reach) / def.projectileSpeed,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            life: (def.range * reach) / speed,
             damage,
             pierce,
             radius,
@@ -1504,18 +1516,20 @@ export class World {
 
   /** One burst at the player, sized by the item's level bonuses. */
   private burst(def: ActiveItem, level: number, damage: number): void {
+    const bonus = levelBonus(def, level);
     const area: AreaState = {
       x: this.x,
       y: this.y,
       age: 0,
       seconds: 0.12,
-      radius: def.radius * levelBonus(def, level).area * this.reach,
+      radius: def.radius * bonus.area * this.reach,
       damage,
       pull: false,
       tick: false,
       serial: this.nextSerial++,
     };
-    if (def.knockback) area.knockback = def.knockback;
+    const knockback = (def.knockback ?? 0) + bonus.knockback;
+    if (knockback > 0) area.knockback = knockback;
     this.areas.push(area);
   }
 
@@ -1549,7 +1563,8 @@ export class World {
       const bonus = levelBonus(def, level);
       const count = 1 + bonus.projectiles;
       const distance = def.range * bonus.area * this.reach;
-      const omega = def.projectileSpeed / distance;
+      // `speed` (a path's spin) multiplies the angular rate, not the distance.
+      const omega = (def.projectileSpeed * bonus.speed) / distance;
       const damage = this.activeDamage(def, level);
       // Through activeCooldown like every other weapon, so levels and
       // Restlessness shorten the re-hit (AUDIT part three, 19).

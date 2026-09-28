@@ -1173,3 +1173,36 @@ the start of every act from School on, dealt at random from the offer pool;
 so shots too). One registry, `src/data/inheritances.ts`, on the passive stat line.
 Rejected: make it a choice of three like everything else — then it is one more offer screen, and the life has nothing in it you did not pick.
 Rejected: drop the downside under G-038 — a gift nobody chose is a bonus; a trait nobody chose is an inheritance.
+
+## G-043 · 2026-09-28 · Weapons branch, and every card prints its number
+Justin, playing: he wants to push Grudge toward more fists, or faster, or
+harder, and to read "attack speed +8%" under the joke so a survivors player's
+intuition carries over. So two things. **Paths** (`ItemPath`, `paths` on a
+weapon): from weapon level 2 (`PATH_OPENS_AT`, placeholder) each of its two or
+three directions is its own card, "Grudge · Company", levelled apart from the
+weapon and folded into the same bonus total, with life names in the weapon's
+register (Company, Spiralling, Weight). **Stat lines**: under every blurb the
+card prints what the level is worth, derived from the data by one module
+(`src/data/item-text.ts`), never typed by hand, so a joke can never claim a
+number the sim does not pay. Every path value is a placeholder.
+Rejected: paths as separate items in the pool (Grudge II) — one registry per kind, and a
+sibling item is a name the player has to learn twice.
+Rejected: numbers in the blurb copy — hand-typed numbers drift from the data, and the card
+then lies, which is the class of bug AUDIT.md exists for.
+
+## G-044 · 2026-09-28 · Three classic archetypes, named for the life
+The pool had no aura, no melee and no caster, so a survivors player found
+none of the three builds they know. Three weapons, in the pool from conception
+with one life-name each (G-039): **Personal Space** (mode `aura`: a ring that
+hurts whatever stands in it, always on — a sperm among millions with space
+issues), **Backhand** (mode `sweep`: an arc in front of you on a cooldown, the
+tail-flick that becomes a slap), **Judgement** (mode `strike`: a bolt that comes
+down on someone in range, from above, after a moment's warning — something up
+there already has opinions). Each is drawn (a rope barrier, an open hand, a
+gavel); each has a levels table and paths. Every number is a placeholder.
+Rejected: gate them to later acts (Backhand at School) — the classic builds
+are what a new player reaches for in the first minute, and G-039 keeps the
+name anyway.
+Rejected: a garlic aura as a passive on the player rather than a weapon —
+then it has no levels table, no paths and no card, and it is the one
+archetype whose growth a player most expects to feel.

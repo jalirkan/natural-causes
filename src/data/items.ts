@@ -108,11 +108,64 @@ export interface LevelBonus {
   echo?: boolean;
   /** On hit, a seeking shot jumps to this many further nearby enemies. */
   chain?: number;
+  /** Multiplier on damage per hit, on top of the generic per-level scaling. */
+  damage?: number;
+  /** Multiplier on the cooldown (orbit and aura: the per-enemy re-hit). Below 1 is sooner. */
+  cooldown?: number;
+  /** Multiplier on projectile speed; for `orbit`, on how fast the orbiters go round. */
+  speed?: number;
+  /** Extra pixels a hit pushes a non-boss enemy away from the player. Adds to `knockback`. */
+  knockback?: number;
 }
 
 export interface ItemLevel extends LevelBonus {
   /** The offer-card line for REACHING this level. Under 64 characters. */
   text: string;
+}
+
+/**
+ * A branch of a weapon (G-043): a named direction its owner can push it in,
+ * offered as its own card ("Grudge · Company") once the weapon has opened
+ * (`PATH_OPENS_AT`), levelled separately from the weapon, and read into the
+ * same `LevelBonus` total as the weapon's own levels. Every field is
+ * cumulative like a weapon's levels. A path has no `enables`/`tradesAway`:
+ * the weapon's stand for it; what a path says is in its name and its lines.
+ */
+export interface ItemPath {
+  /** Unique within the weapon; the offer id is `${weapon.id}/${path.id}`. */
+  id: string;
+  /** The life name, in the weapon's register: what this direction is called. */
+  name: string;
+  /** ONE line, under 64 characters: what pushing this way does. */
+  blurb: string;
+  maxLevel: number;
+  /** Index = level - 1; length = maxLevel. */
+  levels: ItemLevel[];
+}
+
+/** Separates weapon id and path id in an offer id. Neither side may contain it. */
+export const OFFER_PATH_SEPARATOR = '/';
+
+/**
+ * PLACEHOLDER: the weapon level at which its paths join the offer pool. One
+ * would offer a direction before the weapon has shown what it does; a person
+ * playing at the link moves it.
+ */
+export const PATH_OPENS_AT = 2;
+
+/** The item and, for a path offer (`weapon/path`), the path an offer id names. */
+export function parseOfferId(id: string): { item: ItemDef; path?: ItemPath } {
+  const at = id.indexOf(OFFER_PATH_SEPARATOR);
+  if (at < 0) return { item: itemDef(id) };
+  const item = itemDef(id.slice(0, at));
+  if (!isActive(item)) throw new Error(`"${id}": paths belong to active items only`);
+  const path = item.paths?.find((p) => p.id === id.slice(at + 1));
+  if (!path) throw new Error(`Unknown path "${id}"`);
+  return { item, path };
+}
+
+export function offerIdFor(item: Pick<ItemBase, 'id'>, path?: Pick<ItemPath, 'id'>): string {
+  return path ? `${item.id}${OFFER_PATH_SEPARATOR}${path.id}` : item.id;
 }
 
 /** Fires something. `control` fires something that does no damage. */
@@ -138,6 +191,12 @@ export interface ActiveItem extends ItemBase {
   pierce: number;
   /** Index = level - 1; length = maxLevel. What each level adds. */
   levels: ItemLevel[];
+  /**
+   * G-043: the directions this weapon can be pushed in, each its own card
+   * from `PATH_OPENS_AT`. Absent means the weapon only levels. The sim reads
+   * a path's levels into the same bonus total as the weapon's own.
+   */
+  paths?: ItemPath[];
   /** Pixels a hit pushes a non-boss enemy away from the player. */
   knockback?: number;
   /**
@@ -669,6 +728,39 @@ export function isActive(def: ItemDef): def is ActiveItem {
 }
 
 /**
+ * The generic per-level scaling every active item gets, whatever its levels
+ * table adds (PLACEHOLDERS, like the tables). Exported so the offer card can
+ * print what the next level is worth from the same formula the sim uses.
+ */
+export function damageScale(level: number): number {
+  return 1 + 0.2 * (level - 1);
+}
+
+/** Below 1 is sooner. Floors at 0.4, so no weapon fires more than 2.5x its base rate. */
+export function cooldownScale(level: number): number {
+  return Math.max(0.4, 1 - 0.08 * (level - 1));
+}
+
+/** Every field a `Required<LevelBonus>` starts from: the identity for each. */
+export function emptyBonus(): Required<LevelBonus> {
+  return { projectiles: 0, pierce: 0, area: 1, duration: 1, echo: false, chain: 0, damage: 1, cooldown: 1, speed: 1, knockback: 0 };
+}
+
+/** Folds one level's bonus into a running total, in place. Counts sum, multipliers multiply, echo latches. */
+export function foldBonus(into: Required<LevelBonus>, l: LevelBonus): void {
+  into.projectiles += l.projectiles ?? 0;
+  into.pierce += l.pierce ?? 0;
+  into.area *= l.area ?? 1;
+  into.duration *= l.duration ?? 1;
+  into.echo ||= l.echo ?? false;
+  into.chain += l.chain ?? 0;
+  into.damage *= l.damage ?? 1;
+  into.cooldown *= l.cooldown ?? 1;
+  into.speed *= l.speed ?? 1;
+  into.knockback += l.knockback ?? 0;
+}
+
+/**
  * Everything the levels an active item has reached add up to. Counts sum,
  * multipliers multiply, echo latches. The sim's only reading of `levels`.
  */
@@ -684,15 +776,8 @@ export function levelBonus(def: ActiveItem, level: number): Required<LevelBonus>
   if (!perLevel) bonusCache.set(def, (perLevel = []));
   const hit = perLevel[level];
   if (hit) return hit;
-  const out: Required<LevelBonus> = { projectiles: 0, pierce: 0, area: 1, duration: 1, echo: false, chain: 0 };
+  const out = emptyBonus();
   perLevel[level] = out;
-  for (const l of def.levels.slice(0, Math.max(0, level))) {
-    out.projectiles += l.projectiles ?? 0;
-    out.pierce += l.pierce ?? 0;
-    out.area *= l.area ?? 1;
-    out.duration *= l.duration ?? 1;
-    out.echo ||= l.echo ?? false;
-    out.chain += l.chain ?? 0;
-  }
+  for (const l of def.levels.slice(0, Math.max(0, level))) foldBonus(out, l);
   return out;
 }
