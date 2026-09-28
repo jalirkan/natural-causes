@@ -54,8 +54,9 @@ export interface AssetSpec {
    * stamp, a rider (G-036) — so besides the card checks it keeps off the
    * field's reserved colours: every threat colour (threats), paper (the
    * player) and every act's light tone (pickups), law 10 — in every act,
-   * because items are not act-scoped. Omitted: card-only, judged against the
-   * card surface alone (G-035).
+   * because items are not act-scoped. CHECK enforces it (`field-colours`):
+   * a sprite that wears one is rejected, not written. Omitted: card-only,
+   * judged against the card surface alone (G-035).
    */
   fieldRiding?: true;
 }
