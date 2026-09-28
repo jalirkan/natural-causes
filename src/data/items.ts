@@ -55,7 +55,9 @@ export type ItemIcon =
   // College: the Highlighter's stroke.
   | 'highlight'
   // Born in Family (G-050): the Strongly Worded Letter.
-  | 'letter';
+  | 'letter'
+  // Born in Decline (G-051): the Nap's armchair, empty.
+  | 'nap';
 
 interface ItemBase {
   id: string;
@@ -117,13 +119,21 @@ export interface LevelBonus {
   pierce?: number;
   /** Multiplier on radius: burst, trail, pull, shot size, orbit distance. */
   area?: number;
-  /** Multiplier on how long a trail or attractor lasts. */
+  /**
+   * Multiplier on how long a trail or attractor lasts. On a `nap` it is how
+   * long the player sleeps, and below 1 is the upgrade: a nap that ends
+   * sooner heals the same amount faster (Power Nap).
+   */
   duration?: number;
   /** A burst repeats once, 0.25s later, wherever the player is then. */
   echo?: boolean;
   /** On hit, a seeking shot jumps to this many further nearby enemies. */
   chain?: number;
-  /** Multiplier on damage per hit, on top of the generic per-level scaling. */
+  /**
+   * Multiplier on damage per hit, on top of the generic per-level scaling.
+   * A `nap` hurts nothing, so on a nap it multiplies the heal instead
+   * (`nap.heal`, Deep Sleep), and the generic scaling does not apply to it.
+   */
   damage?: number;
   /** Multiplier on the cooldown (orbit and aura: the per-enemy re-hit). Below 1 is sooner. */
   cooldown?: number;
@@ -211,12 +221,15 @@ export interface ActiveItem extends ItemBase {
    * radians and `range` reach along the facing on its cooldown. `strike` picks
    * a random enemy within `range` (the nearest, with `strikeNearest`) and,
    * after a telegraph, lands a one-shot area of `radius` where it was (G-044).
+   * `nap` never fires either: it waits for health to fall under its
+   * `nap.threshold` and then stops the player (Decline, G-051; world.ts `nap`).
    */
-  mode: 'seeking' | 'line' | 'burst' | 'trail' | 'attractor' | 'orbit' | 'field' | 'aura' | 'sweep' | 'strike';
+  mode: 'seeking' | 'line' | 'burst' | 'trail' | 'attractor' | 'orbit' | 'field' | 'aura' | 'sweep' | 'strike' | 'nap';
   /**
    * Pixels. Meaning depends on mode: travel range, burst radius, pull radius,
    * orbit distance, a sweep's reach, a strike's targeting range. Seconds for
-   * `trail` and `field`. Unused by `aura`, whose ring is `radius`.
+   * `trail`, `field` and `nap` (how long the player sleeps). Unused by
+   * `aura`, whose ring is `radius`.
    */
   range: number;
   /** Pixels per second. For `orbit`, the orbiters' speed along the circle. */
@@ -283,6 +296,15 @@ export interface ActiveItem extends ItemBase {
    * and, for the boss, `bossTakes`). `seeking` only: other modes ignore it.
    */
   marks?: { seconds: number; multiplier: number };
+  /**
+   * Decline (the Nap, G-051): `nap` mode only. When health is under
+   * `threshold` of the maximum and the item is off its cooldown, the player
+   * falls asleep for `range` seconds (times `duration`): they cannot move,
+   * no contact hurts them (a hostile shot still does), and `heal` of the
+   * maximum (times the `damage` bonus) comes back, evenly, over the window.
+   * The clock keeps running. Read by world.ts `nap`; no dice.
+   */
+  nap?: { threshold: number; heal: number };
 }
 
 /** Changes the player rather than the field. Every multiplier is per level. */
@@ -1869,6 +1891,109 @@ export const ITEMS: Record<string, ItemDef> = {
       'A build that brings the problem back to the mark: Charisma’s pull or Snooze’s hold keeps a crowd standing where the letter was aimed, and then the heaviest single landing in the life comes down on all of it at once.',
     tradesAway:
       'Timing, entirely. It lands where the problem stood when the letter was sent, long after, so anything that moves has usually left; it never favours what is touching the player, and nothing it marks is hurt until it arrives.',
+  },
+
+  // --- 4.8 Born at fifty-five: Decline (G-051) ----------------------------
+  //
+  // In the pool from Decline on, never before (`from`), and the last item the
+  // life meets: the direction panel's Nap (DECLINE-ROSTER §6), a control that
+  // fires nothing. When health falls under its threshold and it is off its
+  // cooldown the player falls asleep in the chair: stopped as the hall
+  // monitor stops them (world.ts `nap`, through `stun`), untouched by
+  // contact while it lasts, still hit by anything aimed, and healing evenly
+  // across the window. The clock keeps running, and that is the joke, not a
+  // tax (G-038): nothing else is taken. Its three levers are the ones a
+  // control already has — `duration` (below 1: a shorter nap, the upgrade),
+  // `cooldown` (sooner), and `damage`, which on a nap multiplies the heal.
+  //
+  // PLACEHOLDER NUMBERS, every one, under DECLINE's `provisional` (the item
+  // born there): the threshold, the cooldown, the seconds (`range`) and the
+  // heal come from the panel's sketch (under 30%, 45s, 1.5s, a quarter; its
+  // "Lv5: 0.8s" is where the level table lands), and every level-table
+  // entry, path value and path maxLevel was written to make it playable, not
+  // measured. Nobody has played it; a person playing it at the link is what
+  // moves them. The copy carries no figures (G-043): the card prints them.
+
+  nap: {
+    id: 'nap',
+    name: 'Nap',
+    kind: 'control',
+    from: 'decline',
+    mode: 'nap',
+    // Seconds between naps at level 1; the generic per-level cooldown
+    // scaling (World.activeCooldown) makes every level come sooner too.
+    cooldown: 45,
+    damage: 0,
+    // Seconds asleep, as a field's `range` is its seconds.
+    range: 1.5,
+    projectileSpeed: 0,
+    radius: 0,
+    pierce: 0,
+    // Under this share of the maximum it falls asleep; this share comes back.
+    nap: { threshold: 0.3, heal: 0.25 },
+    maxLevel: 5,
+    icon: 'nap',
+    iconPending:
+      'Drawn at tools/art/svg/conception/icon-nap.svg and through CONFORM and CHECK; retires when `pnpm art:pack` puts icon-nap.png in the icons atlas.',
+    blurb: 'You fell asleep in the chair. You feel better. It is later.',
+    levels: table(
+      [
+        'You fell asleep in the chair. You feel better. It is later.',
+        'Shorter. You were only resting your eyes.',
+        'Heals more. You were properly out.',
+        'Sooner. You nod off during the news now.',
+        'Shorter still. Out and back before the adverts end.',
+      ],
+      // Level five lands on the panel's 0.8s: 1.5 × 0.8 × 2/3.
+      { 2: { duration: 0.8 }, 3: { damage: 1.2 }, 4: { cooldown: 0.85 }, 5: { duration: 2 / 3 } },
+    ),
+    paths: [
+      {
+        id: 'power-nap',
+        name: 'Power Nap',
+        blurb: 'Shorter naps. You wake up before anyone notices.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Shorter. You set an alarm for it.',
+            'Shorter again. You wake before your head drops.',
+            'Barely a blink. Nobody saw you go.',
+          ],
+          {},
+          each(1, 3, { duration: 0.85 }),
+        ),
+      },
+      {
+        id: 'habit',
+        name: 'Habit',
+        blurb: 'Sooner. Same chair, same time, every afternoon.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Sooner. Straight after lunch, as usual.',
+            'Sooner again. After breakfast as well.',
+            'Sooner still. Whenever you sit down.',
+          ],
+          {},
+          each(1, 3, { cooldown: 0.85 }),
+        ),
+      },
+      {
+        id: 'deep-sleep',
+        name: 'Deep Sleep',
+        blurb: 'Heals more. Nothing wakes you, not even the phone.',
+        maxLevel: 2,
+        levels: table(
+          ['More. You drooled a little.', 'You wake up and ask what year it is.'],
+          {},
+          each(1, 2, { damage: 1.25 }),
+        ),
+      },
+    ],
+    enables:
+      'A second wind for a build that stands in the crowd until it cannot: once health runs low the crowd’s touches stop landing for a moment and part of the maximum comes back, so Thick Skin, Personal Space and Temper get up again instead of getting a certificate.',
+    tradesAway:
+      'Anything above the threshold, and anything soon after the last one: it waits for health to run low and then for its cooldown. Asleep, the player cannot move and a hostile shot still lands, and whatever walked up meanwhile is still there on waking.',
   },
 };
 

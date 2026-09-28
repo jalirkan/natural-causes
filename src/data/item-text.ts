@@ -241,6 +241,21 @@ function fieldTerms(def: ActiveItem, l: LevelBonus | undefined, speedAfter = NaN
   ];
 }
 
+// --- Decline (the Nap): the heal -------------------------------------------
+
+/** A share of the maximum as a whole percentage: `25%`. */
+function share(n: number): string {
+  return `${Math.round(n * 100)}%`;
+}
+
+/**
+ * What a nap's `damage` lever changes: its heal (Deep Sleep), `heals +25%`.
+ * Null on anything that is not a nap, whose `damage` is damage.
+ */
+function healTerm(def: ActiveItem, ratio: number): string | null {
+  return def.nap && finite(ratio) ? labelled('heals', ratio - 1) : null;
+}
+
 // --- the three kinds of card ---------------------------------------------
 
 /**
@@ -321,6 +336,22 @@ function activeTerms(def: ActiveItem, level: number, b: Required<LevelBonus>): A
         every,
       ];
       break;
+    case 'nap': {
+      // Decline: when it falls asleep, for how long, how much comes back
+      // (the heal is not scaled by level, only by its `damage` lever), how
+      // often, and what reaches a sleeper: contact does not, a shot does.
+      const nap = def.nap;
+      const asleep = def.range * b.duration;
+      const heal = nap ? nap.heal * b.damage : NaN;
+      terms = [
+        nap && finite(nap.threshold) ? `under ${share(nap.threshold)} health` : null,
+        finite(asleep) && asleep > 0 ? `naps ${secs(asleep)}` : null,
+        finite(heal) && heal > 0 ? `heals ${share(heal)}` : null,
+        every,
+        'immune to contact, not shots',
+      ];
+      break;
+    }
     default:
       // A mode this file has not met: the generic figures, never a throw.
       terms = [hits, every, within];
@@ -352,7 +383,9 @@ function levelUpTerms(def: ActiveItem, level: number): Array<string | null> {
   const was = levelBonus(def, level);
   const now = levelBonus(def, level + 1);
   const damage =
-    def.damage > 0 ? labelled('damage', (damageScale(level + 1) * now.damage) / (damageScale(level) * was.damage) - 1) : null;
+    def.damage > 0
+      ? labelled('damage', (damageScale(level + 1) * now.damage) / (damageScale(level) * was.damage) - 1)
+      : healTerm(def, now.damage / was.damage);
   const cadence = cadenceTerm(
     def,
     (cooldownScale(level) * was.cooldown) / (cooldownScale(level + 1) * now.cooldown),
@@ -368,7 +401,7 @@ function levelUpTerms(def: ActiveItem, level: number): Array<string | null> {
 function pathTerms(def: ActiveItem, l: LevelBonus | undefined, speedAfter = NaN): Array<string | null> {
   if (!l) return [];
   return [
-    l.damage !== undefined && def.damage > 0 ? labelled('damage', l.damage - 1) : null,
+    l.damage === undefined ? null : def.damage > 0 ? labelled('damage', l.damage - 1) : healTerm(def, l.damage),
     l.cooldown !== undefined && l.cooldown > 0 ? cadenceTerm(def, 1 / l.cooldown) : null,
     ...fieldTerms(def, l, speedAfter),
   ];
