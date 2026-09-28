@@ -35,6 +35,15 @@ export interface ActReservations {
    * before the boss, so its first appearance means something.
    */
   reservedThreat: Partial<Record<ThreatClass, string>>;
+  /**
+   * Other frames of a holder, by the holder's id: the same shape in another
+   * state — the Egg with its eyes shut, the chart with a row greyed, the
+   * house with its door open, the clock without its long hand (D-029). A
+   * variant holds its holder's reservation (silhouette or threat colour) and
+   * reserves nothing of its own; the renderer swaps to it on a state edge
+   * where a render overlay stood (AUDIT 55, 83, 121).
+   */
+  variants?: Record<string, string[]>;
 }
 
 /**
@@ -91,6 +100,9 @@ export const RESERVATIONS: Partial<Record<ActId, ActReservations>> = {
       // threat colour). The roster is the design; the table says what it says.
       contact: 'spermicide',
       elite: 'white-cell',
+    },
+    variants: {
+      'boss-egg': ['boss-egg-closing', 'boss-egg-parted'],
     },
   },
 
@@ -319,6 +331,9 @@ export const RESERVATIONS: Partial<Record<ActId, ActReservations>> = {
       // The chart's boxes and connectors.
       boss: 'boss-reorg',
     },
+    variants: {
+      'boss-reorg': ['boss-reorg-grey-1', 'boss-reorg-grey-2', 'boss-reorg-grey-3'],
+    },
   },
 
   // Lifted from FAMILY-ROSTER.md §1, consequences verbatim. Everything in the
@@ -376,6 +391,9 @@ export const RESERVATIONS: Partial<Record<ActId, ActReservations>> = {
       // they are wallpaper.
       boss: 'boss-mortgage',
     },
+    variants: {
+      'boss-mortgage': ['boss-mortgage-open'],
+    },
   },
 
   // Lifted from DECLINE-ROSTER.md §1, consequences verbatim. Everything in the
@@ -427,6 +445,9 @@ export const RESERVATIONS: Partial<Record<ActId, ActReservations>> = {
       ranged: PROJECTILE_HOLDER,
       // The clock's rim and its hands.
       boss: 'boss-time',
+    },
+    variants: {
+      'boss-time': ['boss-time-face'],
     },
   },
 };
@@ -487,8 +508,8 @@ export class ReservationError extends Error {
  *   it — see `run.ts`.
  */
 export type ReservationVerdict =
-  | { status: 'holds'; act: ActId; assetId: string; silhouette: string }
-  | { status: 'holds-threat'; act: ActId; assetId: string; threat: ThreatClass }
+  | { status: 'holds'; act: ActId; assetId: string; silhouette: string; variantOf?: string }
+  | { status: 'holds-threat'; act: ActId; assetId: string; threat: ThreatClass; variantOf?: string }
   | { status: 'pickup'; act: ActId; assetId: string; silhouette: string }
   | { status: 'player'; act: ActId; assetId: string }
   | {
@@ -584,6 +605,14 @@ export function reservationVerdict(
 
   const held = reserved.silhouettes.find((r) => r.heldBy === assetId);
   if (held) return { status: 'holds', act, assetId, silhouette: held.silhouette };
+
+  // A variant frame holds its holder's reservation (D-029): the same shape
+  // in another state, never a shape of its own.
+  const owner = Object.entries(reserved.variants ?? {}).find(([, ids]) => ids.includes(assetId))?.[0];
+  if (owner && owner !== assetId) {
+    const of = reservationVerdict(act, owner, role, fieldRiding);
+    if (of.status === 'holds' || of.status === 'holds-threat') return { ...of, assetId, variantOf: owner };
+  }
 
   const threat = (Object.entries(reserved.reservedThreat) as Array<[ThreatClass, string]>).find(
     ([, who]) => who === assetId,
