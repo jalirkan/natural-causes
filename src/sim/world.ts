@@ -200,7 +200,7 @@ export const LOAN_INVOICE_SPREAD = 0.16;
 /**
  * The Reorg (OFFICE-ROSTER §4, G-004). PLACEHOLDERS under `OFFICE.provisional`,
  * beside the five on `ReorgBoss` (thresholds [2/3, 1/3], lateralMove 220,
- * memoShots 5, memoSpacing 36). None has been played:
+ * memoShots 5, memoSpacing 64). None has been played:
  *   REORG_MIN_DISTANCE 300 — §4's "at least 300 px from the player": how near
  *     a restructure may set the chart down, measured from where the player
  *     stands before their own box is moved. At the Egg's shot speed a memo
