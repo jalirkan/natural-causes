@@ -16,8 +16,11 @@
 import {
   cooldownScale,
   damageScale,
+  foldBonus,
   isActive,
+  itemDef,
   levelBonus,
+  offerIdFor,
   parseOfferId,
   type ActiveItem,
   type LevelBonus,
@@ -187,12 +190,16 @@ function fieldTerms(def: ActiveItem, l: LevelBonus | undefined): Array<string | 
 
 // --- the three kinds of card ---------------------------------------------
 
-/** A new active item: what it is at level one, in classic terms, by mode. */
-function newActiveTerms(def: ActiveItem): Array<string | null> {
+/**
+ * An active item as it stands at `level` with `b` (every bonus its levels and
+ * paths add, folded as the sim folds them): what it is, in classic terms, by
+ * mode. A new item is this at level one (`newActiveTerms`); the build sheet
+ * is this at the level held (`heldLines`).
+ */
+function activeTerms(def: ActiveItem, level: number, b: Required<LevelBonus>): Array<string | null> {
   const mode: Mode = def.mode;
-  const b = levelBonus(def, 1);
-  const damage = def.damage * damageScale(1) * b.damage;
-  const cooldown = def.cooldown * cooldownScale(1) * b.cooldown;
+  const damage = def.damage * damageScale(level) * b.damage;
+  const cooldown = def.cooldown * cooldownScale(level) * b.cooldown;
   const radius = def.radius * b.area;
   const count = 1 + b.projectiles;
   const pierce = def.pierce + b.pierce;
@@ -264,6 +271,11 @@ function newActiveTerms(def: ActiveItem): Array<string | null> {
     finite(knockback) && Math.round(knockback) > 0 ? `pushes ${px(knockback)}px` : null,
   );
   return terms;
+}
+
+/** A new active item: what it is at level one. */
+function newActiveTerms(def: ActiveItem): Array<string | null> {
+  return activeTerms(def, 1, levelBonus(def, 1));
 }
 
 /**
@@ -398,4 +410,71 @@ export function offerTitle(offerId: string): string {
 export function offerPips(offerId: string, owned: OwnedLevels): { owned: number; max: number } {
   const { item, path } = parseOfferId(offerId);
   return path ? { owned: owned.pathLevel, max: path.maxLevel } : { owned: owned.level, max: item.maxLevel };
+}
+
+// --- the item as held (the build sheet) -----------------------------------
+
+/**
+ * Everything an active item's levels and its taken paths add, folded the way
+ * `World.bonusFor` folds them: the weapon's `levelBonus`, then each path's
+ * levels in `paths` order. `pathLevels` is keyed by offer id, as the world's.
+ */
+function heldBonus(def: ActiveItem, level: number, pathLevels: ReadonlyMap<string, number>): Required<LevelBonus> {
+  const out = { ...levelBonus(def, level) };
+  for (const path of def.paths ?? []) {
+    const owned = pathLevels.get(offerIdFor(def, path)) ?? 0;
+    for (const l of path.levels.slice(0, Math.max(0, owned))) foldBonus(out, l);
+  }
+  return out;
+}
+
+/** A passive's stat line taken `level` times, as `World.passiveProduct` multiplies it. */
+function heldPassive(def: PassiveItem, level: number): PassiveLine {
+  const times = (m: number) => m ** level;
+  return {
+    speedMultiplier: times(def.speedMultiplier),
+    healthMultiplier: times(def.healthMultiplier),
+    damageTakenMultiplier: times(def.damageTakenMultiplier),
+    cooldownMultiplier: times(def.cooldownMultiplier),
+    pickupMultiplier: times(def.pickupMultiplier),
+    reachMultiplier: times(def.reachMultiplier),
+    sizeMultiplier: times(def.sizeMultiplier),
+    damageMultiplier: times(def.damageMultiplier),
+    rampTo: times(def.rampTo),
+  };
+}
+
+/**
+ * What an item IS at the level held (the pause screen's build sheet), in the
+ * card's vocabulary: an active item's figures at `level` with its taken paths
+ * folded in (Grudge 4 with Company 2: `damage 4.8 · 4 orbiting · re-hits
+ * every 0.38s`), plus a spin or shot speed a path changed; a passive's line
+ * multiplied `level` times. Like every card, the item's own figures, before
+ * the player's passives — those are the sheet's totals. One line, or two
+ * split at a ` · ` when one would pass `STAT_LINE_MAX`; never empty, never
+ * NaN. At level one with no paths it is exactly the new-item card.
+ */
+export function heldLines(itemId: string, level: number, pathLevels: ReadonlyMap<string, number>): string[] {
+  const def = itemDef(itemId);
+  const at = Math.max(1, Math.round(level));
+  let terms: Array<string | null>;
+  if (isActive(def)) {
+    const b = heldBonus(def, at, pathLevels);
+    // The one field `activeTerms` does not print, measured from level one so
+    // a new item never claims a change and Spiralling's spin still shows.
+    terms = [...activeTerms(def, at, b), speedTerm(def.mode, b.speed / levelBonus(def, 1).speed)];
+  } else {
+    terms = passiveTerms(heldPassive(def, at));
+  }
+  const clean = terms.filter((t): t is string => typeof t === 'string' && t.length > 0 && !BROKEN.test(t));
+  return pack(clean.length > 0 ? clean : [`level ${at} of ${def.maxLevel}`]);
+}
+
+/**
+ * `label +15%` for a change of `delta` (0.15), with the real minus sign; null
+ * when it rounds to nothing or is not a number. The build sheet's totals use
+ * it, so a total and a card print a percentage the same way.
+ */
+export function percentTerm(label: string, delta: number): string | null {
+  return labelled(label, delta);
 }

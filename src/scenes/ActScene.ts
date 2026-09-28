@@ -7,6 +7,7 @@ import { addVignette, ensureFieldTile, ensureGemTexture, ensureShotTextures } fr
 import { ITEM_ICON_ATLAS, itemIconFrame } from '../data/item-visuals';
 import { parseOfferId } from '../data/items';
 import { offerPips, offerTitle, statLines } from '../data/item-text';
+import { buildSheet, pipString } from '../data/build-sheet';
 import { sfx } from '../audio/sfx';
 import { combineMoves, stickVector, type Move } from './touch';
 import { oncePerEvent } from './keys';
@@ -220,6 +221,10 @@ export class ActScene extends Phaser.Scene {
   private overlay!: Phaser.GameObjects.Text;
   /** "paused", centred. Was `overlay` before the certificate became a form. */
   private pauseNote!: Phaser.GameObjects.Text;
+  /** The build sheet under "paused" (buildPauseSheet). Built on pause, torn down on resume. */
+  private pauseSheet?: Phaser.GameObjects.Container;
+  /** True while the sheet holds an upright phone's canvas, so only it gives that back. */
+  private pauseSheetNarrow = false;
   /** The certificate as a document. Built the first frame the run is over. */
   private form?: Phaser.GameObjects.Container;
   private endScrim!: Phaser.GameObjects.Rectangle;
@@ -371,6 +376,9 @@ export class ActScene extends Phaser.Scene {
     this.shownOffers = '';
     delete this.offerScrim;
     delete this.offerHeader;
+    // The display list took the sheet with it; the shutdown gave its canvas back.
+    delete this.pauseSheet;
+    this.pauseSheetNarrow = false;
     this.arrivalCards = [];
     this.arrivalUid = 0;
     this.resetArrivals();
@@ -1851,9 +1859,11 @@ export class ActScene extends Phaser.Scene {
       this.pauseNote
         .setText('paused' + '\n\n' + (this.touch ? 'tap to resume' : 'P or Esc to resume'))
         .setVisible(true);
+      if (!this.pauseSheet) this.buildPauseSheet();
       return;
     }
     this.pauseNote.setVisible(false);
+    if (this.pauseSheet) this.destroyPauseSheet();
 
     if (w.dead || w.won) {
       // Built once: the world is frozen from here, so the record cannot move.
@@ -1863,6 +1873,200 @@ export class ActScene extends Phaser.Scene {
       // God mode can take a death back (applyDevCheats); the paperwork goes with it.
       if (this.form) this.hideCertificate();
     }
+  }
+
+  /**
+   * The build sheet under "paused" (`build-sheet.ts`): what the life holds,
+   * with levels, paths and the totals, in the offer cards' words and ink. One
+   * panel under the pause note: the totals in a column of their own, then the
+   * items in whichever number of even columns lets the panel stand largest,
+   * scaled down (never clipped) only if none fits at full size. Nothing on it
+   * is interactive, so a tap anywhere still resumes. Every word is the
+   * sheet's; nothing is typed here.
+   *
+   * An upright phone (`narrowCanvas`) shows the 1280×720 view 390 CSS px wide,
+   * where 13px type is 4px. The world is held still, so, as the certificate
+   * does, the sheet takes a canvas of the screen's shape, sets the type 1.7×
+   * and the totals above the items; `destroyPauseSheet` gives 1280×720 back.
+   */
+  private buildPauseSheet(): void {
+    const sheet = buildSheet(this.world);
+    const narrow = narrowCanvas(this.scale.parentSize) !== null;
+    const px = (n: number) => Math.round(n * (narrow ? 1.7 : 1));
+    const mono = (size: number, color: string, letterSpacing = 0): Phaser.Types.GameObjects.Text.TextStyle => ({
+      fontFamily: 'monospace',
+      fontSize: `${px(size)}px`,
+      color,
+      lineSpacing: px(3),
+      letterSpacing,
+    });
+    const PAD = px(20);
+    const GAP_X = px(28);
+    const GAP_Y = px(12);
+    const MARGIN = narrow ? 20 : 24;
+    const NOTE_GAP = px(14);
+    const parts: Phaser.GameObjects.GameObject[] = [];
+    const rules = this.add.graphics();
+    parts.push(rules);
+    const text = (s: string, style: Phaser.Types.GameObjects.Text.TextStyle) => {
+      const t = this.add.text(0, 0, s, style);
+      parts.push(t);
+      return t;
+    };
+
+    // A block is text that moves as one: the totals, or one held item.
+    type Block = { w: number; h: number; place: (x: number, y: number) => void };
+    const header = text(sheet.header, mono(15, '#EFE7D6', 2)).setPosition(PAD, PAD);
+    const totals: Block | null = (() => {
+      if (sheet.totals.length === 0) return null;
+      const t = text(sheet.totals.join('\n'), mono(14, '#EFE7D6')).setAlpha(0.9);
+      return { w: t.width, h: t.height, place: (x, y) => t.setPosition(x, y) };
+    })();
+    const items: Block[] = sheet.items.map((e) => {
+      const title = text(e.title, mono(15, '#EFE7D6'));
+      const pips = text(pipString(e.pips), mono(13, '#D2C6AC'));
+      const paths = e.paths.length > 0 ? text(e.paths.join('\n'), mono(13, '#EFE7D6')).setAlpha(0.8) : null;
+      const stats = text(e.lines.join('\n'), mono(13, '#D2C6AC'));
+      const PIP_GAP = px(10);
+      const INDENT = px(12);
+      const top = title.height + px(3);
+      const mid = paths ? paths.height + px(2) : 0;
+      return {
+        w: Math.max(title.width + PIP_GAP + pips.width, paths ? INDENT + paths.width : 0, stats.width),
+        h: top + mid + stats.height,
+        place: (x, y) => {
+          title.setPosition(x, y);
+          pips.setPosition(x + title.width + PIP_GAP, y + (title.height - pips.height) / 2);
+          paths?.setPosition(x + INDENT, y + top);
+          stats.setPosition(x, y + top + mid);
+        },
+      };
+    });
+    if (items.length === 0) {
+      const t = text('nothing held', mono(13, '#D2C6AC'));
+      items.push({ w: t.width, h: t.height, place: (x, y) => t.setPosition(x, y) });
+    }
+
+    // The box the panel must fit: the view under the note, or on a phone the
+    // screen's own shape (never grown to the content: FIT would then shrink
+    // the whole canvas, scrim and all). Touch keeps clear of the corner button.
+    const cam = this.cameras.main;
+    const shape = narrow ? narrowCanvas(this.scale.parentSize) : null;
+    const view = shape ?? { width: cam.width, height: cam.height - (this.pauseButton ? 76 : 0) };
+    const note = this.pauseNote.setFontSize(px(20));
+    // On the 1280×720 view the note starts under the HUD's clock, not over it.
+    const TOP = narrow ? MARGIN : 56;
+    const maxW = view.width - 2 * MARGIN;
+    const maxH = view.height - TOP - MARGIN - note.height - NOTE_GAP;
+    const headH = header.height + px(14);
+
+    // Columns: greedy under a height limit; for n columns, the shortest limit
+    // that needs no more than n, so they come out even rather than one tall
+    // and one stub. Every n is tried and the one that lets the panel stand
+    // largest wins (the fewest, on a tie), so a long life scales down only
+    // as far as it must, and never clips.
+    const greedy = (limit: number): Block[][] => {
+      const cols: Block[][] = [];
+      let h = 0;
+      for (const b of items) {
+        const col = cols[cols.length - 1];
+        if (col && h + GAP_Y + b.h <= limit) {
+          col.push(b);
+          h += GAP_Y + b.h;
+        } else {
+          cols.push([b]);
+          h = b.h;
+        }
+      }
+      return cols;
+    };
+    const tallest = Math.max(...items.map((b) => b.h));
+    const evenly = (n: number): Block[][] => {
+      let lo = tallest;
+      let hi = items.reduce((sum, b) => sum + GAP_Y + b.h, 0);
+      if (greedy(lo).length <= n) return greedy(lo);
+      for (let i = 0; i < 24; i++) {
+        const mid = (lo + hi) / 2;
+        if (greedy(mid).length <= n) hi = mid;
+        else lo = mid;
+      }
+      return greedy(hi);
+    };
+    const measure = (cols: Block[][]) => {
+      const colW = cols.map((c) => Math.max(...c.map((b) => b.w)));
+      const itemsW = colW.reduce((sum, w) => sum + w, 0) + GAP_X * (cols.length - 1);
+      const itemsH = Math.max(...cols.map((c) => c.reduce((h, b, i) => h + b.h + (i > 0 ? GAP_Y : 0), 0)));
+      // The totals stand in a column of their own; on a phone, above the items.
+      const innerW = !totals ? itemsW : narrow ? Math.max(totals.w, itemsW) : totals.w + GAP_X + itemsW;
+      const innerH = !totals ? itemsH : narrow ? totals.h + 2 * GAP_Y + itemsH : Math.max(totals.h, itemsH);
+      const W = 2 * PAD + Math.max(header.width, innerW);
+      const H = 2 * PAD + headH + innerH;
+      return { cols, colW, W, H, s: Math.min(1, maxW / W, maxH / H) };
+    };
+    let best = measure(evenly(1));
+    for (let n = 2; n <= items.length && best.s < 1; n++) {
+      const next = measure(evenly(n));
+      if (next.s > best.s) best = next;
+    }
+    const { cols, colW, W, H, s } = best;
+
+    const top = PAD + headH;
+    let x = PAD;
+    let itemsTop = top;
+    let divider = -1;
+    if (totals) {
+      totals.place(PAD, top);
+      if (narrow) itemsTop = top + totals.h + 2 * GAP_Y;
+      else {
+        x = PAD + totals.w + GAP_X;
+        divider = x - GAP_X / 2;
+      }
+    }
+    cols.forEach((col, i) => {
+      let y = itemsTop;
+      for (const b of col) {
+        b.place(x, y);
+        y += b.h + GAP_Y;
+      }
+      x += colW[i]! + GAP_X;
+    });
+
+    rules.fillStyle(INK, 0.9).fillRoundedRect(0, 0, W, H, 10);
+    rules.lineStyle(2, UI_FILL, 0.5).strokeRoundedRect(0, 0, W, H, 10);
+    rules.lineStyle(1, UI_FILL, 0.18).lineBetween(PAD, top - px(7), W - PAD, top - px(7));
+    if (totals && narrow) rules.lineBetween(PAD, itemsTop - GAP_Y, W - PAD, itemsTop - GAP_Y);
+    if (divider > 0) rules.lineBetween(divider, top, divider, H - PAD);
+
+    if (shape) {
+      this.scale.setGameSize(shape.width, shape.height);
+      // The follow would glide to the new view's centre; the world is still, so snap.
+      cam.centerOn(this.player.x, this.player.y);
+      this.events.off('shutdown', this.restoreCanvas, this).once('shutdown', this.restoreCanvas, this);
+      this.pauseSheetNarrow = true;
+      this.endScrim.setPosition(shape.width / 2, shape.height / 2).setSize(shape.width, shape.height);
+      this.devBadge.setPosition(shape.width - 14, shape.height - 14 - this.devBadge.height);
+    }
+    const y0 = TOP + Math.max(0, (view.height - TOP - MARGIN - (note.height + NOTE_GAP + H * s)) / 2);
+    note.setPosition(view.width / 2, y0 + note.height / 2);
+    this.pauseSheet = this.add
+      .container((view.width - W * s) / 2, y0 + note.height + NOTE_GAP, parts)
+      .setScale(s)
+      .setScrollFactor(0)
+      .setDepth(200);
+  }
+
+  /** Takes the sheet down on resume, and gives back what the phone's layout moved. */
+  private destroyPauseSheet(): void {
+    this.pauseSheet?.destroy();
+    delete this.pauseSheet;
+    this.pauseNote.setFontSize(20).setPosition(VIEW_WIDTH / 2, VIEW_HEIGHT / 2);
+    if (!this.pauseSheetNarrow) return;
+    this.pauseSheetNarrow = false;
+    if (this.restoreCanvas()) this.events.off('shutdown', this.restoreCanvas, this);
+    // Back where the run left it, not gliding there from the phone's view.
+    this.cameras.main.centerOn(this.player.x, this.player.y);
+    this.endScrim.setPosition(VIEW_WIDTH / 2, VIEW_HEIGHT / 2).setSize(VIEW_WIDTH, VIEW_HEIGHT);
+    this.devBadge.setPosition(VIEW_WIDTH - 14, 58);
   }
 
   /**
