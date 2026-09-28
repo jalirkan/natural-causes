@@ -1,42 +1,73 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
   <title>Player at thirteen</title>
-  <desc>The same face and single cowlick as in every act: the same small round-headed figure as at school age, no taller, in a plain hoodie with the hood down and both hands in its front pocket.</desc>
+  <desc>The same chubby child as at school age, no taller, the same face, blush and one cowlick, in a plain round hoodie with the hood rolled down behind the neck and both hands stuffed in its front pocket, elbows out.</desc>
   <!--
-    The player at thirteen (G-003, ADOLESCENCE-ROSTER §6). The same drawing as
-    player-school with the costume changed: the head, eyes, mouth and cowlick
-    are that file's geometry unchanged, and the figure spans the same height,
-    so the head lands on the same pixels. Not taller: taller is Growth Spurt's.
-    The face does not change. Everything in this act looks at the player; the
-    player keeps the expression it has had since before birth.
-    The costume: a hoodie in shadow, the hood rolled down behind the neck, both
-    hands in the front pocket, so only the inside edge of each arm shows,
-    running into it. The head and the drawstrings stay paper, which is the
-    player's and nothing else's (law 10).
-    CONFORM adds the outline; there is none here.
-    Colours are palette hex values: paper #EFE7D6, shadow #6E6353, ink #2A2521.
+    The player at thirteen (G-003, G-053; ADOLESCENCE-ROSTER §6). The same
+    drawing as player-school with the costume changed: the head group is that
+    file's markup verbatim, the legs and the body's outline are its geometry,
+    and the figure spans the same height, so the head is drawn at the same
+    size and height. Not taller: taller is Growth Spurt's. The face does not
+    change.
+    The costume: the body is a hoodie in shadow, the hood rolled down behind
+    the neck over an ink seam, two short paper drawstrings, and the arms bent
+    with the elbows out and both hands in the front pocket, so the sleeves and
+    the pocket are edged in ink where they lie on the hoodie (each edge
+    clipped to the body, so the silhouette keeps the outline's one weight).
+    One paper glint on the hoodie, upper left. Head, legs and drawstrings stay
+    paper, which is the player's and nothing else's (law 10).
+    CONFORM adds the outline; there is none here, and no strokes.
+    Colours are palette hex values: paper #EFE7D6, shadow #6E6353,
+    ink #2A2521, blush #EBA39C.
   -->
-  <!-- The cowlick: one hair, always. -->
-  <path d="M54 12 C52 4 58 0 62 3 C58 4 57 8 58 12 Z" fill="#2A2521"/>
-  <!-- legs, as at five -->
-  <path d="M40 84 L47 84 L47 98 L40 98 Z M53 84 L60 84 L60 98 L53 98 Z" fill="#EFE7D6"/>
-  <!-- the hoodie: elbows out where the hands go into the pocket, gathered
-       at the hem band -->
-  <path d="M31 65 C31 60 36 58 42 58 L58 58 C64 58 69 60 69 65 C71 70 72.5 74 72 78 C71.5 81 69 82 67 82 L67.5 86 C67.5 87.5 66.5 88 65 88 L35 88 C33.5 88 32.5 87.5 32.5 86 L33 82 C31 82 28.5 81 28 78 C27.5 74 29 70 31 65 Z" fill="#6E6353"/>
+  <defs>
+    <!-- the body the head sits on: the chin line is drawn only over it -->
+    <clipPath id="body">
+      <path d="M40 57 C35.5 57 33.2 60 32.8 64.5 C32 71 31.8 78 32.6 83 C33.2 87 35.8 89 40 89 L60 89 C64.2 89 66.8 87 67.4 83 C68.2 78 68 71 67.2 64.5 C66.8 60 64.5 57 60 57 Z"/>
+    </clipPath>
+  </defs>
+  <!-- the legs, as at school -->
+  <path d="M38.6 85 L48 85 L48 93.6 C48 96.2 46 98 43.3 98 C40.6 98 38.6 96.2 38.6 93.6 Z M52 85 L61.4 85 L61.4 93.6 C61.4 96.2 59.4 98 56.7 98 C54 98 52 96.2 52 93.6 Z" fill="#EFE7D6"/>
+  <!-- the hoodie: the body's outline, in shadow -->
+  <path d="M40 57 C35.5 57 33.2 60 32.8 64.5 C32 71 31.8 78 32.6 83 C33.2 87 35.8 89 40 89 L60 89 C64.2 89 66.8 87 67.4 83 C68.2 78 68 71 67.2 64.5 C66.8 60 64.5 57 60 57 Z" fill="#6E6353"/>
   <!-- the hem band's seam -->
-  <path d="M33.5 81.2 L66.5 81.2 L66.5 83.2 L33.5 83.2 Z" fill="#2A2521"/>
-  <!-- the arms, inside edge, running into the pocket -->
-  <path d="M34.5 64 C35.5 69 36.5 73 39.5 77 L37.8 78 C34.5 74 33.2 69 32.6 64.4 Z" fill="#2A2521"/>
-  <path d="M65.5 64 C64.5 69 63.5 73 60.5 77 L62.2 78 C65.5 74 66.8 69 67.4 64.4 Z" fill="#2A2521"/>
-  <!-- the front pocket: its top edge and the two slanted openings -->
-  <path d="M38 81.2 L41 71 L59 71 L62 81.2 L59.6 81.2 L57.2 73.4 L42.8 73.4 L40.4 81.2 Z" fill="#2A2521"/>
+  <rect x="30" y="83.4" width="40" height="1.9" fill="#2A2521" clip-path="url(#body)"/>
+  <!-- the sleeves' edges, in ink, where they lie on the hoodie -->
+  <g fill="#2A2521" clip-path="url(#body)">
+    <rect x="-5.8" y="-5.8" width="11.6" height="22.34" rx="5.8" transform="translate(35.5 64) rotate(27.8)"/>
+    <rect x="-5.6" y="-5.6" width="11.2" height="23.05" rx="5.6" transform="translate(30.5 73.5) rotate(-62.4)"/>
+    <rect x="-5.8" y="-5.8" width="11.6" height="22.34" rx="5.8" transform="translate(64.5 64) rotate(-27.8)"/>
+    <rect x="-5.6" y="-5.6" width="11.2" height="23.05" rx="5.6" transform="translate(69.5 73.5) rotate(62.4)"/>
+  </g>
+  <!-- the sleeves: elbows out, forearms in to the pocket -->
+  <g fill="#6E6353">
+    <rect x="-4" y="-4" width="8" height="18.74" rx="4" transform="translate(35.5 64) rotate(27.8)"/>
+    <rect x="-3.8" y="-3.8" width="7.6" height="19.45" rx="3.8" transform="translate(30.5 73.5) rotate(-62.4)"/>
+    <rect x="-4" y="-4" width="8" height="18.74" rx="4" transform="translate(64.5 64) rotate(-27.8)"/>
+    <rect x="-3.8" y="-3.8" width="7.6" height="19.45" rx="3.8" transform="translate(69.5 73.5) rotate(62.4)"/>
+  </g>
+  <!-- the front pocket, the hands inside it: an ink edge, then the pocket -->
+  <path d="M39.4 71.4 L60.6 71.4 C63 71.4 64.8 72.8 65.2 75 L66.6 85.3 L33.4 85.3 L34.8 75 C35.2 72.8 37 71.4 39.4 71.4 Z" fill="#2A2521" clip-path="url(#body)"/>
+  <path d="M39.6 73.2 L60.4 73.2 C62 73.2 63.2 74.2 63.5 75.8 L64.7 83.4 L35.3 83.4 L36.5 75.8 C36.8 74.2 38 73.2 39.6 73.2 Z" fill="#6E6353"/>
   <!-- the hood, rolled down behind the neck: an ink seam, then the hood -->
-  <ellipse cx="50" cy="60.5" rx="20.5" ry="8" fill="#2A2521"/>
-  <ellipse cx="50" cy="59.5" rx="19" ry="6.8" fill="#6E6353"/>
-  <!-- the drawstrings -->
-  <path d="M45 65 L47 65 L46.6 72 L44.8 72 Z M53 65 L55 65 L55.2 72 L53.4 72 Z" fill="#EFE7D6"/>
-  <!-- the head: player-school's, unchanged -->
-  <circle cx="50" cy="36" r="26" fill="#EFE7D6"/>
-  <ellipse cx="57" cy="34" rx="3.4" ry="6" fill="#2A2521"/>
-  <ellipse cx="68" cy="34" rx="3.4" ry="6" fill="#2A2521"/>
-  <rect x="58" y="46" width="9" height="2.8" rx="1.3" fill="#2A2521"/>
+  <ellipse cx="50" cy="61.9" rx="21.2" ry="6.4" fill="#2A2521" clip-path="url(#body)"/>
+  <ellipse cx="50" cy="60" rx="21" ry="6" fill="#6E6353"/>
+  <!-- the drawstrings, paper, with round tips -->
+  <path d="M45.4 62 L47.2 62 L47.2 69.5 L45.4 69.5 Z M52.8 62 L54.6 62 L54.6 69.5 L52.8 69.5 Z" fill="#EFE7D6"/>
+  <circle cx="46.3" cy="70" r="1.4" fill="#EFE7D6"/>
+  <circle cx="53.7" cy="70" r="1.4" fill="#EFE7D6"/>
+  <!-- one glint on the hoodie, upper left -->
+  <ellipse cx="33.6" cy="66.4" rx="1.3" ry="1.5" fill="#EFE7D6"/>
+  <!-- the head: the same markup in all seven player drawings -->
+  <g id="head">
+    <ellipse cx="50" cy="36.9" rx="30" ry="28" fill="#2A2521" clip-path="url(#body)"/>
+    <path d="M39.8 10 C39.2 6.4 41 3 44.6 1.4 C46.4 0.6 48.4 0.3 50 0.6 C50.8 0.8 50.9 1.5 50.3 1.9 C48 3.1 46.6 4.6 46 6.2 C45.6 7.4 45.6 8.6 45.9 10 Z" fill="#2A2521"/>
+    <ellipse cx="50" cy="35" rx="30" ry="28" fill="#EFE7D6"/>
+    <ellipse cx="42.5" cy="38" rx="5.2" ry="6.8" fill="#2A2521"/>
+    <ellipse cx="63.5" cy="38" rx="5.2" ry="6.8" fill="#2A2521"/>
+    <circle cx="40.6" cy="35.2" r="1.8" fill="#EFE7D6"/>
+    <circle cx="61.6" cy="35.2" r="1.8" fill="#EFE7D6"/>
+    <ellipse cx="36.3" cy="48.2" rx="4.4" ry="2.6" fill="#EBA39C"/>
+    <ellipse cx="69.7" cy="48.2" rx="4.4" ry="2.6" fill="#EBA39C"/>
+    <path d="M50.2 48.2 C50.6 47.6 51.4 47.7 51.7 48.3 C52.6 50 55 50 55.9 48.3 C56.2 47.7 57 47.6 57.4 48.2 C57.7 48.6 57.6 49 57.3 49.5 C55.9 52.2 51.7 52.2 50.3 49.5 C50 49 49.9 48.6 50.2 48.2 Z" fill="#2A2521"/>
+  </g>
 </svg>
