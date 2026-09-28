@@ -1,24 +1,60 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
-  <title>Gossip icon</title>
-  <desc>Three dots joined by one bent line: the first one it reached, and two it passed it on to.</desc>
+  <title>Telephone icon</title>
+  <desc>A toy telephone on two little wheels: a plump round body with a pleased face, and a fat curved handset lying across its top, both ends resting on its shoulders.</desc>
   <!--
-    Gossip (items.ts id group-chat, icon "chain"). A card icon, and also the
-    shot the weapon fires on the field (ActScene syncProjectiles), so it keeps
-    off the field's reserved colours: no threat colour, no paper, no
-    conception-light. Plain discs, no tails: a tail would make a speech bubble,
-    which Adolescence reserves for its enemy, or a comet, which Conception
-    reserves for the rivals.
-    CONFORM adds the outline; rose against bone needs no line between them.
-    Colours: conception-mid #A86A63, bone #D2C6AC, ink #2A2521.
+    Telephone (G-054; items.ts id group-chat, mode seeking, icon "chain"),
+    the whispering game: one shot, passed on from one enemy to the next.
+    A card icon, and also the shot itself on the field (ActScene
+    syncProjectiles, 30px, turned to its heading). It keeps off the field's
+    reserved colours: no threat colour, no paper, no act's light tone, so
+    the one glint on each mass is bone, the lightest colour a rider may wear.
+    A generic toy, nothing brand-shaped: no dial on its front, no eyes on
+    stalks; the handset is what says telephone.
+    Greeting-card register (ART-DIRECTION 2026-09-28): round masses, kid
+    proportions, big ink eyes with one glint each, blush cheeks, a small
+    smile, one shadow tone low on the far side.
+    CONFORM adds the one outline; there are no strokes here.
+    Colours: conception-mid #A86A63, conception-deep #6B3A44, blush #EBA39C,
+    shadow #6E6353, bone #D2C6AC, ink #2A2521.
   -->
+  <defs>
+    <clipPath id="inside">
+      <path d="M 16 70 C 16 47, 30 35, 50 35 C 70 35, 84 47, 84 70 Q 84 78, 76 78 L 24 78 Q 16 78, 16 70 Z"/>
+    </clipPath>
+  </defs>
   <g shape-rendering="crispEdges">
-    <!-- the line it travels along -->
-    <polyline points="21,66 51,28 81,62" fill="none" stroke="#D2C6AC" stroke-width="10" stroke-linejoin="round" stroke-linecap="round"/>
-    <!-- the first one it reached, larger, with the mark where it landed -->
-    <circle cx="21" cy="66" r="17" fill="#A86A63"/>
-    <circle cx="21" cy="66" r="6.5" fill="#D2C6AC"/>
-    <!-- everyone it knows -->
-    <circle cx="51" cy="28" r="13" fill="#A86A63"/>
-    <circle cx="81" cy="62" r="13" fill="#A86A63"/>
+    <!-- the wheels, with their hubs -->
+    <g fill="#6E6353">
+      <circle cx="29" cy="81" r="9.5"/>
+      <circle cx="71" cy="81" r="9.5"/>
+    </g>
+    <g fill="#D2C6AC">
+      <circle cx="29" cy="81" r="3.6"/>
+      <circle cx="71" cy="81" r="3.6"/>
+    </g>
+    <!-- the body: one shadow tone along its far side, where the lit body
+         shifted up and back leaves the edge uncovered -->
+    <path fill="#6B3A44" d="M 16 70 C 16 47, 30 35, 50 35 C 70 35, 84 47, 84 70 Q 84 78, 76 78 L 24 78 Q 16 78, 16 70 Z"/>
+    <g clip-path="url(#inside)">
+      <path fill="#A86A63" transform="translate(-4.5 -3.5)" d="M 16 70 C 16 47, 30 35, 50 35 C 70 35, 84 47, 84 70 Q 84 78, 76 78 L 24 78 Q 16 78, 16 70 Z"/>
+    </g>
+    <!-- its one glint -->
+    <ellipse cx="40" cy="41.5" rx="3.3" ry="1.9" transform="rotate(-18 40 41.5)" fill="#D2C6AC"/>
+    <!-- the handset: a fat curved grip and the two cups on its ends -->
+    <g fill="#EBA39C">
+      <path d="M 13 31 Q 50 7 87 31 L 85 40 Q 50 20 15 40 Z"/>
+      <ellipse cx="15" cy="40" rx="12" ry="8.5" transform="rotate(-14 15 40)"/>
+      <ellipse cx="85" cy="40" rx="12" ry="8.5" transform="rotate(14 85 40)"/>
+    </g>
+    <!-- its one glint -->
+    <ellipse cx="31" cy="24.6" rx="2.7" ry="1.6" transform="rotate(-28 31 24.6)" fill="#D2C6AC"/>
+    <!-- the face: eyes with one glint each, blush cheeks, a small smile -->
+    <ellipse cx="38.5" cy="56" rx="5.6" ry="6.8" fill="#2A2521"/>
+    <ellipse cx="61.5" cy="56" rx="5.6" ry="6.8" fill="#2A2521"/>
+    <circle cx="36.7" cy="53.2" r="2" fill="#D2C6AC"/>
+    <circle cx="59.7" cy="53.2" r="2" fill="#D2C6AC"/>
+    <ellipse cx="28.5" cy="66" rx="4.5" ry="2.8" fill="#EBA39C"/>
+    <ellipse cx="71.5" cy="66" rx="4.5" ry="2.8" fill="#EBA39C"/>
+    <path fill="#2A2521" d="M 45 65 Q 50 72.5 55 65 Q 50 69 45 65 Z"/>
   </g>
 </svg>
