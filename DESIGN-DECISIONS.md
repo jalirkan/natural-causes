@@ -1330,3 +1330,51 @@ chair, cannot move, cannot be touched, heals, and the clock keeps running).
 Each is one registry entry, one drawn icon, and one verb in the sim at most.
 Rejected: the panel's Therapy, the one item that sheds stacks — the file is the spine (G-001), and the life is about carrying it, not a slot spent to set it down.
 Rejected: one item per act from Conception on — the early acts already hold the temperaments and the classic three (G-044); the late acts are the ones whose pools ran thin.
+
+## G-053 · 2026-09-28 · The register is the greeting card, and the kid is the whole life
+Justin, having played the seven acts: the pieces do not tell one joke, and the
+player — drawn at school height in every costume, never taller — reads as a
+baby; make it "conventionally cute, like a Coca-Cola Christmas commercial".
+So the sprite register G-038 left open is **the greeting card**: round masses,
+big glossy eyes with one paper glint, blush cheeks (D-031), kid proportions on
+everything, mild pleased faces on bills and knees — wholesome Americana doing
+the bleak jobs. The joke keeps its shape (drawn in the register of the thing it
+mocks, G-008); the thing is the ad now, not the pamphlet. Documents keep the
+pamphlet: the world is the card, the paperwork is the paperwork. And the player
+*is* a kid for the whole life, on purpose (G-003's figure): the costume grows,
+the person does not. The craft laws stand (1, 2 with one glint, 3, 5–7, 9–11);
+the mid-century sprite register and law 8 retire. `ART-DIRECTION.md`
+§2026-09-28 says how to draw it; this round redraws the player, the weapons and
+the first two acts, and the rest follow act by act.
+Rejected: a protagonist who ages — G-003's reasons stand, and "the kid in the tie" is the joke Justin saw.
+Rejected: the greeting card on documents too — the certificate is bleak because it is a form; a cute form is a lesser joke.
+
+## G-054 · 2026-09-28 · Weapons are the kid's things; the adult words are what they become
+The weapons were temperaments with pictogram icons — a manicule, a retail
+starburst — and did not tell a joke a player could see. Now every weapon is a
+thing a kid has, drawn in G-053's register, and its evolution is the adult word
+for it: **Pointing** (`lash`), **Spitball** (`motility`), **Spilt Milk**
+(`acrosome`, now also a puddle that slows), **Legos** (`wake`), **Mobile**
+(`grudge`), **Telephone** (`group-chat`), **Candy** (`chemotaxis`), **Cooties**
+(`personal-space`), **Rattle** (`backhand`), **Tattle** (`judgement`), and new
+**Cry**: an expanding ring from the player that shoves and stuns everything it
+crosses — the panic button. Evolutions: Spilt Milk→Tantrum, Legos→Baggage,
+Mobile→Grudge, Rattle→Backhand, Tattle→Judgement, Pointing→Jumpiness. Passives
+keep their temperament names (the kid has them); the habits (G-052) stay adult,
+so by the Office the cards are half your childhood and half your job, in
+pictures. Ids stay (G-041's precedent): bots, logs and tests are untouched.
+Every number is a placeholder.
+Rejected: one weapon, an object per act (spilt milk becomes spilt coffee) — G-039's lookup table, and seven times the art.
+Rejected: redraw the icons and keep the names — "Temper" over a milk splash; the name should be what you see.
+
+## G-055 · 2026-09-28 · Challenge runs are rules in the world, named on the certificate
+The loop wants lives that differ in kind, not magnitude. Two rules, chosen at
+the title and carried by `World` — never a cheat: the bots play a ruled life as
+a person does, and it is recorded — **Couch Potato**: you never move and
+everything comes to you; **One Trick**: you start with no weapon, the first
+offer is three, and you never get another. The certificate prints the rule
+("Never moved."), the ancestors keep it, and `src/sim/rules.ts` is the one
+registry. Both are placeholders for play: a rule nobody has survived is a
+question, not a mode.
+Rejected: challenges as dev-panel toggles — a cheat taints, and a challenge is a life.
+Rejected: a difficulty slider — nothing in the game has a number a person has played; a rule is a shape, not a knob.

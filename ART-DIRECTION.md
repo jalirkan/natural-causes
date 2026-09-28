@@ -19,6 +19,10 @@
 certificate, the title. Sprites become authored flat-cartoon SVG, and their
 register is chosen from a rendered batch; until then this section stands.*
 
+*G-053 (2026-09-28): chosen. Sprites are drawn in **the greeting-card
+register**, §2026-09-28 at the end of this file. Documents keep the register
+below.*
+
 **Mid-century institutional.** The visual language of insurance pamphlets,
 safety posters, annual reports and the diagrams that explain your benefits to
 you. Muted spot inks on off-white stock, fine even line, strictly flat, visible
@@ -266,3 +270,55 @@ Genuinely open, and mine rather than the pipeline's:
 
   It remains the largest unvalidated assumption and four of seven acts still
   depend on it. It just needs five minutes of a person, not a generation run.
+
+---
+
+## 2026-09-28 · The greeting-card register (G-053)
+
+Appended, per the header. Justin's direction after playing the whole life:
+"conventionally cute, like a Coca-Cola Christmas commercial". So sprites are
+drawn in the register of the American wholesome — the holiday ad, the greeting
+card, the cereal box — and the joke keeps its shape: the game is drawn in the
+register of the thing it is about, and the thing is now the ad that sold you
+the life. The world is the card; the paperwork (cards, certificate, title type)
+stays in the pamphlet register above, because a form is bleak and a cute form
+is a lesser joke.
+
+### How to draw it — enforced where a check can, read by every drawer
+
+1. **Round everything.** Every mass is an ellipse or a rounded blob; a corner
+   has a radius of at least an eighth of its mass. Straight lines and points
+   only where law 11 reserves them (the antibody's Y, the substitute's
+   rectangle stay what they are — rounded corners, straight sides).
+2. **Kid proportions on everything.** Big head or big body, small everything
+   else; stubby limbs; nothing lanky. A bill is a chubby envelope.
+3. **The face.** Two large eyes (ink), each with **one paper glint** at its
+   upper-left; a **blush** oval under each eye (`BLUSH`, D-031); a small
+   mouth. Eyes are at least a sixth of the head across. Law 5 stands: faces on
+   everything that can hold one, and every face is mildly pleased, content or
+   faintly worried — nobody snarls, nobody menaces (law 9). The mortgage
+   smiles at you.
+4. **One glint per mass.** Exactly one flat paper-coloured spot, upper-left, at
+   most a tenth of the mass across. This is law 2's one exception: flat fills
+   still, no gradients, no shading beyond one shadow tone; the glint is the
+   whole gloss.
+5. **Palette and threat as before.** The act's tones, the universals, blush;
+   threat colours by laws 6, 10 and 11, unchanged. Cute does not mean safe:
+   the thing that hurts you is still the thing wearing red.
+6. **The player** (G-003, G-053): a round head three fifths of the height, the
+   one cowlick, the eyes and blush above, mitten hands, paper body; the
+   costume per act as now, the figure the same size in every act. In
+   Conception the same head on a comma of a body.
+7. **Outline, readability, silhouette** — laws 1, 7 and 11 unchanged. The
+   pipeline still rejects and never corrects (G-032).
+
+**Retired for sprites:** the mid-century register (halftone, fine line, spot
+inks, "printed not rendered"), the detail budget's grain, and law 8's
+indifference as a rule (a thing may still be bored). **Unchanged:** every law
+that is craft — 1, 2 (with the glint), 3, 5, 6, 7, 9, 10, 11 — and D-007.
+
+**Order of redrawing:** the player in every act, then the weapons (the cards
+and the field are the same drawing, G-036), then Conception and School, then
+act by act as sessions allow. An act's sprites are redrawn together, so a
+screen is never half one register and half the other.
+

@@ -433,3 +433,14 @@ any act, next act, preview the act's paper, level up in fives, every habit —
 and README says how. `src/dev/` stays outside `World`.
 Rejected: a separate review build or branch — two links drift, and the review would not be of the thing that ships.
 Rejected: a key combination instead of a URL flag — a link is what Justin is handed; a chord is one more thing to remember.
+
+## D-031 · 2026-09-28 · Blush joins the universals; the catalogue's bound is 36
+G-053's register puts cheeks on everything with a face, in every act, so one
+warm tone is universal: `BLUSH #EBA39C` beside ink, shadow, paper and bone. In
+Oklab it sits 0.050 from its nearest neighbour (adolescence-light) against the
+quantiser's 0.0353 tolerance, and under the enemy value ceiling (bone), so an
+enemy may wear it and the checks still tell a cheek from a pickup. Law 3's
+on-screen bound becomes twelve; the catalogue (D-028) is bounded at 36 and
+holds 33. `pipeline.test.ts` asserts both and cites this record.
+Rejected: reusing conception-light for cheeks — outside Conception it quantises away.
+Rejected: a blush per act — three more tones per act for one job; a cheek is the same in every act.
