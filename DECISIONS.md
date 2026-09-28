@@ -405,3 +405,18 @@ proposed ("twenty is the on-screen budget, not the catalogue"); the law's own
 wording there is still Justin's to change, and the test cites this record.
 Rejected: sharing tones between acts — the ground is how a player knows which act they are in.
 Rejected: keeping 20 and giving later acts no tones of their own — Service and Office already hold tones for their test assets.
+
+## D-029 · 2026-09-28 · A variant frame holds its holder's reservation
+Three render overlays stood in for drawings the pipeline never had — the
+Reorg's grey rows (AUDIT 55), the Mortgage's open door (83), the cover over
+Time's baked hand (121) — and the Egg's G-006 ending (eyes closing, corona
+parting) was never drawn at all. `ActReservations.variants` names, per holder,
+the other frames of the same shape in another state; `reservationVerdict`
+gives a variant its holder's verdict with `variantOf`, so law 11 gates it
+(one silhouette, one holder; a variant reserves nothing) and CONFORM/CHECK
+read it as the boss it is. The renderer swaps frames on the state edge where
+the overlay stood, through `ACT_VISUALS`; the overlays retire as each frame
+lands. Time's hand stays a drawn strip: a hand alone is too thin a sprite to
+pass the swarm silhouette floor, and the strip is the hazard's true size.
+Rejected: tinting or masking the one frame at render time for good — G-032 retired render correction for sprites, and a greyed row that is a tint is a lie about what was drawn.
+Rejected: a frames array on the AssetSpec — one spec per drawing keeps the provenance one record per SVG (D-010, D-025), which a multi-frame spec would fold.
