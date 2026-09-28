@@ -20,6 +20,11 @@ export interface Ancestor {
   cause: string;
   /** Epoch ms the life ended. */
   at: number;
+  /**
+   * The name on the form. Optional: lives recorded before the run had a name
+   * carry none and print as they always did. Nothing is migrated.
+   */
+  name?: string;
 }
 
 /** One key, beside `nc-muted`. */
@@ -44,7 +49,8 @@ function isAncestor(a: unknown): a is Ancestor {
     typeof r.actName === 'string' &&
     typeof r.age === 'number' &&
     typeof r.cause === 'string' &&
-    typeof r.at === 'number'
+    typeof r.at === 'number' &&
+    (r.name === undefined || typeof r.name === 'string')
   );
 }
 
@@ -60,19 +66,24 @@ function load(): Ancestor[] {
   }
 }
 
-/** Remember a life that has ended. Keeps the newest `ANCESTORS_CAP`. */
-export function recordLife(cert: Certificate): void {
+/**
+ * Remember a life that has ended, under the name the scene held for it.
+ * Keeps the newest `ANCESTORS_CAP`. A blank name is not recorded.
+ */
+export function recordLife(cert: Certificate, name?: string): void {
   try {
     const s = store();
     if (!s) return;
     const list = load();
-    list.push({
+    const life: Ancestor = {
       outcome: cert.outcome,
       actName: cert.actName,
       age: cert.age,
       cause: cert.cause,
       at: Date.now(),
-    });
+    };
+    if (name?.trim()) life.name = name.trim();
+    list.push(life);
     s.setItem(ANCESTORS_KEY, JSON.stringify(list.slice(-ANCESTORS_CAP)));
   } catch {
     // Quota, blocked storage: the life goes unrecorded, the game goes on.
@@ -87,10 +98,12 @@ export function recentLives(n: number): Ancestor[] {
 
 /**
  * One line on the title, in the certificate's words but as an obituary:
- * "Age 9 · School · Homework", or "Age 12 · natural causes" for the win.
+ * "Nobody · Age 9 · School · Homework", or "Justin · Age 12 · natural causes"
+ * for the win. A life recorded before names existed prints without one.
  */
 export function obituary(a: Ancestor): string {
-  const age = `Age ${ageYears(a.age)}`;
+  const who = a.name?.trim() ? `${a.name.trim()} · ` : '';
+  const age = `${who}Age ${ageYears(a.age)}`;
   if (a.outcome === 'won') return `${age} · natural causes`;
   return `${age} · ${a.actName} · ${a.cause}`;
 }
