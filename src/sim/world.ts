@@ -31,6 +31,7 @@ import {
 } from '../data/items';
 import { INHERITANCES, INHERITANCE_IDS, type InheritanceDef, type StatLine } from '../data/inheritances';
 import { Grid } from './grid';
+import { NO_RULES, RULES, type RuleId, type RunRules } from './rules';
 
 /**
  * The whole game, with no renderer in it.
@@ -607,6 +608,12 @@ export interface Certificate {
   causeId: string;
   /** What the certificate prints after "of". */
   cause: string;
+  /**
+   * The rules the life was played under (G-055, `rules.ts`), in the
+   * registry's order; empty for a plain life. The form prints each one's
+   * `certificate` line and the ancestors keep them.
+   */
+  rules: RuleId[];
 }
 
 /** The thing that hurt the player, carried to `die` so the certificate can name it. */
@@ -852,8 +859,17 @@ export interface WorldOptions {
   acts?: ActDef[];
   act?: ActDef;
   seed?: number;
-  /** Items the run starts with. */
+  /**
+   * Items the run starts with. Absent is Pointing (`lash`), or nothing under
+   * One Trick, whose life starts empty-handed (G-055).
+   */
   startingItems?: string[];
+  /**
+   * The rules the life is played under (G-055, `rules.ts`). Absent is
+   * `NO_RULES`. Enforced here, so a bot plays a ruled life exactly as a
+   * person does; a rule is the game, not a cheat, and taints nothing.
+   */
+  rules?: RunRules;
   /**
    * Overrides the Egg's pull, for A/B experiments only.
    *
@@ -1234,6 +1250,11 @@ export class World {
 
   readonly bossPull: number;
   readonly spawnOverride: 'edge' | 'lead' | undefined;
+  /**
+   * The life's rules (G-055), each once, in the registry's order: what the
+   * sim enforces (`movePlayer`, `rollOffers`) and the certificate prints.
+   */
+  readonly rules: RunRules;
 
   constructor(options: WorldOptions) {
     const life = options.acts ?? (options.act ? [options.act] : []);
@@ -1241,13 +1262,54 @@ export class World {
     this.life = life;
     this.bossPull = options.bossPull ?? BOSS_PULL;
     this.spawnOverride = options.spawnOverride;
+    const given = options.rules ?? NO_RULES;
+    // A rule the registry does not hold would be one nothing enforces: refused,
+    // as a life with no acts is, rather than played as a plain life.
+    for (const id of given) {
+      if (!Object.prototype.hasOwnProperty.call(RULES, id)) throw new Error(`No rule "${String(id)}" in the registry`);
+    }
+    this.rules = Object.freeze((Object.keys(RULES) as RuleId[]).filter((id) => given.includes(id)));
     this.seed = options.seed ?? 1;
     this.rng = mulberry32(this.seed);
     this.streams = spawnStreams(this.act.waves);
     this.x = ARENA_WIDTH / 2;
     this.y = ARENA_HEIGHT / 2;
-    for (const id of options.startingItems ?? ['lash']) this.items.set(id, 1);
+    for (const id of options.startingItems ?? (this.oneTrick ? [] : ['lash'])) this.items.set(id, 1);
     this.actOpeningMaxHp = this.itemMaxHp;
+    // One Trick's opening offer (G-055): a life under it that holds no weapon
+    // is dealt three before its first step, by the roll a level-up uses
+    // (`rollOffers` deals weapons alone while none is held), so the first
+    // thing a person does is choose. Not a level: `level` and the bar stay
+    // where they are; only the choice is owed. Never an empty offer (AUDIT 1).
+    if (this.oneTrick && !this.holdsWeapon) {
+      const opening = this.rollOffers();
+      if (opening.length > 0) this.offers = opening;
+    }
+  }
+
+  /** Couch Potato (G-055): the stick turns the player and never carries them. */
+  private get couchPotato(): boolean {
+    return this.rules.includes('couch-potato');
+  }
+
+  /** One Trick (G-055): no weapon but the one chosen from the opening offer. */
+  private get oneTrick(): boolean {
+    return this.rules.includes('one-trick');
+  }
+
+  /**
+   * The offer up is One Trick's opening (G-055): the rule is on, no weapon is
+   * held yet, and a choice is waiting. The renderer's header says so, where a
+   * level-up's names the level; this one is not a level.
+   */
+  get choosingTrick(): boolean {
+    return this.offers !== null && this.oneTrick && !this.holdsWeapon;
+  }
+
+  /** The player holds a weapon, or what one became (every evolution is a weapon). */
+  private get holdsWeapon(): boolean {
+    for (const id of this.items.keys()) if (ITEMS[id]?.kind === 'weapon') return true;
+    return false;
   }
 
   /** The act that is playing. */
@@ -1710,6 +1772,13 @@ export class World {
     const ny = input.moveY / len;
     this.facingX = nx;
     this.facingY = ny;
+    // Couch Potato (G-055): the walk is refused and the turn is not. Facing
+    // is the aim — Pointing's line, the Backhand's arc, where a lead lands —
+    // so the stick still points it; only the carrying is ignored. Everything
+    // that moves the player from outside (a pull, a pile's push, a
+    // restructure) is outside this function and still does. A stun still
+    // refuses the turn above, as it always has.
+    if (this.couchPotato) return;
     this.x += nx * this.speed * dt;
     this.y += ny * this.speed * dt;
   }
@@ -3547,6 +3616,7 @@ export class World {
       age: this.age,
       causeId: typeof cause === 'string' ? cause : cause.id,
       cause: cause === 'boss' ? this.act.bossName : cause === 'someone-else' ? 'Someone else' : cause.name,
+      rules: [...this.rules],
     };
   }
 
@@ -3718,6 +3788,7 @@ export class World {
       age: this.act.age.to,
       causeId: 'natural-causes',
       cause: 'natural causes',
+      rules: [...this.rules],
     };
   }
 
@@ -3920,10 +3991,21 @@ export class World {
     // has reached that act, in ALL_ACTS order. An act missing from ALL_ACTS
     // (a test's fixture) comes before all of them.
     const here = ALL_ACTS.findIndex((a) => a.id === this.act.id);
+    // One Trick (G-055). Holding no weapon, the roll is weapons alone, and
+    // only the kid's (no `from`): the opening offer. That is also the guard
+    // for a life that somehow holds none with no offer up (a world built by
+    // hand, a weapon taken away from outside): its next level deals weapons
+    // again, not passives it could not fight with. Holding one, no other
+    // weapon enters the pool, ever; its own levels, its paths, its
+    // evolution (dealt, not rolled), the passives and the controls come as
+    // they always have. Off the rule, nothing here draws or filters.
+    const trick = this.oneTrick ? (this.holdsWeapon ? 'held' : 'choosing') : null;
     const pool = Object.keys(ITEMS).filter((id) => {
       const def = ITEMS[id]!;
       if (isActive(def) && def.evolvesFrom) return false;
       if (replaced.has(id)) return false;
+      if (trick === 'choosing' && (def.kind !== 'weapon' || def.from !== undefined)) return false;
+      if (trick === 'held' && def.kind === 'weapon' && !this.items.has(id)) return false;
       if (def.from !== undefined && ALL_ACTS.findIndex((a) => a.id === def.from) > here) return false;
       return (this.items.get(id) ?? 0) < def.maxLevel;
     });
@@ -3936,7 +4018,7 @@ export class World {
     // directions of one weapon is a legal offer.
     for (const id of Object.keys(ITEMS)) {
       const def = ITEMS[id]!;
-      if (!isActive(def) || !def.paths || replaced.has(id)) continue;
+      if (!isActive(def) || !def.paths || replaced.has(id) || trick === 'choosing') continue;
       if ((this.items.get(id) ?? 0) < PATH_OPENS_AT) continue;
       for (const path of def.paths) {
         const offer = offerIdFor(def, path);

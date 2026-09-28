@@ -1,4 +1,5 @@
 import type { Certificate } from '../sim/world';
+import { RULES, type RunRules } from '../sim/rules';
 
 /**
  * The words the life ends on, and the age the HUD shows while it lasts.
@@ -16,6 +17,15 @@ export function ageYears(age: number): number {
 /** The HUD's clock: the life is measured in years now, not minutes (D-024). */
 export function hudAge(age: number): string {
   return `age ${ageYears(age)}`;
+}
+
+/**
+ * The rules the life is played under (G-055), as the HUD names them while it
+ * lasts: each rule's name, lower case as the HUD's other labels are, joined
+ * as the worn line joins its terms. Empty for a plain life, which shows none.
+ */
+export function hudRules(rules: RunRules): string {
+  return rules.map((id) => RULES[id].name.toLowerCase()).join(' · ');
 }
 
 /**
@@ -69,6 +79,23 @@ export function certificateFields(c: Certificate, extras: CertificateExtras): Ce
   ];
 }
 
+/**
+ * The rules the life was played under (G-055), as the form types them: each
+ * rule's `certificate` line from the registry, in the order the life holds
+ * them. Empty for a plain life, and then the form prints nothing for them.
+ */
+export function certificateConditions(c: Certificate): string[] {
+  return c.rules.map((id) => RULES[id].certificate);
+}
+
+/**
+ * Printed before the conditions, beside the cause: what the examiner noted
+ * that did not kill you. One short word, so that on the wide form the cause's
+ * label, it and both rules share one line clear of the stamp on the smallest
+ * phone held sideways (a canvas shown at half size).
+ */
+export const CONDITIONS_LABEL = 'NOTED';
+
 /** The word stamped across the form: the win says what it was, a death is only filed. */
 export function certificateStamp(c: Certificate): string {
   return c.outcome === 'won' ? 'NATURAL CAUSES' : 'FILED';
@@ -76,14 +103,15 @@ export function certificateStamp(c: Certificate): string {
 
 /**
  * The build as the receipt lists it, one entry per item ("Reflex 1"), packed
- * into lines of at most `width` characters joined by " · ". An entry is never
- * split; one longer than the width gets a line to itself.
+ * into lines of at most `width` characters joined by `separator` (" · "). An
+ * entry is never split; one longer than the width gets a line to itself. The
+ * conditions (G-055) are packed the same way, word by word, joined by a space.
  */
-export function effectLines(entries: string[], width: number): string[] {
+export function effectLines(entries: string[], width: number, separator = ' · '): string[] {
   const lines: string[] = [];
   let line = '';
   for (const e of entries) {
-    const next = line ? `${line} · ${e}` : e;
+    const next = line ? `${line}${separator}${e}` : e;
     if (line && next.length > width) {
       lines.push(line);
       line = e;
@@ -178,6 +206,57 @@ export function narrowRows(fields: readonly CertificateField[], top: number): { 
 }
 
 /**
+ * The conditions (G-055) at the cause, on either form: where the printed
+ * label (`CONDITIONS_LABEL`) and the typed lines sit. `labelX` and `x` are
+ * from the inner margin; `bottom` is under the last typed line.
+ */
+export interface ConditionsBlock {
+  /** The printed label's left edge. */
+  labelX: number;
+  /** Top of the printed label. */
+  label: number;
+  /** The typed lines' left edge. */
+  x: number;
+  /** Top of the first typed line. */
+  value: number;
+  /** `certificateConditions`, packed to the room there is, run on with a space. */
+  lines: string[];
+  /** Leading between typed lines. */
+  spacing: number;
+  bottom: number;
+}
+
+/**
+ * The conditions as a typist runs them on: one sentence after another, a
+ * space between, broken between words to lines of at most `chars`.
+ */
+function typedLines(conditions: readonly string[], chars: number): string[] {
+  return effectLines(conditions.join(' ').split(' '), chars, ' ');
+}
+
+/** A canvas text line with its ascent and descent: 1.3 em, as the tests below measure headless Chromium. */
+function lineHeight(px: number): number {
+  return Math.ceil(1.3 * px);
+}
+
+/**
+ * The narrow form's conditions, from `top` (the cause's rule) across a column
+ * `width` wide: the label printed as every narrow label is, the lines typed
+ * at the receipt's size under it, and the stamp's band under them (the
+ * canvas grows to hold it). Null for a plain life: nothing is printed and
+ * nothing under the cause moves.
+ */
+export function narrowConditions(conditions: readonly string[], top: number, width: number): ConditionsBlock | null {
+  if (conditions.length === 0) return null;
+  const lines = typedLines(conditions, Math.floor(width / (MONO * NARROW_TYPE.receipt)));
+  const spacing = 6;
+  const label = top + 18;
+  const value = label + NARROW_TYPE.print + 10;
+  const bottom = value + lines.length * lineHeight(NARROW_TYPE.receipt) + (lines.length - 1) * spacing;
+  return { labelX: 0, label, x: 0, value, lines, spacing, bottom };
+}
+
+/**
  * The 1280×720 form (`ActScene.showCertificate`) on a screen wider than tall.
  * FIT shows the canvas at the screen's height, so a landscape phone (844×390)
  * shows it 693 CSS px across — 0.54 of a CSS pixel per game pixel — and the
@@ -221,6 +300,28 @@ export const WIDE_FLOOR = { print: 11, value: 16 } as const;
 
 /** A canvas monospace's advance, in em (DejaVu, Menlo, Roboto Mono and Courier are all 0.6). */
 const MONO = 0.6;
+
+/**
+ * How far along the cause's label line the conditions may run, from the inner
+ * margin: short of the stamp beside the cause. Tilted 8° up to the right, its
+ * top edge climbs into that line's band from below — NATURAL CAUSES (366
+ * wide, framed) at 764 at 1280 and at 734 on a landscape phone, FILED's
+ * corner at 743 — so everything typed there ends before 720.
+ */
+const CONDITIONS_LINE_END = 720;
+
+/**
+ * What the stamp keeps beside the cause, from the right of the inner margin,
+ * for conditions set under the cause's rule instead: the widest stamp and its
+ * 40 in from the margin, and a gap.
+ */
+const STAMP_ROOM = 420;
+
+/**
+ * `showCertificate` draws the form's inner frame 21 above the tear; a line
+ * under the cause's rule keeps 4 clear of it, and the tear moves down for it.
+ */
+const FRAME_INSET = 25;
 
 /** A line of `chars` characters of monospace at `px`, letterspaced by `spacing`, estimated. */
 function monoWidth(chars: number, px: number, spacing = 0): number {
@@ -318,6 +419,13 @@ export interface WideLayout {
   receipt: number;
   /** Top of the receipt's prose and of the personal effects. */
   content: number;
+  /**
+   * The conditions (G-055) on the cause's label line, after the label and
+   * short of the stamp — or, too long for it, under the cause's rule with the
+   * tear moved down. Null for a plain life, whose form is exactly the one
+   * before rules existed.
+   */
+  conditions: ConditionsBlock | null;
   /** Leading of the prose and of the effects. */
   spacing: { prose: number; effects: number };
   /** Paper under the receipt's lowest line. */
@@ -363,7 +471,11 @@ const COMPACT_GAPS: typeof WIDE_GAPS = {
  * name beside the age and the act beside the time, the right-hand fields on
  * one column as wide as the longer of their labels.
  */
-export function wideLayout(fields: readonly CertificateField[], cssPerGamePx: number): WideLayout {
+export function wideLayout(
+  fields: readonly CertificateField[],
+  cssPerGamePx: number,
+  conditions: readonly string[] = [],
+): WideLayout {
   const type = wideType(cssPerGamePx);
   const room = WIDE_SHEET.width - 2 * WIDE_SHEET.margin;
   const labelWidth = (key: CertificateField['key']) => {
@@ -401,7 +513,11 @@ export function wideLayout(fields: readonly CertificateField[], cssPerGamePx: nu
   }
   const rows = fields.map((f) => placed.get(f.key)!).filter(Boolean);
   const cause = placed.get('cause')!;
-  const perf = cause.rule + g.perf;
+  const cond = conditions.length > 0 ? wideConditions(conditions, cause, labelWidth('cause'), type, g) : null;
+  // On the label line the conditions cost nothing and the tear stays put;
+  // under the rule, the tear moves down to keep the frame clear of them.
+  const under = cond !== null && cond.label > cause.rule;
+  const perf = Math.max(cause.rule + g.perf, under ? cond.bottom + FRAME_INSET : 0);
   const receipt = perf + g.receipt;
   return {
     type,
@@ -413,10 +529,45 @@ export function wideLayout(fields: readonly CertificateField[], cssPerGamePx: nu
     perf,
     receipt,
     content: receipt + type.head + g.head,
+    conditions: cond,
     spacing: { prose: g.prose, effects: g.effects },
     foot: g.foot,
     hint: g.hint,
   };
+}
+
+/**
+ * The wide form's conditions. Where a form's examiner would note them: on the
+ * cause's own label line, after "5. CAUSE OF DEATH", the label printed and
+ * the rules typed at the labels' size, ending before the stamp
+ * (`CONDITIONS_LINE_END`). That costs the form no height, which it has little
+ * of to spare: under the cause's rule sits the form's double frame, at 1280
+ * the sheet is 12px from its cap, and a landscape phone's compact form holds
+ * the longest build with 5px left. Rules too long for
+ * that line go under the cause's rule, left of the stamp (`STAMP_ROOM`), and
+ * the tear moves down for them (`FRAME_INSET`).
+ */
+function wideConditions(
+  conditions: readonly string[],
+  cause: WideRow,
+  causeLabel: number,
+  type: WideType,
+  g: typeof WIDE_GAPS,
+): ConditionsBlock {
+  const line = lineHeight(type.label);
+  const spacing = 2;
+  const typed = conditions.join(' ');
+  const labelX = cause.x + Math.ceil(causeLabel) + 16;
+  const x = labelX + Math.ceil(monoWidth(CONDITIONS_LABEL.length, type.label, 1)) + 8;
+  if (x + monoWidth(typed.length, type.label) <= CONDITIONS_LINE_END) {
+    return { labelX, label: cause.label, x, value: cause.label, lines: [typed], spacing, bottom: cause.label + line };
+  }
+  const room = WIDE_SHEET.width - 2 * WIDE_SHEET.margin - STAMP_ROOM;
+  const lines = typedLines(conditions, Math.floor(room / (MONO * type.label)));
+  const label = cause.rule + g.labelGap;
+  const value = label + line + spacing;
+  const bottom = value + lines.length * line + (lines.length - 1) * spacing;
+  return { labelX: cause.x, label, x: cause.x, value, lines, spacing, bottom };
 }
 
 /**

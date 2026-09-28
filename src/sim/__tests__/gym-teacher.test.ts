@@ -341,6 +341,7 @@ describe('(e) at zero the act ends, the way any act ends', () => {
     age: SCHOOL.age.to,
     causeId: 'natural-causes',
     cause: 'natural causes',
+    rules: [],
   };
 
   it('School is the last act: zero is the win, of natural causes, aged 12', () => {

@@ -391,6 +391,7 @@ describe('the life is six acts long now', () => {
       age: 55,
       causeId: 'natural-causes',
       cause: 'natural causes',
+      rules: [],
     });
   }, LONG);
 
