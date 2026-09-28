@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <title>Room</title>
+  <desc>A square room seen from above as a floor plan: a flat mustard floor inside plain walls drawn the way a plan draws them, as two ink lines with the carpet showing between. One doorway in the middle of the bottom wall, with the floor running out through it, and the door drawn open into the room as a plan draws it, one straight leaf and its swing. On the floor near the far wall, two dots and one flat mouth, lids low, looking down the room at the doorway. No furniture, nothing on the walls, nobody inside.</desc>
+  <!--
+    Room (FAMILY-ROSTER section 4, the Mortgage's; its row in section 3.6).
+    Reserved silhouette (section 1): the room, the only square in the act
+    and the only outline with a gap. Static, solid, merging, unkillable.
+
+    It never hurts anyone, so it wears no threat colour (law 10): it wears
+    the wallpaper. Mustard is the act's mid tone, and this is the one sprite
+    in the act whose body is that colour; the house that adds it is boss
+    teal, and the room is what the house leaves behind.
+
+    Drawn on the finished sprite's own pixel grid: one unit is one pixel of
+    the 92px subject (96 less the 2px outline each side). The group puts 92
+    units at exactly 368 supersampled pixels at the rasteriser's first
+    density (54), so the render fits on the first pass. crispEdges keeps
+    every ink/mustard edge from inventing a tone.
+
+    Walls: hollow, as an architect's plan draws a wall in section, and not
+    for looks. A square is its own bounding box, so a solid one fills its
+    frame: walls-and-gap drawn solid measured 0.9987 silhouette-area against
+    the swarm ceiling of 0.82. A door leaf hung outside the square to shrink
+    it passed (0.74) and read at 48px as a placard on a post. So each wall is
+    an outer ink line (2 units; 6 once CONFORM rings both its sides), 7 units
+    of carpet, and CONFORM's 2px ring round the floor as the inner line. At
+    48px the carpet and the ink sit 0.094 apart in Oklab L and the wall reads
+    as one thick dark band; the check counts the carpet as carpet. All four
+    walls are the same and nothing is on them, so two rooms side by side
+    read as one plan with a party wall between. Not heavier: ink counts as
+    vanishing into the umber, and it has to stay under 0.4 of the sprite.
+
+    Gap: 28 units in the middle of the bottom wall, the floor running out
+    through it to the edge. CONFORM rings the tongue's sides, which makes
+    the jambs, and its foot, which is the sill; the break in the wall is
+    mustard, the brightest thing in the drawing.
+
+    Door: open into the room, as a plan draws a door: a straight leaf up
+    from the left jamb, as long as the gap is wide, and a quarter-circle
+    swing back to the right jamb, both at the outline weight (2 units, law
+    1), ink on the floor. It is what makes this a floor plan at 48px and
+    not a framed square with a notch; the gap stays open, which is the
+    reserved read.
+
+    Face: on the floor near the far wall, on the doorway's axis. Two 6-by-7
+    ink eyes with flat tops and stepped round bottoms, lids low, looking
+    down the room at the door, and a flat 12-by-3 mouth. It is not looking
+    at anyone. It is looking at the way out, which it is not going to use.
+
+    Colours are palette hex values: family-mid #A3812F floor, ink #2A2521
+    walls, door and face. No threat colour, no paper, no family-light (the
+    pickups'). CONFORM adds the outline; there is none here.
+  -->
+  <g shape-rendering="crispEdges" transform="translate(2.0833333 2.0833333) scale(1.0416667)">
+    <!-- the floor: mustard, 66 square inside the walls, and out through the doorway -->
+    <rect x="13" y="13" width="66" height="66" fill="#A3812F"/>
+    <rect x="32" y="79" width="28" height="13" fill="#A3812F"/>
+    <!-- the walls' outer line: plain ink, broken once for the doorway; the carpet shows inside it -->
+    <g fill="#2A2521">
+      <rect x="0" y="0" width="92" height="2"/>
+      <rect x="0" y="0" width="2" height="92"/>
+      <rect x="90" y="0" width="2" height="92"/>
+      <rect x="0" y="90" width="32" height="2"/>
+      <rect x="60" y="90" width="32" height="2"/>
+    </g>
+    <!-- the door, open into the room: the leaf up from the left jamb, and its swing -->
+    <g fill="#2A2521">
+      <rect x="32" y="51" width="2" height="28"/>
+      <path d="M32,51 A28,28 0 0 1 60,79 L58,79 A26,26 0 0 0 32,53 Z"/>
+    </g>
+    <!-- the face, near the far wall: lids low, looking down at the doorway -->
+    <g fill="#2A2521">
+      <path d="M36,21 H42 V26 H41 V27 H40 V28 H38 V27 H37 V26 H36 Z"/>
+      <path d="M50,21 H56 V26 H55 V27 H54 V28 H52 V27 H51 V26 H50 Z"/>
+      <rect x="40" y="35" width="12" height="3"/>
+    </g>
+  </g>
+</svg>
