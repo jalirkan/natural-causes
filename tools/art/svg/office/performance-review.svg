@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <title>Performance review</title>
+  <desc>A short flat bone strip, much wider than tall, with a row of five fat five-pointed stars along its top edge, their upper points standing up out of it: four drawn as shadow-grey outlines with the strip showing through, and the second one solid, the one that is filled in. Below the row, two ink dots with their bottoms cut flat, turned up at the stars, and one flat mouth. No text, no numbers, nobody holding it.</desc>
+  <!--
+    Performance review (OFFICE-ROSTER §3.5), the act's ranged enemy.
+    Reserved silhouette (§1): the row of stars, five in a row with one
+    filled. The only stars in the act and the only points in it; nothing
+    else here may have a point. Drawn as the role (law 9): the rating is the
+    character and nobody is reviewing anybody. The face belongs to the strip
+    and it is looking at its own stars, not at the player.
+
+    The row is the read. The strip's top edge is cut around the stars, a
+    bone margin hugging each one, so the outline is five star tops standing
+    up out of a bar and never a plain rectangle (a rectangle with a face is
+    a name badge). The stars stay on bone all the way round, because shadow
+    on office-deep is under the contrast floor and bone under shadow is not.
+    Five across 84 pixels is about fourteen each: fat stars (inner radius
+    half the outer) with round joins for blunt points, and a pixel of bone
+    between neighbouring arm tips so the row never fuses into a band.
+
+    One filled: the empty four are shadow outlines with the strip's bone
+    inside, the filled one is solid ink, as the standardised test's one
+    solid bubble is the answer already given. Bone with a shadow edge on a
+    bone strip is exactly what an empty outline star looks like, and drawn
+    that way the second star read as a gap in a dark row at 48px, not as
+    the one that was filled. It is the second one because it is.
+
+    Hand-cut (law 4): each star is tilted a few degrees its own way and no
+    two of the strip's corners are rounded alike.
+
+    Drawn on the finished sprite's pixel grid: the group maps one unit to
+    one pixel of the 88px sprite (84 wide inside the 2px outline), the
+    strip's ends are the widest thing and the top peak sits just under a
+    whole unit, so the face lands on whole pixels.
+
+    Face (law 5): two ink dots with the bottoms cut flat, lower lids up,
+    turned up at the row and never at the player, and one short flat mouth,
+    centred under the middle star.
+
+    No gold anywhere (G-031, law 6): the ranged colour rides the rating it
+    fires, which the renderer draws. No office-light (law 10, pickups), no
+    red, no purple. Colours: bone #D2C6AC strip and margin, shadow #6E6353
+    star outlines, ink #2A2521 filled star and face. CONFORM adds the
+    outline; there is none here.
+  -->
+  <g transform="scale(1.1363636) translate(2 30)">
+    <!-- the strip's top edge, cut around the stars: a bone margin hugging each -->
+    <g fill="#D2C6AC" stroke="#D2C6AC" stroke-width="5.6" stroke-linejoin="round">
+      <path d="M 9.44 2.86 L 11.68 6.86 L 16.24 7.28 L 13.13 10.64 L 14.14 15.11 L 9.98 13.2 L 6.04 15.54 L 6.58 10.99 L 3.14 7.96 L 7.63 7.07 Z"/>
+      <path d="M 26.14 2.85 L 28.02 7.03 L 32.53 7.85 L 29.14 10.93 L 29.76 15.47 L 25.78 13.2 L 21.65 15.19 L 22.58 10.7 L 19.42 7.39 L 23.97 6.89 Z"/>
+      <path d="M 41.88 2.85 L 43.98 6.92 L 48.52 7.5 L 45.3 10.76 L 46.15 15.26 L 42.06 13.2 L 38.04 15.4 L 38.74 10.87 L 35.4 7.73 L 39.92 6.99 Z"/>
+      <path d="M 58.46 2.86 L 60.27 7.07 L 64.76 7.96 L 61.32 10.99 L 61.86 15.54 L 57.92 13.2 L 53.76 15.11 L 54.77 10.64 L 51.66 7.28 L 56.22 6.86 Z"/>
+      <path d="M 73.96 2.85 L 76.13 6.89 L 80.68 7.39 L 77.52 10.7 L 78.45 15.19 L 74.32 13.2 L 70.34 15.47 L 70.96 10.93 L 67.57 7.85 L 72.08 7.03 Z"/>
+    </g>
+    <!-- the strip, 84 by 19, its top above where neighbouring margins part; no two corners alike -->
+    <path d="M 2.5 8 H 81 Q 84 8 84 11 V 25 Q 84 27 82 27 H 3 Q 0 27 0 24 V 10.5 Q 0 8 2.5 8 Z" fill="#D2C6AC"/>
+    <!-- the four empty stars: shadow outlines, the strip's bone inside -->
+    <g fill="#D2C6AC" stroke="#6E6353" stroke-width="2" stroke-linejoin="round">
+      <path d="M 9.44 2.86 L 11.68 6.86 L 16.24 7.28 L 13.13 10.64 L 14.14 15.11 L 9.98 13.2 L 6.04 15.54 L 6.58 10.99 L 3.14 7.96 L 7.63 7.07 Z"/>
+      <path d="M 41.88 2.85 L 43.98 6.92 L 48.52 7.5 L 45.3 10.76 L 46.15 15.26 L 42.06 13.2 L 38.04 15.4 L 38.74 10.87 L 35.4 7.73 L 39.92 6.99 Z"/>
+      <path d="M 58.46 2.86 L 60.27 7.07 L 64.76 7.96 L 61.32 10.99 L 61.86 15.54 L 57.92 13.2 L 53.76 15.11 L 54.77 10.64 L 51.66 7.28 L 56.22 6.86 Z"/>
+      <path d="M 73.96 2.85 L 76.13 6.89 L 80.68 7.39 L 77.52 10.7 L 78.45 15.19 L 74.32 13.2 L 70.34 15.47 L 70.96 10.93 L 67.57 7.85 L 72.08 7.03 Z"/>
+    </g>
+    <!-- the second star, filled in -->
+    <path d="M 26.14 2.85 L 28.02 7.03 L 32.53 7.85 L 29.14 10.93 L 29.76 15.47 L 25.78 13.2 L 21.65 15.19 L 22.58 10.7 L 19.42 7.39 L 23.97 6.89 Z" fill="#2A2521" stroke="#2A2521" stroke-width="2" stroke-linejoin="round"/>
+    <!-- the face, centred under the row, turned up at it -->
+    <g fill="#2A2521">
+      <path d="M 36 18 H 38 V 19 H 39 V 21 H 35 V 19 H 36 Z"/>
+      <path d="M 46 18 H 48 V 19 H 49 V 21 H 45 V 19 H 46 Z"/>
+      <rect x="39" y="23" width="6" height="2"/>
+    </g>
+  </g>
+</svg>
