@@ -1,6 +1,6 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import { ANTIBODY_FLOOR, antibodyDragFor } from '../../src/sim/world';
+import { ANTIBODY_FLOOR, PLAYER_RADIUS, antibodyDragFor } from '../../src/sim/world';
 import { ALL_ACTS, CONCEPTION, spawnStreams } from '../../src/data/acts';
 import { ENEMIES } from '../../src/data/enemies';
 import {
@@ -10,7 +10,9 @@ import {
   COY_RADIUS_PX,
   COY_WEIGHT_PER_HELD_SECOND,
   FLOOR_HOLD_FRACTION,
+  HAND_CLEARANCE_PX,
   HUNT_CLEARANCE_PX,
+  OUT_OF_REACH_MARGIN_PX,
   POLICIES,
   SHIELD_PULL_WEIGHT,
   SHOT_LOOKAHEAD_SECONDS,
@@ -19,7 +21,9 @@ import {
   itemUptake,
   partial,
   pearson,
+  bossCannotBeHurt,
   bossHasShield,
+  bossHazardReach,
   runOnce,
   setHeadingJitter,
   setInstrument,
@@ -391,6 +395,39 @@ if (shieldActs.length === 0) {
   out.push(
     `  hunts the nearest ball / walks onto the floor to ${FLOOR_HOLD_FRACTION} of its radius (pull ` +
       `${SHIELD_PULL_WEIGHT}, ball clearance ${HUNT_CLEARANCE_PX}px) — PLACEHOLDERS in bots.ts.`,
+  );
+}
+
+// Time's hand (DECLINE-ROSTER §4; AUDIT nine, 119). Not a shot, so the
+// aimed-shot table never sees it, and a death to it reads only "Time" on the
+// certificate: here are its contacts (`HandLog`, once per i-frame window) and
+// the deaths on one, beside the certificate's Time count, which they should
+// match. Counts, not rates — presence: whether the bots, standing off beyond
+// the hand, still meet it. A fight with no Time is skipped with a note.
+out.push('');
+const timeActs = acts.filter((a) => bossCannotBeHurt(a.boss) && a.boss.kind === 'time');
+if (timeActs.length === 0) {
+  out.push(`(the boss of "${act.id}" is not Time — the hand line does not apply)`);
+} else {
+  const timeName = timeActs[0]!.bossName;
+  out.push(`hand — ${timeName}'s long hand: contacts and deaths (totals over the policy’s fights; counts, not rates)`);
+  out.push('-'.repeat(84));
+  out.push(`policy                 fights   contacts   deaths   of ${timeName} on the certificate`);
+  for (const s of summarise(results)) {
+    const blind = POLICIES.find((p) => p.name === s.policy)?.blindToShots === true;
+    const certified = s.causes.find(([cause]) => cause === timeName)?.[1] ?? 0;
+    out.push(
+      `${`${s.policy}${blind ? ' (blind)' : ''}`.padEnd(22)} ${String(s.timeFights).padStart(6)} ` +
+        `${String(s.handContacts).padStart(10)} ${String(s.handDeaths).padStart(8)} ${String(certified).padStart(8)}`,
+    );
+  }
+  const reach = bossHazardReach(timeActs[0]!.boss, PLAYER_RADIUS);
+  out.push(
+    `  contacts: once per i-frame window, never a shot's. Every policy stands off ${timeName} beyond its hand ` +
+      `(${reach === null ? '?' : reach.toFixed(0)}px + ${OUT_OF_REACH_MARGIN_PX}px at the base radius) and orbits against it;`,
+  );
+  out.push(
+    `  every one but the blind control also steps off the hand (clearance ${HAND_CLEARANCE_PX}px) — PLACEHOLDERS in bots.ts.`,
   );
 }
 
