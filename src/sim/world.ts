@@ -1,4 +1,4 @@
-import type { ActDef, BossDef, GymTeacherBoss, SpawnWave } from '../data/acts';
+import type { ActDef, BossDef, GymTeacherBoss, PromBoss, SpawnWave } from '../data/acts';
 import { rateAt, spawnStreams, whistleInterval } from '../data/acts';
 import { enemyDef, type EnemyDef } from '../data/enemies';
 import { ITEMS, isActive, itemDef, levelBonus, type ActiveItem, type ItemDef } from '../data/items';
@@ -124,6 +124,17 @@ export const ANTIBODY_LEAD = 320;
  * not. Expect the bots to move it again.
  */
 export const BOSS_HP = 320;
+/**
+ * The Egg's light, which Prom borrows whole (ADOLESCENCE-ROSTER §4): seconds
+ * in each phase of its machine, and the shot it fires. Named so Prom reads
+ * these numbers rather than a copy of them; the Egg's machine uses them
+ * exactly where it used the literals they replace. PLACEHOLDERS under both
+ * acts' `provisional` labels, set when the Egg was built and never played.
+ */
+export const EGG_TELEGRAPH_SECONDS = 0.85;
+export const EGG_ATTACK_SECONDS = 0.35;
+export const EGG_IDLE_SECONDS = 1.6;
+export const EGG_SHOT = { speed: 260, life: 4, damage: 12, radius: 10 } as const;
 /**
  * How long the Gym Teacher's `attack` phase reads after the whistle blows,
  * before `idle`. The Egg's attack hold, reused. Presentation only: the whistle
@@ -373,8 +384,9 @@ export interface BossState {
   maxHp: number;
   /**
    * `idle` → `telegraph` → `attack`, then back. For the Gym Teacher the
-   * telegraph is the whistle rising and `attack` begins on the step it blows.
-   * The exit, for either kind, is `absorbing`: the word is the Egg's, and it
+   * telegraph is the whistle rising and `attack` begins on the step it blows;
+   * for Prom it is the lights going down and `attack` begins on the ring.
+   * The exit, for every kind, is `absorbing`: the word is the Egg's, and it
    * means the outcome has latched (G-033) and `finishAct` follows the timer —
    * the Gym Teacher's stopwatch click and `ActDef.endWord` play in it.
    */
@@ -382,11 +394,20 @@ export interface BossState {
   /** Seconds left in the current phase. */
   timer: number;
   /**
-   * True while he cannot be damaged: the Gym Teacher with any of his
-   * `enemyId` alive on the field (§9). Always false for the Egg. Plain state
-   * for the renderer and the bots; the sim reads the field itself.
+   * True while it cannot be damaged: the Gym Teacher with any of his
+   * `enemyId` alive on the field (§9); Prom with the player farther than its
+   * `floorRadius` from the ball (ADOLESCENCE-ROSTER §4). Always false for the
+   * Egg. Plain state for the renderer and the bots; the sim reads the field
+   * and the player itself.
    */
   shielded: boolean;
+  /**
+   * Rings of spots Prom has fired this act. Ring n leaves at bearings
+   * (n/2 + i) × 2π/spots, so each is turned half a spacing from the last; a
+   * renderer turning the ball's facets with the light can read the same
+   * count. Zero for the kinds that fire no ring.
+   */
+  rings: number;
 }
 
 export interface Input {
@@ -625,13 +646,15 @@ export class World {
   }
 
   /**
-   * The act's race, if its boss is one that is raced for. Only the Egg is
-   * (G-006); a `race` declared beside any other boss is read as absent, so
-   * the someone-else loss cannot reach an act whose boss nobody swims to.
-   * Every reader of the race goes through this.
+   * The act's race, if its boss is one that is raced for: the Egg (G-006) and
+   * Prom, which borrows it (ADOLESCENCE-ROSTER §4). A `race` declared beside
+   * any other boss is read as absent, so the someone-else loss cannot reach
+   * an act whose boss nobody swims to. Every reader of the race goes through
+   * this.
    */
   private get race(): ActDef['race'] {
-    return this.act.boss.kind === 'egg' ? this.act.race : undefined;
+    const kind = this.act.boss.kind;
+    return kind === 'egg' || kind === 'prom' ? this.act.race : undefined;
   }
 
   /** How many racers reaching the boss loses the act; 0 when it has no race. */
@@ -1573,9 +1596,14 @@ export class World {
    * full damage, and is consumed exactly as it is on the player. It hits
    * nothing else in the crowd. Killed racers go through `reapDead` like any
    * other kill, so they drop their gem.
+   *
+   * The boss's shots only: those with no `owner`. Conception has no ranged
+   * enemy, so until Prom this was the same thing as "every hostile shot"; at
+   * Prom the group chat is still typing, and its notifications are aimed at
+   * the player, not at the dance.
    */
   private hitRacer(p: ProjectileState, pi: number): void {
-    if (!this.boss || !this.race) return;
+    if (!this.boss || !this.race || p.owner) return;
     this.grid.query(p.x, p.y, p.radius + this.queryPad, this.near);
     for (const e of this.near) {
       if (e.hp <= 0 || e.def.invulnerable || !this.isRacing(e)) continue;
@@ -2043,9 +2071,12 @@ export class World {
     // health bar over an empty screen. Reachable from anywhere in the top
     // quarter of the field.
     //
-    // Both kinds stand where this puts them and never move. The Gym Teacher
-    // shares the placement, the health and the first idle: §9 changes what
-    // the boss does, not where it is or how long it takes to kill.
+    // Every kind stands where this puts them and never moves. The Gym Teacher
+    // and Prom share the placement, the health and the first idle: §9 and
+    // ADOLESCENCE-ROSTER §4 change what the boss does, not where it is or how
+    // long it takes to kill. Prom therefore usually arrives with the player
+    // 420px away, off its floor, and the first thing asked is to step onto
+    // it; held inside the arena from the top of the field, it can land nearer.
     const margin = BOSS_RADIUS + 40;
     this.boss = {
       kind: this.act.boss.kind,
@@ -2055,8 +2086,11 @@ export class World {
       maxHp: BOSS_HP,
       phase: 'idle',
       timer: 2.2,
-      shielded: this.shieldUp(),
+      shielded: false,
+      rings: 0,
     };
+    // Read once it stands: Prom's shield is the player's distance from it.
+    this.boss.shielded = this.shieldUp();
     this.partRace(this.boss);
   }
 
@@ -2091,9 +2125,17 @@ export class World {
    * §9: nobody leaves until the equipment is put away. True while the act's
    * boss is the Gym Teacher and any of his `enemyId` is alive. A linear scan,
    * like the merge: once a step for `updateBoss`, and on the rare orbiter hit.
+   *
+   * ADOLESCENCE-ROSTER §4: nobody wins Prom from the wall. True while the
+   * player is farther than `floorRadius` from the ball, centre to centre, and
+   * read at the player's position this step, which has already moved.
    */
   private shieldUp(): boolean {
     const boss = this.act.boss;
+    if (boss.kind === 'prom') {
+      const b = this.boss;
+      return b !== null && (this.x - b.x) ** 2 + (this.y - b.y) ** 2 > boss.floorRadius ** 2;
+    }
     if (boss.kind !== 'gym-teacher') return false;
     for (const e of this.enemies) if (e.def.id === boss.enemyId && e.hp > 0) return true;
     return false;
@@ -2164,17 +2206,21 @@ export class World {
       this.gymTeacherPhase(b, boss);
       return;
     }
+    if (boss.kind === 'prom') {
+      this.promPhase(b, boss);
+      return;
+    }
 
     if (b.phase === 'idle') {
       b.phase = 'telegraph';
-      b.timer = 0.85;
+      b.timer = EGG_TELEGRAPH_SECONDS;
     } else if (b.phase === 'telegraph') {
       b.phase = 'attack';
-      b.timer = 0.35;
+      b.timer = EGG_ATTACK_SECONDS;
       this.bossAttack(b);
     } else {
       b.phase = 'idle';
-      b.timer = 1.6;
+      b.timer = EGG_IDLE_SECONDS;
     }
   }
 
@@ -2186,12 +2232,12 @@ export class World {
       this.projectiles.push({
         x: b.x,
         y: b.y,
-        vx: Math.cos(angle) * 260,
-        vy: Math.sin(angle) * 260,
-        life: 4,
-        damage: 12,
+        vx: Math.cos(angle) * EGG_SHOT.speed,
+        vy: Math.sin(angle) * EGG_SHOT.speed,
+        life: EGG_SHOT.life,
+        damage: EGG_SHOT.damage,
         pierce: 1,
-        radius: 10,
+        radius: EGG_SHOT.radius,
         hostile: true,
         source: 'boss',
         serial: this.nextSerial++,
@@ -2255,5 +2301,54 @@ export class World {
       this.addEnemy(def, b.x, b.y, Math.cos(angle) * def.speed, Math.sin(angle) * def.speed);
     }
     b.shielded = this.shieldUp();
+  }
+
+  /**
+   * Prom's machine (ADOLESCENCE-ROSTER §4): idle, it turns; the lights go
+   * down; the ring. The Egg's three phases at the Egg's timings, carried as
+   * the Gym Teacher's are rather than reset as the Egg's still are, so the
+   * cadence is the same at every frame rate (AUDIT 16).
+   */
+  private promPhase(b: BossState, boss: PromBoss): void {
+    if (b.phase === 'idle') {
+      b.phase = 'telegraph';
+      b.timer += EGG_TELEGRAPH_SECONDS;
+    } else if (b.phase === 'telegraph') {
+      b.phase = 'attack';
+      b.timer += EGG_ATTACK_SECONDS;
+      this.ring(b, boss);
+    } else {
+      b.phase = 'idle';
+      b.timer += EGG_IDLE_SECONDS;
+    }
+  }
+
+  /**
+   * The light: `spots` of the Egg's shot leaving the ball in every direction,
+   * evenly spaced, the ring turned half a spacing from the last so the spots
+   * sweep the room. Aimed at nobody, so no bearing reads the player. No
+   * `owner`: a death to one names the boss (`bossName`), and they thin the
+   * racers as the Egg's do (`hitRacer`).
+   */
+  private ring(b: BossState, boss: PromBoss): void {
+    const spacing = (Math.PI * 2) / boss.spots;
+    const turn = (b.rings * spacing) / 2;
+    for (let i = 0; i < boss.spots; i++) {
+      const angle = turn + i * spacing;
+      this.projectiles.push({
+        x: b.x,
+        y: b.y,
+        vx: Math.cos(angle) * EGG_SHOT.speed,
+        vy: Math.sin(angle) * EGG_SHOT.speed,
+        life: EGG_SHOT.life,
+        damage: EGG_SHOT.damage,
+        pierce: 1,
+        radius: EGG_SHOT.radius,
+        hostile: true,
+        source: 'boss',
+        serial: this.nextSerial++,
+      });
+    }
+    b.rings++;
   }
 }

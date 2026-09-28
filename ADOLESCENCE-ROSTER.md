@@ -316,6 +316,14 @@ a full ring that turns a step per attack, and the Gym Teacher's untouchability
 check pointed at the player's distance from the ball — on the per-act boss
 selector the Gym Teacher's build adds, since today every act fights the Egg.
 
+**Built 2026-09-27.** `PromBoss { kind: 'prom', floorRadius: 360, spots: 16 }`,
+both under `provisional`; the light reads the Egg's timings and shot (`EGG_*`,
+world.ts), the Egg unchanged. The HUD says *get on the floor* while `shielded`;
+`BossState.rings` counts rings. Only the boss's shots thin the racers: the group
+chat's pass through the dance. Bots: all 36 Prom fights end (35 won, on the floor
+76–100% of it; one race lost in 1.4s); in a life the build kills it before its
+first ring (31 of 31), so no bot has seen the light. `prom.test.ts`.
+
 ## 5 · Handoff
 
 - **The palette bound.** The tones take `FULL_PALETTE` to 23; `pipeline.test.ts`

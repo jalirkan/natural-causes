@@ -23,10 +23,13 @@ const ids = (): string[] =>
     .sort();
 
 describe('Adolescence has a schedule, and it is provisional', () => {
-  it('is marked provisional, names what retires the label, and says the Egg stands in', () => {
+  it("is marked provisional, names what retires the label, and names Prom's two numbers", () => {
     expect(ADOLESCENCE.provisional).toBeDefined();
     expect(ADOLESCENCE.provisional).toMatch(/D-022/);
-    expect(ADOLESCENCE.provisional).toMatch(/Egg stands in/);
+    // Prom's own numbers are placeholders nobody has played (§4): the floor
+    // and the ring. The label has to say so, or they read as decisions.
+    expect(ADOLESCENCE.provisional).toMatch(/floor radius/);
+    expect(ADOLESCENCE.provisional).toMatch(/spot count/);
   });
 
   it('is the third act of the life, and the third the browser plays', () => {
@@ -38,11 +41,14 @@ describe('Adolescence has a schedule, and it is provisional', () => {
     expect(ACTS.indexOf(ADOLESCENCE)).toBe(2);
   });
 
-  it("fights the Egg under Prom's name until Prom's kind exists (§4)", () => {
+  it('fights Prom (§4)', () => {
+    // This said 'egg' while the Egg stood in for Prom under Prom's name. Prom's
+    // own kind is built now (prom.test.ts: the race, the floor, the ring), so
+    // the act declares it; the Egg is Conception's again and only Conception's.
     expect(ADOLESCENCE.bossName).toBe('Prom');
-    expect(ADOLESCENCE.boss.kind).toBe('egg');
+    expect(ADOLESCENCE.boss.kind).toBe('prom');
     expect(ADOLESCENCE.endWord).toBe('SMILE');
-    // The Egg races, so the race is live today: hormones go to the dance.
+    // Prom is raced for, as the Egg is: hormones go to the dance.
     expect(ADOLESCENCE.race?.enemyId).toBe('hormones');
     expect(ADOLESCENCE.age).toEqual({ from: 13, to: 18 });
   });

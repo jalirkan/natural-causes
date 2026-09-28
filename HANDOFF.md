@@ -11,11 +11,11 @@ and write your name against it here, on `main`, before you start.
 
 | What | Where | State |
 |---|---|---|
-| The game | <https://jalirkan.github.io/natural-causes/> | `main`: a two-act life, Conception → School, every sprite authored SVG. Deploys on every push. |
+| The game | <https://jalirkan.github.io/natural-causes/> | `main`: a three-act life, Conception → School → Adolescence, every sprite authored SVG, `pnpm smoke` drives it end to end. Deploys on every push. |
 | The sim | `src/sim/world.ts` | One life (D-024); upgrades are gains (G-038, G-039); the Egg is a race (G-040); School's three placeholders built and labelled (D-022, D-027); AUDIT parts three and four in. |
 | Art | `tools/art/svg/<act>/<id>.svg`, `pnpm art:svg` | Main's stage (D-025). Every field sprite plus the Gym Teacher drawn. The review page: `pnpm art:sheet`. |
 | The Gym Teacher | `SCHOOL-ROSTER.md` §9 | Designed, drawn and fighting: the whistle, the shield, PARTICIPATION. Every number a placeholder; nobody has played him. |
-| Adolescence | `ADOLESCENCE-ROSTER.md` | Designed and reviewed; being lifted into data (cloud session). Not drawn, not startable. |
+| Adolescence | `ADOLESCENCE-ROSTER.md` | Designed, data, drawn, startable. Prom fights as the Egg until its own kind lands (cloud session, in progress). |
 | Direction proposals | `DIRECTION-PANEL-2026-09-27.md` | Mined for G-038–G-040. Still usable: inheritance, arrival toasts, per-act items, Time as Decline's boss. |
 | Coherence pass | GitHub issue #5 | Open: the four unlanded setups — cowlick, misspelled name (the certificate exists to land it on), the Egg's inheritance, the doorstep death. |
 
@@ -32,10 +32,10 @@ stop register at all.
 | Step | Holder |
 |---|---|
 | Whatever Justin's play says — labelled numbers move only on a person's reaction | whoever he tells |
-| A headless-Chromium smoke test (`pnpm smoke`) | **cloud session** (in progress) |
-| Prom's behaviour (ADOLESCENCE-ROSTER §4) once Adolescence is data | **cloud session** |
-| Adolescence: roster review → enemies, ActDef, palette (needs a decision: the 20-colour cap), drawings | **cloud session** |
-| AUDIT part four's open items 26–29 (Capacitation at the crossing, Wake standing still, Chemotaxis moving furniture, the ending waiting on a level-up) | **cloud session** |
+| Prom's behaviour (ADOLESCENCE-ROSTER §4): the race, the floor, the ring of light | **cloud session** (in progress) |
+| Adolescence's sounds (the typing, the car, the slow song) | **cloud session** (in progress) |
+| `pnpm smoke` into CI (needs Chromium on the runner; its own PR, watched) | unowned |
+| AUDIT part four's item 26 (Capacitation restarts below baseline at the crossing): a design call, roster §4 owns it | unowned |
 | Icons for Grudge, Group Chat and Appetite as SVG through the stage (`iconPending` retires when the frame exists) | unowned — good for the local session |
 | The Egg's inheritance (G-017, unblocked): one unchosen item at the crossing, announced on the act card | unowned — good for the local session |
 | The certificate as a document in the register kept for documents; the misspelled-name payoff lands there | unowned |
