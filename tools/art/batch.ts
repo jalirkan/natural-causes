@@ -871,6 +871,30 @@ export const ITEM_ICONS: AssetSpec[] = [
       'flat muted dusty rose head and handle, pale warm end faces, block and ticks, dark lines where the head meets the handle and the faces meet the head',
     ].join(', '),
   },
+  // Backhand (G-044, mode sweep) is drawn like the five above. Its icon also
+  // rides the leading edge of each sweep on the field (~36px, rotated to the
+  // sweep's angle), so it keeps to rose, bone and ink as Grudge does. It is a
+  // hand with a cuff, as Reflex's manicule is, so everything else about it
+  // differs: leaning diagonally where that one lies level, every finger out
+  // where that one points one, and moving where that one aims.
+  {
+    id: 'icon-sweep',
+    name: 'Backhand icon',
+    act: 'conception',
+    role: 'icon',
+    source: 'svg',
+    targetSize: 96,
+    seed: 61026,
+    tests: 'a backhand mid-swing, unmistakably a slap and never the manicule, read at 52px on a card and 36px on the field',
+    subject: [
+      'an open hand seen from the back, four fingers held together and only slightly fanned, the thumb out on the leading side',
+      'leaning well over into a swing to the right, as if caught halfway through it',
+      'three short flat motion arcs trailing off its heel, pieces of the swing\'s own curve, none at the fingertips',
+      'a simple shirt cuff with one button at the wrist, as on the printed pointing hand, and no forearm past it',
+      'no finger pointing, no palm showing, never a wave',
+      'flat muted dusty rose hand, pale warm cuff and motion arcs, dark interior lines between the fingers',
+    ].join(', '),
+  },
 ];
 
 /**
