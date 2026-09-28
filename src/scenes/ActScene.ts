@@ -221,7 +221,7 @@ export class ActScene extends Phaser.Scene {
    * it must not know sound exists — so the renderer notices changes the same
    * way it notices everything else: by reading state and diffing.
    */
-  private heard = { kills: 0, hp: 0, stacks: 0, offers: false, boss: false, dead: false, won: false, xp: 0, level: 1, raced: 0, shot: 0, homework: 0, stun: 0, bossPhase: '', typing: 0, car: 0, time: 0, auraAt: -Infinity };
+  private heard = { kills: 0, hp: 0, stacks: 0, offers: false, boss: false, dead: false, won: false, xp: 0, level: 1, raced: 0, shot: 0, homework: 0, stun: 0, bossPhase: '', typing: 0, car: 0, bell: 0, interestIn: 0, time: 0, auraAt: -Infinity };
 
   /**
    * How long this run held each heading (§12.4's sixth question). Fed the
@@ -409,7 +409,7 @@ export class ActScene extends Phaser.Scene {
     this.resetArrivals();
 
     this.dev = neutralDevState();
-    this.heard = { kills: 0, hp: this.world.hp, stacks: 0, offers: false, boss: false, dead: false, won: false, xp: 0, level: 1, raced: 0, shot: 0, homework: 0, stun: 0, bossPhase: '', typing: 0, car: 0, time: this.world.time, auraAt: -Infinity };
+    this.heard = { kills: 0, hp: this.world.hp, stacks: 0, offers: false, boss: false, dead: false, won: false, xp: 0, level: 1, raced: 0, shot: 0, homework: 0, stun: 0, bossPhase: '', typing: 0, car: 0, bell: 0, interestIn: 0, time: this.world.time, auraAt: -Infinity };
     this.inputLog = new InputLog();
     if (import.meta.env.DEV) {
       this.detachDev?.();
@@ -963,7 +963,8 @@ export class ActScene extends Phaser.Scene {
     if (firedBy.has('group-chat')) sfx.notification();
     if (firedBy.has('substitute-teacher')) sfx.substituteShot();
     // Any ranged enemy nobody has given a voice yet borrows the substitute's.
-    for (const id of firedBy) if (id !== 'group-chat' && id !== 'substitute-teacher') sfx.substituteShot();
+    // The registrar has one (its stamp, under the gate with College's below).
+    for (const id of firedBy) if (id !== 'group-chat' && id !== 'substitute-teacher' && id !== 'registrar') sfx.substituteShot();
     // The Gym Teacher's whistle (SCHOOL-ROSTER §9): rising on the telegraph,
     // one long blow on the exit. Read off the phase edge like everything else;
     // the Egg's phases make no sound of their own.
@@ -986,12 +987,16 @@ export class ActScene extends Phaser.Scene {
     if (homework > h.homework) sfx.homeworkLand();
     // Adolescence (§3.5, §3.2). A consult starting is the number of group chats
     // typing rising; a car entering is a drivers-ed uid above the highest heard,
-    // as homework's is. One of each per frame.
+    // as homework's is. One of each per frame. College's deadline (§3.2) is
+    // driver's ed without the wheels and arrives on the same engine; its
+    // registrars consulting are counted here and rung under the gate below.
     let typing = 0;
+    let bell = 0;
     let car = h.car;
     for (const e of w.enemies) {
       if (e.def.id === 'group-chat' && e.consult > 0) typing++;
-      else if (e.def.id === 'drivers-ed' && e.uid > car) car = e.uid;
+      else if (e.def.id === 'registrar' && e.consult > 0) bell++;
+      else if ((e.def.id === 'drivers-ed' || e.def.id === 'deadline') && e.uid > car) car = e.uid;
     }
     if (typing > h.typing) sfx.typing();
     if (car > h.car) sfx.carPass();
@@ -1001,8 +1006,9 @@ export class ActScene extends Phaser.Scene {
     // world time this frame's steps covered, and nothing while an offer is
     // open or the life is done.
     const elapsed = w.time - h.time;
+    const live = elapsed > 0 && !w.offers && !w.dead && !w.won;
     let auraAt = h.auraAt;
-    if (elapsed > 0 && !w.offers && !w.dead && !w.won) {
+    if (live) {
       // Backhand: arcs are aged before the swing (updateSweeps runs first), so
       // one swung on this frame's step reads 0 and one from the frame before
       // reads a whole step; half the frame's world time splits them with room
@@ -1036,6 +1042,17 @@ export class ActScene extends Phaser.Scene {
         }
       }
     }
+    // College (COLLEGE-ROSTER §3.5, §4), under the same gate, so a frame that
+    // opened a card or ended the life says only that. The registrar's bell is
+    // the number consulting rising, as the group chat's typing is; its HOLD is
+    // stamped on the post. The Loan's interest clock counts down and wraps UP
+    // when the balance compounds, so a rise since last frame is the tape
+    // advancing; `h.boss` keeps the clock appearing at spawn from sounding.
+    if (live) {
+      if (bell > h.bell) sfx.bell();
+      if (firedBy.has('registrar')) sfx.stamp();
+      if (w.boss?.kind === 'loan' && h.boss && w.boss.interestIn > h.interestIn) sfx.tapeTick();
+    }
     if (w.dead && !h.dead) sfx.death();
     if (w.won && !h.won) sfx.win();
     this.heard = {
@@ -1055,6 +1072,8 @@ export class ActScene extends Phaser.Scene {
       bossPhase,
       typing,
       car,
+      bell,
+      interestIn: w.boss?.interestIn ?? 0,
       time: w.time,
       auraAt,
     };
