@@ -3,13 +3,18 @@ import { dirname, resolve } from 'node:path';
 import { ANTIBODY_FLOOR, antibodyDragFor } from '../../src/sim/world';
 import { ALL_ACTS, CONCEPTION, spawnStreams } from '../../src/data/acts';
 import {
+  BOSS_PHASE_MAX_SECONDS,
+  FLOOR_HOLD_FRACTION,
+  HUNT_CLEARANCE_PX,
   POLICIES,
+  SHIELD_PULL_WEIGHT,
   SHOT_LOOKAHEAD_SECONDS,
   SHOT_MARGIN_PX,
   SHOT_SIDESTEP_WEIGHT,
   itemUptake,
   partial,
   pearson,
+  bossHasShield,
   runOnce,
   setHeadingJitter,
   setInstrument,
@@ -281,6 +286,43 @@ if (results.every((r) => r.shotsSeen === 0)) {
     `  Every policy sidesteps (weight ${SHOT_SIDESTEP_WEIGHT}) except the blind control. All three are`,
   );
   out.push('  PLACEHOLDERS in bots.ts — the bot’s, not the game’s.');
+}
+
+// The Gym Teacher's balls and Prom's floor (SCHOOL-ROSTER §9, ADOLESCENCE-
+// ROSTER §4). Whether a shielded fight ends, and how much of it the shield
+// was up — presence, not a rate: "a fight or a chore?" is a person's question,
+// and this only says whether the bot got to ask it. An act whose boss has no
+// shield (the Egg) is skipped with a note, as the antibody sections are.
+out.push('');
+const shieldActs = acts.filter((a) => bossHasShield(a.boss));
+if (shieldActs.length === 0) {
+  out.push(`(the boss of "${act.id}" has no shield — the shield section does not apply)`);
+} else {
+  out.push(
+    `the boss's shield — seconds up, of the fight` +
+      `${acts.length > 1 ? ` (${shieldActs.map((a) => a.id).join(' + ')}, pooled)` : ''}` +
+      ` (totals over the policy’s fights; counts, not rates)`,
+  );
+  out.push('-'.repeat(84));
+  out.push('policy                 fights    up s   of fight s   up      median fight s   at cap');
+  for (const s of summarise(results)) {
+    const blind = POLICIES.find((p) => p.name === s.policy)?.blindToShield === true;
+    const share = s.bossFightSeconds > 0 ? pct(s.bossShieldedSeconds / s.bossFightSeconds) : '-';
+    out.push(
+      `${`${s.policy}${blind ? ' (blind)' : ''}`.padEnd(22)} ${String(s.bossFights).padStart(6)} ` +
+        `${s.bossShieldedSeconds.toFixed(1).padStart(7)} ${s.bossFightSeconds.toFixed(1).padStart(12)}   ` +
+        `${share.padEnd(6)} ${(s.medianBossFightSeconds === null ? '-' : s.medianBossFightSeconds.toFixed(1)).padStart(16)}` +
+        `${`${s.runsAtCap}/${s.runs}`.padStart(9)}`,
+    );
+  }
+  out.push(
+    `  at cap: alive at the step cap, ${BOSS_PHASE_MAX_SECONDS}s past the boss` +
+      `${acts.length > 1 ? ' per act, summed over the life' : ''}. Every policy but the blind control`,
+  );
+  out.push(
+    `  hunts the nearest ball / walks onto the floor to ${FLOOR_HOLD_FRACTION} of its radius (pull ` +
+      `${SHIELD_PULL_WEIGHT}, ball clearance ${HUNT_CLEARANCE_PX}px) — PLACEHOLDERS in bots.ts.`,
+  );
 }
 
 // The certificate, tallied (D-024). Where the life ended, at what age, and of

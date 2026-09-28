@@ -1,8 +1,9 @@
-import { CONCEPTION, type ActDef } from '../../src/data/acts';
+import { CONCEPTION, type ActDef, type BossDef } from '../../src/data/acts';
 import { ITEMS, isActive } from '../../src/data/items';
 import type { EnemyDef } from '../../src/data/enemies';
 import {
   World,
+  type EnemyState,
   type Input,
   type ProjectileState,
   type WorldOptions,
@@ -22,10 +23,11 @@ import {
  *
  * The bot's own numbers are PLACEHOLDERS, each labelled where it is declared,
  * and none of them is a game number — moving one changes the player the bot
- * is, never the game: the decision cadence (`cadenceSeconds`, 0.2s) and the
+ * is, never the game: the decision cadence (`cadenceSeconds`, 0.2s), the
  * aimed-shot sidestep (`SHOT_LOOKAHEAD_SECONDS` 0.6s, `SHOT_SIDESTEP_WEIGHT`
- * 0.8, `SHOT_MARGIN_PX` 8px). What retires them is a human input log (§11.5),
- * not a bot run.
+ * 0.8, `SHOT_MARGIN_PX` 8px) and the shield reading (`SHIELD_PULL_WEIGHT` 0.7,
+ * `HUNT_CLEARANCE_PX` 40px, `FLOOR_HOLD_FRACTION` 0.8). What retires them is a
+ * human input log (§11.5), not a bot run.
  */
 
 /** Fixed timestep. Real frames vary; a measurement must not. */
@@ -35,7 +37,7 @@ const DT = 1 / 60;
  * run that cannot end. Relative to the act's clock rather than a fixed 420,
  * which was 300 + 120 with the 300 assumed.
  */
-const BOSS_PHASE_MAX_SECONDS = 120;
+export const BOSS_PHASE_MAX_SECONDS = 120;
 /** Never stand inside the Egg, whatever the build's reach is. */
 const BOSS_STANDOFF_MIN = 175;
 
@@ -49,6 +51,13 @@ export interface BotPolicy {
    * show what the sidestep changed. The shot tally counts either way.
    */
   blindToShots?: true;
+  /**
+   * Does not read a boss's shield: neither hunts the Gym Teacher's last ball
+   * nor keeps to Prom's floor, and plays both as it plays the Egg. The
+   * control again, for the same reason: the report's shield section is only
+   * a reading of the hunt if one arm does not hunt.
+   */
+  blindToShield?: true;
 }
 
 /**
@@ -67,7 +76,7 @@ export const POLICIES: BotPolicy[] = [
   // the next level-up a one-card Tantrum offer.
   { name: 'acrosome+midpiece', priorities: ['acrosome', 'midpiece', 'membrane', 'lash'] },
   { name: 'grudge+group-chat', priorities: ['grudge', 'group-chat', 'appetite', 'lash'] },
-  { name: 'random', priorities: [], blindToShots: true },
+  { name: 'random', priorities: [], blindToShots: true, blindToShield: true },
 ];
 
 export interface RunResult {
@@ -149,6 +158,15 @@ export interface RunResult {
   shotsBy: Record<string, { seen: number; hit: number }>;
   /** What the Egg dealt at the first crossing (G-042); null if the life never crossed. */
   inheritance: string | null;
+  /**
+   * Seconds of fight against a boss that can be shielded (`bossHasShield`:
+   * every kind but the Egg), from its arrival until the outcome latches
+   * (`absorbing`) or the run ends. Summed over the life's shieldable fights;
+   * zero for a run that never met one.
+   */
+  bossFightSeconds: number;
+  /** Of `bossFightSeconds`, the seconds `World.boss.shielded` was up. */
+  bossShieldedSeconds: number;
 }
 
 /**
@@ -307,6 +325,87 @@ function sidestep(w: World, state: BotState): { x: number; y: number } {
   return { x: sx * k, y: sy * k };
 }
 
+// --- the boss's shield -------------------------------------------------------
+//
+// SCHOOL-ROSTER §9: the Gym Teacher takes no damage while any of his balls
+// lives. ADOLESCENCE-ROSTER §4: Prom takes none while the player is off its
+// floor. A bot that reads neither sits in the fight until the step cap — 8 of
+// 52 School fights did, "because no bot hunts the last ball" — and then the
+// cap, not the design, answers "a fight or a chore?". The bot cannot aim (every
+// weapon picks its own target, the nearest), so reading the shield is only a
+// matter of where it walks. These three numbers are the bot's, not the game's.
+
+/**
+ * PLACEHOLDER, 0.7. The pull toward what opens a shielded boss: the Gym
+ * Teacher's nearest ball, or Prom's floor. Above a gem's 0.55, so a person
+ * does not leave the last ball bouncing to pick up XP; below a threat-1
+ * contact enemy's full-strength push (1.0 at touching) and a ring's 1.6, so
+ * the pull does not walk the bot into a body. Awaiting §11.5, like the rest.
+ */
+export const SHIELD_PULL_WEIGHT = 0.7;
+/**
+ * PLACEHOLDER, 40px. The nearest the hunt walks to a ball, past contact reach
+ * (player radius + ball radius). The hunt otherwise stops where the boss
+ * standoff does, at the build's shortest weapon's reach × 0.7 (capped at
+ * 300); this floor is for a build whose shortest item names no distance
+ * (Wake's `range` is seconds of trail), which would walk to touching.
+ */
+export const HUNT_CLEARANCE_PX = 40;
+/**
+ * PLACEHOLDER, 0.8. How far onto Prom's floor the bot walks before it holds:
+ * pulled toward the ball while farther than this share of `floorRadius`, not
+ * pulled at all inside it. Read off the floor rather than off `shielded`,
+ * which drops at the edge, so the bot does not hover where one sidestep puts
+ * the shield back up.
+ */
+export const FLOOR_HOLD_FRACTION = 0.8;
+
+/** A boss that can be shielded: every kind but the Egg, which never is (acts.ts). */
+export function bossHasShield(boss: BossDef): boolean {
+  return boss.kind !== 'egg';
+}
+
+/**
+ * The Gym Teacher's shield, as the bot sees it: while he is shielded, the
+ * nearest living `enemyId` on the field; otherwise null. The same predicate
+ * the sim's `shieldUp` scans for.
+ */
+function shieldBall(w: World): EnemyState | null {
+  const def = w.act.boss;
+  if (!w.boss || !w.boss.shielded || def.kind !== 'gym-teacher') return null;
+  let best: EnemyState | null = null;
+  let bestD = Infinity;
+  for (const e of w.enemies) {
+    if (e.def.id !== def.enemyId || e.hp <= 0) continue;
+    const d = (e.x - w.x) ** 2 + (e.y - w.y) ** 2;
+    if (d < bestD) {
+      bestD = d;
+      best = e;
+    }
+  }
+  return best;
+}
+
+/**
+ * The build's range notion: the SHORTEST reach among the damaging active
+ * items held, or 300 with none. Stand where the shortest weapon works, not
+ * the longest.
+ *
+ * Using the longest was the bug: every run starts holding Lash at 420px,
+ * so max-reach was always 420 and the bot parked at ~294px — outside
+ * Acrosome's 246px effective reach against the Egg, in every single run.
+ * The previous "fix" therefore never moved a short build closer, and the
+ * resulting 97% boss-HP-remaining was the instrument, not the item.
+ */
+function shortestReach(w: World): number {
+  let reach = Infinity;
+  for (const id of w.items.keys()) {
+    const def = ITEMS[id];
+    if (def && isActive(def) && def.damage > 0) reach = Math.min(reach, def.range);
+  }
+  return Number.isFinite(reach) ? reach : 300;
+}
+
 function decideMove(w: World, rng: () => number, state: BotState): Input {
   let ax = 0;
   let ay = 0;
@@ -363,33 +462,48 @@ function decideMove(w: World, rng: () => number, state: BotState): Input {
     // trail) as doing almost nothing to the boss, because the bot never got
     // close enough to use them. That is the instrument reporting its own
     // movement policy rather than the item, so the standoff is derived from
-    // what the run is actually holding.
-    // Stand where the build's SHORTEST weapon works, not its longest.
-    //
-    // Using the longest was the bug: every run starts holding Lash at 420px,
-    // so max-reach was always 420 and the bot parked at ~294px — outside
-    // Acrosome's 246px effective reach against the Egg, in every single run.
-    // The previous "fix" therefore never moved a short build closer, and the
-    // resulting 97% boss-HP-remaining was the instrument, not the item.
-    let reach = Infinity;
-    for (const id of w.items.keys()) {
-      const def = ITEMS[id];
-      if (def && isActive(def) && def.damage > 0) reach = Math.min(reach, def.range);
+    // what the run is actually holding (`shortestReach`).
+    const reach = shortestReach(w);
+    // The Gym Teacher, shielded: the ball is the target and he is not. The
+    // standoff and the orbit are dropped while it lives — circling a man who
+    // cannot be hurt is not what a person does, and the orbit's 0.75 beside
+    // the standoff's 0.9 would outvote the hunt wherever the ball lay beyond
+    // him. Walk to the build's range of the nearest ball, never to contact:
+    // inside it the hunt adds nothing, and the contact push above keeps the
+    // distance. The weapons do the rest, as they choose (the nearest thing).
+    const ball = state.readsShield ? shieldBall(w) : null;
+    if (ball) {
+      const d = Math.hypot(ball.x - w.x, ball.y - w.y) || 1;
+      const hold = Math.max(
+        w.playerRadius + ball.radius + HUNT_CLEARANCE_PX,
+        Math.min(reach * 0.7, 300),
+      );
+      if (d > hold) {
+        ax += ((ball.x - w.x) / d) * SHIELD_PULL_WEIGHT;
+        ay += ((ball.y - w.y) / d) * SHIELD_PULL_WEIGHT;
+      }
+    } else {
+      const standoff = Math.max(BOSS_STANDOFF_MIN, Math.min(reach * 0.7, 300));
+      const d = Math.hypot(w.boss.x - w.x, w.boss.y - w.y) || 1;
+      const toX = (w.boss.x - w.x) / d;
+      const toY = (w.boss.y - w.y) / d;
+      const want = d > standoff ? 0.9 : -0.9;
+      ax += toX * want;
+      ay += toY * want;
+      // Orbit. G-015 makes the fight an orbit rather than a standoff, and a bot
+      // that can only move radially measures its own inability to circle rather
+      // than the mechanic. Added at the same time as the pull, which does weaken
+      // the before/after comparison — noted rather than hidden.
+      ax += -toY * 0.75;
+      ay += toX * 0.75;
+      // Prom's floor: pulled onto it until well inside, then held — nothing
+      // more is added, and the standoff and orbit above go on as for the Egg.
+      const def = w.act.boss;
+      if (state.readsShield && def.kind === 'prom' && d > def.floorRadius * FLOOR_HOLD_FRACTION) {
+        ax += toX * SHIELD_PULL_WEIGHT;
+        ay += toY * SHIELD_PULL_WEIGHT;
+      }
     }
-    if (!Number.isFinite(reach)) reach = 300;
-    const standoff = Math.max(BOSS_STANDOFF_MIN, Math.min(reach * 0.7, 300));
-    const d = Math.hypot(w.boss.x - w.x, w.boss.y - w.y) || 1;
-    const toX = (w.boss.x - w.x) / d;
-    const toY = (w.boss.y - w.y) / d;
-    const want = d > standoff ? 0.9 : -0.9;
-    ax += toX * want;
-    ay += toY * want;
-    // Orbit. G-015 makes the fight an orbit rather than a standoff, and a bot
-    // that can only move radially measures its own inability to circle rather
-    // than the mechanic. Added at the same time as the pull, which does weaken
-    // the before/after comparison — noted rather than hidden.
-    ax += -toY * 0.75;
-    ay += toX * 0.75;
   }
 
   const len = Math.hypot(ax, ay);
@@ -442,6 +556,8 @@ interface BotState {
   lastHp: number;
   /** False only for a policy that is `blindToShots`. */
   watchesShots: boolean;
+  /** False only for a policy that is `blindToShield`. */
+  readsShield: boolean;
 }
 
 function freshState(policy: BotPolicy, w: World): BotState {
@@ -451,6 +567,7 @@ function freshState(policy: BotPolicy, w: World): BotState {
     holdRemaining: 0,
     lastHp: w.hp,
     watchesShots: !policy.blindToShots,
+    readsShield: !policy.blindToShield,
   };
 }
 
@@ -638,6 +755,10 @@ export function runOnce(
   let stacksLastSeenInFirstAct = world.dragStacks;
   let stacksAtFirstActEnd: number | null = null;
   let itemsAtFirstActEnd: Record<string, number> | null = null;
+  // The shield, read after each step: `updateBoss` sets it inside the step,
+  // so the flag after it is the one the step was played under.
+  let bossFightSeconds = 0;
+  let bossShieldedSeconds = 0;
 
   const lifeSeconds = acts.reduce((n, a) => n + a.durationSeconds + BOSS_PHASE_MAX_SECONDS, 0);
   const maxSteps = lifeSeconds / DT;
@@ -661,6 +782,11 @@ export function runOnce(
     world.step(DT, input);
     shots.settle(world, DT);
     steps++;
+
+    if (world.boss && world.boss.phase !== 'absorbing' && bossHasShield(world.act.boss)) {
+      bossFightSeconds += DT;
+      if (world.boss.shielded) bossShieldedSeconds += DT;
+    }
 
     if (stacksAtFirstActEnd === null) {
       if (world.actIndex === 0) {
@@ -715,6 +841,8 @@ export function runOnce(
     shotsHit: shots.hit,
     shotsBy: shots.by,
     inheritance: world.inheritance?.id ?? null,
+    bossFightSeconds: +bossFightSeconds.toFixed(1),
+    bossShieldedSeconds: +bossShieldedSeconds.toFixed(1),
   };
 }
 
@@ -843,6 +971,17 @@ export interface PolicySummary {
   shotsHit: number;
   runsHitByShot: number;
   shotsBy: Record<string, { seen: number; hit: number }>;
+  /**
+   * The shield (`bossFightSeconds`, `bossShieldedSeconds`): how many runs met
+   * a shieldable boss, both totals over them, and the median fight. Totals,
+   * as the shots are.
+   */
+  bossFights: number;
+  bossFightSeconds: number;
+  bossShieldedSeconds: number;
+  medianBossFightSeconds: number | null;
+  /** Runs that hit the step cap alive — in one act, the 120s past the boss. */
+  runsAtCap: number;
 }
 
 export function summarise(results: RunResult[]): PolicySummary[] {
@@ -910,6 +1049,14 @@ export function summarise(results: RunResult[]): PolicySummary[] {
         }
         return acc;
       }, {}),
+      bossFights: runs.filter((r) => r.bossFightSeconds > 0).length,
+      bossFightSeconds: +runs.reduce((n, r) => n + r.bossFightSeconds, 0).toFixed(1),
+      bossShieldedSeconds: +runs.reduce((n, r) => n + r.bossShieldedSeconds, 0).toFixed(1),
+      medianBossFightSeconds: (() => {
+        const fought = runs.filter((r) => r.bossFightSeconds > 0);
+        return fought.length ? median(fought.map((r) => r.bossFightSeconds)) : null;
+      })(),
+      runsAtCap: runs.filter((r) => r.outcome === 'alive').length,
     };
   });
 }
