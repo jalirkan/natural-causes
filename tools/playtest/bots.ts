@@ -313,16 +313,32 @@ export function threatens(w: World, p: ProjectileState): boolean {
   return mx * mx + my * my <= reach * reach;
 }
 
+/** One threatening shot as the sidestep reads it. */
+interface Push {
+  /** Unit, perpendicular to the path, toward the side the player stands on. */
+  x: number;
+  y: number;
+  /** The player's distance from the path's line. */
+  off: number;
+  /** Contact reach: inside `off < reach` the path, left alone, hits. */
+  reach: number;
+}
+
 /**
  * The sidestep: for every threatening shot, a unit push perpendicular to its
  * path, toward the side of the path the player already stands on. A shot dead
  * on (the Egg's centre shot is aimed exactly at the player) has no side, so
  * the bot keeps going the way it was already heading — which is what a person
- * does. Summed, then capped at SHOT_SIDESTEP_WEIGHT.
+ * does. Summed, then capped at SHOT_SIDESTEP_WEIGHT — unless the bot stands
+ * in one path's light with another pushing back (`intoTheGap`).
  */
-function sidestep(w: World, state: BotState): { x: number; y: number } {
+export function sidestep(
+  w: World,
+  heading: { headingX: number; headingY: number },
+): { x: number; y: number } {
   let sx = 0;
   let sy = 0;
+  const pushes: Push[] = [];
   for (const p of w.projectiles) {
     if (!threatens(w, p)) continue;
     const speed = Math.hypot(p.vx, p.vy);
@@ -330,17 +346,65 @@ function sidestep(w: World, state: BotState): { x: number; y: number } {
     const nx = -p.vy / speed;
     const ny = p.vx / speed;
     let side = (w.x - p.x) * nx + (w.y - p.y) * ny;
-    if (Math.abs(side) < 1e-6) side = state.headingX * nx + state.headingY * ny;
+    const off = Math.abs(side);
+    if (Math.abs(side) < 1e-6) side = heading.headingX * nx + heading.headingY * ny;
     // Heading straight along the path too: any fixed side, so it is replayable.
     if (Math.abs(side) < 1e-6) side = 1;
     const s = side > 0 ? 1 : -1;
     sx += nx * s;
     sy += ny * s;
+    pushes.push({ x: nx * s, y: ny * s, off, reach: w.playerRadius + p.radius });
   }
+  const gap = intoTheGap(pushes);
+  if (gap) return { x: gap.x * SHOT_SIDESTEP_WEIGHT, y: gap.y * SHOT_SIDESTEP_WEIGHT };
   const len = Math.hypot(sx, sy);
   if (len === 0) return { x: 0, y: 0 };
   const k = SHOT_SIDESTEP_WEIGHT / Math.max(1, len);
   return { x: sx * k, y: sy * k };
+}
+
+/**
+ * Between two paths, the sum cancels itself (AUDIT part five, minor). Prom's
+ * ring is the case: inside ~175px of the ball two neighbouring spots both
+ * threaten, their pushes point at each other and sum to at most 0.39 along
+ * the spots, outward, and the bot keeps no sidestep while standing in the
+ * nearer one's light — so whatever else it is steering by (the orbit's 0.75)
+ * walks it into the spot. Parallel paths (a column) cancel to exactly zero.
+ *
+ * So, when the bot is inside the contact reach of the NEAREST threatening
+ * path and some other threatening path pushes against it, the sum is dropped
+ * for that nearest path's push alone — away from it, into the gap toward the
+ * other — provided the gap is one a player fits in: stepping out of the
+ * nearest's reach does not put the bot inside any opposing path's. Moving
+ * `d` along the push brings an opposing path's line `c·d` nearer, `c` being
+ * minus the cosine between the two pushes — exact for a line, whatever the
+ * angle, so a ring's diverging neighbours are measured as a column's are.
+ *
+ * Where no gap fits (neighbouring shots of the Egg's fan inside ~325px, the
+ * ring inside ~133px) nothing is changed: no side is out of the light, and
+ * the sum's small outward push is toward where the spots spread. It reads
+ * paths, not who fired them, so the same case elsewhere — two shots of the
+ * fan a gap apart, the Reorg's column, two substitutes' crossfire — takes the
+ * same step. Deterministic: the nearest is the first in `w.projectiles` order
+ * on a tie, and a tie inside both reaches is a gap too narrow, so no tie ever
+ * picks a side. No new number.
+ */
+function intoTheGap(pushes: Push[]): { x: number; y: number } | null {
+  if (pushes.length < 2) return null;
+  let near = pushes[0]!;
+  for (const q of pushes) if (q.off < near.off) near = q;
+  if (near.off >= near.reach) return null;
+  // How far the bot must step, along the push, to be out of the nearest's reach.
+  const out = near.reach - near.off;
+  let opposed = false;
+  for (const q of pushes) {
+    const c = -(near.x * q.x + near.y * q.y);
+    if (q === near || c <= 0) continue;
+    opposed = true;
+    // Stepping `out` must leave this path at least its own reach away.
+    if (q.off - c * out < q.reach) return null;
+  }
+  return opposed ? { x: near.x, y: near.y } : null;
 }
 
 // --- the boss's shield -------------------------------------------------------
