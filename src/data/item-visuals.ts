@@ -22,6 +22,11 @@ import type { ItemIcon } from './items';
  * pickup reach), so its plate is `icon-magnet.png`; Charisma's horseshoe
  * magnet is `pull`; Snooze's clock is `slow`, and Capacitation's twin-bell
  * clock is `clock`.
+ *
+ * G-044's three are drawn too (`icon-{aura,sweep,bolt}.svg`): a velvet rope
+ * barrier for Personal Space, an open hand mid-swing for Backhand, a gavel
+ * about to land for Judgement. All three also appear on the field (the ring,
+ * the sweep's edge, the bolt's target), so they keep to rose, bone and ink.
  */
 export const ITEM_ICON_ATLAS = {
   key: 'nc-icons',
