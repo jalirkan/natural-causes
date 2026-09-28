@@ -45,6 +45,8 @@ function fixture(over: Partial<RunResult>): RunResult {
     shotsHit: 0,
     shotsBy: {},
     inheritance: null,
+    bossFightSeconds: 0,
+    bossShieldedSeconds: 0,
     ...over,
   };
 }

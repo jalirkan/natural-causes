@@ -306,7 +306,7 @@ death to its light prints *Cause of death: Prom. Age 18.* Until Service or
 College exists, beating it ends the life, and the certificate says natural
 causes at eighteen.
 
-**Numbers.** A ring of sixteen spots turned half a spacing per attack; the Egg's
+**Numbers.** A ring of sixteen spots turned a third of a spacing per attack (half retraced itself, AUDIT 36); the Egg's
 telegraph, idle, spot speed and damage; a dance floor of radius 360 around the
 ball, inside Reflex's reach so the starting weapon works from its edge;
 `race.absorb` forty; health `BOSS_HP`.

@@ -29,6 +29,14 @@ export interface ActVisuals {
   playerFrame: string;
   bossFrame: string;
   /**
+   * The boss's round body within its frame, as fractions of the frame: where
+   * its centre sits and how big it is (AUDIT 34). The Egg fills its frame;
+   * Prom hangs on a chain, so its ball sits low and small, and drawing the
+   * frame at the hitbox's size put the ball 36px below the sim's and 113px
+   * across a 150px hitbox. Absent: centred, filling the frame.
+   */
+  bossBody?: { cy: number; r: number };
+  /**
    * What an attach stack is drawn as on the player (`World.dragStacks`):
    * the antibody in Conception, acne in Adolescence (ADOLESCENCE-ROSTER §5).
    * Absent for an act with no attaching enemy; the scene never draws one
@@ -78,6 +86,8 @@ export const ACT_VISUALS: Record<string, ActVisuals> = {
     // Prom's picture on the Egg's behaviour until Prom's own kind exists
     // (ADOLESCENCE-ROSTER §4); the hormones already race for it.
     bossFrame: 'boss-prom.png',
+    // boss-prom.svg: the ball hangs on its chain, <circle cy="62.5" r="37">.
+    bossBody: { cy: 0.625, r: 0.37 },
     attachFrame: 'acne.png',
     // adolescence-light: blush, pickups only.
     pickup: 0xd6aebb,

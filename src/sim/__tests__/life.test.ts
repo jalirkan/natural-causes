@@ -191,6 +191,13 @@ describe('the certificate', () => {
     // Halfway through School: age reads halfway through its years.
     expect(world.age).toBeCloseTo((SCHOOL.age.from + SCHOOL.age.to) / 2, 1);
 
+    // Disarmed for the kill: a build this seed happens to roll can burst the
+    // ball dead on the same step it lands, and then nothing touches anyone.
+    // The claim is about the certificate, not the build.
+    if (world.offers) world.choose(world.offers[0]!);
+    world.items.clear();
+    world.areas.length = 0;
+    world.projectiles.length = 0;
     world.hp = 1;
     world.invulnerable = 0;
     world.enemies.length = 0;

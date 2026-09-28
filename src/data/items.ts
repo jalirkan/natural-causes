@@ -554,7 +554,9 @@ export const ITEMS: Record<string, ItemDef> = {
     rampTo: 1.85,
     maxLevel: 5,
     icon: 'clock',
-    blurb: 'Worthless for two minutes, then unstoppable.',
+    // Every act: the ramp runs on the act clock, so it restarts at each
+    // crossing (AUDIT part four, 26 — by design; the card now says so).
+    blurb: 'Worthless for two minutes of every act, then unstoppable.',
     enables:
       'A late-act scaling build that outperforms every other item in the last ninety seconds, and it is the only item in the game whose power is a function of the act clock rather than the player.',
     tradesAway:
@@ -609,8 +611,6 @@ export const ITEMS: Record<string, ItemDef> = {
     rampTo: 1,
     maxLevel: 5,
     icon: 'grow',
-    iconPending:
-      'No drawing yet: an SVG in tools/art/svg/conception/icon-grow.svg, conformed and packed into the icon atlas, retires the lettered ring.',
     blurb: 'Taller. Longer reach. Everyone can see you.',
     enables:
       'Reach: every weapon touches things from further away — shots fly further, bursts and fields are wider, the orbit swings wider — and gems come from further too, so a build that was one step short of the crowd is not.',
@@ -636,8 +636,6 @@ export const ITEMS: Record<string, ItemDef> = {
     slow: 0.5,
     maxLevel: 6,
     icon: 'slow',
-    iconPending:
-      'No drawing yet: an SVG in tools/art/svg/conception/icon-slow.svg, conformed and packed into the icon atlas, retires the lettered ring.',
     blurb: 'Nine more minutes. Everything nearby also waits.',
     levels: table(
       [

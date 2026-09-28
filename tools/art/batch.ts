@@ -797,6 +797,42 @@ export const ITEM_ICONS: AssetSpec[] = [
       'fork and knife in flat muted dusty rose, three tines on the fork, a rounded blade on the knife',
     ].join(', '),
   },
+  // Growth Spurt and Snooze arrive with Adolescence (G-039) and are drawn,
+  // like the three above. Growth Spurt is a passive, card-only. Snooze also
+  // marks its field where it was dropped (ActScene syncAreas, 40px), so it
+  // keeps to rose, bone and ink as Grudge and Gossip do.
+  {
+    id: 'icon-grow',
+    name: 'Growth Spurt icon',
+    act: 'conception',
+    role: 'icon',
+    source: 'svg',
+    targetSize: 96,
+    seed: 61023,
+    tests: 'taller than the thing that measures you, read at 52px on a card',
+    subject: [
+      'a measuring rule standing on end with five ticks, long and short, in from the edge facing the arrow',
+      'beside it one tall upright arrow standing on the same floor, its point well above the top of the rule',
+      'pale warm rule with dusty rose ticks, flat muted dusty rose arrow, no figure, no numbers',
+    ].join(', '),
+  },
+  {
+    id: 'icon-slow',
+    name: 'Snooze icon',
+    act: 'conception',
+    role: 'icon',
+    source: 'svg',
+    targetSize: 96,
+    seed: 61024,
+    // A digital bedside clock was drawn first and read as a kitchen scale.
+    tests: 'nine more minutes, read at 52px on a card and 40px on its field; never the twin-bell clock',
+    subject: [
+      'a round bedside clock seen straight on on two short feet, one wide flat bar across its top where bells would be, no bells',
+      'a pale face with two dark hands at nine minutes to the hour, no numerals',
+      'one bold z drawn as a shape rising off the top right',
+      'flat muted dusty rose case, pale warm face, bar and z',
+    ].join(', '),
+  },
 ];
 
 /**

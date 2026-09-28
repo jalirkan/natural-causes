@@ -59,6 +59,46 @@ const STICK_RADIUS_CSS = 56;
 const RESTART_GRACE_MS = 700;
 /** The last clean run's held headings (src/meta/input-log.ts), beside `nc-ancestors`. One run, overwritten. */
 const INPUT_LOG_KEY = 'nc-input-log';
+/** Arrival toasts stay below the HUD's top band (plate, boss bar, race bar) and this far off the edges. */
+const TOAST_TOP = 104;
+const TOAST_EDGE = 16;
+
+/** An enemy kind waiting its frame to be named: its first instance, and where that was when seen. */
+interface Arrival {
+  name: string;
+  uid: number;
+  x: number;
+  y: number;
+}
+
+/**
+ * Where an arrival toast's centre goes, in screen pixels, for a thing whose
+ * centre is at screen (sx, sy). On screen: `lift` above it, or below it when
+ * above would leave `box`. Off screen: where the line from the middle of the
+ * view toward it meets `box` -- the edge in its direction. Always inside `box`,
+ * which is the rectangle the toast's centre may occupy.
+ */
+function toastPoint(
+  sx: number,
+  sy: number,
+  lift: number,
+  view: { width: number; height: number },
+  box: { left: number; right: number; top: number; bottom: number },
+): { x: number; y: number } {
+  const clampX = (v: number) => Math.min(box.right, Math.max(box.left, v));
+  const clampY = (v: number) => Math.min(box.bottom, Math.max(box.top, v));
+  if (sx >= 0 && sx <= view.width && sy >= 0 && sy <= view.height) {
+    return { x: clampX(sx), y: clampY(sy - lift < box.top ? sy + lift : sy - lift) };
+  }
+  const cx = view.width / 2;
+  const cy = view.height / 2;
+  const dx = sx - cx;
+  const dy = sy - cy;
+  const tx = dx > 0 ? (box.right - cx) / dx : dx < 0 ? (box.left - cx) / dx : Infinity;
+  const ty = dy > 0 ? (box.bottom - cy) / dy : dy < 0 ? (box.top - cy) / dy : Infinity;
+  const t = Math.min(tx, ty);
+  return { x: clampX(cx + dx * t), y: clampY(cy + dy * t) };
+}
 
 export class ActScene extends Phaser.Scene {
   /** The life this scene plays (D-024): every act in order, one run. */
@@ -82,6 +122,8 @@ export class ActScene extends Phaser.Scene {
   private orbiterSprites: Phaser.GameObjects.Image[] = [];
   private attachedSprites: Phaser.GameObjects.Image[] = [];
   private bossSprite?: Phaser.GameObjects.Image;
+  /** Prom's dance floor, drawn as a ring at floorRadius; only while its boss stands. */
+  private floorRing?: Phaser.GameObjects.Graphics;
   /** Scale the boss frame sits at when idle. The telegraph pulses around it. */
   private bossBaseScale = 1;
 
@@ -154,6 +196,16 @@ export class ActScene extends Phaser.Scene {
   /** What the current cards were built from, so drawHud can diff cheaply. */
   private shownOffers = '';
 
+  /**
+   * Arrival toasts (syncArrivals). The kinds already named this act, the
+   * highest enemy uid already looked at (uids are monotonic across the life),
+   * the names waiting their frame, and the toasts on screen with their tweens.
+   */
+  private named = new Set<string>();
+  private arrivalUid = 0;
+  private arrivals: Arrival[] = [];
+  private arrivalCards: { card: Phaser.GameObjects.Text; chain: Phaser.Tweens.TweenChain }[] = [];
+
   constructor() {
     super('act');
   }
@@ -190,6 +242,7 @@ export class ActScene extends Phaser.Scene {
     this.orbiterSprites = [];
     this.attachedSprites = [];
     delete this.bossSprite;
+    delete this.floorRing;
 
     this.puffs = [];
     this.areaIcons = [];
@@ -257,6 +310,9 @@ export class ActScene extends Phaser.Scene {
     this.shownOffers = '';
     delete this.offerScrim;
     delete this.offerHeader;
+    this.arrivalCards = [];
+    this.arrivalUid = 0;
+    this.resetArrivals();
 
     this.dev = neutralDevState();
     this.heard = { kills: 0, hp: this.world.hp, stacks: 0, offers: false, boss: false, dead: false, won: false, xp: 0, level: 1, raced: 0, shot: 0, homework: 0, stun: 0, bossPhase: '', typing: 0, car: 0 };
@@ -313,6 +369,8 @@ export class ActScene extends Phaser.Scene {
     this.attachedSprites = [];
     this.bossSprite?.destroy();
     delete this.bossSprite;
+    this.floorRing?.destroy();
+    delete this.floorRing;
     this.absorbZoomed = false;
     // `force`: the Egg's 1.5s lean-in may still be tweening at the crossing
     // (it always is at dev speed), and Phaser drops a zoomTo while one runs.
@@ -321,6 +379,7 @@ export class ActScene extends Phaser.Scene {
     this.player
       .setTexture(this.visuals.atlas.key, this.visuals.playerFrame)
       .setDisplaySize(PLAYER_DISPLAY, PLAYER_DISPLAY);
+    this.resetArrivals();
     this.announceAct();
   }
 
@@ -383,6 +442,120 @@ export class ActScene extends Phaser.Scene {
       ],
       onComplete: () => card.destroy(),
     });
+  }
+
+  /**
+   * Arrival toasts: the first of each enemy kind in an act is named, small, beside it or at its edge.
+   * From DIRECTION-PANEL-2026-09-27 ("named on screen when it first arrives"), kept in HANDOFF.md.
+   * PLAN.md: the name is the whole delivery; the certificate's cause of death is the payoff.
+   * Read off `world.enemies` by uid, as hearWorld hears homework; the sim never knows. One a frame.
+   * Held while paused or choosing a card, so no name is spent under the scrim; dropped at the end.
+   */
+  private syncArrivals(): void {
+    const w = this.world;
+    const hold = this.paused || !!w.offers;
+    for (const a of this.arrivalCards) {
+      if (hold) a.chain.pause();
+      else a.chain.resume();
+    }
+    if (w.dead || w.won) {
+      this.arrivals.length = 0;
+      return;
+    }
+    // `enemies` holds neither the player, nor the boss (its bar names it), nor
+    // an attached antibody (contact swaps it out into `dragStacks`). The name
+    // check is the guard for the day a boss's kind walks the field.
+    let top = this.arrivalUid;
+    for (const e of w.enemies) {
+      if (e.uid <= this.arrivalUid) continue;
+      top = Math.max(top, e.uid);
+      if (this.named.has(e.def.id)) continue;
+      this.named.add(e.def.id);
+      if (e.def.name === w.act.bossName) continue;
+      this.arrivals.push({ name: e.def.name, uid: e.uid, x: e.x, y: e.y });
+    }
+    this.arrivalUid = top;
+    if (hold) return;
+    const next = this.arrivals.shift();
+    if (next) this.showArrival(next);
+  }
+
+  /**
+   * A new act names its own arrivals: forget the last act's, and clear any
+   * still up. Nothing already on the field when the act began is an arrival.
+   * `beginAct` clears the field, so today this marks nothing; it is the guard
+   * for the day it does not. Older than the act means there before it, and at
+   * `create` the world has not stepped, so everything present was.
+   */
+  private resetArrivals(): void {
+    for (const a of this.arrivalCards) {
+      a.chain.stop();
+      a.card.destroy();
+    }
+    this.arrivalCards = [];
+    this.arrivals = [];
+    this.named = new Set();
+    const w = this.world;
+    for (const e of w.enemies) if (w.time === 0 || e.age > w.actTime) this.named.add(e.def.id);
+  }
+
+  /** One toast. Placed where the enemy is now if it is still there (a queued name can wait out a card choice). */
+  private showArrival(a: Arrival): void {
+    const cam = this.cameras.main;
+    const e = this.world.enemies.find((o) => o.uid === a.uid);
+    const card = this.add
+      .text(0, 0, a.name, {
+        fontFamily: 'monospace',
+        fontSize: '15px',
+        color: '#EFE7D6',
+        letterSpacing: 2,
+      })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      // Above the field, its vignette and the HUD; under the stick, the act
+      // card, and the offer scrim and cards.
+      .setDepth(120)
+      .setAlpha(0);
+    const box = {
+      left: TOAST_EDGE + card.width / 2,
+      right: cam.width - TOAST_EDGE - card.width / 2,
+      top: TOAST_TOP + card.height / 2,
+      bottom: cam.height - TOAST_EDGE - card.height / 2,
+    };
+    // Screen space for a scroll-factor-0 object is world minus scroll at any
+    // zoom: Phaser zooms both about the same centre.
+    const at = toastPoint(
+      (e?.x ?? a.x) - cam.scrollX,
+      (e?.y ?? a.y) - cam.scrollY,
+      (e?.displaySize ?? 48) / 2 + 12,
+      cam,
+      box,
+    );
+    // Two kinds arriving from one side a frame apart would print on top of
+    // each other: step the newer one toward the middle until it clears.
+    for (let n = 0; n < 4; n++) {
+      const clash = this.arrivalCards.some(
+        (o) =>
+          Math.abs(o.card.x - at.x) < (o.card.width + card.width) / 2 + 8 &&
+          Math.abs(o.card.y - at.y) < (o.card.height + card.height) / 2 + 2,
+      );
+      if (!clash) break;
+      const step = (card.height + 4) * (at.y > cam.height / 2 ? -1 : 1);
+      at.y = Math.min(box.bottom, Math.max(box.top, at.y + step));
+    }
+    card.setPosition(at.x, at.y);
+    const chain = this.tweens.chain({
+      targets: card,
+      tweens: [
+        { alpha: 0.9, duration: 150 },
+        { alpha: 0, delay: 1050, duration: 500 },
+      ],
+      onComplete: () => {
+        card.destroy();
+        this.arrivalCards = this.arrivalCards.filter((o) => o.card !== card);
+      },
+    });
+    this.arrivalCards.push({ card, chain });
   }
 
   /**
@@ -569,6 +742,7 @@ export class ActScene extends Phaser.Scene {
 
   override update(_time: number, deltaMs: number): void {
     if (this.paused) {
+      this.syncArrivals();
       this.drawHud();
       return;
     }
@@ -619,6 +793,7 @@ export class ActScene extends Phaser.Scene {
     this.pauseButton?.setVisible(!over && !this.world.offers);
 
     this.hearWorld();
+    this.syncArrivals();
     this.syncPlayer();
     this.syncEnemies();
     this.syncProjectiles();
@@ -1139,8 +1314,20 @@ export class ActScene extends Phaser.Scene {
       this.bossSprite = this.add
         .image(b.x, b.y, this.visuals.atlas.key, this.visuals.bossFrame)
         .setDepth(6);
-      this.bossSprite.setDisplaySize(BOSS_RADIUS * 2, BOSS_RADIUS * 2);
+      // Anchored on the body the drawing actually has (AUDIT 34), so the
+      // hitbox and the picture agree: shots stop at its edge, not above it.
+      const body = this.visuals.bossBody ?? { cy: 0.5, r: 0.5 };
+      this.bossSprite.setOrigin(0.5, body.cy).setDisplaySize(BOSS_RADIUS / body.r, BOSS_RADIUS / body.r);
       this.bossBaseScale = this.bossSprite.scaleX;
+      // Prom's floor (ADOLESCENCE-ROSTER §4): the HUD says get on it, so it is
+      // drawn — a thin paper ring at floorRadius, chrome not threat (law 10),
+      // under everything that moves. Destroyed with the boss sprite.
+      const boss = this.world.act.boss;
+      if (boss.kind === 'prom') {
+        this.floorRing?.destroy();
+        this.floorRing = this.add.graphics().setDepth(2);
+        this.floorRing.lineStyle(2, PAPER, 0.28).strokeCircle(b.x, b.y, boss.floorRadius);
+      }
     }
     // The telegraph has to be legible from across the arena. With one authored
     // frame it is carried by scale and value rather than by a drawn frame —
