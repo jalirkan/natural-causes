@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <title>Backhand icon</title>
+  <desc>An open hand seen from the back, fingers together and thumb out, leaning into a swing to the right, with a shirt cuff at the wrist and three short motion arcs trailing off its heel.</desc>
+  <!--
+    Backhand (G-044, mode sweep). A card icon, and also what rides the
+    leading edge of each sweep on the field (about 36px, rotated to the
+    sweep's angle), so it keeps off the field's reserved colours: no threat
+    colour, no paper, no conception-light. The cuff is bone, not paper.
+    Reflex's manicule (icon-strike) is the other hand with a cuff, so this
+    one differs in everything else: it leans diagonally into a swing where
+    that one lies level, it shows every finger where that one points one,
+    and it is moving where that one aims.
+    A slap, not a wave: the fingers are held together and fanned only a
+    little, and the arcs trail off the heel rather than the fingertips. They
+    are pieces of the swing itself, drawn about a pivot below the wrist.
+    No forearm, as on Grudge's fist; the cuff is where the hand ends.
+    Drawn upright in the hand's own frame, then leaned 42 degrees.
+    CONFORM adds the outer outline; interior lines are drawn here.
+    Colours: conception-mid #A86A63, bone #D2C6AC, ink #2A2521.
+  -->
+  <g shape-rendering="crispEdges">
+    <g transform="translate(42 65) rotate(42)">
+      <!-- the motion arcs: three pieces of the swing about its pivot at (0 45), trailing off the heel -->
+      <g fill="none" stroke="#D2C6AC" stroke-width="6" stroke-linecap="round">
+        <path d="M -41 -26 A 82 82 0 0 1 -22.6 -33.8"/>
+        <path d="M -38.8 -8.4 A 66 66 0 0 1 -22.6 -17"/>
+        <path d="M -36 10.3 A 50 50 0 0 1 -23.5 0.9"/>
+      </g>
+
+      <!-- the thumb, out on the leading side -->
+      <rect x="-4.75" y="-18" width="9.5" height="24" rx="4.75" fill="#A86A63" transform="translate(12 -10) rotate(35)"/>
+      <!-- the fingers, held together and fanned only a little -->
+      <g fill="#A86A63">
+        <rect x="-17" y="-55" width="8.5" height="25" rx="4.25" transform="rotate(-1.5 -12.75 -36)"/>
+        <rect x="-8.5" y="-62" width="8.5" height="32" rx="4.25" transform="rotate(-0.5 -4.25 -36)"/>
+        <rect x="0" y="-65" width="8.5" height="35" rx="4.25" transform="rotate(0.5 4.25 -36)"/>
+        <rect x="8.5" y="-61" width="8.5" height="31" rx="4.25" transform="rotate(1.5 12.75 -36)"/>
+      </g>
+      <!-- the back of the hand and the wrist -->
+      <path fill="#A86A63" d="M -12 2 L -12 -8 L -17 -24 L -17.5 -35 Q -17.5 -40 -13 -40 L 13 -40 Q 17.5 -40 17.5 -35 L 17 -27 L 12 -14 L 12 2 Z"/>
+      <!-- where the thumb leaves the hand, and the gaps between the fingers -->
+      <g stroke="#2A2521" stroke-width="1.6" stroke-linecap="round">
+        <line x1="0" y1="2" x2="0" y2="-12" transform="translate(12 -10) rotate(35) translate(-4.75 0)"/>
+        <line x1="-8.5" y1="-31" x2="-8.5" y2="-52.5" transform="rotate(-1 -8.5 -36)"/>
+        <line x1="0" y1="-31" x2="0" y2="-59.5"/>
+        <line x1="8.5" y1="-31" x2="8.5" y2="-58.5" transform="rotate(1 8.5 -36)"/>
+      </g>
+
+      <!-- the cuff, its opening, and one button -->
+      <rect x="-18" y="0" width="36" height="13" rx="2" fill="#D2C6AC"/>
+      <line x1="-15" y1="1" x2="15" y2="1" stroke="#2A2521" stroke-width="2"/>
+      <circle cx="-10" cy="7" r="2.2" fill="#2A2521"/>
+    </g>
+  </g>
+</svg>
