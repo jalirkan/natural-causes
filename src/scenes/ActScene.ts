@@ -44,13 +44,16 @@ import {
   type ProjectileState,
 } from '../sim/world';
 import {
+  borrowsAhem,
   consulting,
+  holdArrived,
   holdTaken,
   instalmentPaid,
   meetingCloses,
   memoDrafted,
   newestAbove,
   statementDrafted,
+  timeTicks,
   vehiclesEntered,
   wornGained,
 } from './edges';
@@ -412,7 +415,7 @@ export class ActScene extends Phaser.Scene {
    * way it notices everything else: by reading state and diffing. `worn` and
    * `holds` are copies, never the world's live map and array.
    */
-  private heard = { kills: 0, hp: 0, worn: new Map() as ReadonlyMap<string, number>, offers: false, boss: false, dead: false, won: false, xp: 0, level: 1, raced: 0, shot: 0, homework: 0, stun: 0, bossPhase: '', typing: 0, car: 0, bell: 0, interestIn: 0, time: 0, auraAt: -Infinity, holds: [] as readonly HoldState[], restructures: 0, bill: 0, ringing: 0, engulf: 0, paid: 0 };
+  private heard = { kills: 0, hp: 0, worn: new Map() as ReadonlyMap<string, number>, offers: false, boss: false, dead: false, won: false, xp: 0, level: 1, raced: 0, shot: 0, homework: 0, stun: 0, bossPhase: '', typing: 0, car: 0, bell: 0, interestIn: 0, time: 0, auraAt: -Infinity, holds: [] as readonly HoldState[], restructures: 0, bill: 0, ringing: 0, engulf: 0, paid: 0, medication: 0, denying: 0, secondsLeft: 0, filed: 0 };
 
   /**
    * How long this run held each heading (§12.4's sixth question). Fed the
@@ -640,7 +643,7 @@ export class ActScene extends Phaser.Scene {
     this.resetArrivals();
 
     this.dev = neutralDevState();
-    this.heard = { kills: 0, hp: this.world.hp, worn: new Map(this.world.wornBy), offers: false, boss: false, dead: false, won: false, xp: 0, level: 1, raced: 0, shot: 0, homework: 0, stun: 0, bossPhase: '', typing: 0, car: 0, bell: 0, interestIn: 0, time: this.world.time, auraAt: -Infinity, holds: this.world.holds.slice(), restructures: 0, bill: 0, ringing: 0, engulf: 0, paid: 0 };
+    this.heard = { kills: 0, hp: this.world.hp, worn: new Map(this.world.wornBy), offers: false, boss: false, dead: false, won: false, xp: 0, level: 1, raced: 0, shot: 0, homework: 0, stun: 0, bossPhase: '', typing: 0, car: 0, bell: 0, interestIn: 0, time: this.world.time, auraAt: -Infinity, holds: this.world.holds.slice(), restructures: 0, bill: 0, ringing: 0, engulf: 0, paid: 0, medication: 0, denying: 0, secondsLeft: 0, filed: 0 };
     this.inputLog = new InputLog();
     if (import.meta.env.DEV) {
       this.detachDev?.();
@@ -1363,8 +1366,9 @@ export class ActScene extends Phaser.Scene {
     // Any ranged enemy nobody has given a voice yet borrows the substitute's.
     // The registrar has one (its stamp, under the gate with College's below);
     // the phone's is its ring on the consult (Family, below), and its HELLO?
-    // lands without an ah-hem after it.
-    for (const id of firedBy) if (id !== 'group-chat' && id !== 'substitute-teacher' && id !== 'registrar' && id !== 'phone-call') sfx.substituteShot();
+    // lands without an ah-hem after it; the insurance form's is its stamp on
+    // the consult (Decline, below), and its DENIED lands silent the same way.
+    for (const id of firedBy) if (borrowsAhem(id)) sfx.substituteShot();
     // The Gym Teacher's whistle (SCHOOL-ROSTER §9): rising on the telegraph,
     // one long blow on the exit. Read off the phase edge like everything else;
     // the Egg's phases make no sound of their own.
@@ -1432,6 +1436,23 @@ export class ActScene extends Phaser.Scene {
     const ringing = consulting(w.enemies, 'phone-call');
     if (ringing > h.ringing) sfx.ring();
     if (holdTaken(w, h.engulf) === 'toddler') sfx.squeak();
+    // Decline (DECLINE-ROSTER §6). A medication arriving is the rattle — a
+    // medication uid above the highest heard, one a frame, and floored at a
+    // second in the sound, since they arrive all act. The weather entering
+    // is the rain, off the vehicle counter above, so it is never also a car,
+    // a train or the tape. A flight of stairs landing is the creak: a stairs
+    // hold not on last frame's list, so a meeting's hold never creaks and a
+    // flight that never adjourns creaks once. The insurance form consulting
+    // is DENIED stamped, the number consulting rising as the phone's ring is.
+    // Time's tick is its own edge (`timeTicks`): a quarter turn of the hand,
+    // then each of the last five seconds, and nothing at zero.
+    const medication = newestAbove(w.enemies, 'medication', h.medication);
+    if (medication > h.medication) sfx.rattle();
+    if (vehicles.sounds.has('rain')) sfx.rain();
+    if (holdArrived(w.holds, h.holds, 'stairs')) sfx.creak();
+    const denying = consulting(w.enemies, 'insurance-form');
+    if (denying > h.denying) sfx.denied();
+    if (timeTicks(w.boss, h)) sfx.tick();
     // G-044's three weapons. Unlike the counters above, their state sits still
     // while the world does (a card up, the run over), so an arc or a landed
     // bolt read off a held world would sound every frame. They hear only the
@@ -1517,6 +1538,11 @@ export class ActScene extends Phaser.Scene {
       // Copied every frame, the countdown included, so only a new hold rises.
       engulf: w.engulfTimer,
       paid,
+      medication,
+      denying,
+      // Zero with no Time up: its arrival at 60 is a rise, never a tick.
+      secondsLeft: w.boss?.secondsLeft ?? 0,
+      filed: w.boss?.filed ?? 0,
     };
   }
 
