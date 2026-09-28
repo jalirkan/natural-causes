@@ -219,17 +219,21 @@ export const TEST_BATCH: AssetSpec[] = [
     name: 'Rival sperm',
     act: 'conception',
     role: 'swarm',
-    tests: 'does it read at 48px in a crowd',
+    tests: 'the comet in the greeting-card register: does a round face with a tail read at 48px in a crowd',
     targetSize: 96,
     seed: 2002,
     whyThisStage:
       'Conception is the only competition the player has already won, so the game opens by making it feel like a commute.',
+    // G-053: redrawn in the greeting-card register. The comet is law 11's;
+    // the face is the register's; the rose is the rivals' (no threat colour:
+    // contact red is the spermicide's). G-040: it is racing you.
     subject: [
-      'a single cartoon sperm cell seen from the side',
-      'a smooth blunt domed head with no hair and no tuft',
-      'half-lidded eyes almost closed, a flat horizontal line for a mouth, no eyebrows',
-      'a blank disinterested expression, completely uninterested, looking straight ahead in its direction of travel and not at the viewer',
-      'a single thin curled tail',
+      'a single cartoon sperm cell seen from the side, facing right, in the greeting-card register',
+      'a big smooth round head, most of the figure, with no hair and no tuft',
+      'one wavy tail leaving the back of the head and tapering to a round tip, rounded where it meets the head',
+      'two big dark eyes at the front of the head looking ahead along its line, one small light glint in each',
+      'pink cheeks under the eyes and a small pleased smile: it is racing you and enjoying it',
+      'one small light glint on the head at its upper left',
       'flat muted dusty rose colouring, mid-tone, never pale and never white',
     ].join(', '),
   },
@@ -239,19 +243,24 @@ export const TEST_BATCH: AssetSpec[] = [
     name: 'The Egg',
     act: 'conception',
     role: 'boss',
-    tests: 'does scale hold up; is a boss impressive',
+    tests: 'does scale hold up; is a boss impressive; does a cute face still read as already decided',
     targetSize: 384,
     seed: 3003,
     whyThisStage:
       'It is the only boss in the game that is beaten by being taken in rather than brought down.',
+    // G-053: redrawn in the greeting-card register. The fingers have
+    // background between them so the corona is never a scalloped edge (the
+    // blot is the white cell's, law 11); the four outermost sit clear of the
+    // gap its variants open (AUDIT 131), so all three frames share bounds.
     subject: [
-      'an enormous smooth round egg cell filling the frame, flat muted deep teal',
-      'a thick irregular fringe of blunt stubby finger-like protrusions all the way around it like a lumpy crown or a bad haircut',
-      'no two protrusions the same length',
-      'one small calm face placed off-centre and low on the huge smooth mass',
-      'half-lidded eyes and a small closed-mouth knowing smile',
+      'an enormous smooth round cream egg filling the frame, in the greeting-card register',
+      'a corona of fourteen blunt stubby teal fingers growing out from under its edge like a sun drawn by a child or a bad haircut, background showing between them',
+      'no two fingers the same length and none quite straight, each rounded where it leaves the egg',
+      'one small light glint on the upper-left finger',
+      'one small face placed off-centre, low and to the right on the huge smooth mass',
+      'big half-lidded dark eyes with one small light glint each, pink cheeks, a small closed-mouth knowing smile',
       'serene and faintly amused, not angry, it has already decided',
-      'one flat darker tone across the lower third as the only shadow',
+      'one flat rose crescent low and to the right as the only shadow',
     ].join(', '),
   },
   {
@@ -375,26 +384,24 @@ export const CONCEPTION_ROSTER: AssetSpec[] = [
     name: 'White cell',
     act: 'conception',
     role: 'swarm',
-    tests: 'the blot silhouette, and a stamp face that must survive 48px',
+    tests: 'the blot in the greeting-card register: a purple puff that stays purple under the contrast floor, with a face that survives 48px',
     targetSize: 96,
     seed: 7007,
     whyThisStage:
       'Before the player is anyone at all, there is already a process whose only job is to stop things that look like them.',
+    // G-053: redrawn in the greeting-card register. Elite purple sits under
+    // CHECK's contrast floor against conception-deep, so the purple body
+    // wears a rose skin, as the blot always has.
     subject: [
       // Deliberately not "white blood cell": the word "white" is in the name
       // and the generator obliges, which failed enemy-value-ceiling at 0.9297
       // four attempts running. Same species as the antibody's "fork".
-      'a single large round leukocyte cell seen from directly above, filling most of the frame',
-      'a round lobed mass with a scalloped irregular edge, the lobes uneven in count and depth so it never resolves into a flower',
+      'a single large round leukocyte cell seen from directly above, filling most of the frame, in the greeting-card register',
+      'a soft round mass of eight lobes with a scalloped irregular edge, the lobes uneven in size and spacing so it never resolves into a flower, every notch rounded',
       'no tail, no limbs, no spikes, no protrusions',
-      'flat muted purple, one darker shadow tone at most, no interior texture whatsoever',
-      // Deliberately does not say "rubber stamp": the shared style suffix
-      // carries "no stamp, no seal, no chop mark" to suppress the fake
-      // signature marks the register keeps drawing in corners, and the two
-      // would fight inside one prompt. The shape is what matters, not the word.
-      'one small flat muted-tan oval disc set off-centre on the mass, lying flat on its surface',
-      'that disc carries two small dark dots for eyes and one short horizontal line for a mouth and nothing else',
-      'the eyes aimed a few degrees off to one side, looking past the viewer rather than at them',
+      'a flat muted purple body inside an uneven rose skin, thickest at the upper left, where one small light glint sits',
+      'a round face on the purple, high and to the right of the middle: two big dark eyes with one small light glint each, pink cheeks, a small contented smile',
+      'the eyes gazing past the viewer rather than at them: it is not coming for you, it is going where it was going',
     ].join(', '),
   },
   {
@@ -403,15 +410,17 @@ export const CONCEPTION_ROSTER: AssetSpec[] = [
     name: 'Spermicide',
     act: 'conception',
     role: 'swarm',
-    tests: 'a droplet that reads as asleep, with no interior detail at all',
+    tests: 'a droplet that reads as asleep in the greeting-card register, and as red',
     targetSize: 72,
     seed: 8008,
     whyThisStage:
       'Conception is the first stage where the environment was made lethal in advance by someone who will never be told whether it worked.',
+    // G-053: redrawn in the greeting-card register, which gives it the one
+    // glint and a mouth (law 5); cute is not safe, so it stays contact red.
     subject: [
-      'a single rounded teardrop-shaped droplet of liquid with a flat top and a smooth blunt bottom',
-      'flat muted red, one solid colour, absolutely no interior detail, no highlight, no shine, no bubbles',
-      'a small simple face low on the droplet: two downward-curving closed sleeping eye arcs and no mouth at all',
+      'a single plump teardrop-shaped droplet of liquid, most of it a round bottom, its point cut to a small flat top with rounded corners, in the greeting-card register',
+      'flat muted red, one solid colour, one small light glint at its upper left and no other highlight, no bubbles',
+      'a face low on the droplet: two closed sleeping eyes, lash lines bowed downward, pink cheeks, a tiny contented mouth',
       'peacefully asleep, unaware, completely unbothered',
       'no arms, no legs, no tail, no ring, no circle around it',
     ].join(', '),
@@ -422,7 +431,7 @@ export const CONCEPTION_ROSTER: AssetSpec[] = [
     name: 'Antibody',
     act: 'conception',
     role: 'swarm',
-    tests: 'the Y — the only straight lines in the act, at the smallest size in it',
+    tests: 'the Y — the only straight lines in the act, corners rounded, with a face that survives the smallest size in it',
     targetSize: 44,
     seed: 9009,
     // §2 reserves the Y as the act's only straight lines, so this asset takes
@@ -439,10 +448,10 @@ export const CONCEPTION_ROSTER: AssetSpec[] = [
       'three thick straight bars of exactly equal thickness meeting at one central junction',
       'two bars angling upward and apart in a wide V, one bar pointing straight down',
       'all three limbs roughly the same length as each other, short and heavy, not thin, not tapering',
-      'perfectly straight edges and sharp square corners, no curves anywhere on it',
-      'flat dark grey-brown, one solid colour and nothing else',
-      'one small muted-tan square tag centred on the junction where the bars meet',
-      'the tag carries two small dark dots for eyes and no mouth and nothing else',
+      'perfectly straight edges with every corner slightly rounded, the only curves on the bars',
+      'flat glossy near-black, one small light glint on the upper-left bar',
+      'one small round muted-tan face centred on the junction where the bars meet, in the greeting-card register',
+      'the face carries two small dark eyes with a light glint each, pink cheeks and a small smile, and nothing else',
       'no other detail, no texture, no shading',
       'not a fork, not cutlery, not a utensil, not a tree, not a branch, not a slingshot',
     ].join(', '),
@@ -452,7 +461,7 @@ export const CONCEPTION_ROSTER: AssetSpec[] = [
     name: 'The Egg, eyes closing',
     act: 'conception',
     role: 'boss',
-    tests: 'the Egg exactly as boss-egg with its eyes closed: two flat lines where the half-lidded eyes were, the same smile, the same corona',
+    tests: 'the Egg exactly as boss-egg with its eyes closed: two lash lines bowed downward where the half-lidded eyes were, the same smile, the same corona',
     targetSize: 384,
     seed: 3103,
     source: 'svg',
@@ -460,13 +469,12 @@ export const CONCEPTION_ROSTER: AssetSpec[] = [
     // state, swapped in by the renderer where a render overlay stood.
     whyThisStage: 'It is the only boss in the game that is beaten by being taken in rather than brought down.',
     subject: [
-      'an enormous smooth round egg cell filling the frame, flat muted deep teal',
-      'a thick irregular fringe of blunt stubby finger-like protrusions all the way around it like a lumpy crown or a bad haircut',
-      'no two protrusions the same length',
-      'one small calm face placed off-centre and low on the huge smooth mass',
-      'the eyes closed: two short flat dark lines where the half-lidded eyes were, and the same small closed-mouth knowing smile',
-      'everything else identical to boss-egg: the same mass, the same fringe, the same face position',
-      'one flat darker tone across the lower third as the only shadow',
+      'an enormous smooth round cream egg filling the frame, in the greeting-card register',
+      'a corona of fourteen blunt stubby teal fingers growing out from under its edge like a sun drawn by a child, background showing between them',
+      'one small face placed off-centre, low and to the right on the huge smooth mass',
+      'the eyes closed: two dark lash lines bowed downward where the half-lidded eyes were, the same pink cheeks, the same small closed-mouth knowing smile',
+      'everything else identical to boss-egg: the same mass, the same fingers, the same face position',
+      'one flat rose crescent low and to the right as the only shadow',
     ].join(', '),
   },
   {
@@ -474,7 +482,7 @@ export const CONCEPTION_ROSTER: AssetSpec[] = [
     name: 'The Egg, corona parting',
     act: 'conception',
     role: 'boss',
-    tests: 'the Egg exactly as boss-egg-closing with the corona parted: the fringe opened in one gap on the side the face looks toward, the eyes closed',
+    tests: 'the Egg exactly as boss-egg-closing with the corona parted: the two fingers low and to the right gone, the egg bare through the gap, the bounds unmoved',
     targetSize: 384,
     seed: 3203,
     source: 'svg',
@@ -482,13 +490,12 @@ export const CONCEPTION_ROSTER: AssetSpec[] = [
     // state, swapped in by the renderer where a render overlay stood.
     whyThisStage: 'It is the only boss in the game that is beaten by being taken in rather than brought down.',
     subject: [
-      'an enormous smooth round egg cell filling the frame, flat muted deep teal',
-      'a thick irregular fringe of blunt stubby finger-like protrusions all the way around it like a lumpy crown or a bad haircut',
-      'no two protrusions the same length',
-      'the fringe of protrusions parted in one clear gap on the side the face looks toward, the protrusions either side of the gap leaning away from it',
-      'one small calm face placed off-centre and low on the huge smooth mass, the eyes closed as two short flat dark lines, the same knowing smile',
+      'an enormous smooth round cream egg filling the frame, in the greeting-card register',
+      'a corona of blunt stubby teal fingers growing out from under its edge like a sun drawn by a child, background showing between them',
+      'the corona parted in one clear gap low and to the right, on the side the face sits toward: the two fingers there gone and the egg bare through the gap',
+      'one small face placed off-centre, low and to the right on the huge smooth mass, the eyes closed as two dark lash lines bowed downward, the same pink cheeks and knowing smile',
       'everything else identical to boss-egg',
-      'one flat darker tone across the lower third as the only shadow',
+      'one flat rose crescent low and to the right as the only shadow',
     ].join(', '),
   },
 ];

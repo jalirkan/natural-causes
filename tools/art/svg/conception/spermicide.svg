@@ -1,13 +1,25 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <title>Spermicide</title>
+  <desc>A plump red droplet with a small flat top, fast asleep: two closed eyes bowed like lashes, pink cheeks, a tiny contented mouth. It bursts into a ring without waking up.</desc>
   <!--
-    Spermicide, droplet state (CONCEPTION-ROSTER §3.2): a rounded teardrop
-    with a flat top, flat contact red, no interior detail. Asleep: two
-    closed-eye arcs and no mouth. The ring is its burst, drawn in code.
-    Colours: threat-contact #C4472E, ink #2A2521.
+    Spermicide, droplet state (CONCEPTION-ROSTER 3.2), in the greeting-card
+    register (G-053). A plump teardrop, most of it a round bottom, its
+    point cut to a small flat top with rounded corners. Flat contact red,
+    the colour the act reserves to it (law 11): the thing that hurts you
+    wears red however cute it is (law 6). Asleep: two closed eyes, lash
+    lines bowed downward, never open, so no eye glints; blush; a tiny
+    contented mouth (the register puts a mouth on every face). One bone
+    glint on the mass at its upper left, the whole gloss (paper is the
+    player's, law 10). The ring it bursts into is drawn in code and holds
+    the act's reserved ring; this drawing is not a ring.
+    Colours are palette hex values: threat-contact #C4472E, bone #D2C6AC,
+    blush #EBA39C, ink #2A2521. CONFORM adds the outline; there is none here.
   -->
-  <g shape-rendering="crispEdges">
-  <path fill="#C4472E" d="M42,4 H58 C66,22 84,40 84,64 A34,34 0 0,1 16,64 C16,40 34,22 42,4 Z"/>
-  <path fill="#2A2521" d="M28,67 Q37,84 46,67 Q37,74 28,67 Z"/>
-  <path fill="#2A2521" d="M54,67 Q63,84 72,67 Q63,74 54,67 Z"/>
-  </g>
+  <path d="M42.4 8.4 Q44 6 47.5 6 H52.5 Q56 6 57.6 8.4 C62.2 14.95 68.8 29.2 76.4 38.6 A34 34 0 1 1 23.6 38.6 C31.2 29.2 37.8 14.95 42.4 8.4 Z" fill="#C4472E"/>
+  <ellipse cx="30" cy="44" rx="3.4" ry="2.2" transform="rotate(-50 30 44)" fill="#D2C6AC"/>
+  <path d="M30 61 Q36.5 70 43 61 A1.3 1.3 0 0 0 42.4 59.3 Q36.5 64 30.6 59.3 A1.3 1.3 0 0 0 30 61 Z" fill="#2A2521"/>
+  <path d="M57 61 Q63.5 70 70 61 A1.3 1.3 0 0 0 69.4 59.3 Q63.5 64 57.6 59.3 A1.3 1.3 0 0 0 57 61 Z" fill="#2A2521"/>
+  <ellipse cx="31.5" cy="70.5" rx="4.6" ry="2.7" fill="#EBA39C"/>
+  <ellipse cx="68.5" cy="70.5" rx="4.6" ry="2.7" fill="#EBA39C"/>
+  <path d="M46 70 Q50 75.6 54 70 Q50 71.8 46 70 Z" fill="#2A2521"/>
 </svg>
