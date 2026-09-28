@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <title>Registrar</title>
+  <desc>A low service counter seen straight on: a wide grey front panel under an overhanging tan ledge, standing on two short feet, with a small round desk bell on the right of the ledge and a dark slot cut low in the panel beneath it. A face on the left of the panel, two dot eyes with flat lids cast down toward the slot and one flat mouth. Nobody behind it, no glass, no sign, no text.</desc>
+  <!--
+    Registrar (COLLEGE-ROSTER §3.5), the act's ranged enemy. Reserved
+    silhouette: the counter, the only architecture in the act and the only
+    bell. Drawn as the role (law 9): the counter is the character and nobody
+    is behind it. The bell is on the player's side of it.
+
+    The bell is the read at 80px. It stands right of centre so it is an
+    object on a ledge and not a hat on a head: a bone dome on an ink base
+    plate, a small bone knob on an ink plunger. The ledge overhangs the
+    panel on both sides and the panel stands on two short feet, so the
+    outline is a slab with a bump on top and a notch below, never a plain
+    rectangle. Tuition holds the only rectangle wider than tall and the only
+    window, so there is no glass here, and the slot is a thin ink cut, not a
+    window.
+
+    Straight sides; the hand is in the corners, no two rounded alike (a
+    slanted edge rasterises as a one-pixel jog, standardised-test.svg).
+
+    Face (law 5): two ink dots with the tops cut flat, lids lowered, cast
+    down toward the slot and never at the player, and one short flat mouth.
+    The face sits left of centre and the slot low on the right, under the
+    bell: centred beneath the eyes the slot read as the mouth at 48px and
+    the mouth as a nose. Bell above, slot below, is the transaction; the
+    face is only watching it.
+
+    No gold anywhere (G-031, law 6): the ranged colour rides the form it
+    fires, which the renderer draws. Colours: shadow #6E6353 counter, bone
+    #D2C6AC ledge and bell, ink #2A2521 slot, face, plate and plunger.
+    CONFORM adds the outline; there is none here.
+  -->
+  <!-- the feet -->
+  <path d="M 14 86 H 26 V 93 Q 26 95.5 23.5 95.5 H 16 Q 14 95.5 14 93.5 Z" fill="#6E6353"/>
+  <path d="M 74 86 H 86 V 94 Q 86 95.5 84.5 95.5 H 77 Q 74 95.5 74 92.5 Z" fill="#6E6353"/>
+  <!-- the front panel -->
+  <path d="M 11 38 H 89 V 84 Q 89 87.5 85.5 87.5 H 13.5 Q 11 87.5 11 85 Z" fill="#6E6353"/>
+  <!-- the ledge, overhanging the panel on both sides -->
+  <path d="M 5.5 30 H 95.5 Q 97 30 97 31.5 V 36.5 Q 97 39.5 94 39.5 H 5 Q 3 39.5 3 37.5 V 32.5 Q 3 30 5.5 30 Z" fill="#D2C6AC"/>
+  <!-- the bell: base plate, dome, plunger, knob -->
+  <path d="M 53.5 26.5 H 80.5 Q 82.5 26.5 82.5 28.5 V 30.5 H 51.5 V 28 Q 51.5 26.5 53.5 26.5 Z" fill="#2A2521"/>
+  <path d="M 53.5 27 A 13.5 13 0 0 1 80.5 27 Z" fill="#D2C6AC"/>
+  <rect x="65.8" y="9.5" width="2.4" height="5.5" fill="#2A2521"/>
+  <ellipse cx="67" cy="9.5" rx="3" ry="1.9" fill="#D2C6AC"/>
+  <!-- the face, left of centre, cast down toward the slot -->
+  <g fill="#2A2521">
+    <path d="M 24.05 51.3 H 31.95 A 4.3 4.3 0 1 1 24.05 51.3 Z"/>
+    <path d="M 41.05 51.3 H 48.95 A 4.3 4.3 0 1 1 41.05 51.3 Z"/>
+    <rect x="31.5" y="61" width="10" height="3.5"/>
+  </g>
+  <!-- the slot, under the bell -->
+  <path d="M 54 71 H 78 Q 80 71 80 73 V 75.5 Q 80 77 78.5 77 H 53.5 Q 52 77 52 75.5 V 72.5 Q 52 71 54 71 Z" fill="#2A2521"/>
+</svg>
