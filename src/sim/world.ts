@@ -1,6 +1,6 @@
 import type { ActDef, BossDef, GymTeacherBoss, LoanBoss, PromBoss, ReorgBoss, SpawnWave } from '../data/acts';
 import { ALL_ACTS, rateAt, spawnStreams, whistleInterval } from '../data/acts';
-import { enemyDef, type EnemyDef } from '../data/enemies';
+import { ENEMIES, enemyDef, type EnemyDef } from '../data/enemies';
 import {
   ITEMS,
   OFFER_PATH_SEPARATOR,
@@ -384,6 +384,14 @@ export interface EnemyState {
    * `addEnemy`; optional so hand-built states need not carry it.
    */
   generation?: number;
+  /**
+   * `def.accrue` only (the bill, FAMILY-ROSTER §3.1): how many late fees this
+   * one has issued, and `fee` on a bill that IS one. A fee never accrues.
+   * Absent on everything else, and on a bill that has issued none; optional
+   * so hand-built states need not carry them (`accrueFees`).
+   */
+  accrued?: number;
+  fee?: boolean;
 }
 
 export interface ProjectileState {
@@ -415,6 +423,15 @@ export interface ProjectileState {
   chain?: number;
   /** An enemy this shot passes through without hitting: where a chain left from. */
   skipUid?: number;
+  /**
+   * `ranged.pull` only (the phone call, FAMILY-ROSTER §3.5): the enemy that
+   * fired it, and where it stood when it did. A landing pulls the player
+   * toward the shooter where it is at the hit, or toward (`fromX`, `fromY`)
+   * if it has left the field (`pullToward`). Absent on every other shot.
+   */
+  shooter?: EnemyState;
+  fromX?: number;
+  fromY?: number;
 }
 
 /**
@@ -621,7 +638,7 @@ export interface BossState {
    * True while it cannot be damaged: the Gym Teacher with any of his
    * `enemyId` alive on the field (§9); Prom with the player farther than its
    * `floorRadius` from the ball (ADOLESCENCE-ROSTER §4). Always false for the
-   * Egg, the Loan and the Reorg. Plain state for the renderer and the bots;
+   * Egg, the Loan, the Reorg and the Mortgage. Plain state for the renderer and the bots;
    * the sim reads the field and the player itself.
    */
   shielded: boolean;
@@ -849,6 +866,21 @@ export class World {
   certificate: Certificate | null = null;
   /** The enemy whose engulf is ticking, so a death to it can be named. */
   private engulfBy: EnemyDef | null = null;
+  /**
+   * The body holding the player, from the touch until the window ends, and
+   * what its hold does to every cooldown meanwhile (FAMILY-ROSTER §3.4:
+   * `engulf.cooldownMultiplier`, 1 for a hold without one). The body is kept
+   * so an engulf that `releases` can take exactly that one off the field.
+   */
+  private engulfer: EnemyState | null = null;
+  private engulfCooldown = 1;
+  /**
+   * The player's own movement this step — the walk, the Egg's pull and the
+   * walls, nothing an enemy did to them — for `coy` (FAMILY-ROSTER §3.4). Only
+   * its direction is read. Zero when stunned, pressed into a wall or still.
+   */
+  private movedX = 0;
+  private movedY = 0;
 
   /**
    * Set to the middle of the arena by the constructor.
@@ -1086,7 +1118,8 @@ export class World {
     this.dragStacks = 0;
     this.taxedStacks = 0;
     this.xpTaxFactor = 1;
-    // The pings and the by-def record go with them (OFFICE-ROSTER §3.3; AUDIT 42).
+    // The pings and the by-def record go with them (OFFICE-ROSTER §3.3; AUDIT 42),
+    // and the notices' cost to reach, which is read off that record.
     this.cooldownStacks = 0;
     this.attention = 1;
     this.worn.clear();
@@ -1226,15 +1259,48 @@ export class World {
 
   /**
    * Restlessness: every active item's cooldown, multiplied. And the pings
-   * worn (`attentionFactor`, OFFICE-ROSTER §3.3), which are 1 until one is.
+   * worn (`attentionFactor`, OFFICE-ROSTER §3.3), which are 1 until one is,
+   * and a hand held (`engulfCooldownFactor`, FAMILY-ROSTER §3.4), which is 1
+   * outside a hold that carries one. Every weapon's cadence, an orbiter's and
+   * an aura's re-hit read this through `activeCooldown`.
    */
   get cooldownFactor(): number {
-    return this.passiveProduct((d) => d.cooldownMultiplier) * this.attention;
+    return this.passiveProduct((d) => d.cooldownMultiplier) * this.attention * this.engulfCooldownFactor;
   }
 
-  /** Appetite: how far away a gem starts coming to the player. */
+  /**
+   * What the hold running now does to every cooldown: the engulfer's
+   * `engulf.cooldownMultiplier` while its window runs, 1 otherwise and for a
+   * hold without one (the white cell's, the test's). Already inside
+   * `cooldownFactor`; exposed for the HUD.
+   */
+  get engulfCooldownFactor(): number {
+    return this.engulfTimer > 0 ? this.engulfCooldown : 1;
+  }
+
+  /**
+   * Appetite: how far away a gem starts coming to the player. And the
+   * notices worn (`pickupFactor`, FAMILY-ROSTER §3.3): the lawn ends closer.
+   */
   get magnetRadius(): number {
-    return MAGNET_RADIUS * this.passiveProduct((d) => d.pickupMultiplier);
+    return MAGNET_RADIUS * this.passiveProduct((d) => d.pickupMultiplier) * this.pickupFactor;
+  }
+
+  /**
+   * What the notices worn do to the pickup radius: each worn stack of a def
+   * whose attach carries `pickup` multiplies it once (two HOA letters, 0.93²),
+   * 1 with none. Read off `wornBy`, by the registry's def for each id, so it
+   * crosses exactly as the record does — a persisting notice's cost stays on
+   * with it (`beginAct`), and the dev panel's shed takes it off with the rest.
+   * Already inside `magnetRadius`; exposed for the HUD.
+   */
+  get pickupFactor(): number {
+    let k = 1;
+    for (const [id, n] of this.worn) {
+      const pickup = ENEMIES[id]?.attach?.pickup;
+      if (pickup !== undefined) k *= pickup ** n;
+    }
+    return k;
   }
 
   private activeDamage(def: ItemDef, level: number): number {
@@ -1298,12 +1364,18 @@ export class World {
     this.actTime += dt;
     this.invulnerable = Math.max(0, this.invulnerable - dt);
 
+    const fromX = this.x;
+    const fromY = this.y;
     this.movePlayer(dt, input);
     this.applyBossPull(dt);
     // Unconditional, and after every path that can move the player. Hanging it
     // off `movePlayer` meant a frame with no input did not clamp at all, so any
     // other way of setting a position escaped the field.
     this.clampPlayer();
+    // What the player did this step, for `coy`: read before anything else in
+    // the step moves them (a pile's push, a phone's pull, a restructure).
+    this.movedX = this.x - fromX;
+    this.movedY = this.y - fromY;
     this.recordTrail();
     if (!this.boss) this.spawn(dt);
     this.moveEnemies(dt);
@@ -1556,6 +1628,8 @@ export class World {
       e.age += dt;
       if (e.hitFlash > 0) e.hitFlash -= dt;
       if (e.radius > this.maxEnemyRadius) this.maxEnemyRadius = e.radius;
+      // A fee is pushed past `i` and is not walked until the next step.
+      if (e.def.accrue && e.fee !== true) this.accrueFees(e, e.def.accrue);
       if (e.def.merge) this.solids.push(e);
 
       // Snooze and a meeting hold the walk and nothing else: fuses and
@@ -1575,8 +1649,11 @@ export class World {
         const tx = racing ? this.boss!.x : this.x;
         const ty = racing ? this.boss!.y : this.y;
         const d = Math.hypot(tx - e.x, ty - e.y) || 1;
-        e.x += ((tx - e.x) / d) * e.def.speed * mdt;
-        e.y += ((ty - e.y) / d) * e.def.speed * mdt;
+        // The toddler wants to be chased (FAMILY-ROSTER §3.4); a racer does not care.
+        const coy = e.def.coy;
+        const speed = coy && !racing ? e.def.speed * this.coyness(e, coy) : e.def.speed;
+        e.x += ((tx - e.x) / d) * speed * mdt;
+        e.y += ((ty - e.y) / d) * speed * mdt;
       } else if (e.def.movement !== 'static') {
         e.x += e.vx * mdt;
         e.y += e.vy * mdt;
@@ -1657,6 +1734,46 @@ export class World {
         swapRemove(this.enemies, i);
       }
     }
+  }
+
+  /**
+   * The bill's late fees (FAMILY-ROSTER §3.1, `accrue`): each time an enemy's
+   * age passes another `seconds` it issues one more of its own def, up to
+   * `fees` in all, and the fee is flagged and never accrues. A frame longer
+   * than `seconds` issues what it owes at once, never past `fees`.
+   *
+   * Set down touching it (its radius plus the def's from its centre) across
+   * the line from it to the player, the first fee on one side and the second
+   * on the other, so two fees flank the bill rather than stack on it — the
+   * split's spread, by index. No dice: the place is arithmetic, and
+   * `addEnemy` rolls only for a weak point, which nothing that accrues
+   * carries, so no seed's later rolls move. Capped by MAX_ACTIVE_ENEMIES like
+   * any spawn: at the cap the fee is not issued, and is not owed after.
+   */
+  private accrueFees(e: EnemyState, accrue: NonNullable<EnemyDef['accrue']>): void {
+    let issued = e.accrued ?? 0;
+    while (issued < accrue.fees && e.age >= (issued + 1) * accrue.seconds) {
+      issued++;
+      e.accrued = issued;
+      if (this.enemies.length >= MAX_ACTIVE_ENEMIES) continue;
+      const across = Math.atan2(this.y - e.y, this.x - e.x) + ((issued % 2 === 1 ? 1 : -1) * Math.PI) / 2;
+      const d = e.radius + e.def.radius;
+      const fee = this.addEnemy(e.def, e.x + Math.cos(across) * d, e.y + Math.sin(across) * d, 0, 0);
+      if (fee) fee.fee = true;
+    }
+  }
+
+  /**
+   * The toddler's speed, as a share of its own (FAMILY-ROSTER §3.4, `coy`):
+   * `flee` while the player's movement this step points away from it,
+   * `approach` while it points toward it, 1 while the player did not move or
+   * moved exactly across the line. Read off what the player did (`movedX`,
+   * `movedY`), not where they face: a stunned player, or one pressed into a
+   * wall, is standing still. No dice.
+   */
+  private coyness(e: EnemyState, coy: NonNullable<EnemyDef['coy']>): number {
+    const toward = this.movedX * (e.x - this.x) + this.movedY * (e.y - this.y);
+    return toward < 0 ? coy.flee : toward > 0 ? coy.approach : 1;
   }
 
   /**
@@ -2726,9 +2843,17 @@ export class World {
     if (this.outcomeDecided) return;
     if (this.engulfTimer > 0) {
       this.engulfTimer -= dt;
-      this.hp -= this.engulfDps * dt * this.damageTaken;
-      if (this.hp <= 0) return this.die(this.engulfBy ?? 'boss');
+      // A hold with no damage (the toddler's, FAMILY-ROSTER §3.4) never
+      // touches health, and no engulf sets i-frames.
+      if (this.engulfDps > 0) {
+        this.hp -= this.engulfDps * dt * this.damageTaken;
+        if (this.hp <= 0) return this.die(this.engulfBy ?? 'boss');
+      }
     }
+    // The window is over — run out, or zeroed from outside (the dev panel's
+    // god mode) — so the hand is let go. Before the touches below, so another
+    // engulfer can take it on this step.
+    if (this.engulfer && this.engulfTimer <= 0) this.release();
 
     const body = this.playerRadius;
     for (let i = this.enemies.length - 1; i >= 0; i--) {
@@ -2753,6 +2878,8 @@ export class World {
           this.engulfSlow = e.def.engulf.slow;
           this.engulfDps = e.def.engulf.damagePerSecond;
           this.engulfBy = e.def;
+          this.engulfer = e;
+          this.engulfCooldown = e.def.engulf.cooldownMultiplier ?? 1;
         }
         continue;
       }
@@ -2799,7 +2926,63 @@ export class World {
         this.stun(stun);
         this.invulnerable = Math.max(this.invulnerable, stun + IFRAMES);
       }
+      // The phone's call (FAMILY-ROSTER §3.5): after the damage and the stop,
+      // the player is moved toward the phone. Not a body the call just killed.
+      const pull = p.owner?.ranged?.pull;
+      if (pull !== undefined && !this.dead) this.pullToward(p, pull);
     }
+  }
+
+  /**
+   * The end of a hold (FAMILY-ROSTER §3.4, `engulf.releases`): the engulfer
+   * lets go and leaves the field, delighted. Not a kill — `kills` does not
+   * move, no gem, no XP — and not a death: it is simply gone, as a racer that
+   * reached the Egg is. A hold without `releases` (the white cell's) ends
+   * with its body still on the field, as it always did. No dice.
+   */
+  private release(): void {
+    const e = this.engulfer;
+    this.engulfer = null;
+    this.engulfCooldown = 1;
+    if (!e || e.def.engulf?.releases !== true) return;
+    const i = this.enemies.indexOf(e);
+    if (i >= 0) swapRemove(this.enemies, i);
+  }
+
+  /**
+   * A landing call moves the player `pull` px toward whoever made it
+   * (FAMILY-ROSTER §3.5): the shooter where it stands now, or, if it has left
+   * the field, the point the shot was fired from; a hand-built shot carrying
+   * neither is followed back along its own flight. Never past the target, so
+   * a call from nearer than `pull` sets the player on the phone (it touches
+   * nobody), and held inside the arena. Instant: it crosses whatever is in
+   * the way, and a pile or room it lands the player in pushes them out on
+   * the next step (`resolveSolids`). No dice.
+   */
+  private pullToward(p: ProjectileState, pull: number): void {
+    const s = p.shooter;
+    // A linear scan, on a landing call only: calls are rare and the phone is static.
+    const here = s !== undefined && s.hp > 0 && this.enemies.includes(s);
+    const tx = here ? s.x : p.fromX;
+    const ty = here ? s.y : p.fromY;
+    let nx: number;
+    let ny: number;
+    let reach = pull;
+    if (tx !== undefined && ty !== undefined) {
+      const d = Math.hypot(tx - this.x, ty - this.y);
+      if (d < 0.001) return;
+      nx = (tx - this.x) / d;
+      ny = (ty - this.y) / d;
+      reach = Math.min(pull, d);
+    } else {
+      const v = Math.hypot(p.vx, p.vy);
+      if (v < 0.001) return;
+      nx = -p.vx / v;
+      ny = -p.vy / v;
+    }
+    this.x += nx * reach;
+    this.y += ny * reach;
+    this.clampPlayer();
   }
 
   /**
@@ -2916,7 +3099,7 @@ export class World {
    */
   private fireRanged(e: EnemyState, r: NonNullable<EnemyDef['ranged']>): void {
     const d = Math.hypot(this.x - e.x, this.y - e.y) || 1;
-    this.projectiles.push({
+    const shot: ProjectileState = {
       x: e.x,
       y: e.y,
       vx: ((this.x - e.x) / d) * r.projectileSpeed,
@@ -2929,7 +3112,15 @@ export class World {
       source: e.def.id,
       owner: e.def,
       serial: this.nextSerial++,
-    });
+    };
+    // Only a call that pulls carries who made it and from where (`pullToward`);
+    // every other act's shots are built exactly as they were.
+    if (r.pull !== undefined) {
+      shot.shooter = e;
+      shot.fromX = e.x;
+      shot.fromY = e.y;
+    }
+    this.projectiles.push(shot);
   }
 
   /** The hall monitor's stop. Refreshes the window; never stacks past it. */
@@ -3001,7 +3192,8 @@ export class World {
   /**
    * The threshold between acts. What crosses it is the player: items, level,
    * the XP still on the ground (collected now rather than lost — you leave
-   * with what you earned), and tuition's invoices (`attach.persists`). What
+   * with what you earned), and tuition's invoices and the HOA's notices
+   * (`attach.persists`), with what each costs. What
    * does not is the act: its crowd, its projectiles and fields, every other
    * attach's drag, and the boss. Health is
    * restored, because arriving at School on three hit points after the Egg is
@@ -3057,6 +3249,10 @@ export class World {
     this.engulfSlow = 1;
     this.engulfDps = 0;
     this.engulfBy = null;
+    this.engulfer = null;
+    this.engulfCooldown = 1;
+    this.movedX = 0;
+    this.movedY = 0;
     this.invulnerable = 0;
     this.stunTimer = 0;
     if (!this.inheritance) this.inherit();
@@ -3429,6 +3625,12 @@ export class World {
       return;
     }
 
+    // The Egg's machine, and The Mortgage's for now (FAMILY-ROSTER §4): its
+    // kind runs as the Egg — this fan, these timings, BOSS_HP — as the Reorg
+    // did before its phase existed, so the act plays to EQUITY headless and
+    // in the bots. Its instalments (the window clock and the one-instalment
+    // cap on damage), its rooms at the lead and its fees from the door are
+    // the next agent's, in a `mortgagePhase` beside `reorgPhase` above.
     if (b.phase === 'idle') {
       b.phase = 'telegraph';
       b.timer = EGG_TELEGRAPH_SECONDS;
