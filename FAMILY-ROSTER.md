@@ -304,6 +304,15 @@ instalment cap in `updateBoss` (damage to the boss goes through one gate that
 knows the window), a room and a fee spawn at each window's end, and the bar's
 fraction as paid instalments over `instalments`.
 
+*2026-09-28, as built (`mortgagePhase`, `mortgage.test.ts`):* damage is
+accepted up to the cap as it lands and a missed window's damage is refunded
+at its end, so the balance moves only in whole instalments and `paid` is read
+off the balance; the fight ends at the end of the twelfth window, never on
+the hit; no room lands on the twelfth window (the door opens instead); at a
+wall the player faces, the room lands at the lead behind them; the late fee
+is a whole bill, which accrues fees of its own. The boss state carries `paid`,
+`windowTimer` and `accepted` for the renderer and the bots.
+
 ## 5 · Handoff
 
 - **Five new `EnemyDef` fields** (`accrue`, `attach.pickup`, `coy`,
