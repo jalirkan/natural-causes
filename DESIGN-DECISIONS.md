@@ -1159,3 +1159,17 @@ the same id lives in the other registry, and its shot is hostile, which is
 what the renderer checks first. The blurb never named itself and stays.
 Rejected: naming the enemy something else (Notifications, The Chat) — weaker on a certificate.
 Rejected: letting a weapon and an enemy share a name — the offer card and the death certificate would say the same two words about opposite things.
+
+## G-042 · 2026-09-28 · The inheritance keeps its downside, because nobody chose it
+G-017, built now that a life exists to carry it: at the Egg's absorption the
+run is dealt one of three rolls from the world's own dice, kept for every later
+act, never offered, never rerolled, and named once on School's card ("You
+inherited: Constitution."). G-038 retired G-014 for the offer pool; the
+inheritance keeps its cost on purpose, because it is the one thing in the life
+the player did not choose, and that is the joke. Every number is a PLACEHOLDER:
+**Constitution** ×1.5 max health, ×1.25 XP per level; **Precocity** one level at
+the start of every act from School on, dealt at random from the offer pool;
+**Sensitivity** ×2 pickup radius, ×1.25 damage taken (Thick Skin's multiplier,
+so shots too). One registry, `src/data/inheritances.ts`, on the passive stat line.
+Rejected: make it a choice of three like everything else — then it is one more offer screen, and the life has nothing in it you did not pick.
+Rejected: drop the downside under G-038 — a gift nobody chose is a bonus; a trait nobody chose is an inheritance.

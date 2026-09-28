@@ -12,6 +12,7 @@ import { recordLife } from '../meta/ancestors';
 import { InputLog } from '../meta/input-log';
 import {
   BOSS_RADIUS,
+  PLAYER_RADIUS,
   World,
   type EnemyState,
   type GemState,
@@ -323,12 +324,18 @@ export class ActScene extends Phaser.Scene {
     this.announceAct();
   }
 
-  /** The act's name and the age it starts at, across the middle, then gone. */
+  /**
+   * The act's name and the age it starts at, across the middle, then gone.
+   * At the first crossing, one line more: what the Egg dealt (G-042). It is
+   * named once, there, and never explained.
+   */
   private announceAct(): void {
     const cam = this.cameras.main;
     const act = this.world.act;
+    const dealt = this.world.actIndex === 1 ? this.world.inheritance?.blurb : undefined;
+    const lines = dealt ? [act.name, hudAge(act.age.from), dealt] : [act.name, hudAge(act.age.from)];
     const card = this.add
-      .text(cam.width / 2, cam.height / 2 - 120, [act.name, hudAge(act.age.from)], {
+      .text(cam.width / 2, cam.height / 2 - 120, lines, {
         fontFamily: 'monospace',
         fontSize: '30px',
         color: '#EFE7D6',
@@ -757,7 +764,9 @@ export class ActScene extends Phaser.Scene {
     // long as the stun runs. Shape, not tint (G-032). Absolute size every
     // frame, so it springs back the frame the stun ends.
     const stun = this.world.stunTimer > 0 ? 0.14 : 0;
-    this.player.setDisplaySize(PLAYER_DISPLAY * (1 + stun), PLAYER_DISPLAY * (1 - stun));
+    // Growth Spurt: drawn as wide as it collides. Everyone can see you.
+    const grown = this.world.playerRadius / PLAYER_RADIUS;
+    this.player.setDisplaySize(PLAYER_DISPLAY * grown * (1 + stun), PLAYER_DISPLAY * grown * (1 - stun));
     // The swim: quick small wiggle. It is the player character in an act
     // where the whole field is alive; a rigid sprite reads as a cursor.
     this.player.setRotation(stun ? 0 : Math.sin(this.world.time * 9) * 0.09);
@@ -772,7 +781,7 @@ export class ActScene extends Phaser.Scene {
     if (membrane > 0) {
       this.playerFx
         .lineStyle(2 + membrane, UI_FILL, 0.14 + membrane * 0.04)
-        .strokeCircle(w.x, w.y, 33 + membrane);
+        .strokeCircle(w.x, w.y, (33 + membrane) * grown);
     }
     const midpiece = w.items.get('midpiece') ?? 0;
     if (midpiece > 0 && (w.facingX !== 0 || w.facingY !== 0)) {
@@ -991,7 +1000,26 @@ export class ActScene extends Phaser.Scene {
       const circle = this.areaSprites[i]!;
       const icon = this.areaIcons[i]!;
 
-      if (a.pull) {
+      if (a.slow !== undefined) {
+        // Snooze: the field it holds, drawn at its honest radius, with the
+        // card's icon where it was dropped. Checked first: it ticks and does
+        // not pull, which would otherwise draw it as Wake's footprints.
+        const [key, frame] = this.iconTexture('slow', 'Snooze');
+        circle
+          .setPosition(a.x, a.y)
+          .setRadius(a.radius)
+          .setFillStyle(PAPER, 0.06 * fade)
+          .setStrokeStyle(2, this.visuals.pickup, 0.3 * fade)
+          .setVisible(true);
+        icon
+          .setTexture(key, frame)
+          .setPosition(a.x, a.y)
+          .setDisplaySize(40, 40)
+          .setRotation(0)
+          .setFlipX(false)
+          .setAlpha(0.8 * fade)
+          .setVisible(true);
+      } else if (a.pull) {
         // Chemotaxis: the classroom magnet, planted where everything is
         // asked to go, with a ring contracting toward it. The fill stays as
         // the honest area of effect; law 10 keeps threat colours off it.

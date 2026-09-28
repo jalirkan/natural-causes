@@ -298,7 +298,7 @@ export const ADOLESCENCE: ActDef = {
   // §4's, named in `provisional` below.
   race: { enemyId: 'hormones', absorb: 40 },
   provisional:
-    "Every rate, time and enemy number here, the race's absorb count, and Prom's floor radius (`boss.floorRadius`, 360) and spot count (`boss.spots`, 16) were written as placeholders before anyone played the act, and Prom's light borrows the Egg's telegraph, cadence and shot unplayed (ADOLESCENCE-ROSTER §4); a person playing it at the link is what moves them (D-022).",
+    "Every rate, time and enemy number here, the race's absorb count, and Prom's floor radius (`boss.floorRadius`, 360) and spot count (`boss.spots`, 16) were written as placeholders before anyone played the act, and Prom's light borrows the Egg's telegraph, cadence and shot unplayed (ADOLESCENCE-ROSTER §4), and the two items born here, Growth Spurt and Snooze, carry numbers written from the direction panel's sketches (their multipliers, cooldown, radius, slow and duration in items.ts); a person playing it at the link is what moves them (D-022).",
   // ADOLESCENCE-ROSTER.md §3.6, transcribed. The ORDER is the design and is
   // under test (adolescence-act.test.ts): age runs 13 to 18, a year every 48
   // seconds, and each enemy arrives about when it does in a life — hormones

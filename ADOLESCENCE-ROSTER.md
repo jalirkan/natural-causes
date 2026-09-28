@@ -351,6 +351,7 @@ first ring (31 of 31), so no bot has seen the light. `prom.test.ts`.
 - **The document at the crossing**: the report card's successor, a yearbook page.
 - **Sounds** (the typing, the car, the slow song), and **Service or College**,
   where the life goes at eighteen.
+- *2026-09-28:* **Growth Spurt** (passive: reach, pickup, and the player's radius as a stat) and **Snooze** (control: a field holding enemies, shots and the player at half speed) now exist, in the pool from thirteen (`from: 'adolescence'` in `items.ts`), numbers under this act's `provisional`; their icons (`grow`, `slow`) are owed and show a lettered ring until drawn.
 
 ## 7 · Open question
 

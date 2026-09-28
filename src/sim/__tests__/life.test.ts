@@ -113,7 +113,11 @@ describe('the threshold between acts', () => {
     summonBoss(world);
     fellBoss(world);
 
-    expect(new Map(world.items)).toEqual(items);
+    // Everything carried arrives; the only addition is the inheritance's
+    // unasked level, if Precocity was dealt (G-042).
+    const sum = (m: ReadonlyMap<string, number>) => [...m.values()].reduce((a, b) => a + b, 0);
+    for (const [id, n] of items) expect(world.items.get(id)).toBeGreaterThanOrEqual(n);
+    expect(sum(world.items) - sum(items)).toBe(world.inheritance!.levelsPerAct);
     expect(world.level).toBeGreaterThanOrEqual(level);
     expect(world.enemies).toEqual([]);
     expect(world.projectiles).toEqual([]);

@@ -1,7 +1,8 @@
 import type { ActDef, BossDef, GymTeacherBoss, PromBoss, SpawnWave } from '../data/acts';
-import { rateAt, spawnStreams, whistleInterval } from '../data/acts';
+import { ALL_ACTS, rateAt, spawnStreams, whistleInterval } from '../data/acts';
 import { enemyDef, type EnemyDef } from '../data/enemies';
-import { ITEMS, isActive, itemDef, levelBonus, type ActiveItem, type ItemDef } from '../data/items';
+import { ITEMS, isActive, itemDef, levelBonus, type ActiveItem, type ItemDef, type PassiveItem } from '../data/items';
+import { INHERITANCES, INHERITANCE_IDS, type InheritanceDef, type StatLine } from '../data/inheritances';
 import { Grid } from './grid';
 
 /**
@@ -23,6 +24,10 @@ import { Grid } from './grid';
 
 export const PLAYER_BASE_SPEED = 190;
 export const PLAYER_BASE_HP = 100;
+/**
+ * The player's collision radius before any item. The sim reads
+ * `World.playerRadius`, which applies Growth Spurt; this stays the base.
+ */
 export const PLAYER_RADIUS = 16;
 /** Seconds of immunity after a hit. Without it a crowd deletes you. */
 export const IFRAMES = 0.6;
@@ -354,6 +359,12 @@ export interface AreaState {
   /** Attractors pull instead of hurting. */
   pull: boolean;
   /**
+   * A field (Snooze): enemies, projectiles and the player whose centre is
+   * inside it move at this fraction of their speed. Absent on every other
+   * area. It neither pulls nor hurts.
+   */
+  slow?: number;
+  /**
    * True for a lingering field, false for a one-shot burst.
    *
    * Ticking damage is scaled by dt, so a short-lived area was delivering a
@@ -527,6 +538,8 @@ export class World {
   private bossHitSerial = 0;
   /** A second query buffer, for a lookup made while `near` is being walked. */
   private readonly near2: EnemyState[] = [];
+  /** Snooze fields this pass, so 1500 movers do not each walk every area. */
+  private readonly fields: AreaState[] = [];
   /** Bursts owed an echo: which item, and at what life-clock time. */
   private echoes: { id: string; at: number }[] = [];
   /**
@@ -606,6 +619,13 @@ export class World {
   /** Non-null while a level-up is waiting. The world does not advance. */
   offers: string[] | null = null;
   readonly items = new Map<string, number>();
+  /**
+   * The Egg's drop (G-017, G-042): dealt once, from `rng`, at the first
+   * crossing, and kept for every act after it. Null in Conception. Its stat
+   * line goes through `passiveProduct`, its XP price through `xpCost`, and
+   * its unasked levels through `takeUnaskedLevels` — the paths the items use.
+   */
+  inheritance: InheritanceDef | null = null;
 
   enemies: EnemyState[] = [];
   projectiles: ProjectileState[] = [];
@@ -689,14 +709,18 @@ export class World {
 
   // --- derived stats ----------------------------------------------------
 
-  /** Product of a passive multiplier across every level the player owns. */
-  private passiveProduct(pick: (d: Extract<ItemDef, { kind: 'passive' }>) => number): number {
+  /**
+   * Product of a passive multiplier across every level the player owns, and
+   * the inheritance, which is one level of a passive nobody chose (G-042).
+   */
+  private passiveProduct(pick: (d: StatLine) => number): number {
     let out = 1;
     for (const [id, level] of this.items) {
       const def = ITEMS[id];
       if (!def || def.kind !== 'passive') continue;
       out *= pick(def) ** level;
     }
+    if (this.inheritance) out *= pick(this.inheritance.stats);
     return out;
   }
 
@@ -732,7 +756,44 @@ export class World {
   }
 
   get speed(): number {
-    return this.baseSpeed * (this.engulfTimer > 0 ? this.engulfSlow : 1);
+    return this.baseSpeed * (this.engulfTimer > 0 ? this.engulfSlow : 1) * this.slowAt(this.x, this.y);
+  }
+
+  /**
+   * Growth Spurt: the player's collision radius. Every contact the sim
+   * resolves against the player reads this — enemies (engulf and attach
+   * among them), hostile shots, rings, piles, and the gem pickup.
+   */
+  get playerRadius(): number {
+    // Partial: the inheritance's stat line carries neither field, and reads 1.
+    return PLAYER_RADIUS * this.passiveProduct((d: Partial<PassiveItem>) => d.sizeMultiplier ?? 1);
+  }
+
+  /** Growth Spurt: every active item's reach, multiplied (see `reachMultiplier`). */
+  get reach(): number {
+    return this.passiveProduct((d: Partial<PassiveItem>) => d.reachMultiplier ?? 1);
+  }
+
+  /**
+   * The movement multiplier at a point: the slowest Snooze field whose area
+   * holds it, 1 outside all of them. Slowest rather than product, so two
+   * overlapping fields are one field and not a standstill. Reads `areas`
+   * directly; the per-entity passes collect the fields once instead.
+   */
+  slowAt(x: number, y: number, fields: readonly AreaState[] = this.areas): number {
+    let k = 1;
+    for (const f of fields) {
+      if (f.slow === undefined || f.slow >= k) continue;
+      if ((x - f.x) ** 2 + (y - f.y) ** 2 <= f.radius * f.radius) k = f.slow;
+    }
+    return k;
+  }
+
+  /** The live Snooze fields, into a reused buffer, for a pass over many movers. */
+  private collectFields(): AreaState[] {
+    this.fields.length = 0;
+    for (const a of this.areas) if (a.slow !== undefined) this.fields.push(a);
+    return this.fields;
   }
 
   get damageTaken(): number {
@@ -989,6 +1050,7 @@ export class World {
   private moveEnemies(dt: number): void {
     this.solids.length = 0;
     this.maxEnemyRadius = 0;
+    const fields = this.collectFields();
 
     for (let i = this.enemies.length - 1; i >= 0; i--) {
       const e = this.enemies[i]!;
@@ -997,6 +1059,8 @@ export class World {
       if (e.radius > this.maxEnemyRadius) this.maxEnemyRadius = e.radius;
       if (e.def.merge) this.solids.push(e);
 
+      // Snooze holds the walk and nothing else: fuses and consults keep time.
+      const mdt = fields.length === 0 ? dt : dt * this.slowAt(e.x, e.y, fields);
       const ranged = e.def.ranged;
       if (ranged && this.consultClipboard(e, ranged, dt)) {
         // Standing still with the clipboard up. The consult is the telegraph
@@ -1007,11 +1071,11 @@ export class World {
         const tx = racing ? this.boss!.x : this.x;
         const ty = racing ? this.boss!.y : this.y;
         const d = Math.hypot(tx - e.x, ty - e.y) || 1;
-        e.x += ((tx - e.x) / d) * e.def.speed * dt;
-        e.y += ((ty - e.y) / d) * e.def.speed * dt;
+        e.x += ((tx - e.x) / d) * e.def.speed * mdt;
+        e.y += ((ty - e.y) / d) * e.def.speed * mdt;
       } else if (e.def.movement !== 'static') {
-        e.x += e.vx * dt;
-        e.y += e.vy * dt;
+        e.x += e.vx * mdt;
+        e.y += e.vy * mdt;
       }
 
       // The arena edge, for the two enemies that have a relationship with it.
@@ -1100,11 +1164,12 @@ export class World {
    */
   private resolveSolids(): void {
     if (this.solids.length === 0) return;
+    const body = this.playerRadius;
 
     for (const s of this.solids) {
       if (s.hp <= 0) continue;
 
-      const need = s.radius + PLAYER_RADIUS;
+      const need = s.radius + body;
       const dx = this.x - s.x;
       const dy = this.y - s.y;
       const d = Math.hypot(dx, dy);
@@ -1249,6 +1314,9 @@ export class World {
     const bonus = levelBonus(def, level);
     const radius = def.radius * bonus.area;
     const pierce = def.pierce + bonus.pierce;
+    // Growth Spurt. A shot's range, a pull's or a field's radius; the burst
+    // applies it in `burst`, the orbit in `updateOrbiters`, a trail has none.
+    const reach = this.reach;
 
     switch (def.mode) {
       case 'seeking': {
@@ -1261,9 +1329,10 @@ export class World {
         // Extra shots go to DISTINCT next-nearest targets; with fewer enemies
         // than shots, the boss takes one, and the rest are not fired.
         const want = 1 + bonus.projectiles;
-        const targets: { x: number; y: number }[] = this.nearestEnemies(def.range, want, []);
+        const range = def.range * reach;
+        const targets: { x: number; y: number }[] = this.nearestEnemies(range, want, []);
         if (targets.length < want) {
-          const boss = this.bossAsTarget(def.range);
+          const boss = this.bossAsTarget(range);
           if (boss) targets.push(boss);
         }
         if (targets.length === 0) return false;
@@ -1274,7 +1343,7 @@ export class World {
             y: this.y,
             vx: ((target.x - this.x) / d) * def.projectileSpeed,
             vy: ((target.y - this.y) / d) * def.projectileSpeed,
-            life: def.range / def.projectileSpeed,
+            life: range / def.projectileSpeed,
             damage,
             pierce,
             radius,
@@ -1302,7 +1371,7 @@ export class World {
             y: this.y,
             vx: Math.cos(angle) * def.projectileSpeed,
             vy: Math.sin(angle) * def.projectileSpeed,
-            life: def.range / def.projectileSpeed,
+            life: (def.range * reach) / def.projectileSpeed,
             damage,
             pierce,
             radius,
@@ -1348,9 +1417,27 @@ export class World {
           y: this.y,
           age: 0,
           seconds: 3.2 * bonus.duration,
-          radius,
+          radius: radius * reach,
           damage: 0,
           pull: true,
+          tick: true,
+          serial: this.nextSerial++,
+        });
+        return true;
+      }
+      case 'field': {
+        // Snooze: the attractor's area, dropped where the player stands, with
+        // a hold instead of a pull. Movement reads it (`slowAt`); nothing that
+        // deals damage does, because its damage is zero.
+        this.areas.push({
+          x: this.x,
+          y: this.y,
+          age: 0,
+          seconds: def.range * bonus.duration,
+          radius: radius * reach,
+          damage: 0,
+          pull: false,
+          slow: def.slow ?? 1,
           tick: true,
           serial: this.nextSerial++,
         });
@@ -1369,7 +1456,7 @@ export class World {
       y: this.y,
       age: 0,
       seconds: 0.12,
-      radius: def.radius * levelBonus(def, level).area,
+      radius: def.radius * levelBonus(def, level).area * this.reach,
       damage,
       pull: false,
       tick: false,
@@ -1408,7 +1495,7 @@ export class World {
       if (!def || !isActive(def) || def.mode !== 'orbit') continue;
       const bonus = levelBonus(def, level);
       const count = 1 + bonus.projectiles;
-      const distance = def.range * bonus.area;
+      const distance = def.range * bonus.area * this.reach;
       const omega = def.projectileSpeed / distance;
       const damage = this.activeDamage(def, level);
       const cooldown = def.cooldown;
@@ -1457,11 +1544,15 @@ export class World {
   }
 
   private moveProjectiles(dt: number): void {
+    const fields = this.collectFields();
     for (let i = this.projectiles.length - 1; i >= 0; i--) {
       const p = this.projectiles[i]!;
-      p.x += p.vx * dt;
-      p.y += p.vy * dt;
-      p.life -= dt;
+      // Held by Snooze, hostile or not. Its life is held with it, so a shot
+      // through a field arrives late rather than falling short.
+      const pdt = fields.length === 0 ? dt : dt * this.slowAt(p.x, p.y, fields);
+      p.x += p.vx * pdt;
+      p.y += p.vy * pdt;
+      p.life -= pdt;
       if (p.life <= 0) swapRemove(this.projectiles, i);
     }
   }
@@ -1477,7 +1568,7 @@ export class World {
       if (this.invulnerable > 0) continue;
       const radius = r.maxRadius * (r.age / r.seconds);
       const d = Math.hypot(this.x - r.x, this.y - r.y);
-      if (Math.abs(d - radius) <= RING_BAND + PLAYER_RADIUS) this.hurt(r.damage, r.cause ?? 'boss');
+      if (Math.abs(d - radius) <= RING_BAND + this.playerRadius) this.hurt(r.damage, r.cause ?? 'boss');
     }
   }
 
@@ -1529,6 +1620,7 @@ export class World {
 
   private updateGems(dt: number): void {
     const magnet = this.magnetRadius;
+    const body = this.playerRadius;
     for (let i = this.gems.length - 1; i >= 0; i--) {
       const g = this.gems[i]!;
       const d = Math.hypot(this.x - g.x, this.y - g.y);
@@ -1536,7 +1628,7 @@ export class World {
         g.x += ((this.x - g.x) / (d || 1)) * GEM_SPEED * dt;
         g.y += ((this.y - g.y) / (d || 1)) * GEM_SPEED * dt;
       }
-      if (d < PLAYER_RADIUS) {
+      if (d < body) {
         this.gainXp(g.value);
         swapRemove(this.gems, i);
       }
@@ -1669,9 +1761,10 @@ export class World {
       if (this.hp <= 0) return this.die(this.engulfBy ?? 'boss');
     }
 
+    const body = this.playerRadius;
     for (let i = this.enemies.length - 1; i >= 0; i--) {
       const e = this.enemies[i]!;
-      const r = e.radius + PLAYER_RADIUS;
+      const r = e.radius + body;
       if ((e.x - this.x) ** 2 + (e.y - this.y) ** 2 > r * r) continue;
 
       // It is not doing anything to anyone. Distinct from zero damage, which
@@ -1711,7 +1804,7 @@ export class World {
     for (let i = this.projectiles.length - 1; i >= 0; i--) {
       const p = this.projectiles[i]!;
       if (!p.hostile) continue;
-      const r = p.radius + PLAYER_RADIUS;
+      const r = p.radius + body;
       if ((p.x - this.x) ** 2 + (p.y - this.y) ** 2 > r * r) continue;
       swapRemove(this.projectiles, i);
       if (this.invulnerable <= 0) this.hurt(p.damage, p.owner ?? 'boss');
@@ -1880,6 +1973,9 @@ export class World {
    * restored, because arriving at School on three hit points after the Egg is
    * a death with extra steps. PLACEHOLDER: full heal is the simplest rule
    * with no number in it; a person playing the crossing decides otherwise.
+   *
+   * The first crossing also deals the inheritance (G-042), before the heal so
+   * the heal reaches its ceiling; every crossing takes its unasked levels.
    */
   private beginAct(index: number): void {
     for (const g of this.gems) this.xp += g.value;
@@ -1911,6 +2007,8 @@ export class World {
     this.engulfBy = null;
     this.invulnerable = 0;
     this.stunTimer = 0;
+    if (!this.inheritance) this.inherit();
+    this.takeUnaskedLevels();
     this.hp = this.maxHp;
     // Levels earned from that XP, and any owed from the absorb (AUDIT 29),
     // are offered before the new act's first step, exactly as a mid-act
@@ -1919,7 +2017,38 @@ export class World {
     this.settleXp();
   }
 
+  /**
+   * The Egg's drop (G-017, G-042): one roll of the world's own dice, so a
+   * seed reproduces it. Never asked, never offered, never rolled again.
+   * Constitution's price applies from the bar the player is already on.
+   */
+  private inherit(): void {
+    const id = INHERITANCE_IDS[Math.floor(this.rng() * INHERITANCE_IDS.length)]!;
+    this.inheritance = INHERITANCES[id]!;
+    this.xpToNext = this.xpCost(this.level);
+  }
+
+  /**
+   * Precocity's level (G-042): the first card of an offer the player never
+   * sees, taken before the act's first step. `rollOffers` deals it, so it
+   * comes from exactly the pool a level-up would have, and nothing else.
+   */
+  private takeUnaskedLevels(): void {
+    for (let n = this.inheritance?.levelsPerAct ?? 0; n > 0; n--) {
+      const id = this.rollOffers()[0];
+      if (!id) return;
+      this.level++;
+      this.xpToNext = this.xpCost(this.level);
+      this.items.set(id, (this.items.get(id) ?? 0) + 1);
+    }
+  }
+
   // --- levelling --------------------------------------------------------
+
+  /** XP from `level` to the next, at the inheritance's price (Constitution's cost). */
+  private xpCost(level: number): number {
+    return Math.round(xpToNextLevel(level) * (this.inheritance?.xpMultiplier ?? 1));
+  }
 
   private gainXp(value: number): void {
     this.xp += value;
@@ -1931,7 +2060,7 @@ export class World {
     while (this.xp >= this.xpToNext) {
       this.xp -= this.xpToNext;
       this.level++;
-      this.xpToNext = xpToNextLevel(this.level);
+      this.xpToNext = this.xpCost(this.level);
       // Levels QUEUE. Assigning `offers` here discarded a pending one: two
       // gems collected in the same frame — routine once white cells drop 12
       // apiece — took the player from level 1 to level 3 and presented a
@@ -1996,10 +2125,15 @@ export class World {
       const def = ITEMS[id];
       if (def && isActive(def) && def.evolvesFrom) replaced.add(def.evolvesFrom.weapon);
     }
+    // An item born in a later act (`from`) is not in the pool until the life
+    // has reached that act, in ALL_ACTS order. An act missing from ALL_ACTS
+    // (a test's fixture) comes before all of them.
+    const here = ALL_ACTS.findIndex((a) => a.id === this.act.id);
     const pool = Object.keys(ITEMS).filter((id) => {
       const def = ITEMS[id]!;
       if (isActive(def) && def.evolvesFrom) return false;
       if (replaced.has(id)) return false;
+      if (def.from !== undefined && ALL_ACTS.findIndex((a) => a.id === def.from) > here) return false;
       return (this.items.get(id) ?? 0) < def.maxLevel;
     });
     const picked: string[] = [];

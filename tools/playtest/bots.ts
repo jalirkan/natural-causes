@@ -2,7 +2,6 @@ import { CONCEPTION, type ActDef } from '../../src/data/acts';
 import { ITEMS, isActive } from '../../src/data/items';
 import type { EnemyDef } from '../../src/data/enemies';
 import {
-  PLAYER_RADIUS,
   World,
   type Input,
   type ProjectileState,
@@ -148,6 +147,8 @@ export interface RunResult {
   shotsHit: number;
   /** The same two counts by who fired: the enemy's id, or 'boss'. */
   shotsBy: Record<string, { seen: number; hit: number }>;
+  /** What the Egg dealt at the first crossing (G-042); null if the life never crossed. */
+  inheritance: string | null;
 }
 
 /**
@@ -271,7 +272,8 @@ export function threatens(w: World, p: ProjectileState): boolean {
   const t = v2 > 0 ? Math.min(horizon, Math.max(0, (dx * p.vx + dy * p.vy) / v2)) : 0;
   const mx = p.x + p.vx * t - w.x;
   const my = p.y + p.vy * t - w.y;
-  const reach = PLAYER_RADIUS + p.radius + SHOT_MARGIN_PX;
+  // The player's radius as the world has it: Growth Spurt makes it wider.
+  const reach = w.playerRadius + p.radius + SHOT_MARGIN_PX;
   return mx * mx + my * my <= reach * reach;
 }
 
@@ -509,7 +511,7 @@ export class ShotLog {
     for (let i = this.inView.length - 1; i >= 0; i--) {
       const p = this.inView[i]!;
       if (this.alive.has(p)) continue;
-      const reach = PLAYER_RADIUS + p.radius;
+      const reach = w.playerRadius + p.radius;
       if ((p.x - w.x) ** 2 + (p.y - w.y) ** 2 > reach * reach) continue;
       if (w.hp > 0 && fell < p.damage * w.damageTaken - 1e-9) continue;
       if (!this.counted.has(p)) this.see(p);
@@ -712,6 +714,7 @@ export function runOnce(
     shotsSeen: shots.seen,
     shotsHit: shots.hit,
     shotsBy: shots.by,
+    inheritance: world.inheritance?.id ?? null,
   };
 }
 
