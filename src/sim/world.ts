@@ -1,4 +1,4 @@
-import type { ActDef, BossDef, GymTeacherBoss, PromBoss, SpawnWave } from '../data/acts';
+import type { ActDef, BossDef, GymTeacherBoss, LoanBoss, PromBoss, SpawnWave } from '../data/acts';
 import { ALL_ACTS, rateAt, spawnStreams, whistleInterval } from '../data/acts';
 import { enemyDef, type EnemyDef } from '../data/enemies';
 import {
@@ -163,6 +163,26 @@ export const EGG_SHOT = { speed: 260, life: 4, damage: 12, radius: 10 } as const
  * moves where `idle` starts and not how often he blows.
  */
 export const WHISTLE_HOLD_SECONDS = 0.35;
+
+/**
+ * The Loan (COLLEGE-ROSTER §4). PLACEHOLDERS under `COLLEGE.provisional`,
+ * beside the four on `LoanBoss` (interestSeconds 5, interestRate 0.06, cap 3,
+ * invoices 3). None has been played:
+ *   LOAN_OPENING_PER_STACK 0.1 — §4's opening balance, BOSS_HP plus a tenth of
+ *     it for every invoice worn when it appears. Read off `dragStacks`: the
+ *     act's only attach is tuition, so the stacks worn at the boss ARE the
+ *     invoices;
+ *   LOAN_INVOICE_SPREAD 0.16 — radians between neighbouring invoices in one
+ *     statement, fanned about the player's heading at the lead: the Egg's fan
+ *     spacing (and the Gym Teacher's `throwSpread`), for the reason his has
+ *     one. Unspread, a statement is `invoices` envelopes on one point: one
+ *     envelope to the eye, and all of them worn on one touch.
+ * Its statement runs on the Egg's timings (EGG_IDLE_SECONDS,
+ * EGG_TELEGRAPH_SECONDS, EGG_ATTACK_SECONDS) and it opens from BOSS_HP; both
+ * are read, not copied.
+ */
+export const LOAN_OPENING_PER_STACK = 0.1;
+export const LOAN_INVOICE_SPREAD = 0.16;
 
 /**
  * How long ago "recently" is, for an enemy that lands where the player has
@@ -492,12 +512,19 @@ export interface BossState {
   kind: BossDef['kind'];
   x: number;
   y: number;
+  /**
+   * For the Loan, the balance: it opens at 1/`cap` of `maxHp` and compounds
+   * toward it, so a bar drawn as hp/maxHp starts part full and fills — the
+   * filling is the fight. For every other kind, health left.
+   */
   hp: number;
+  /** For the Loan, the cap: `cap` × the opening balance, where it forecloses. */
   maxHp: number;
   /**
    * `idle` → `telegraph` → `attack`, then back. For the Gym Teacher the
    * telegraph is the whistle rising and `attack` begins on the step it blows;
-   * for Prom it is the lights going down and `attack` begins on the ring.
+   * for Prom it is the lights going down and `attack` begins on the ring;
+   * for the Loan it is the tape jerking and `attack` begins on the statement.
    * The exit, for every kind, is `absorbing`: the word is the Egg's, and it
    * means the outcome has latched (G-033) and `finishAct` follows the timer —
    * the Gym Teacher's stopwatch click and `ActDef.endWord` play in it.
@@ -509,8 +536,8 @@ export interface BossState {
    * True while it cannot be damaged: the Gym Teacher with any of his
    * `enemyId` alive on the field (§9); Prom with the player farther than its
    * `floorRadius` from the ball (ADOLESCENCE-ROSTER §4). Always false for the
-   * Egg. Plain state for the renderer and the bots; the sim reads the field
-   * and the player itself.
+   * Egg and the Loan. Plain state for the renderer and the bots; the sim reads
+   * the field and the player itself.
    */
   shielded: boolean;
   /**
@@ -520,6 +547,15 @@ export interface BossState {
    * count. Zero for the kinds that fire no ring.
    */
   rings: number;
+  /**
+   * The Loan's interest clock: seconds until its balance next compounds,
+   * counting down from `interestSeconds`, set at spawn and carried (never
+   * reset) at each tick. Read-only outside the sim; a renderer that wants the
+   * tape to jerk on the tick sees it wrap upward between two frames, and
+   * 1 − interestIn/interestSeconds is the progress to the next one. Zero for
+   * the kinds that never compound.
+   */
+  interestIn: number;
 }
 
 export interface Input {
@@ -2728,7 +2764,19 @@ export class World {
       timer: 2.2,
       shielded: false,
       rings: 0,
+      interestIn: 0,
     };
+    // The Loan opens at what the player carried in (COLLEGE-ROSTER §4): a
+    // tenth more per invoice worn, and its cap is `cap` times that, so the bar
+    // opens 1/cap full. The act's only attach is tuition, so every stack
+    // worn here is an invoice.
+    const loan = this.act.boss;
+    if (loan.kind === 'loan') {
+      const opening = BOSS_HP * (1 + LOAN_OPENING_PER_STACK * this.dragStacks);
+      this.boss.hp = opening;
+      this.boss.maxHp = opening * loan.cap;
+      this.boss.interestIn = loan.interestSeconds;
+    }
     // Read once it stands: Prom's shield is the player's distance from it.
     this.boss.shielded = this.shieldUp();
     this.partRace(this.boss);
@@ -2838,6 +2886,9 @@ export class World {
         return;
       }
     }
+
+    // Above the phase timer: interest runs every step, not on phase changes.
+    if (this.act.boss.kind === 'loan') return this.loanPhase(b, this.act.boss, dt);
 
     // It does not move from where it is. It has already decided.
     b.timer -= dt;
@@ -2996,5 +3047,74 @@ export class World {
       });
     }
     b.rings++;
+  }
+
+  /**
+   * The Loan's step (COLLEGE-ROSTER §4), called every step it is not
+   * absorbing, after the damage passes: a kill this step latched `absorbing`
+   * and returned before this, so the player's last hit beats the tick.
+   *
+   * Interest: every `interestSeconds`, the balance grows by `interestRate` of
+   * itself, held at `maxHp`. One tick a step at most, the overshoot carried
+   * (AUDIT 16): a frame longer than the interval catches up over the next
+   * steps rather than looping, so no `interestSeconds` can hang the step.
+   * Foreclosure is the balance reaching the cap: not damage, so no health,
+   * armour or i-frames stand in front of it, and it goes straight to `die`
+   * as the lost race and the engulf do. Its cause is 'boss', which prints the
+   * act's `bossName`.
+   *
+   * The statement is the Egg's machine at the Egg's timings, carried as
+   * Prom's is: idle; the tape jerks (telegraph); the invoices (attack). It
+   * never fires at the player, never moves and never shields (`shieldUp` has
+   * no branch for it).
+   */
+  private loanPhase(b: BossState, boss: LoanBoss, dt: number): void {
+    b.interestIn -= dt;
+    if (b.interestIn <= 0) {
+      b.interestIn += boss.interestSeconds;
+      b.hp = Math.min(b.hp * (1 + boss.interestRate), b.maxHp);
+      if (b.hp >= b.maxHp) {
+        if (!this.outcomeDecided) this.die('boss');
+        return;
+      }
+    }
+
+    b.timer -= dt;
+    if (b.timer > 0) return;
+    if (b.phase === 'idle') {
+      b.phase = 'telegraph';
+      b.timer += EGG_TELEGRAPH_SECONDS;
+    } else if (b.phase === 'telegraph') {
+      b.phase = 'attack';
+      b.timer += EGG_ATTACK_SECONDS;
+      this.statement(boss);
+    } else {
+      b.phase = 'idle';
+      b.timer += EGG_IDLE_SECONDS;
+    }
+  }
+
+  /**
+   * The statement: `invoices` of the act's `enemyId` at the player's lead,
+   * through `spawnEnemy` — the act's own arrival, with its clamp — one per
+   * heading in a fan of LOAN_INVOICE_SPREAD about the player's. The heading
+   * is turned for each call and put back after, so the placement is written
+   * once, in `spawnEnemy`. A lead placement draws no dice; under a
+   * `spawnOverride` of 'edge' each invoice draws its angle, as the act's own
+   * spawns do. Capped by MAX_ACTIVE_ENEMIES like any spawn.
+   */
+  private statement(boss: LoanBoss): void {
+    const fx = this.facingX;
+    const fy = this.facingY;
+    for (let i = 0; i < boss.invoices && this.enemies.length < MAX_ACTIVE_ENEMIES; i++) {
+      const turn = (i - (boss.invoices - 1) / 2) * LOAN_INVOICE_SPREAD;
+      const c = Math.cos(turn);
+      const s = Math.sin(turn);
+      this.facingX = fx * c - fy * s;
+      this.facingY = fx * s + fy * c;
+      this.spawnEnemy(boss.enemyId);
+    }
+    this.facingX = fx;
+    this.facingY = fy;
   }
 }
