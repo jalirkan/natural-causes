@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <title>Reach icon</title>
+  <desc>A long-handled grabber tool seen from the side: a pistol-grip handle with a long squeeze lever in front of it at the left, a straight pale rod, and a two-finger claw open at the right, a round pad on each fingertip turned in.</desc>
+  <!--
+    Reach (G-046: Backhand at max beside Growth Spurt; the arc becomes a
+    circle). A card icon, and also what rides the leading edge of the full
+    circle on the field (about 36px, rotated to the sweep's angle), so it
+    keeps off the field's reserved colours: no threat colour, no paper, no
+    conception-light. The rod is bone, not paper.
+    Drawn level with the claw to the right. The field rotates the icon so
+    its right points away from the player, so the handle sits nearest the
+    player and the claw is the far end: you can reach everyone from here.
+    Backhand's open hand is gone. Nothing here is a hand and no hand holds
+    it; like Growth Spurt's rule, the object is the joke.
+    A grabber, never a gun: the rod is most of the length and the handle
+    is barely thicker than it; the lever is a long bowed bar the whole hand
+    squeezes, with no guard round it. Never a spanner: the claw is two
+    separate fingers opening in a V from a hinged head, each ending in a
+    round pad turned in, so the mouth is neither a U nor a closed ring
+    (the ring is spermicide's). The rod is thick enough to stay a pale bar
+    at 36px.
+    CONFORM adds the outer outline. The lever's joint and pivot and the
+    claw's hinge pin and seam are drawn here.
+    Colours: conception-mid #A86A63, bone #D2C6AC, ink #2A2521.
+  -->
+  <g shape-rendering="crispEdges">
+    <!-- the rod: bone, level, from inside the handle into the claw's head -->
+    <rect x="28" y="41" width="46" height="9" fill="#D2C6AC"/>
+
+    <!-- the lever: a long bar bowed forward, hanging from under the handle's head -->
+    <path d="M 26 50 Q 30 62 24 72" fill="none" stroke="#A86A63" stroke-width="6.5" stroke-linecap="round"/>
+    <!-- the handle: a collar round the rod, a rounded shoulder, and the grip raked a little back -->
+    <path fill="#A86A63" d="M 33 38.5 L 16 38.5 Q 6.5 38.5 6.5 50 L 4.2 73 Q 3.7 79.5 10 79.5 Q 15.5 79.5 15.9 74 L 18 56 Q 18.5 52.5 22 52.5 L 33 52.5 Z"/>
+    <!-- the lever's joint: where it leaves the head, and its pivot -->
+    <g fill="#2A2521">
+      <rect x="22" y="52.5" width="9" height="2"/>
+      <circle cx="25.5" cy="46.5" r="1.9"/>
+    </g>
+
+    <!-- the claw's head on the rod's end -->
+    <rect x="72" y="37" width="9" height="17" rx="2" fill="#A86A63"/>
+    <!-- the two fingers, opening in a V -->
+    <g fill="none" stroke="#A86A63" stroke-width="7" stroke-linecap="round">
+      <path d="M 80 42 L 92 27.5"/>
+      <path d="M 80 49 L 92 63.5"/>
+    </g>
+    <!-- a round pad on each fingertip, set in toward the other -->
+    <g fill="#A86A63">
+      <circle cx="95" cy="31" r="4.8"/>
+      <circle cx="95" cy="60" r="4.8"/>
+    </g>
+    <!-- the hinge: the pin, and the seam where the fingers leave the head -->
+    <g fill="#2A2521">
+      <circle cx="76.5" cy="45.5" r="2.2"/>
+      <rect x="80" y="38" width="2" height="15"/>
+    </g>
+  </g>
+</svg>
