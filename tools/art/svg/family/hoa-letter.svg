@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <title>HOA letter</title>
+  <desc>A sheet of bone paper folded in thirds, standing open on the floor like a small tent and seen from slightly above: the front panel leans back from a sharp ridge fold, and at its right end the inside of the back panel shows in shadow, with floor visible beneath it. On the front panel sits a round ink seal: a ring with two dots and a flat mouth inside it, looking straight out. The letter is signed by the committee, and the committee is the seal. Nothing is written on it.</desc>
+  <!--
+    HOA letter (FAMILY-ROSTER §3.3), the act's accumulator. Reserved
+    silhouette (§1): the sealed letter, a tri-fold sheet standing open like
+    a tent with a round seal on its top panel; the only seal in the act and
+    the only thing folded, and the smallest thing in it, as ping, tuition
+    and acne were in theirs. It wears their colours on purpose: no threat
+    colour, because it deals no damage; it attaches, and every one worn
+    costs reach.
+
+    Drawn on the finished sprite's own pixel grid. The group maps one unit
+    to one pixel of the 40px sprite: the letter is 38 units wide (40 less
+    the 1px outline each side) and 19 tall, centred, so the rasteriser fits
+    it on its width and every straight edge lands where it is written.
+
+    The pose. The top third leans back from the ridge and faces out, and
+    carries the seal. The middle third comes down behind it and shows only
+    at the right end, from inside, in shadow. Under that the floor shows
+    through the open end: the shadow stops at the back panel's foot, so the
+    end reads as a thin sheet folded, not a solid wedge. Closed, the end
+    drew a doorstop. The bottom third is still folded flat against the
+    back of the middle one, out of sight: drawn lying open on the floor in
+    front it read as the brim of a cap, and with a steeper turn as an open
+    laptop; drawn lying open behind, as a tail.
+    The ridge is level: turned in the picture plane the letter looked
+    tossed, and it does not move; it waits where the player is going.
+
+    The fold that shows is the ridge. At 40px it is carried by the outline
+    CONFORM adds along the top and by the turn from bone to shadow at the
+    end; an interior ink crease would be a hairline (D-018).
+
+    The seal is the face and the read: an ink ring 13 across and 2 thick,
+    paper inside, two 2px dots and a 5px flat mouth, centred on the panel
+    with three pixels of paper above and below it. It is upright while the
+    panel leans back: the seal looks straight out whatever the paper does.
+    The letter is signed by the committee, and the committee is the seal
+    (law 9). No writing on it: text is not drawn.
+
+    Colours are palette hex values: bone #D2C6AC paper, shadow #6E6353 the
+    inside of the back panel, ink #2A2521 the seal and its face. No threat
+    colour, no paper (the player's) and no family-light, which is the
+    pickups' (law 10). CONFORM adds the outline; there is none here.
+  -->
+  <g shape-rendering="crispEdges" transform="scale(2.5) translate(1 10.5)">
+  <!-- the back panel, its inside seen through the right end; it stops at its foot, and the floor shows under it -->
+  <path d="M33,0 L38,11 V12 H29 Z" fill="#6E6353"/>
+  <!-- the front panel: the top third, leaning back from the ridge -->
+  <path d="M5,0 H33 L28,19 H0 Z" fill="#D2C6AC"/>
+  <!-- the seal: an ink ring, 13 across and 2 thick, in rows of 5, 9, 11, 11, 13 x5, 11, 11, 9, 5 round a hole of 5, 7, 9 x5, 7, 5 -->
+  <path fill-rule="evenodd" fill="#2A2521" d="
+    M14,3 H19 V4 H21 V5 H22 V7 H23 V12 H22 V14 H21 V15 H19 V16 H14 V15 H12 V14 H11 V12 H10 V7 H11 V5 H12 V4 H14 Z
+    M14,5 H19 V6 H20 V7 H21 V12 H20 V13 H19 V14 H14 V13 H13 V12 H12 V7 H13 V6 H14 Z"/>
+  <!-- the committee: two dots and a flat mouth, straight out -->
+  <path fill="#2A2521" d="M13,7 h2 v2 h-2 Z M18,7 h2 v2 h-2 Z M14,11 h5 v1 h-5 Z"/>
+  </g>
+</svg>
