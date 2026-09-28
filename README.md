@@ -5,10 +5,10 @@
 > **Play it: <https://jalirkan.github.io/natural-causes/>** — the current
 > `main`, published by [`deploy.yml`](./.github/workflows/deploy.yml) on every
 > push once a repository admin has pointed Pages at GitHub Actions (see CI,
-> below). One run is one life (D-024); today that life is Conception, School
-> and Adolescence, about fourteen minutes. Keyboard, or one thumb on a phone.
+> below). One run is one life (D-024); today that life is Conception, School,
+> Adolescence and College, about eighteen minutes. Keyboard, or one thumb on a phone.
 >
-> **Status: a three-act life — Conception, School, Adolescence — playable at
+> **Status: a four-act life — Conception, School, Adolescence, College — playable at
 > the link. Every sprite in it is authored SVG (D-025). Every number is a labelled placeholder.**
 > Plan in [`PLAN.md`](./PLAN.md) (read its 2026-09-27 amendment first), art
 > spec in [`ART-DIRECTION.md`](./ART-DIRECTION.md) (binding), decisions in
@@ -152,10 +152,18 @@ hormones come out of your own footsteps, acne waits where you are heading and
 can only be cleared by wearing it, a group chat follows you and types before
 it fires, a standardised test sits you, and driver's ed crosses the room at a
 speed nobody can walk. Its boss is Prom, a mirror ball the hormones race for.
-Outlive it and you die of natural causes, aged eighteen. Dying earlier, the
-certificate names what did it.
+Then College, eighteen to twenty-two, on a shorter clock still: reading
+arrives in stacks, a deadline crosses the room on its own schedule, tuition
+waits where you are going and takes a cut of every gem you pick up from then
+on (the invoices do not come off at the crossing), a group project has four
+faces and only one of them takes damage, and the registrar fires a HOLD that
+stops you dead. Its boss is The Loan: it never touches you, its balance
+compounds while you hit it, and if it reaches the cap it forecloses. Beat it
+and the act ends on CONGRATULATIONS; outlive it and you die of natural causes,
+aged twenty-two. Dying earlier, the certificate names what did it. Press P at
+any point for the build sheet: what you hold, its paths, and the totals.
 
-#### After you play — ten things to say
+#### After you play — twelve things to say
 
 These replace the six calibration questions in `CONCEPTION-ROSTER.md` §12.4.
 Nothing here asks for a number; every one is about the run you just had.
@@ -180,6 +188,12 @@ Nothing here asks for a number; every one is about the run you just had.
 10. **Personal Space, Backhand, Judgement: did any of them feel like the
     build you already know?** Say which, and whether it wanted anything the
     pool did not offer.
+11. **College: did you notice you were paying, and when?** The invoices cost
+    XP, not health, and The Loan's bar fills instead of emptying. Did either
+    land as a pressure, or was it a number you never read?
+12. **Did an evolution arrive, and did it feel like the weapon finished or
+    like the weapon replaced?** Six exist now (Tantrum, Vendetta, Jumpiness,
+    Reach, Hindsight, Rut); the bots reach them rarely.
 
 §12.4's sixth question — how long you hold a heading — is not asked, because
 the game answers it itself now: an input log records every heading you hold
@@ -209,6 +223,7 @@ mode was still on twenty minutes ago.
 | **1** | Art pipeline + test batch, art direction judged | done — `ART-DIRECTION.md` is binding |
 | **2** | Core loop, Conception act | **complete and unjudged** — title to Egg to certificate, sound, no known bugs, playable at the link; the drag curve and cadence are labelled placeholders until a person has played it |
 | **3** | The School act | **playable as the second act of the life** — five enemies, three behaviours, a **provisional** schedule (D-022), every sprite authored as SVG (D-025); the substitute's shot, homework's arrival point and the monitor's stop are built as labelled placeholders nobody has played; the Gym Teacher is designed (SCHOOL-ROSTER §9), drawn, and fights — every number in his fight is a placeholder too |
+| **4** | Adolescence and College | **playable as the third and fourth acts** — Adolescence (ADOLESCENCE-ROSTER) with Prom; College (COLLEGE-ROSTER, G-045) with The Loan, tuition's tax, the group project's weak point and the registrar's hold, every sprite drawn; every number a placeholder under each act's `provisional` |
 
 The art pipeline (`tools/art/`) starts from a drawing: an SVG in
 `tools/art/svg/<act>/` is rasterised, conformed to the act's locked palette with

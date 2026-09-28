@@ -24,6 +24,29 @@ Running record of what the automated bots measured and what it means for design.
 
 ---
 
+# 2026-09-28 · After College and the evolutions — the four-act life. Presence only.
+
+`pnpm playtest -- --runs=8 --life` (seeds 1000–1007, 96 lives, twelve policies) at the integration
+branch before its PR (`9b92032`), College in `ALL_ACTS`, The Loan fighting, six evolutions in.
+
+| policy | ended in | of |
+|---|---|---|
+| motility, greedy-capacitation, judgement+appetite | college 8 | natural causes 8 |
+| acrosome+midpiece | college 7, conception 1 | natural causes 7, Someone else 1 |
+| the other eight arms | college 4–6, the rest Conception's race or Adolescence's hormones | natural causes; one Group chat, one Group project in College's own runs earlier |
+| uptake, evolutions | Jumpiness 10, Vendetta 6, Reach 3, Tantrum 3, Hindsight 1, Rut 0 of 96 | |
+
+Every arm finished eight four-act lives and every life that reached College ended there of natural
+causes at twenty-two: no bot died to The Loan or its act once its behaviour landed, which says the
+placeholders let a build carried from Conception through, not that they are right. In the act alone
+(the data agent's run, 40 runs), three of ten arms lost one life each to The Loan's fan before its own
+behaviour existed, and the registrar's forms landed (13 of 34 seen on one arm). Tuition stacks worn on
+arrival at The Loan were 11–20 per life, so the tax is a pressure the bots feel and never read. The
+evolutions are reached rarely because a path card competes with the weapon's own card for the same
+slot (G-043's placeholder cap); question 12 asks a person, not the bots. Nothing here is calibration.
+
+---
+
 # 2026-09-28 · After G-043 and G-044 — paths, stat lines, three archetypes. Presence only.
 
 `pnpm playtest -- --runs=8 --life` (seeds 1000–1007, 80 lives, ten policies) at `dd522c0`, the merged

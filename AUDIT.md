@@ -556,3 +556,20 @@ Gossip): the renderer tests `hostile` before `source` and the tallies key on
   `TRAIL_SECONDS`'s label covers it.
 - **The car is never flipped or turned**: `setFlipX` is for chasers, so a car
   driving left, up or down is drawn side-on facing right.
+
+# Part six — 2026-09-28, the fourth act and the evolutions, as the builders flagged them
+
+Not a read: the agents that built College (COLLEGE-ROSTER), The Loan, the
+evolutions (G-046) and the College wiring each reported what looked like the
+game working but might not, and this part collects those before anyone
+plays. All at `5552874`. None is fixed here; each says who it waits on.
+
+| # | What | Why it looks right | Status |
+|---|---|---|---|
+| 37 | **The Loan spawns mostly off screen.** Every boss is placed 420px above the player and the view shows 360; the Loan's anchor is at 0.73 of its frame, so the machine sits behind the HUD band and the tape — its shape, and the part that jerks on the tick — is off the top | The bar fills, the pull works, the bots walk up | Open. A per-kind spawn offset or a camera nudge on spawn; the placement is the sim's |
+| 38 | **Persisting stacks draw as the next act's frame.** Tuition stays on through the crossing (§3.3) and the scene rebuilds worn stacks from the new act's `attachFrame`, falling back to the antibody | Nothing after College exists yet | Open until a fifth act; noted at `attachFrame` |
+| 39 | **The smoke never sees College's drawings.** It skips to the boss and kills it; tuition, HOLD, the deadline's heading, the group project and the jerk were checked once by hand in Chromium | The smoke passes | Open: a College milestone that waits for a tuition sprite and a HOLD |
+| 40 | **The Loan's placeholders imply a floor of invoices.** A statement every 2.8s drops three static, undamageable envelopes: about 64 on the floor in a 60s fight, and with no damage it forecloses in about 95s | The fight ends either way | A reaction question (11), not a number to move |
+| 41 | **`bossHpFraction` reads backwards for The Loan** in the bots' report: its bar opens a third full and fills | Shield section excludes it (`bossHasShield`) | Open, cosmetic |
+| 42 | **The dev panel's "no drag" zeroes the drag stacks but not the tax,** so the HUD can read `xp −8%` alone; its "level up" gem is sized before tax | Dev only | Open, dev only |
+| 43 | **Judgement draws the world's dice.** The first weapon to, so holding it moves later spawns and rolls for that seed; Hindsight and the group project's quadrant too | Bots and browser still agree; determinism per seed holds | By design; a per-weapon stream if it ever matters |
