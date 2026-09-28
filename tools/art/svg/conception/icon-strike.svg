@@ -1,58 +1,59 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
-  <title>Lash icon</title>
-  <desc>A printed pointing hand, a manicule: the index finger held out straight to the right, the thumb laid across the side of the hand with its tip up under the index, three fingers folded beneath, and a shirt cuff at the wrist.</desc>
+  <title>Pointing icon</title>
+  <desc>A chubby child's hand, round as a mitten, pointing to the right: one short fat index finger held straight out, the thumb a round nub on top, three curled fingers stacked below, a sweater cuff at the wrist, one glint on the back of the hand. No face, no text.</desc>
   <!--
-    Lash (items.ts, icon "strike"). A card icon, and also Reflex's shot: the
-    manicule flies at whatever is nearest (G-036), about 30px, rotated to its
-    heading (ActScene syncProjectiles), so it keeps off the field's reserved
-    colours: no threat colour, no paper, no conception-light. The cuff is
-    bone, not paper; paper on a projectile is the player (law 10).
-    It points along +x, so the heading rotation puts the fingertip first.
-    Backhand (icon-sweep) is the other hand with a cuff, so this one differs
-    in everything else: it lies level where that one leans into a swing, it
-    shows one finger where that one shows all four, and it is flat and still,
-    as printed, with no motion lines: it aims where that one is moving.
-    The cuff and its opening line and button follow Backhand's, turned to
-    lie along the wrist; no forearm past it.
-    CONFORM adds the outer outline; interior lines are drawn here, and bone
-    never meets rose without ink between them.
+    Pointing (G-054; items.ts `lash`, icon "strike"). A card icon, and also
+    the homing shot: the hand flies at whatever is nearest (G-036), about 30px,
+    rotated to its heading (ActScene syncProjectiles), so it points along +x
+    and keeps off the field's reserved colours: no threat colour, no paper,
+    no act's light tone. The glint is bone, not paper, for the same reason:
+    paper on a projectile is the player (law 10).
+    Greeting-card register (G-053): a kid's hand, not a printer's manicule.
+    The fist is one round mass, the finger short and fat, every end rounded.
+    No face: a pointing hand at 30px is the gesture, and a face on it would
+    make it a creature.
+    CONFORM adds the outer outline. The ink between the parts is drawn as
+    filled shapes under each part, clipped to the hand's own silhouette so the
+    outer edge carries only the pipeline's one outline (law 1).
     Colours: conception-mid #A86A63, bone #D2C6AC, ink #2A2521.
   -->
   <defs>
-    <!-- the hand's own outline, so the thumb runs out to its edge -->
     <clipPath id="hand">
-      <path d="M 16 36 C 24 33 30 30 40 30 L 56 30 L 56 58 L 46 69 C 34 70 24 68 16 65 Z"/>
-      <rect x="40" y="40.5" width="27" height="10" rx="5"/>
-      <rect x="38" y="50" width="26" height="10" rx="5"/>
-      <rect x="36" y="59.5" width="24" height="9.5" rx="4.75"/>
+      <rect x="4" y="31" width="21" height="44" rx="9"/>
+      <ellipse cx="42" cy="55" rx="23" ry="21"/>
+      <rect x="44" y="36" width="50" height="18" rx="9"/>
+      <rect x="47" y="52" width="24" height="12" rx="6"/>
+      <rect x="45" y="62" width="22" height="11.5" rx="5.75"/>
+      <rect x="41" y="71" width="21" height="10.5" rx="5.25"/>
+      <ellipse cx="50" cy="37.5" rx="13" ry="6.5" transform="rotate(-6 50 37.5)"/>
     </clipPath>
   </defs>
   <g shape-rendering="crispEdges">
-    <!-- the back of the hand and the wrist, running under the cuff -->
-    <path fill="#A86A63" d="M 16 36 C 24 33 30 30 40 30 L 56 30 L 56 58 L 46 69 C 34 70 24 68 16 65 Z"/>
-    <!-- the three folded fingers, their fronts stepping back toward the heel -->
-    <g fill="#A86A63">
-      <rect x="40" y="40.5" width="27" height="10" rx="5"/>
-      <rect x="38" y="50" width="26" height="10" rx="5"/>
-      <rect x="36" y="59.5" width="24" height="9.5" rx="4.75"/>
-    </g>
-    <!-- the gaps between the folded fingers -->
-    <g stroke="#2A2521" stroke-width="2" stroke-linecap="round">
-      <line x1="40" y1="50.25" x2="61" y2="50.25"/>
-      <line x1="38" y1="59.75" x2="57" y2="59.75"/>
-    </g>
-    <!-- the thumb, rising from the heel across the folded fingers, its tip up under the index -->
-    <g clip-path="url(#hand)">
-      <path fill="#A86A63" stroke="#2A2521" stroke-width="2" stroke-linejoin="round"
-            d="M 26.1 77.5 L 46.9 43.4 A 6 6 0 0 1 57.1 49.6 L 36.3 83.7 Z"/>
-    </g>
-    <!-- the index finger, held straight out, and where it lies on the rest -->
-    <rect x="44" y="30" width="52" height="11" rx="5.5" fill="#A86A63"/>
-    <line x1="44" y1="41" x2="64" y2="41" stroke="#2A2521" stroke-width="2" stroke-linecap="round"/>
+    <!-- the sweater cuff -->
+    <rect x="4" y="31" width="21" height="44" rx="9" fill="#D2C6AC"/>
 
-    <!-- the cuff, its opening, and one button -->
-    <rect x="4" y="30" width="15" height="40" rx="2" fill="#D2C6AC"/>
-    <line x1="18" y1="32" x2="18" y2="68" stroke="#2A2521" stroke-width="2"/>
-    <circle cx="11" cy="61" r="2.2" fill="#2A2521"/>
+    <g clip-path="url(#hand)">
+      <!-- the round of the hand, with ink where it leaves the cuff -->
+      <ellipse cx="42" cy="55" rx="25" ry="23" fill="#2A2521"/>
+      <ellipse cx="42" cy="55" rx="23" ry="21" fill="#A86A63"/>
+
+      <!-- the index finger, straight out -->
+      <rect x="44" y="36" width="50" height="18" rx="9" fill="#A86A63"/>
+
+      <!-- the three curled fingers, each with ink round it -->
+      <rect x="45" y="50" width="28" height="16" rx="8" fill="#2A2521"/>
+      <rect x="47" y="52" width="24" height="12" rx="6" fill="#A86A63"/>
+      <rect x="43" y="60" width="26" height="15.5" rx="7.75" fill="#2A2521"/>
+      <rect x="45" y="62" width="22" height="11.5" rx="5.75" fill="#A86A63"/>
+      <rect x="39" y="69" width="25" height="14.5" rx="7.25" fill="#2A2521"/>
+      <rect x="41" y="71" width="21" height="10.5" rx="5.25" fill="#A86A63"/>
+
+      <!-- the thumb, a round nub lying along the top of the finger -->
+      <ellipse cx="50" cy="37.5" rx="15" ry="8.5" transform="rotate(-6 50 37.5)" fill="#2A2521"/>
+      <ellipse cx="50" cy="37.5" rx="13" ry="6.5" transform="rotate(-6 50 37.5)" fill="#A86A63"/>
+    </g>
+
+    <!-- the one glint, upper-left on the back of the hand -->
+    <ellipse cx="29" cy="45" rx="3.4" ry="2.4" transform="rotate(-35 29 45)" fill="#D2C6AC"/>
   </g>
 </svg>

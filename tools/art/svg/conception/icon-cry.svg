@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <title>Cry icon</title>
+  <desc>One big teardrop, point up and round below, with a faintly worried little face on its belly: two big dark eyes each with one pale glint, brows lifted in the middle, blush cheeks, a small wobbly mouth. No text.</desc>
+  <!--
+    Cry (G-054, icon "cry"). A card icon, and also what the cry holds at the
+    top of its expanding ring on the field, so it keeps off the field's
+    reserved colours: no threat colour, no paper, no act's light tone.
+    The drop is bone, the lightest colour a rider may wear, so it carries no
+    separate glint (nothing lighter is legal on it); the eyes' glints are
+    bone on ink. The tip is rounded to an eighth of the drop's width (G-053,
+    round everything) and still reads as the point of a tear.
+    Faintly worried, never distressed: the panic button, drawn as the kid's
+    face just before it goes.
+    CONFORM adds the outer outline.
+    Colours: bone #D2C6AC, blush #EBA39C, shadow #6E6353, ink #2A2521.
+  -->
+  <defs>
+    <clipPath id="drop">
+      <path d="M 43.07 12 A 8 8 0 0 1 56.93 12 C 62.9 22.4 82 42 82 62 A 32 32 0 0 1 18 62 C 18 42 37.1 22.4 43.07 12 Z"/>
+    </clipPath>
+  </defs>
+  <g shape-rendering="crispEdges">
+    <!-- the drop -->
+    <path fill="#D2C6AC" d="M 43.07 12 A 8 8 0 0 1 56.93 12 C 62.9 22.4 82 42 82 62 A 32 32 0 0 1 18 62 C 18 42 37.1 22.4 43.07 12 Z"/>
+    <!-- its one shadow: the drop outside a circle set up and left of it, a crescent along the lower right -->
+    <path clip-path="url(#drop)" fill="#6E6353" fill-rule="evenodd" d="M 0 0 H 100 V 100 H 0 Z M 82 48 A 42 42 0 1 0 -2 48 A 42 42 0 1 0 82 48 Z"/>
+
+    <!-- the brows, lifted in the middle -->
+    <rect x="31" y="41.6" width="12" height="3.4" rx="1.7" transform="rotate(-16 37 43.3)" fill="#2A2521"/>
+    <rect x="57" y="41.6" width="12" height="3.4" rx="1.7" transform="rotate(16 63 43.3)" fill="#2A2521"/>
+
+    <!-- the eyes, each with one glint upper-left -->
+    <ellipse cx="38" cy="57" rx="6.8" ry="8.4" fill="#2A2521"/>
+    <ellipse cx="62" cy="57" rx="6.8" ry="8.4" fill="#2A2521"/>
+    <circle cx="35.8" cy="53.6" r="2.5" fill="#D2C6AC"/>
+    <circle cx="59.8" cy="53.6" r="2.5" fill="#D2C6AC"/>
+
+    <!-- blush -->
+    <ellipse cx="28.5" cy="70" rx="6" ry="3.6" fill="#EBA39C"/>
+    <ellipse cx="71.5" cy="70" rx="6" ry="3.6" fill="#EBA39C"/>
+
+    <!-- the mouth, small and wobbly -->
+    <path fill="#2A2521" d="M 43 78.5 Q 46.5 73.5 50 76.5 Q 53.5 73.5 57 78.5 L 55.4 79.6 Q 53.2 76.6 50 79.4 Q 46.8 76.6 44.6 79.6 Z"/>
+  </g>
+</svg>

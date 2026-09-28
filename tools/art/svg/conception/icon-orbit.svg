@@ -1,52 +1,47 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
-  <title>Grudge icon</title>
-  <desc>A clenched fist seen knuckles-on, standing in a tilted orbit ring with one bead riding the ring.</desc>
+  <title>Mobile icon</title>
+  <desc>One fat five-pointed star from a crib mobile, hanging point-up on a short ribbon with a bead at its top, with a small pleased face: two big dark eyes each with one pale glint, blush cheeks, a little smile. No text.</desc>
   <!--
-    Grudge (items.ts, icon "orbit"). A card icon, and also what circles the
-    player on the field (ActScene syncOrbiters), so it keeps off the field's
-    reserved colours: no threat colour, no paper, no conception-light.
-    The fist says the grudge; the ring says it keeps going round.
-    No forearm: a fist on a raised arm is a salute, and this is not one.
-    CONFORM adds the outer outline; interior lines are drawn here.
-    Colours: conception-mid #A86A63, bone #D2C6AC, ink #2A2521.
+    Mobile (G-054; items.ts `grudge`, icon "orbit"). A card icon, and also
+    each orbiter on the field: it circles the player and turns as it goes
+    (ActScene syncOrbiters, about 36px), so it keeps off the field's reserved
+    colours: no threat colour, no paper, no act's light tone. One star, the
+    crib mobile's one orbiter; more orbiters are more stars.
+    The star is bone, the lightest colour a rider may wear, so it carries no
+    separate glint (nothing lighter is legal on it); the eyes' glints are bone
+    on ink, and its one shadow is the star less itself moved up and left.
+    Every point is rounded (G-053): a star to hang over a cot, not a badge.
+    CONFORM adds the outer outline.
+    Colours: bone #D2C6AC, shadow #6E6353, conception-mid #A86A63,
+    blush #EBA39C, ink #2A2521.
   -->
+  <defs>
+    <clipPath id="star">
+      <path d="M 45.19 27.61 Q 50.00 20.00 54.81 27.61 L 60.85 37.17 Q 63.52 41.39 68.36 42.63 L 79.32 45.42 Q 88.04 47.64 82.29 54.56 L 75.07 63.26 Q 71.87 67.11 72.20 72.10 L 72.93 83.38 Q 73.51 92.36 65.15 89.03 L 54.65 84.85 Q 50.00 83.00 45.35 84.85 L 34.85 89.03 Q 26.49 92.36 27.07 83.38 L 27.80 72.10 Q 28.13 67.11 24.93 63.26 L 17.71 54.56 Q 11.96 47.64 20.68 45.42 L 31.64 42.63 Q 36.48 41.39 39.15 37.17 Z"/>
+    </clipPath>
+  </defs>
   <g shape-rendering="crispEdges">
-    <!-- the ring, back half: drawn whole, the fist covers what is behind it -->
-    <g transform="translate(50 58) rotate(-10)">
-      <ellipse cx="0" cy="0" rx="46" ry="15" fill="none" stroke="#D2C6AC" stroke-width="6"/>
+    <!-- the ribbon it hangs from, tied off in a loop at its top -->
+    <rect x="48.2" y="10" width="3.6" height="17" rx="1.8" fill="#A86A63"/>
+    <path fill="#A86A63" fill-rule="evenodd" d="M 50 1 A 5.6 5.6 0 1 1 49.99 1 Z M 50 4.2 A 2.4 2.4 0 1 0 50.01 4.2 Z"/>
+
+    <!-- the star, its shadow along the lower right edges -->
+    <g clip-path="url(#star)">
+      <rect x="0" y="0" width="100" height="100" fill="#6E6353"/>
+      <path transform="translate(-3 -3)" fill="#D2C6AC" d="M 45.19 27.61 Q 50.00 20.00 54.81 27.61 L 60.85 37.17 Q 63.52 41.39 68.36 42.63 L 79.32 45.42 Q 88.04 47.64 82.29 54.56 L 75.07 63.26 Q 71.87 67.11 72.20 72.10 L 72.93 83.38 Q 73.51 92.36 65.15 89.03 L 54.65 84.85 Q 50.00 83.00 45.35 84.85 L 34.85 89.03 Q 26.49 92.36 27.07 83.38 L 27.80 72.10 Q 28.13 67.11 24.93 63.26 L 17.71 54.56 Q 11.96 47.64 20.68 45.42 L 31.64 42.63 Q 36.48 41.39 39.15 37.17 Z"/>
     </g>
 
-    <!-- the fist: a thin ink underlay where it covers the ring, then the rose -->
-    <g fill="#2A2521" stroke="#2A2521" stroke-width="2.5" stroke-linejoin="round">
-      <rect x="25" y="25" width="13" height="30" rx="6.5"/>
-      <rect x="37" y="23" width="13" height="30" rx="6.5"/>
-      <rect x="49" y="23" width="13" height="30" rx="6.5"/>
-      <rect x="61" y="26" width="13" height="30" rx="6.5"/>
-      <rect x="25" y="40" width="49" height="31" rx="11"/>
-      <rect x="20" y="48" width="41" height="14" rx="7"/>
-    </g>
-    <g fill="#A86A63">
-      <rect x="25" y="25" width="13" height="30" rx="6.5"/>
-      <rect x="37" y="23" width="13" height="30" rx="6.5"/>
-      <rect x="49" y="23" width="13" height="30" rx="6.5"/>
-      <rect x="61" y="26" width="13" height="30" rx="6.5"/>
-      <rect x="25" y="40" width="49" height="31" rx="11"/>
-    </g>
-    <!-- the gaps between the fingers -->
-    <g stroke="#2A2521" stroke-width="2.2" stroke-linecap="round">
-      <line x1="37.5" y1="29" x2="37.5" y2="46"/>
-      <line x1="49.5" y1="28" x2="49.5" y2="46"/>
-      <line x1="61.5" y1="30" x2="61.5" y2="46"/>
-    </g>
-    <!-- the thumb, folded across the front -->
-    <rect x="20" y="48" width="41" height="14" rx="7" fill="#A86A63" stroke="#2A2521" stroke-width="2.2"/>
+    <!-- the eyes, each with one glint upper-left -->
+    <ellipse cx="41" cy="56" rx="5.4" ry="6.8" fill="#2A2521"/>
+    <ellipse cx="59" cy="56" rx="5.4" ry="6.8" fill="#2A2521"/>
+    <circle cx="39.3" cy="53.4" r="2" fill="#D2C6AC"/>
+    <circle cx="57.3" cy="53.4" r="2" fill="#D2C6AC"/>
 
-    <!-- the ring, front half, across the foot of the fist -->
-    <g transform="translate(50 58) rotate(-10)">
-      <path d="M -46 0 A 46 15 0 0 0 46 0" fill="none" stroke="#2A2521" stroke-width="9"/>
-      <path d="M -46 0 A 46 15 0 0 0 46 0" fill="none" stroke="#D2C6AC" stroke-width="6"/>
-      <!-- the bead riding the ring -->
-      <circle cx="35" cy="9.7" r="7.5" fill="#D2C6AC" stroke="#2A2521" stroke-width="2.5"/>
-    </g>
+    <!-- blush -->
+    <ellipse cx="33" cy="65.5" rx="4.8" ry="3" fill="#EBA39C"/>
+    <ellipse cx="67" cy="65.5" rx="4.8" ry="3" fill="#EBA39C"/>
+
+    <!-- the smile -->
+    <path fill="#2A2521" d="M 44.5 66 Q 50 72.5 55.5 66 L 55.5 67.8 Q 50 75.5 44.5 67.8 Z"/>
   </g>
 </svg>

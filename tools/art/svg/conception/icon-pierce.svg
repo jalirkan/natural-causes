@@ -1,34 +1,67 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
-  <title>Stubbornness icon</title>
-  <desc>A folded paper dart seen from directly above, a slim triangle with its point to the right: two wing panels meeting at one centre crease, a narrow shadow panel along the crease, and a notch where the back of the sheet folds.</desc>
+  <title>Spitball icon</title>
+  <desc>A wet wad of chewed notebook paper flying to the right: one slightly squashed ball balled up into three facets, the ruled lines of the page running a different way on each, the folds between them dark, its soaked side in shadow, and three small wet flecks flying off behind it. No face, no text.</desc>
   <!--
-    Stubbornness (items.ts id motility, icon "pierce"). A card icon, and also
-    the shot the weapon fires on the field (ActScene syncProjectiles, 42px
-    scaled by the shot's radius, rotated to its heading), so it keeps off the
-    field's reserved colours: no threat colour, no paper, no conception-light.
-    fal's dart was ranged gold, the colour of hostile aimed shots (G-031):
-    the player's own shot wore the enemy's warning. The sheet is bone, not
-    paper; paper on a projectile would be the player.
-    It points exactly along +x, because the renderer turns it to the heading.
-    A folded sheet, never an arrowhead: the crease runs from the notch and
-    stops short of the nose (run to the tip it pooled with the outline into
-    a dark point, which is an arrow's), the rose panel is the side of the
-    fold turned away, and the back edge is notched shallowly where the two
-    wings leave the crease (deeper, it read as a chevron). No fuselage, no
-    fins. Angular all round, never Conception's comet; notched at the back,
-    never the pickups' lozenge. The nose is cut blunt by a fraction of a
-    unit: a true point would not let the render fit its size exactly.
-    CONFORM adds the outer outline; the crease is drawn here.
-    Colours: bone #D2C6AC, conception-mid #A86A63, ink #2A2521.
+    Spitball (G-054; items.ts `motility`, icon "pierce"). A card icon, and
+    also the straight shot: it flies along its heading, about 42px, rotated
+    to it (ActScene syncProjectiles), so it travels along +x with the flecks
+    trailing, and it keeps off the field's reserved colours: no threat
+    colour, no paper (the wad is bone: paper on a projectile is the player,
+    law 10), no act's light tone.
+    Bone is the lightest colour a rider may wear, so the wad carries no
+    separate glint (nothing lighter is legal on it); its wetness is its one
+    shadow, the soaked side, and the flecks it sheds.
+    Crumpled is said by the ruled lines changing direction at each fold:
+    lumps alone read as a cloud, one fold down the middle as a walnut.
+    No face: it is fired along its heading and turns with it, so a face
+    would ride upside down on every shot to the left, and it would stop
+    being a wad and start being a creature.
+    Facets rounded (G-053): chewed, not torn.
+    CONFORM adds the outer outline; the folds are drawn here.
+    Colours: bone #D2C6AC, shadow #6E6353, ink #2A2521.
   -->
+  <defs>
+    <path id="wad-shape" d="M 62.54 29.61 Q 67.51 29.05 71.68 31.80 L 76.88 35.23 Q 81.05 37.98 83.76 42.18 L 86.57 46.57 Q 89.28 50.77 86.20 54.71 L 82.86 58.99 Q 79.78 62.93 75.50 65.52 L 70.01 68.83 Q 65.73 71.42 60.90 70.13 L 53.74 68.21 Q 48.91 66.92 45.02 63.78 L 40.17 59.89 Q 36.28 56.75 37.59 51.92 L 38.75 47.67 Q 40.06 42.84 43.20 38.95 L 46.41 34.98 Q 49.55 31.09 54.52 30.53 Z"/>
+    <clipPath id="wad"><use href="#wad-shape"/></clipPath>
+    <clipPath id="facet-left"><polygon points="73.0,26.0 62.0,48.0 42.0,72.0 0.0,100.0 0.0,0.0 73.0,0.0"/></clipPath>
+    <clipPath id="facet-right"><polygon points="73.0,26.0 100.0,0.0 100.0,52.0 94.0,52.0 62.5,47.5 62.0,48.0"/></clipPath>
+    <clipPath id="facet-bottom"><polygon points="62.5,47.5 94.0,52.0 100.0,52.0 100.0,100.0 0.0,100.0 42.0,72.0 62.0,48.0"/></clipPath>
+  </defs>
   <g shape-rendering="crispEdges">
-    <!-- the upper wing, the one seen flat from above -->
-    <polygon points="97,49.4 97,50.6 11,50 3,25" fill="#D2C6AC"/>
-    <!-- the lower wing -->
-    <polygon points="97,49.4 97,50.6 3,71 11,50" fill="#D2C6AC"/>
-    <!-- the shadow panel: the side of the fold turned away, along the crease -->
-    <polygon points="97,50 11,50 6.6,62.1" fill="#A86A63"/>
-    <!-- the crease, from the notch, stopping short of the nose -->
-    <line x1="11" y1="50" x2="80" y2="50" stroke="#2A2521" stroke-width="2.2" stroke-linecap="butt"/>
+    <!-- the flecks, flying off behind -->
+    <circle cx="23" cy="40" r="5" fill="#D2C6AC"/>
+    <circle cx="14" cy="51" r="3.8" fill="#D2C6AC"/>
+    <circle cx="24" cy="61" r="4.2" fill="#D2C6AC"/>
+
+    <g clip-path="url(#wad)">
+      <!-- the soaked side: the wad moved up and left over its own shadow -->
+      <rect x="0" y="0" width="100" height="100" fill="#6E6353"/>
+      <use href="#wad-shape" transform="translate(-5 -5)" fill="#D2C6AC"/>
+
+      <!-- the ruled lines of the page, a different way on each facet -->
+      <g fill="#6E6353">
+        <g clip-path="url(#facet-left)">
+          <path d="M 20 32.1 L 80 44.1 L 80 45.9 L 20 33.9 Z"/>
+          <path d="M 20 40.1 L 80 52.1 L 80 53.9 L 20 41.9 Z"/>
+          <path d="M 20 48.1 L 80 60.1 L 80 61.9 L 20 49.9 Z"/>
+          <path d="M 20 56.1 L 80 68.1 L 80 69.9 L 20 57.9 Z"/>
+        </g>
+        <g clip-path="url(#facet-right)">
+          <path d="M 50 35.1 L 100 20.1 L 100 21.9 L 50 36.9 Z"/>
+          <path d="M 50 42.1 L 100 27.1 L 100 28.9 L 50 43.9 Z"/>
+          <path d="M 50 49.1 L 100 34.1 L 100 35.9 L 50 50.9 Z"/>
+        </g>
+        <g clip-path="url(#facet-bottom)">
+          <path d="M 30 57.3 L 100 65.7 L 100 67.5 L 30 59.1 Z"/>
+          <path d="M 30 64.3 L 100 72.7 L 100 74.5 L 30 66.1 Z"/>
+        </g>
+      </g>
+
+      <!-- the folds: one long crease corner to corner, one meeting it from the side -->
+      <g fill="#2A2521">
+        <path d="M 72.2 26 Q 68.4 38 62.4 47.2 Q 53.6 60 42.6 72.6 L 44 73.8 Q 55.2 61.2 63.8 48.6 Q 70.2 39 74 26.6 Z"/>
+        <path d="M 94 51.2 Q 78.5 47.4 63 46.8 L 63 48.8 Q 78.4 49.2 93.6 53 Z"/>
+      </g>
+    </g>
   </g>
 </svg>
