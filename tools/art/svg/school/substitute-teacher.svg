@@ -1,64 +1,75 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
   <title>Substitute teacher</title>
-  <desc>A standing pictogram figure in a cardigan and a lanyard, holding a clipboard up and reading it, not looking at the viewer.</desc>
+  <desc>A round-headed figure in kid proportions and a brown cardigan with a lanyard, holding a big clipboard out in front and reading it with a small pleased smile, not looking at the viewer.</desc>
   <!--
-    Substitute teacher (SCHOOL-ROSTER section 3.5). The idle pose: slow, not
-    pursuing, stopped to consult the clipboard. Drawn as the role (law 9): the
-    clipboard, the lanyard and the cardigan are the character; the figure only
-    carries them.
+    Substitute teacher (SCHOOL-ROSTER section 3.5), in the greeting-card
+    register (ART-DIRECTION section 2026-09-28, G-053). The idle pose: slow,
+    not pursuing, stopped to consult the clipboard. Drawn as the role (law
+    9): the clipboard, the lanyard and the cardigan are the character; the
+    figure only carries them. Kid proportions: a big head, a small round
+    body, stubby legs, mitten hands.
 
     Silhouette (law 11, School's first reservation): the bright hard
-    rectangle. The clipboard is held out to one side so its square corners
-    make the right-hand edge of the outline, and it is the brightest thing on
-    the sprite. It is bone, never paper (section 6.2: paper is the player's).
-    Nothing else here is bone. The badge on the lanyard is small, dark and
-    round-cornered, so the act still has exactly one bright hard rectangle.
+    rectangle. The clipboard is held out in front and to one side so its
+    straight right side and straight bottom make that part of the outline.
+    Its corners are rounded (the register's radius, an eighth of its width)
+    and its sides stay straight. It is bone, never paper (section 6.2), and
+    it is the brightest shape on the sprite. The lanyard's badge is small,
+    dark and round-cornered, so the act still has exactly one bright hard
+    rectangle, and its cord is a soft curve (the hard diagonal is the
+    sash's). No gold anywhere (G-031, section 6.1): the ranged colour rides
+    the projectile, never the body.
 
-    No gold anywhere (G-031, section 6.1): the ranged colour rides the
-    projectile, never the body.
-
-    The head is a rounded lump in the cardigan's green, the same flat tone as
-    the body, the way a pictogram draws a head. No hair, no features beyond
-    the face (D-007). Face (law 5): two half-lidded eyes and a flat mouth, set
-    low and to the right, cast down at the clipboard and never at the player.
+    The head is a rounded lump in the act's mid green, the same flat tone as
+    the hands, the way School draws a person: no hair (the cowlick is the
+    player's, G-003), no features beyond the face (D-007). The face: two big
+    ink eyes with one bone glint each, blush under them, a small pleased
+    mouth, all set low and to the right, cast down at the clipboard and never
+    at the player. One bone glint on the head and one on the cardigan, upper
+    left; bone on the bone clipboard would be no glint, so it has none.
 
     Contrast against school-deep is carried by school-mid, bone and ink; the
-    warm grey-brown trousers are the only low-contrast area. CONFORM adds the
-    outline; there is none here, and the gaps between arm, body and head
-    close into it. Colours: school-mid #6B7F53, bone #D2C6AC,
-    shadow #6E6353, ink #2A2521.
+    brown cardigan is the low-contrast area and is kept under the check's
+    share. CONFORM adds the outline; there is none here and no strokes, and
+    the gaps between arm, body and head close into it. Colours: school-mid
+    #6B7F53, shadow #6E6353, bone #D2C6AC, ink #2A2521, blush #EBA39C.
   -->
-  <!-- the free arm, hanging -->
-  <rect x="21" y="30" width="7.5" height="28" rx="3.75" fill="#6B7F53"/>
-  <rect x="20.5" y="56" width="8.5" height="7.5" rx="3.5" fill="#6B7F53"/>
-  <!-- trousers and shoes -->
-  <path d="M31,64 L48.5,64 L47.5,93 L30,93 Z" fill="#6E6353"/>
-  <path d="M51.5,64 L69,64 L70,93 L52.5,93 Z" fill="#6E6353"/>
-  <rect x="27" y="92" width="20.5" height="7" rx="2" fill="#2A2521"/>
-  <rect x="52.5" y="92" width="20.5" height="7" rx="2" fill="#2A2521"/>
-  <!-- cardigan -->
-  <path d="M30,36 Q30,27.5 38,27.5 L62,27.5 Q70,27.5 70,36 L69,66 L31,66 Z" fill="#6B7F53"/>
-  <!-- lanyard and its badge -->
-  <path d="M38,27.5 L42.5,42 L44.5,42 L40.5,27.5 Z" fill="#2A2521"/>
-  <path d="M50,27.5 L44.5,42 L42.5,42 L47.5,27.5 Z" fill="#2A2521"/>
-  <rect x="39" y="41" width="9" height="9.5" rx="1.5" fill="#2A2521"/>
-  <rect x="40.5" y="42.5" width="6" height="6.5" rx="1" fill="#6E6353"/>
-  <!-- cardigan buttons -->
-  <rect x="42.4" y="54" width="3.2" height="3.2" rx="0.5" fill="#2A2521"/>
-  <rect x="42.4" y="59.8" width="3.2" height="3.2" rx="0.5" fill="#2A2521"/>
-  <!-- the clipboard: square corners, a clip, three ruled lines and no text -->
-  <rect x="51" y="30" width="30" height="39" fill="#D2C6AC"/>
-  <rect x="60" y="27" width="12" height="6" rx="1" fill="#2A2521"/>
-  <rect x="55" y="39" width="20" height="2" fill="#6E6353"/>
-  <rect x="55" y="45" width="22" height="2" fill="#6E6353"/>
-  <rect x="55" y="51" width="15.6" height="2" fill="#6E6353"/>
-  <!-- the hand holding it up from underneath -->
-  <rect x="65" y="63" width="10" height="7.5" rx="3.5" fill="#6B7F53"/>
-  <!-- head, bowed toward the clipboard; the face is low and to the right -->
-  <g transform="rotate(10 50 13.5)">
-    <rect x="38.5" y="2" width="23" height="23" rx="10" fill="#6B7F53"/>
-    <path d="M48,13.6 H52.6 Q52.4,16.9 50.3,16.9 Q48.2,16.9 48,13.6 Z" fill="#2A2521"/>
-    <path d="M54.4,13.6 H59 Q58.8,16.9 56.7,16.9 Q54.6,16.9 54.4,13.6 Z" fill="#2A2521"/>
-    <rect x="51.8" y="19.4" width="4.8" height="1.7" fill="#2A2521"/>
-  </g>
+  <!-- the free arm, hanging: a cardigan sleeve and a mitten -->
+  <rect x="14.5" y="52" width="9" height="21" rx="4.5" transform="rotate(12 19 62.5)" fill="#6E6353"/>
+  <ellipse cx="15.6" cy="73.2" rx="4.8" ry="4.6" fill="#6B7F53"/>
+  <!-- stubby legs and shoes -->
+  <rect x="27" y="82" width="10" height="11" rx="4" fill="#2A2521"/>
+  <rect x="42" y="82" width="10" height="11" rx="4" fill="#2A2521"/>
+  <ellipse cx="31" cy="94" rx="7.5" ry="4.5" fill="#2A2521"/>
+  <ellipse cx="48" cy="94" rx="7.5" ry="4.5" fill="#2A2521"/>
+  <!-- cardigan: a small round body -->
+  <path d="M25,59 Q25,51 34,51 L52,51 Q61,51 61,59 L62,79 Q62,86 55,86 L31,86 Q24,86 24,79 Z" fill="#6E6353"/>
+  <!-- the cardigan's one glint -->
+  <ellipse cx="29.6" cy="57" rx="1.9" ry="1.4" transform="rotate(-40 29.6 57)" fill="#D2C6AC"/>
+  <!-- lanyard and its badge: dark, small, round-cornered -->
+  <path d="M31,51 Q31.8,59 38.4,63.2 L40.2,62.6 Q34.4,58.4 33.4,51 Z" fill="#2A2521"/>
+  <path d="M47.5,51 Q46.7,59 40.2,63.2 L38.4,62.6 Q44.2,58.4 45.1,51 Z" fill="#2A2521"/>
+  <rect x="34" y="62" width="10.5" height="10" rx="2.6" fill="#2A2521"/>
+  <rect x="35.8" y="63.8" width="6.9" height="6.4" rx="1.6" fill="#6B7F53"/>
+  <!-- the clipboard: rounded corners, straight sides, a clip, three ruled lines -->
+  <rect x="50" y="47.5" width="34" height="38.5" rx="4.3" fill="#D2C6AC"/>
+  <rect x="61" y="44" width="12" height="7" rx="2.4" fill="#2A2521"/>
+  <rect x="55" y="57" width="22" height="2.8" rx="1.4" fill="#6E6353"/>
+  <rect x="55" y="64" width="24" height="2.8" rx="1.4" fill="#6E6353"/>
+  <rect x="55" y="71" width="16" height="2.8" rx="1.4" fill="#6E6353"/>
+  <!-- the mitten holding it by its left edge, rimmed where it meets the cardigan -->
+  <ellipse cx="51" cy="74" rx="6.6" ry="6.6" fill="#2A2521"/>
+  <ellipse cx="51" cy="74" rx="4.6" ry="4.8" fill="#6B7F53"/>
+  <!-- head: a big rounded lump, wider than tall (the circle is the dodgeball's) -->
+  <ellipse cx="40" cy="26" rx="26" ry="23" fill="#6B7F53"/>
+  <!-- the head's one glint -->
+  <ellipse cx="24.5" cy="12.5" rx="2.7" ry="1.8" transform="rotate(-40 24.5 12.5)" fill="#D2C6AC"/>
+  <!-- face, low and to the right, cast down at the clipboard -->
+  <ellipse cx="37.5" cy="30.5" rx="5.2" ry="6.2" fill="#2A2521"/>
+  <ellipse cx="51.5" cy="30.5" rx="5.2" ry="6.2" fill="#2A2521"/>
+  <circle cx="35.6" cy="27.9" r="2" fill="#D2C6AC"/>
+  <circle cx="49.6" cy="27.9" r="2" fill="#D2C6AC"/>
+  <ellipse cx="29.5" cy="39.5" rx="4.2" ry="2.6" fill="#EBA39C"/>
+  <ellipse cx="56.6" cy="39.5" rx="4.2" ry="2.6" fill="#EBA39C"/>
+  <path d="M40.6,38.8 Q44.5,45.6 48.4,38.8 Q44.5,41.8 40.6,38.8 Z" fill="#2A2521"/>
 </svg>

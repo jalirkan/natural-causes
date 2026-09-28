@@ -309,6 +309,7 @@ describe('the life is five acts long now', () => {
       age: 34,
       causeId: 'natural-causes',
       cause: 'natural causes',
+      rules: [],
     });
   });
 });

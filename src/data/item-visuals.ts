@@ -12,8 +12,9 @@ import type { ItemIcon } from './items';
  * Reflex, a sneaker for Restlessness, an umbrella for Thick Skin, an alarm
  * clock for the late bloomer — quantised to the locked palette and mechanically
  * checked against the ink card surface they actually sit on. Every icon that
- * also rides the field (a shot, an orbiter, a stamp) is authored SVG in rose,
- * bone and ink, and a law-10 test holds it to that (laws.test.ts).
+ * also rides the field (a shot, an orbiter, a stamp) is authored SVG that
+ * wears no threat colour, no paper and no light tone, and a law-10 test holds
+ * it to that (laws.test.ts).
  *
  * Grudge, Gossip, Appetite, Growth Spurt and Snooze are drawn rather than
  * generated (G-038, `tools/art/svg/conception/icon-{orbit,chain,magnet,grow,slow}.svg`)
@@ -24,6 +25,13 @@ import type { ItemIcon } from './items';
  * pickup reach), so its plate is `icon-magnet.png`; Charisma's horseshoe
  * magnet is `pull`; Snooze's clock is `slow`, and Capacitation's twin-bell
  * clock is `clock`.
+ *
+ * G-054 made the weapons the kid's things, drawn in G-053's greeting-card
+ * register, under the same tags: a chubby pointing hand (`strike`), a wet
+ * spitball of notebook paper (`pierce`), a splat of spilt milk with its
+ * tipped sippy cup (`burst`), a toy brick (`trail`), a smiling mobile star on
+ * its ribbon (`orbit`), and new, Cry's worried teardrop (`cry`). All ride
+ * the field, so none wears paper: their glints are bone.
  *
  * G-044's three are drawn too (`icon-{aura,sweep,bolt}.svg`): a velvet rope
  * barrier for Personal Space, an open hand mid-swing for Backhand, a gavel

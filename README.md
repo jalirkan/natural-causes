@@ -35,10 +35,12 @@ either notices or just has a good time.
 
 ## Tone
 
-Bleak in substance, completely unserious in delivery. Adult Swim register —
-thick outlines, flat colour, lumpy proportions, deadpan faces on absurd things.
-The comfort is structural rather than stated: everyone reading has fought these
-exact enemies. That is funny before it is sad, and the game does not explain it.
+Bleak in substance, completely unserious in delivery. Drawn like a greeting
+card (G-053): round, rosy, glossy-eyed, wholesome — the register of the ad that
+sold you the life — and the paperwork between acts stays a form. The player is
+a kid for the whole life; only the costume grows. The comfort is structural
+rather than stated: everyone reading has fought these exact enemies. That is
+funny before it is sad, and the game does not explain it.
 
 ## Built by agents, on purpose
 
@@ -123,17 +125,28 @@ arrow keys to move. You fire automatically — there is no attack button.
 **1, 2 or 3** takes an upgrade when the game stops to offer three. **P** or
 **Esc** pauses. **M** mutes. **R** restarts once the run is over.
 
-Every card carries the joke and, under it, the number (G-043): "attack
-speed +8%", "+1 orbiting", "damage taken −15%", derived from the data and
-never typed by hand. Once a weapon is at its second level its **paths**
-join the pool as their own cards — Grudge · Company (another fist), Grudge ·
-Spiralling (faster round), Grudge · Weight (harder); every weapon has two or
-three — levelled apart from the weapon and stacking with it. Three classic
-builds are in the pool from the first minute (G-044): **Personal Space** (the
-aura — a ring that hurts whatever stands in it), **Backhand** (the arc in
-front of you; at conception, a tail-flick) and **Judgement** (a bolt that
-comes down on someone in range after a moment's warning). Every one of those
+Every weapon is a thing a kid has (G-054), and the card's picture is what
+flies: **Pointing** (the homing shot you start with), **Spitball** (forward,
+harder), **Spilt Milk** (everywhere at once, and it leaves a puddle that
+slows), **Legos** (everything behind you regrets it), **Mobile** (it keeps
+going round), **Telephone** (tells one, then everyone it knows), **Candy**
+(everything finds it), **Cooties** (the aura — circle, circle, dot, dot),
+**Rattle** (the swing in front of you), **Tattle** (something comes down on
+one of them) and **Cry** (everything stops and looks; the panic button). What
+a weapon becomes is the adult word for it: Spilt Milk grows into a Tantrum,
+Legos into Baggage, the Mobile into a Grudge, the Rattle into a Backhand, a
+Tattle into Judgement. Every card carries the joke and, under it, the number
+(G-043): "attack speed +8%", "+1 orbiting", "damage taken −15%", derived from
+the data and never typed by hand. Once a weapon is at its second level its
+**paths** join the pool as their own cards — every weapon has two or three —
+levelled apart from the weapon and stacking with it. Every one of those
 numbers is a labelled placeholder.
+
+At the title, two other lives (G-055), chosen with the arrow keys or a tap:
+**Couch Potato** — you never move, everything comes to you — and **One
+Trick** — you start with nothing, choose one weapon from three, and never get
+another. They are the game, not a cheat: the certificate says which life it
+was, and it counts among your ancestors.
 On a phone: tap to start, drag anywhere to move, tap a card to choose, the
 corner button pauses, and a tap restarts once the run is over.
 
@@ -195,7 +208,7 @@ with your name misspelled, a yearbook page, a diploma, a performance review,
 a mortgage statement. Dying earlier, the certificate names what did it. Press P at any point for the build sheet: what you hold, its
 paths, and the totals.
 
-#### After you play — twenty things to say
+#### After you play — twenty-four things to say
 
 These replace the six calibration questions in `CONCEPTION-ROSTER.md` §12.4.
 Nothing here asks for a number; every one is about the run you just had.
@@ -214,18 +227,18 @@ Nothing here asks for a number; every one is about the run you just had.
 8. **Adolescence: did being followed feel like being looked at, or like the
    rival sperm again?** Three of its five enemies follow you. That is the
    act's whole bet, and only a person can say whether it landed.
-9. **Did a path feel like a choice?** When Grudge · Company sat beside
-   Grudge · Spiralling, did you know which you wanted, and did the number
-   under the joke help or get in the way?
-10. **Personal Space, Backhand, Judgement: did any of them feel like the
-    build you already know?** Say which, and whether it wanted anything the
-    pool did not offer.
+9. **Did a path feel like a choice?** When two paths of one weapon sat side
+   by side, did you know which you wanted, and did the number under the
+   joke help or get in the way?
+10. **Cooties, Rattle, Tattle: did any of them feel like the build you
+    already know** (the aura, the melee, the caster)? Say which, and whether
+    it wanted anything the pool did not offer.
 11. **College: did you notice you were paying, and when?** The invoices cost
     XP, not health, and The Loan's bar fills instead of emptying. Did either
     land as a pressure, or was it a number you never read?
 12. **Did an evolution arrive, and did it feel like the weapon finished or
-    like the weapon replaced?** Six exist now (Tantrum, Vendetta, Jumpiness,
-    Reach, Hindsight, Rut); the bots reach them rarely.
+    like the weapon replaced?** Six exist now (Tantrum, Grudge, Jumpiness,
+    Backhand, Judgement, Baggage); the bots reach them rarely.
 13. **The Office: did you feel counted, or was it just slower?** Every ping
     you wear slows every weapon; a rating knocks your level bar back. Say
     whether either landed as a pressure or as a number you never read.
@@ -249,6 +262,16 @@ Nothing here asks for a number; every one is about the run you just had.
     name the one you took and whether its card told you what it would do.
 20. **The doorbell in Family rings about once a second.** Charming, or
     grating? Say which, and whether any other sound wore on you.
+21. **The look: is the kid cute?** And the bills, the knees, the Egg — did
+    drawing them like a greeting card make the joke land harder, or soften
+    it? Name one thing that still looks like the old game.
+22. **Did the weapons make sense as things?** Spilt milk, a rattle, a
+    tattle: could you tell from the picture on a card what it would do, and
+    did you recognise it the first time it fired?
+23. **Cry: did you use it as a panic button, and did it feel like one?**
+    Or did it go off on its own at the wrong moment?
+24. **Couch Potato or One Trick: did you try one?** Did it feel like a
+    different game, or the same game made worse? Which would you play again?
 
 §12.4's sixth question — how long you hold a heading — is not asked, because
 the game answers it itself now: an input log records every heading you hold

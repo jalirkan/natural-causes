@@ -39,19 +39,19 @@ function fixture(size = 64, blobColour: [number, number, number] = [240, 240, 22
 }
 
 describe('palette', () => {
-  it('law 3 (D-028): no act puts more than eleven colours on screen', () => {
+  it('law 3 (D-028, D-031): no act puts more than twelve colours on screen', () => {
     // The constraint law 3 is about is what one screen shows: ink, shadow,
     // paper, bone, the act's three tones and the four threat colours.
     for (const act of ACT_IDS) {
-      expect(actPalette(act).length, `act "${act}"`).toBeLessThanOrEqual(11);
+      expect(actPalette(act).length, `act "${act}"`).toBeLessThanOrEqual(12);
     }
   });
 
-  it('D-028: the catalogue across acts is 16–32 colours', () => {
+  it('D-028, D-031: the catalogue across acts is 16–36 colours', () => {
     // Seven acts' tones and the eight shared colours come to 29. The bound
     // moved from 20 in a decision record, not in this file.
     expect(FULL_PALETTE.length).toBeGreaterThanOrEqual(16);
-    expect(FULL_PALETTE.length).toBeLessThanOrEqual(32);
+    expect(FULL_PALETTE.length).toBeLessThanOrEqual(36);
   });
 
   it('has no duplicate names or hexes', () => {

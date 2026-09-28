@@ -77,6 +77,7 @@ describe('a life of one act is the game as it was', () => {
       age: 0,
       causeId: 'natural-causes',
       cause: 'natural causes',
+      rules: [],
     });
   });
 

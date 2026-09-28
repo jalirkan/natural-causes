@@ -1,9 +1,30 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
   <title>Rival sperm</title>
-  <desc>A comet: an oval head with a long tail, looking past you at somewhere it is going.</desc>
-  <path d="M40 58 C28 64 32 74 22 80 C14 85 8 84 2 90 C12 91 20 90 28 84 C38 76 36 68 48 62 Z" fill="#6E6353"/>
-  <ellipse cx="60" cy="42" rx="24" ry="22" fill="#A86A63"/>
-  <ellipse cx="63" cy="36" rx="2.8" ry="4.6" fill="#2A2521"/>
-  <ellipse cx="72" cy="36" rx="2.8" ry="4.6" fill="#2A2521"/>
-  <rect x="63" y="46" width="8" height="2.6" rx="1.2" fill="#2A2521"/>
+  <desc>A comet: a round rose head and one wavy tail tapering behind it, big eyes fixed ahead, pink cheeks and a small pleased smile. It is racing you, and it is enjoying it.</desc>
+  <!--
+    Rival sperm (G-040), in the greeting-card register (G-053). The comet
+    (law 11): a smooth round head and one trailing tail, which no other
+    enemy has. Kid proportions: the head is most of it; the tail leaves
+    from the back of it in one wave, tapering to a round tip. It faces
+    right, the way the renderer flips it toward what it chases; its eyes
+    sit at the front of the head and look ahead along its line, not at
+    you. It is the player's sibling without the cowlick, in the rivals'
+    rose.
+    One mass, one bone glint at its upper left; big ink eyes with a bone
+    glint each (paper is the player's, law 10); blush; a small pleased
+    smile. No threat colour: the act's contact red is the spermicide's
+    (reservations.ts), so the rival is rose, ink, bone and blush.
+    Colours are palette hex values: conception-mid #A86A63, bone #D2C6AC,
+    blush #EBA39C, ink #2A2521. CONFORM adds the outline; there is none here.
+  -->
+  <!-- the comet: head and tail as one mass, the armpits between them round -->
+  <path d="M57 18.2 L54.5 18.63 L52.5 19.11 L49.5 20.1 L45.95 21.75 L42.25 24.12 L41.58 24.75 L40.87 25.25 L37.87 28.25 L37.5 28.83 L36.87 29.5 L35.87 31 L35 32.45 L34.1 34.25 L33.1 36.75 L32.45 39.25 L32.22 39.75 L31.75 40.37 L30.7 41.25 L30 41.6 L28 42.35 L26.2 43.25 L24.75 44.12 L21 46.87 L20.25 47.61 L19.5 48.12 L18.83 48.75 L15.75 50.97 L13.75 51.95 L12.5 52.28 L11.75 52.38 L10 52.38 L9.5 52.33 L8 51.95 L7 51.6 L5.5 50.85 L4.75 50.63 L3.25 50.63 L2.5 50.85 L2 51.12 L0.97 52.25 L0.63 53.25 L0.63 54.75 L0.85 55.5 L1.12 56 L2 56.88 L4.2 58.25 L6 59.15 L6.75 59.4 L7.75 59.89 L10.75 60.63 L15.5 60.63 L18.5 59.9 L22 58.53 L27.25 55.78 L28.25 55.15 L29 54.9 L30.25 54.3 L31.75 53.89 L32.5 53.89 L33.1 54 L33.75 54.28 L34.25 54.64 L34.81 55.25 L36.72 58.25 L38 59.88 L41 62.88 L41.58 63.25 L42.25 63.88 L45.95 66.25 L49.5 67.9 L52.5 68.89 L54.5 69.38 L55.75 69.63 L56.5 69.67 L57.25 69.88 L64.75 69.88 L65.5 69.67 L66.25 69.63 L67.5 69.38 L69.5 68.89 L72.5 67.9 L76 66.28 L77.5 65.38 L79.75 63.88 L80.42 63.25 L81 62.88 L84 59.88 L84.5 59.17 L85.13 58.5 L87.03 55.5 L88.65 52 L89.14 50.5 L89.63 48.5 L89.67 47.75 L89.88 47 L89.88 41 L89.67 40.25 L89.63 39.5 L89.14 37.5 L88.65 36 L88.15 35 L87.9 34.25 L87 32.45 L86.13 31 L85.13 29.5 L84.5 28.83 L84.13 28.25 L81.13 25.25 L80.42 24.75 L79.75 24.12 L76.05 21.75 L72.5 20.1 L69.5 19.11 L67.5 18.63 L66.25 18.38 L65.5 18.33 L64.75 18.13 L57.25 18.13 Z" fill="#A86A63"/>
+  <ellipse cx="46" cy="30.5" rx="3" ry="2" transform="rotate(-35 46 30.5)" fill="#D2C6AC"/>
+  <ellipse cx="63" cy="41" rx="5" ry="6.6" fill="#2A2521"/>
+  <circle cx="61.3" cy="38.5" r="1.8" fill="#D2C6AC"/>
+  <ellipse cx="78.5" cy="41" rx="5" ry="6.6" fill="#2A2521"/>
+  <circle cx="76.8" cy="38.5" r="1.8" fill="#D2C6AC"/>
+  <ellipse cx="59" cy="51" rx="4" ry="2.4" fill="#EBA39C"/>
+  <ellipse cx="82.5" cy="51" rx="4" ry="2.4" fill="#EBA39C"/>
+  <path d="M67.15 50.6 Q70.75 56.2 74.35 50.6 Q70.75 52.4 67.15 50.6 Z" fill="#2A2521"/>
 </svg>

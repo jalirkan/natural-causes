@@ -1,32 +1,52 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
-  <title>Charisma icon</title>
-  <desc>A classroom horseshoe magnet seen flat, the bend at the top and its two pale pole tips pointing down.</desc>
+  <title>Candy icon</title>
+  <desc>One wrapped sweet seen flat: a plump round middle with a pleased face, twisted tight at each side into a crimped fan of wrapper.</desc>
   <!--
-    Charisma (items.ts chemotaxis, icon "pull"). A card icon, and also what
-    is planted on the field where the crowd is pulled (ActScene syncAreas,
-    40px under a contracting ring), so it keeps off the field's reserved
-    colours: no threat colour, no paper, no conception-light. The generated
-    one it replaces was brick red, which quantised to contact red and made
-    the player's own pull read as a threat (law 10).
-    The arms run well below the bend and the opening stays wide, so the U
-    never closes into a ring: the ring is the spermicide's (law 11).
-    CONFORM adds the outer outline; interior lines are drawn here.
-    Colours: conception-mid #A86A63, bone #D2C6AC, ink #2A2521.
+    Candy (G-054; items.ts id chemotaxis, mode attractor, icon "pull"). A card
+    icon, and also what is planted at the centre of the pull on the field
+    (ActScene syncAreas, 40px, never turned), where everything is asked to
+    come over. It keeps off the field's reserved colours: no threat colour,
+    no paper, no act's light tone, so the one glint on the middle is bone,
+    the lightest colour a rider may wear.
+    Greeting-card register (ART-DIRECTION 2026-09-28): the middle is the
+    mass, round, with big ink eyes, one glint each, blush cheeks and a small
+    smile, and one shadow tone low on its far side; the fans are blush with
+    rose pleats, and the twists are the deep tone.
+    CONFORM adds the one outline; there are no strokes here.
+    Colours: conception-mid #A86A63, conception-deep #6B3A44, blush #EBA39C,
+    bone #D2C6AC, ink #2A2521.
   -->
   <g shape-rendering="crispEdges">
-    <!-- the horseshoe: a semicircular bend over two straight arms -->
-    <path fill="#A86A63" d="M 10 44 A 40 40 0 0 1 90 44 L 90 94 L 68 94 L 68 44 A 18 18 0 0 0 32 44 L 32 94 L 10 94 Z"/>
-
-    <!-- the pole tips: pale, square, the full width of each arm -->
-    <g fill="#D2C6AC">
-      <rect x="10" y="77" width="22" height="17"/>
-      <rect x="68" y="77" width="22" height="17"/>
+    <!-- the two crimped fans of wrapper -->
+    <g fill="#EBA39C">
+      <path d="M 28 46 C 22 42, 14 36, 9 33 C 3 34, 3 42, 6 44.5 C 2 48, 2 52, 6 55.5 C 3 58, 3 66, 9 67 C 14 64, 22 58, 28 54 Z"/>
+      <path d="M 72 46 C 78 42, 86 36, 91 33 C 97 34, 97 42, 94 44.5 C 98 48, 98 52, 94 55.5 C 97 58, 97 66, 91 67 C 86 64, 78 58, 72 54 Z"/>
     </g>
-
-    <!-- the ink line where each tip meets its arm -->
-    <g fill="#2A2521">
-      <rect x="10" y="74" width="22" height="3.5"/>
-      <rect x="68" y="74" width="22" height="3.5"/>
+    <!-- the pleats in them -->
+    <g fill="#A86A63">
+      <path d="M 27 48.6 L 8.5 39.2 L 9.5 42.4 Z"/>
+      <path d="M 27 51.4 L 8.5 60.8 L 9.5 57.6 Z"/>
+      <path d="M 73 48.6 L 91.5 39.2 L 90.5 42.4 Z"/>
+      <path d="M 73 51.4 L 91.5 60.8 L 90.5 57.6 Z"/>
     </g>
+    <!-- the twists -->
+    <g fill="#6B3A44">
+      <ellipse cx="28" cy="50" rx="4" ry="6.5"/>
+      <ellipse cx="72" cy="50" rx="4" ry="6.5"/>
+    </g>
+    <!-- the sweet itself -->
+    <ellipse cx="50" cy="50" rx="24" ry="21" fill="#A86A63"/>
+    <!-- one shadow tone, low on the far side -->
+    <path fill="#6B3A44" d="M 72.55 42.82 A 24 21 0 0 1 41.8 69.73 A 31 27 0 0 0 72.55 42.82 Z"/>
+    <!-- its one glint -->
+    <ellipse cx="34.5" cy="38" rx="2.4" ry="1.6" transform="rotate(-40 34.5 38)" fill="#D2C6AC"/>
+    <!-- the face: eyes with one glint each, blush cheeks, a small smile -->
+    <ellipse cx="42" cy="47.5" rx="4.2" ry="5.2" fill="#2A2521"/>
+    <ellipse cx="58" cy="47.5" rx="4.2" ry="5.2" fill="#2A2521"/>
+    <circle cx="40.7" cy="45.4" r="1.5" fill="#D2C6AC"/>
+    <circle cx="56.7" cy="45.4" r="1.5" fill="#D2C6AC"/>
+    <ellipse cx="36.5" cy="55.5" rx="3.8" ry="2.4" fill="#EBA39C"/>
+    <ellipse cx="63.5" cy="55.5" rx="3.8" ry="2.4" fill="#EBA39C"/>
+    <path fill="#2A2521" d="M 45.5 55 Q 50 62.5 54.5 55 Q 50 59 45.5 55 Z"/>
   </g>
 </svg>

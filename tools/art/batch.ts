@@ -199,17 +199,17 @@ export const TEST_BATCH: AssetSpec[] = [
     name: 'The player — sperm form',
     act: 'conception',
     role: 'player',
-    tests: 'can the style do a protagonist at all',
+    tests: "G-003 and G-053 before birth: the kid's head, markup for markup, on a comma of a body, at the same size as at fifty-five",
     targetSize: 112,
     seed: 1001,
+    // G-053: the greeting-card kid before it has a body. The head is
+    // player-school's, copied verbatim; the body is a plump comma of a tail.
     subject: [
-      'a single cartoon sperm cell character seen from the side',
-      'a large lopsided off-white oval head taking up most of the body',
-      'two big flat eyes at visibly different heights, the left eye slightly larger',
-      'a short flat line for a mouth',
-      'thick eyebrows furrowed with effort, the face of something doing its best with no information',
-      'one asymmetric tuft of hair sticking up above the left eye',
-      'a single thin tapering tail trailing behind',
+      'the player before birth, a greeting-card character: the same head as every act on a plump comma of a tail that curls away behind it, tapering to a round tip',
+      'a big round head three fifths of the height with two big dark eyes, each with one small light glint at its upper left, a rosy oval (#EBA39C) on each cheek and a small content smile',
+      'the same single asymmetric cowlick sticking up above the left eye, one tuft and no other hair',
+      'paper coloured (#EFE7D6) head and tail, warm near-black (#2A2521) eyes, mouth, cowlick and chin line',
+      'every mass rounded, flat fills, no gradients, no threat colour anywhere',
       'no clothing, no accessories, no helmet, no gear, it owns nothing',
     ].join(', '),
   },
@@ -219,17 +219,21 @@ export const TEST_BATCH: AssetSpec[] = [
     name: 'Rival sperm',
     act: 'conception',
     role: 'swarm',
-    tests: 'does it read at 48px in a crowd',
+    tests: 'the comet in the greeting-card register: does a round face with a tail read at 48px in a crowd',
     targetSize: 96,
     seed: 2002,
     whyThisStage:
       'Conception is the only competition the player has already won, so the game opens by making it feel like a commute.',
+    // G-053: redrawn in the greeting-card register. The comet is law 11's;
+    // the face is the register's; the rose is the rivals' (no threat colour:
+    // contact red is the spermicide's). G-040: it is racing you.
     subject: [
-      'a single cartoon sperm cell seen from the side',
-      'a smooth blunt domed head with no hair and no tuft',
-      'half-lidded eyes almost closed, a flat horizontal line for a mouth, no eyebrows',
-      'a blank disinterested expression, completely uninterested, looking straight ahead in its direction of travel and not at the viewer',
-      'a single thin curled tail',
+      'a single cartoon sperm cell seen from the side, facing right, in the greeting-card register',
+      'a big smooth round head, most of the figure, with no hair and no tuft',
+      'one wavy tail leaving the back of the head and tapering to a round tip, rounded where it meets the head',
+      'two big dark eyes at the front of the head looking ahead along its line, one small light glint in each',
+      'pink cheeks under the eyes and a small pleased smile: it is racing you and enjoying it',
+      'one small light glint on the head at its upper left',
       'flat muted dusty rose colouring, mid-tone, never pale and never white',
     ].join(', '),
   },
@@ -239,19 +243,24 @@ export const TEST_BATCH: AssetSpec[] = [
     name: 'The Egg',
     act: 'conception',
     role: 'boss',
-    tests: 'does scale hold up; is a boss impressive',
+    tests: 'does scale hold up; is a boss impressive; does a cute face still read as already decided',
     targetSize: 384,
     seed: 3003,
     whyThisStage:
       'It is the only boss in the game that is beaten by being taken in rather than brought down.',
+    // G-053: redrawn in the greeting-card register. The fingers have
+    // background between them so the corona is never a scalloped edge (the
+    // blot is the white cell's, law 11); the four outermost sit clear of the
+    // gap its variants open (AUDIT 131), so all three frames share bounds.
     subject: [
-      'an enormous smooth round egg cell filling the frame, flat muted deep teal',
-      'a thick irregular fringe of blunt stubby finger-like protrusions all the way around it like a lumpy crown or a bad haircut',
-      'no two protrusions the same length',
-      'one small calm face placed off-centre and low on the huge smooth mass',
-      'half-lidded eyes and a small closed-mouth knowing smile',
+      'an enormous smooth round cream egg filling the frame, in the greeting-card register',
+      'a corona of fourteen blunt stubby teal fingers growing out from under its edge like a sun drawn by a child or a bad haircut, background showing between them',
+      'no two fingers the same length and none quite straight, each rounded where it leaves the egg',
+      'one small light glint on the upper-left finger',
+      'one small face placed off-centre, low and to the right on the huge smooth mass',
+      'big half-lidded dark eyes with one small light glint each, pink cheeks, a small closed-mouth knowing smile',
       'serene and faintly amused, not angry, it has already decided',
-      'one flat darker tone across the lower third as the only shadow',
+      'one flat rose crescent low and to the right as the only shadow',
     ].join(', '),
   },
   {
@@ -260,7 +269,7 @@ export const TEST_BATCH: AssetSpec[] = [
     act: 'school',
     role: 'swarm',
     source: 'svg',
-    tests: 'faces, humour, human characters — THE REAL TEST',
+    tests: 'the bright hard rectangle in the greeting-card register: a clipboard with rounded corners and straight sides, carried by a cute figure that is still the role',
     targetSize: 96,
     seed: 4004,
     whyThisStage:
@@ -276,21 +285,26 @@ export const TEST_BATCH: AssetSpec[] = [
     // by it is funnier and colder than one who is sorry about it.
     //
     // Drawn 2026-09-27 (G-038), the last generated sprite to go. The subject
-    // is now the drawing's description: the idle pose from §3.5 — stopped,
+    // is the drawing's description: the idle pose from §3.5 — stopped,
     // consulting the clipboard — with the clipboard in bone (§6.2) and no gold
     // on the body (§6.1, G-031).
+    //
+    // Redrawn 2026-09-28 in the greeting-card register (G-053): kid
+    // proportions, the face, blush and bone glints. The clipboard keeps its
+    // straight sides with rounded corners (the register's first rule names it), and
+    // it is still the role: pleased with the clipboard, not with you.
     subject: [
-      'a substitute schoolteacher drawn as a plain mid-century institutional pictogram, standing and facing forward',
-      'an ordinary adult figure of average unremarkable build, a simplified geometric body, plain and generic, more diagram than portrait',
-      'a flat muted sage green cardigan (#6B7F53, the act mid tone) with two small dark buttons, the head a rounded lump in the same green, no hair',
-      'warm grey-brown trousers (#6E6353) and warm near-black shoes (#2A2521)',
-      'a plain dark lanyard loop around the neck with a small dark round-cornered badge hanging from it',
-      'holding a large clipboard up in front of the chest in one hand and off to one side, so its square corners make that edge of the outline',
-      'the clipboard is the brightest and hardest-edged shape in the picture, a flat muted tan (#D2C6AC) and never white',
-      'a dark clip on its top edge and three short ruled lines on the sheet, no text',
+      'a substitute schoolteacher drawn in the greeting-card register, standing and reading a clipboard',
+      'kid proportions, as every sprite in the register has them: a big round head, a small round body, stubby legs, mitten hands, plain and generic, the role and not a portrait',
+      'the head a rounded lump in flat muted sage green (#6B7F53, the act mid tone), wider than tall, no hair, the mitten hands in the same green',
+      'a warm grey-brown cardigan (#6E6353) and warm near-black stubby legs and shoes (#2A2521)',
+      'a dark lanyard on a soft curved cord with a small dark round-cornered badge hanging from it',
+      'holding a big clipboard out in front and to one side, so its straight right side and straight bottom make that part of the outline, its corners rounded and its sides straight',
+      'the clipboard is the brightest shape in the picture, a flat muted tan (#D2C6AC) and never white, with a dark clip on its top edge and three short rounded ruled lines, no text',
       'the other arm hanging at the side',
-      'the head tipped toward the clipboard, reading it: two half-lidded eyes and one short straight line for a mouth, set low and to one side, no eyebrows',
-      'no expression whatsoever, completely indifferent, unbothered, looking down at the clipboard and not at the viewer',
+      'the face set low and to one side and cast down at the clipboard: two big dark eyes with one small tan glint each, a soft pink blush (#EBA39C) under each eye, a small pleased smile',
+      'one small tan glint on the head and one on the cardigan, upper left, never white',
+      'pleased with the clipboard and unbothered, indifferent to the viewer and not looking at them',
       'institutional and anonymous, not sad, not nervous, not sympathetic',
       'no yellow, no gold, no olive green anywhere on the figure',
     ].join(', '),
@@ -375,26 +389,24 @@ export const CONCEPTION_ROSTER: AssetSpec[] = [
     name: 'White cell',
     act: 'conception',
     role: 'swarm',
-    tests: 'the blot silhouette, and a stamp face that must survive 48px',
+    tests: 'the blot in the greeting-card register: a purple puff that stays purple under the contrast floor, with a face that survives 48px',
     targetSize: 96,
     seed: 7007,
     whyThisStage:
       'Before the player is anyone at all, there is already a process whose only job is to stop things that look like them.',
+    // G-053: redrawn in the greeting-card register. Elite purple sits under
+    // CHECK's contrast floor against conception-deep, so the purple body
+    // wears a rose skin, as the blot always has.
     subject: [
       // Deliberately not "white blood cell": the word "white" is in the name
       // and the generator obliges, which failed enemy-value-ceiling at 0.9297
       // four attempts running. Same species as the antibody's "fork".
-      'a single large round leukocyte cell seen from directly above, filling most of the frame',
-      'a round lobed mass with a scalloped irregular edge, the lobes uneven in count and depth so it never resolves into a flower',
+      'a single large round leukocyte cell seen from directly above, filling most of the frame, in the greeting-card register',
+      'a soft round mass of eight lobes with a scalloped irregular edge, the lobes uneven in size and spacing so it never resolves into a flower, every notch rounded',
       'no tail, no limbs, no spikes, no protrusions',
-      'flat muted purple, one darker shadow tone at most, no interior texture whatsoever',
-      // Deliberately does not say "rubber stamp": the shared style suffix
-      // carries "no stamp, no seal, no chop mark" to suppress the fake
-      // signature marks the register keeps drawing in corners, and the two
-      // would fight inside one prompt. The shape is what matters, not the word.
-      'one small flat muted-tan oval disc set off-centre on the mass, lying flat on its surface',
-      'that disc carries two small dark dots for eyes and one short horizontal line for a mouth and nothing else',
-      'the eyes aimed a few degrees off to one side, looking past the viewer rather than at them',
+      'a flat muted purple body inside an uneven rose skin, thickest at the upper left, where one small light glint sits',
+      'a round face on the purple, high and to the right of the middle: two big dark eyes with one small light glint each, pink cheeks, a small contented smile',
+      'the eyes gazing past the viewer rather than at them: it is not coming for you, it is going where it was going',
     ].join(', '),
   },
   {
@@ -403,15 +415,17 @@ export const CONCEPTION_ROSTER: AssetSpec[] = [
     name: 'Spermicide',
     act: 'conception',
     role: 'swarm',
-    tests: 'a droplet that reads as asleep, with no interior detail at all',
+    tests: 'a droplet that reads as asleep in the greeting-card register, and as red',
     targetSize: 72,
     seed: 8008,
     whyThisStage:
       'Conception is the first stage where the environment was made lethal in advance by someone who will never be told whether it worked.',
+    // G-053: redrawn in the greeting-card register, which gives it the one
+    // glint and a mouth (law 5); cute is not safe, so it stays contact red.
     subject: [
-      'a single rounded teardrop-shaped droplet of liquid with a flat top and a smooth blunt bottom',
-      'flat muted red, one solid colour, absolutely no interior detail, no highlight, no shine, no bubbles',
-      'a small simple face low on the droplet: two downward-curving closed sleeping eye arcs and no mouth at all',
+      'a single plump teardrop-shaped droplet of liquid, most of it a round bottom, its point cut to a small flat top with rounded corners, in the greeting-card register',
+      'flat muted red, one solid colour, one small light glint at its upper left and no other highlight, no bubbles',
+      'a face low on the droplet: two closed sleeping eyes, lash lines bowed downward, pink cheeks, a tiny contented mouth',
       'peacefully asleep, unaware, completely unbothered',
       'no arms, no legs, no tail, no ring, no circle around it',
     ].join(', '),
@@ -422,7 +436,7 @@ export const CONCEPTION_ROSTER: AssetSpec[] = [
     name: 'Antibody',
     act: 'conception',
     role: 'swarm',
-    tests: 'the Y — the only straight lines in the act, at the smallest size in it',
+    tests: 'the Y — the only straight lines in the act, corners rounded, with a face that survives the smallest size in it',
     targetSize: 44,
     seed: 9009,
     // §2 reserves the Y as the act's only straight lines, so this asset takes
@@ -439,10 +453,10 @@ export const CONCEPTION_ROSTER: AssetSpec[] = [
       'three thick straight bars of exactly equal thickness meeting at one central junction',
       'two bars angling upward and apart in a wide V, one bar pointing straight down',
       'all three limbs roughly the same length as each other, short and heavy, not thin, not tapering',
-      'perfectly straight edges and sharp square corners, no curves anywhere on it',
-      'flat dark grey-brown, one solid colour and nothing else',
-      'one small muted-tan square tag centred on the junction where the bars meet',
-      'the tag carries two small dark dots for eyes and no mouth and nothing else',
+      'perfectly straight edges with every corner slightly rounded, the only curves on the bars',
+      'flat glossy near-black, one small light glint on the upper-left bar',
+      'one small round muted-tan face centred on the junction where the bars meet, in the greeting-card register',
+      'the face carries two small dark eyes with a light glint each, pink cheeks and a small smile, and nothing else',
       'no other detail, no texture, no shading',
       'not a fork, not cutlery, not a utensil, not a tree, not a branch, not a slingshot',
     ].join(', '),
@@ -452,7 +466,7 @@ export const CONCEPTION_ROSTER: AssetSpec[] = [
     name: 'The Egg, eyes closing',
     act: 'conception',
     role: 'boss',
-    tests: 'the Egg exactly as boss-egg with its eyes closed: two flat lines where the half-lidded eyes were, the same smile, the same corona',
+    tests: 'the Egg exactly as boss-egg with its eyes closed: two lash lines bowed downward where the half-lidded eyes were, the same smile, the same corona',
     targetSize: 384,
     seed: 3103,
     source: 'svg',
@@ -460,13 +474,12 @@ export const CONCEPTION_ROSTER: AssetSpec[] = [
     // state, swapped in by the renderer where a render overlay stood.
     whyThisStage: 'It is the only boss in the game that is beaten by being taken in rather than brought down.',
     subject: [
-      'an enormous smooth round egg cell filling the frame, flat muted deep teal',
-      'a thick irregular fringe of blunt stubby finger-like protrusions all the way around it like a lumpy crown or a bad haircut',
-      'no two protrusions the same length',
-      'one small calm face placed off-centre and low on the huge smooth mass',
-      'the eyes closed: two short flat dark lines where the half-lidded eyes were, and the same small closed-mouth knowing smile',
-      'everything else identical to boss-egg: the same mass, the same fringe, the same face position',
-      'one flat darker tone across the lower third as the only shadow',
+      'an enormous smooth round cream egg filling the frame, in the greeting-card register',
+      'a corona of fourteen blunt stubby teal fingers growing out from under its edge like a sun drawn by a child, background showing between them',
+      'one small face placed off-centre, low and to the right on the huge smooth mass',
+      'the eyes closed: two dark lash lines bowed downward where the half-lidded eyes were, the same pink cheeks, the same small closed-mouth knowing smile',
+      'everything else identical to boss-egg: the same mass, the same fingers, the same face position',
+      'one flat rose crescent low and to the right as the only shadow',
     ].join(', '),
   },
   {
@@ -474,7 +487,7 @@ export const CONCEPTION_ROSTER: AssetSpec[] = [
     name: 'The Egg, corona parting',
     act: 'conception',
     role: 'boss',
-    tests: 'the Egg exactly as boss-egg-closing with the corona parted: the fringe opened in one gap on the side the face looks toward, the eyes closed',
+    tests: 'the Egg exactly as boss-egg-closing with the corona parted: the two fingers low and to the right gone, the egg bare through the gap, the bounds unmoved',
     targetSize: 384,
     seed: 3203,
     source: 'svg',
@@ -482,13 +495,12 @@ export const CONCEPTION_ROSTER: AssetSpec[] = [
     // state, swapped in by the renderer where a render overlay stood.
     whyThisStage: 'It is the only boss in the game that is beaten by being taken in rather than brought down.',
     subject: [
-      'an enormous smooth round egg cell filling the frame, flat muted deep teal',
-      'a thick irregular fringe of blunt stubby finger-like protrusions all the way around it like a lumpy crown or a bad haircut',
-      'no two protrusions the same length',
-      'the fringe of protrusions parted in one clear gap on the side the face looks toward, the protrusions either side of the gap leaning away from it',
-      'one small calm face placed off-centre and low on the huge smooth mass, the eyes closed as two short flat dark lines, the same knowing smile',
+      'an enormous smooth round cream egg filling the frame, in the greeting-card register',
+      'a corona of blunt stubby teal fingers growing out from under its edge like a sun drawn by a child, background showing between them',
+      'the corona parted in one clear gap low and to the right, on the side the face sits toward: the two fingers there gone and the egg bare through the gap',
+      'one small face placed off-centre, low and to the right on the huge smooth mass, the eyes closed as two dark lash lines bowed downward, the same pink cheeks and knowing smile',
       'everything else identical to boss-egg',
-      'one flat darker tone across the lower third as the only shadow',
+      'one flat rose crescent low and to the right as the only shadow',
     ].join(', '),
   },
 ];
@@ -496,9 +508,9 @@ export const CONCEPTION_ROSTER: AssetSpec[] = [
 /**
  * The School roster (SCHOOL-ROSTER.md §3). Four swarm-tier assets; the fifth,
  * `substitute-teacher`, is in the test batch above and already passed, and the
- * roster was written around it rather than over it. The four swarm assets, the
- * school-age player and the Gym Teacher are authored SVG (G-038, `art:svg`);
- * the substitute stays generated.
+ * roster was written around it rather than over it. All five swarm assets,
+ * the school-age player and the Gym Teacher are authored SVG (G-038,
+ * `art:svg`), redrawn in the greeting-card register (G-053).
  *
  * Every silhouette here is what it is because the clipboard took the bright
  * hard rectangle (§1). Homework is a wedge and the hall monitor's sash runs
@@ -523,7 +535,7 @@ export const SCHOOL_ROSTER: AssetSpec[] = [
     name: 'Clique',
     act: 'school',
     role: 'swarm',
-    tests: 'the cluster — one enemy that must not read as four',
+    tests: 'the cluster — one enemy that must not read as four, the same cute face four times',
     targetSize: 88,
     seed: 10010,
     source: 'svg',
@@ -536,13 +548,14 @@ export const SCHOOL_ROSTER: AssetSpec[] = [
     // outline" — and the identical repeated face, which is both the joke and
     // cheaper to author than four faces.
     subject: [
-      'a single wide lumpy mass with four heads growing out of the top of it, fused together into one body at the shoulders',
+      'a single soft round mass with four big round heads on top of it, fused together into one body at the shoulders, drawn in the greeting-card register',
       'one continuous outline around the whole group, no gaps between them and no space to pass through',
-      'the heads at slightly different heights, all turned the same way and all looking off to one side',
-      'every head has exactly the same face: two small flat dots for eyes and one short straight line for a mouth, no eyebrows',
-      'no arms, no legs, no hands, no bags, no clothing detail of any kind',
-      'flat muted olive-grey green with one darker tone as the only shadow',
-      'completely blank and unbothered, not looking at the viewer, not reacting to anything',
+      'the heads at slightly different heights, each rimmed in dark where it meets the next, all turned the same way and all looking off to one side',
+      'every head has exactly the same face: two big dark eyes with one small tan glint each, a soft pink blush (#EBA39C) under each eye, a small pleased smile',
+      'no arms, no hands, no bags, no clothing detail, a row of little dark feet underneath, a pair under each head',
+      'flat muted sage green heads and body (#6B7F53), one warm grey-brown tone (#6E6353) across the lower third as the only shadow',
+      'one small tan glint on each head and one on the body, upper left, never white',
+      'content and unbothered, not looking at the viewer, not reacting to anything',
       'no yellow, no gold, no pale yellow-green anywhere',
     ].join(', '),
   },
@@ -551,23 +564,28 @@ export const SCHOOL_ROSTER: AssetSpec[] = [
     name: 'Dodgeball',
     act: 'school',
     role: 'swarm',
-    tests: 'the circle — the only radially symmetric thing in the act',
+    tests: 'the circle — the only perfect circle in the act, cute and still contact red',
     targetSize: 44,
     seed: 11011,
     source: 'svg',
     whyThisStage:
       'School is where the player is first hurt by something that was aimed at the room rather than at them.',
-    // A perfect circle at 44px carries nothing but its own edge, so every
-    // interior mark is a liability: a seam or a highlight would break the
-    // radial symmetry that is the whole read at speed. The face is dead
-    // centre and does nothing, because whoever threw it is not in the
-    // picture (law 9) and it has no opinion about arriving.
+    // A perfect circle at 44px carries nothing but its own edge, so nothing
+    // touches the rim: a seam or a stripe would break the radial symmetry
+    // that is the whole read at speed. The register's one glint and the face
+    // sit inside it. Whoever threw it is not in the picture (law 9).
+    //
+    // Redrawn 2026-09-28 (G-053) in contact red, which the reservation holds
+    // for it (SCHOOL-ROSTER §3.2): the grey-brown ball wore no threat colour
+    // (AUDIT 132), and in the cute register the thing that hurts you is
+    // still the thing wearing red.
     subject: [
-      'a single perfectly round rubber ball seen straight on, one flat circle',
-      'flat warm grey-brown (#6E6353), one solid colour across the whole ball, with a muted tan (#D2C6AC) face disc',
-      'absolutely no seam, no panel lines, no stripe, no highlight, no shine, no texture',
-      'one small face dead centre: two small dark dots for eyes and one short straight horizontal line for a mouth',
-      'completely blank and expressionless, not excited, not angry, not moving its face at all',
+      'a single perfectly round rubber playground ball seen straight on, one flat circle, drawn in the greeting-card register',
+      'flat contact red (#C4472E), the threat colour School holds for the dodgeball alone, one solid colour across the whole ball',
+      'no seam, no panel lines, no stripe, no texture, nothing on its rim, so the outline stays a perfect circle',
+      'one small flat tan glint (#D2C6AC) at the upper left, a tenth of the ball across, never white',
+      'a face dead centre: two big dark eyes more than a sixth of the ball across, one small tan glint in each, a soft pink blush (#EBA39C) under each eye, a small pleased smile',
+      'pleased about nothing in particular, not angry, not menacing, aimed at the room rather than at the viewer',
       'nothing else in the picture, no hands, no arms, no motion lines, no impact marks',
       'no yellow, no gold, no olive green anywhere',
     ].join(', '),
@@ -577,7 +595,7 @@ export const SCHOOL_ROSTER: AssetSpec[] = [
     name: 'Homework',
     act: 'school',
     role: 'swarm',
-    tests: 'the wedge — paper that is deliberately not a rectangle',
+    tests: 'the wedge — paper that is deliberately not a rectangle, with a face (law 5)',
     targetSize: 72,
     seed: 12012,
     source: 'svg',
@@ -588,14 +606,21 @@ export const SCHOOL_ROSTER: AssetSpec[] = [
     // shadow separates from the clipboard on shape, edge and value at once.
     // "Dull" is the brief, not a compromise — it is the only enemy in the act
     // that cannot hurt anyone and it should look like it.
+    //
+    // Drawn in bone with shadow strata since the first SVG pass: shadow alone
+    // sits 0.09 L from school-deep and CHECK sent it back on contrast, so the
+    // wedge and its rounded top carry the separation from the clipboard.
+    // Redrawn 2026-09-28 (G-053) with the register's face; law 5 gives it a
+    // mouth the roster's two dots did not have.
     subject: [
-      'a leaning stack of paper sheets seen from the side, triangular in profile, wider at the bottom and tapering toward the top',
-      'the whole stack tilts to one side, the corners soft and rounded, the edges uneven where the sheets do not line up',
-      'flat dull grey-brown, one solid colour, no white paper, no bright paper, no cream',
+      'a leaning stack of paper sheets seen from the side, triangular in profile, wide at the bottom and tapering to a soft rounded top that leans to one side, drawn in the greeting-card register',
+      'every corner rounded, the sheets in flat muted tan (#D2C6AC) with three warm grey-brown (#6E6353) strata between them, tilting with the lean',
+      'one loose sheet poking out of each side so the sheets never line up',
       'no straight rectangle, not a neat block, not a squared-off slab, not a folder, not a book',
-      'one small face near the top of the stack: two small dark dots for eyes and no mouth at all',
-      'completely inert and uninteresting, doing nothing, not looking at anything',
-      'no text, no handwriting, no ruled lines, no yellow, no gold, no olive green',
+      'a content little face on the front of the stack: two big dark eyes with one small tan glint each, a soft pink blush (#EBA39C) under each eye, a small pleased smile',
+      'no glint on the stack itself, because a tan glint on tan paper is no glint',
+      'doing nothing to anyone, not looking at anything',
+      'no text, no handwriting, no ruled lines, no yellow, no gold, no olive green, never white',
     ].join(', '),
   },
   {
@@ -603,7 +628,7 @@ export const SCHOOL_ROSTER: AssetSpec[] = [
     name: 'Hall monitor',
     act: 'school',
     role: 'swarm',
-    tests: 'the sash — one hard diagonal that must not read as a badge',
+    tests: 'the sash — one hard diagonal that must not read as a badge, on a cute round figure',
     targetSize: 88,
     seed: 13013,
     source: 'svg',
@@ -615,13 +640,13 @@ export const SCHOOL_ROSTER: AssetSpec[] = [
     // have been the natural read and would have put a second bright hard
     // rectangle in an act that has exactly one.
     subject: [
-      'an upright figure standing squarely and facing forward, drawn as a plain mid-century institutional pictogram',
-      'one wide hard-edged diagonal band crossing the whole body from shoulder to hip, running all the way off both sides of the body and cut off by them',
-      'the band is a flat single tone with straight parallel edges and no writing on it',
-      'a simplified geometric body, plain and generic, more diagram than portrait',
-      'the face is two small flat dots for eyes and one short straight line for a mouth, no eyebrows',
-      'looking along its own route off to one side, not at the viewer, completely indifferent and unbothered',
-      'flat muted sage green body (#6B7F53, the act mid tone, never the pale pickup tone) with the band in flat muted tan (#D2C6AC)',
+      'an upright figure standing squarely and facing forward, drawn in the greeting-card register\'s kid proportions: a big round head, a small round body, stubby arms and legs, mitten hands',
+      'one wide hard-edged diagonal band crossing the body from the left shoulder to the right hip, running all the way off both sides of the body and cut off by them',
+      'the band is a flat muted tan (#D2C6AC) with straight parallel edges and no writing on it',
+      'the sweater and sleeves in flat elite purple (#7C5C8A), the threat colour School holds for the hall monitor alone',
+      'the head a rounded lump in flat muted sage green (#6B7F53, the act mid tone, never the pale pickup tone), wider than tall, no hair, the mitten hands in the same green, warm near-black stubby legs (#2A2521)',
+      'the face turned along its own route off to one side: two big dark eyes with one small tan glint each, a soft pink blush (#EBA39C) under each eye, a small pleased smile, not looking at the viewer',
+      'one small tan glint on the head and one on the sweater, upper left, never white',
       'no badge, no name tag, no lettering, no armband, no rectangle on the chest, no clipboard, no lanyard',
       'no yellow, no gold, no olive green anywhere on the figure',
     ].join(', '),
@@ -638,13 +663,16 @@ export const SCHOOL_ROSTER: AssetSpec[] = [
     source: 'svg',
     targetSize: 112,
     seed: 14014,
+    tests: 'G-003 and G-053 at five: the base drawing, whose head every act copies verbatim, and the figure every act is the same size as',
     // G-003: the face and the one cowlick are the identity in every act, and
-    // the player is the only thing on the field wearing paper (law 10).
+    // the player is the only thing on the field wearing paper (law 10). G-053:
+    // the greeting-card kid, and the kid for the whole life.
     subject: [
-      'the player at school age: a small round-headed child figure, standing',
-      'the same face as the sperm form: two flat eyes and one short flat line for a mouth',
+      'the player at school age, a greeting-card character: a small chubby child standing with its arms a little out',
+      'a big round head three fifths of the height with two big dark eyes, each with one small light glint at its upper left, a rosy oval (#EBA39C) on each cheek and a small content smile',
       'the same single asymmetric cowlick sticking up above the left eye, one tuft and no other hair',
-      'paper coloured (#EFE7D6) head and body, warm grey-brown (#6E6353) as the only second tone',
+      'a round-bellied body, stubby arms with round mitten hands and short round legs, every mass rounded',
+      'paper coloured (#EFE7D6) head, hands and body, warm near-black (#2A2521) eyes, mouth, cowlick and chin line',
       'no threat colour anywhere, no accessories, no gear',
     ].join(', '),
   },
@@ -659,13 +687,21 @@ export const SCHOOL_ROSTER: AssetSpec[] = [
     whyThisStage:
       'School is where the player is first organised into a crowd by someone who never touches them, and the whistle is how it is done.',
     // Law 9: the whistle and the shorts are the character, the figure is what
-    // carries them. Nothing about the body is described but its height.
+    // carries them. Nothing about the body is described but its height and
+    // the register's kid proportions (G-053). Redrawn 2026-09-28 with empty
+    // hands: the reservation says the whistle is the only thing it carries,
+    // so the stopwatch the 2026-09-27 drawing held is gone.
     subject: [
-      'the tallest thing in the act: a standing figure in gym shorts with a whistle on a cord, eight times the player\'s height',
-      'shirt in flat muted deep teal (#2F7370), the boss colour, as Conception\'s Egg holds it',
-      'shorts in warm grey-brown (#6E6353), head, legs and whistle in muted tan (#D2C6AC), cord and face marks in warm near-black (#2A2521)',
-      'the face is two small flat dots for eyes and one short straight line for a mouth, not looking at the viewer',
-      'the role, not a person: no clipboard, no lettering, no badge, no build described',
+      'the tallest thing in the act: a standing figure in gym shorts with a whistle on a cord, eight times the player\'s height, drawn in the greeting-card register\'s kid proportions: a big round head, a round body, stubby arms and legs, mitten fists',
+      'both fists on the hips with the elbows out and the hands empty: the whistle is the only thing it carries',
+      'shirt and sleeves in flat muted deep teal (#2F7370), the boss colour, as Conception\'s Egg holds it',
+      'round gym shorts in flat muted tan (#D2C6AC) with a teal stripe down each side, soft and never a hard rectangle',
+      'knee-high tan tube socks with two teal stripes each, warm near-black sneakers (#2A2521) with tan soles, toes turned out',
+      'the head, forearms and fists in flat muted sage green (#6B7F53, the act mid tone), no hair',
+      'a tan whistle, a barrel and a mouthpiece, on a soft dark curved cord around the neck',
+      'the face looking off to one side, not at the viewer: two big dark eyes with one small tan glint each, a soft pink blush (#EBA39C) under each eye, a small pleased smile',
+      'one small tan glint on the head and one on the shirt, upper left, never white',
+      'the role, not a person: no clipboard, no stopwatch, no lettering, no badge',
       'no yellow, no gold anywhere on the figure',
     ].join(', '),
   },
@@ -679,95 +715,109 @@ export const SCHOOL_ROSTER: AssetSpec[] = [
  * instead of programmer line-art.
  *
  * The subjects are OBJECTS FROM THE LIFE, not game abstractions — the items
- * are the life script and the icons say so: a printer's pointing hand for the
- * reflex weapon, a sneaker for Youth, an umbrella for Adulthood, an alarm
+ * are the life script and the icons say so: a kid's pointing hand for the
+ * reflex weapon (G-054), a sneaker for Youth, an umbrella for Adulthood, an alarm
  * clock for the late bloomer. All conditions and objects; D-007 applies to
  * icons exactly as it does to enemies.
  */
 export const ITEM_ICONS: AssetSpec[] = [
+  // G-054: the weapons are the kid's things, drawn in G-053's greeting-card
+  // register. The ones that ride the field keep off paper, every threat
+  // colour and every light tone (law 10), so each glint is bone, not paper,
+  // and a mass that is itself bone carries none.
   {
     id: 'icon-strike',
-    name: 'Lash icon',
+    name: 'Pointing icon',
     act: 'conception',
     role: 'icon',
     fieldRiding: true,
     source: 'svg',
     targetSize: 96,
     seed: 61011,
-    tests: 'a manicule that reads at 40px on an ink card',
+    tests: "a kid's hand pointing, read at 52px on a card and 30px flying at the nearest thing, never a printer's manicule",
     subject: [
-      'a vintage printed pointing-hand ornament, a manicule, one hand with the index finger extended pointing to the right',
-      'a simple shirt cuff at the wrist, seen perfectly flat as printed on a page, filling most of the frame',
-      'flat muted dusty rose hand, pale warm cuff, dark interior lines between the fingers',
+      "a chubby child's hand, round as a mitten, pointing to the right, filling most of the frame",
+      'one short fat index finger held straight out, the thumb a round nub lying along its top, three curled fingers stacked below, a sweater cuff at the wrist',
+      'flat muted dusty rose (#A86A63) hand with one small pale warm (#D2C6AC) glint on its back, pale warm cuff, dark (#2A2521) lines where the fingers and thumb meet the hand',
+      'no face, no paper white, no red, no text',
     ].join(', '),
   },
   {
     id: 'icon-pierce',
-    name: 'Motility icon',
+    name: 'Spitball icon',
     act: 'conception',
     role: 'icon',
     fieldRiding: true,
-    // Drawn, not generated: fal's dart came back ranged gold, and Stubbornness
-    // fires this icon as its shot (G-036), so it keeps to bone, rose and ink.
+    // The straight shot wears it (G-036), so the wad is bone, never paper.
     source: 'svg',
     targetSize: 96,
     seed: 61022,
-    tests: 'a sleek dart, long and slender, unmistakably a paper aeroplane, read at 52px on a card and 42px in flight',
+    tests: 'a wet wad of notebook paper, read at 52px on a card and 42px in flight, never a cloud, a walnut or a stone',
     subject: [
-      'a folded paper dart made from a single sheet of folded paper, seen from directly above, a slim elegant triangle with the point to the right, filling most of the frame',
-      'two flat wing panels meeting at a centre crease, nothing but folded paper, not an aircraft, no fuselage, no tail, no engines',
-      'the sheet in flat pale warm tan (#D2C6AC) with one narrow flat dusty rose (#A86A63) shadow panel along the centre crease and the crease one dark warm near-black (#2A2521) line, no gold, no yellow, no paper white, no pale pink, no red',
+      'a wet wad of chewed notebook paper flying to the right, one slightly squashed ball, filling most of the frame',
+      'balled up into three rounded facets, the ruled lines of the page running a different way on each, one long crease corner to corner and one meeting it from the side',
+      'three small wet flecks flying off behind it',
+      'flat pale warm tan (#D2C6AC) wad and flecks, the ruled lines and the soaked lower right side in warm grey-brown (#6E6353), the creases warm near-black (#2A2521)',
+      'no face, no paper white, no blue, no red, no text',
     ].join(', '),
   },
   {
     id: 'icon-burst',
-    name: 'Acrosome icon',
+    name: 'Spilt Milk icon',
     act: 'conception',
     role: 'icon',
     fieldRiding: true,
     source: 'svg',
     targetSize: 96,
     seed: 61013,
-    tests: 'a starburst that stays a badge and never becomes a sun',
+    tests: 'a splat of spilt milk with its cup, read at 52px on a card and as the pop round the player, never a cloud, a germ or a sun',
     subject: [
-      'a retail price-tag starburst badge with about twelve irregular points, seen perfectly flat, filling most of the frame',
-      'flat muted dusty rose outer starburst with a smaller flat pale warm starburst inset inside it, a dark interior edge round the inset, no text, no numbers, no face',
+      'spilt milk seen from above: one big splat thrown out every way at once, filling most of the frame',
+      'uneven splashes reaching out from its edge, some long and thin, some short and fat, each ending round, and drops stretched along the way they fly',
+      "a child's sippy cup tipped over on its side at the lower left, its spout in the milk, no handles, a small surprised face on the cup with two dark eyes, blush cheeks and a round little mouth",
+      'flat pale warm tan (#D2C6AC) milk, dusty rose (#A86A63) cup with one pale warm glint, deep wine (#6B3A44) lid and spout, blush (#EBA39C) cheeks, warm near-black (#2A2521) eyes, mouth and the edge where the cup lies in the milk',
+      'no paper white, no red, no gold, no text',
     ].join(', '),
   },
-  // Drawn, not generated (G-038). Baggage stamps this on the field behind the
-  // player (G-036; ActScene syncAreas, 26px), and the generated sole was
-  // contact red all over, so the player's own trail read as a threat. It
-  // keeps to rose, bone and ink as Rut's slippers do, and stays a bare foot.
+  // Legos (G-054). The trail stamps this on the field behind the player
+  // (G-036; ActScene syncAreas, 26px), so the toy's red is rose here: contact
+  // red on the player's own trail would read as a threat.
   {
     id: 'icon-trail',
-    name: 'Wake icon',
+    name: 'Legos icon',
     act: 'conception',
     role: 'icon',
     fieldRiding: true,
     source: 'svg',
     targetSize: 96,
     seed: 61034,
-    tests: 'one bare footprint, read at 52px on a card and 26px stamped along a trail, never footwear',
+    tests: 'one toy brick, two studs by two, read at 52px on a card and 26px stamped along a trail, never a tile or a box',
     subject: [
-      'a bare footprint pressed in sand, seen from directly above, toes pointing up, as on a beach safety sign',
-      'one smooth foot-sole shape narrow at the arch and wide at the ball, with five fat round toe dots arranged in an arc above it',
-      'flat muted dusty rose (#A86A63) sole and toes, a muted tan (#D2C6AC) mark in the hollow of the inner arch, a warm near-black (#2A2521) edge where the ball meets the arch',
-      'no red, no pale paper tone, no light rose, no shoe, no sandal, no slipper, no text',
+      'one chunky plastic toy building brick, two studs by two, seen from low and a little to one side so all four round studs stand up along its top, filling most of the frame',
+      'rounded corners and straight sides, the front face lit, the side face in shadow, one small glint on the front',
+      'flat dusty rose (#A86A63) brick and studs, deep wine (#6B3A44) side face, one pale warm (#D2C6AC) glint, warm near-black (#2A2521) lines where the faces meet and round each stud',
+      'no face, no red, no paper white, no logo, no text',
     ].join(', '),
   },
   {
     id: 'icon-pull',
-    name: 'Chemotaxis icon',
+    name: 'Candy icon',
     act: 'conception',
     role: 'icon',
     fieldRiding: true,
     source: 'svg',
     targetSize: 96,
     seed: 61015,
-    tests: 'the classroom magnet, instantly legible',
+    // G-054: the kid's thing. Planted at the pull's centre on the field
+    // (ActScene syncAreas, 40px), so it keeps to rose, deep, blush, bone and
+    // ink: its glint is bone, since paper is the player's (law 10).
+    tests: 'one wrapped sweet everything comes over for, read at 52px on a card and 40px at the centre of the pull',
     subject: [
-      'a classic horseshoe magnet with two clean parallel arms of even width and a smooth semicircular bend, pole tips pointing downward, seen perfectly flat, filling most of the frame',
-      'flat muted dusty rose horseshoe with flat pale warm rectangular tips, one dark line where each tip meets its arm',
+      'one wrapped sweet seen flat and straight on, a plump round middle twisted tight at each side into a crimped fan of wrapper, a bow-tie silhouette',
+      'a pleased little face on the middle: two big dark eyes with one small pale glint each, a blush oval under each eye, a small smile',
+      'the middle in flat muted dusty rose (#A86A63) with one small pale warm (#D2C6AC) glint at its upper left and one deep wine (#6B3A44) shadow along its lower right, the twists deep wine',
+      'the fans in flat soft blush pink (#EBA39C) with two dusty rose pleats in each, cheeks blush pink, eyes and smile warm near-black (#2A2521)',
+      'round masses, kid proportions, flat fills, no stripes, no text, no brand, no stick',
     ].join(', '),
   },
   {
@@ -816,39 +866,68 @@ export const ITEM_ICONS: AssetSpec[] = [
     ].join(', '),
   },
   // G-038: the three icons added with Grudge, Gossip and Appetite are drawn,
-  // not generated. Grudge's and Gossip's also fly on the field (the orbiter
-  // and the shot wear the card's icon, G-036), so both keep to rose, bone and
-  // ink: no threat colour, no paper, no pickup tone. Appetite is card-only.
+  // not generated. Grudge's (the Mobile's star since G-054) and Gossip's also
+  // fly on the field (the orbiter and the shot wear the card's icon, G-036),
+  // so both keep off every threat colour, paper and every pickup tone.
+  // Appetite is card-only.
   {
     id: 'icon-orbit',
-    name: 'Grudge icon',
+    name: 'Mobile icon',
     act: 'conception',
     role: 'icon',
     fieldRiding: true,
     source: 'svg',
     targetSize: 96,
     seed: 61019,
-    tests: 'a fist that keeps going round, read at 52px on a card and 36px circling the player',
+    tests: 'one smiling star from a crib mobile, read at 52px on a card and 36px circling the player, never a badge or a medal',
     subject: [
-      'a clenched fist seen knuckles-on, four finger rolls over a short palm, the thumb folded across the front, no forearm',
-      'standing in a tilted orbit ring that passes behind it and across its foot, one bead riding the ring',
-      'flat muted dusty rose fist, pale warm ring and bead, dark interior lines between the fingers',
+      'one fat five-pointed star from a crib mobile, every point rounded, hanging point-up on a short ribbon tied off in a loop, filling most of the frame',
+      'a small pleased face: two big dark eyes each with one pale glint, a blush oval under each eye, a little smile',
+      'flat pale warm tan (#D2C6AC) star with one warm grey-brown (#6E6353) shadow along its lower right edges, dusty rose (#A86A63) ribbon and loop, blush (#EBA39C) cheeks, warm near-black (#2A2521) eyes and smile',
+      'no paper white, no gold, no yellow, no red, no text',
+    ].join(', '),
+  },
+  // G-054's new weapon: Cry, the ring from the player that shoves and stuns.
+  // Its icon is held at the top of the expanding ring on the field, so it
+  // rides the field and keeps off paper, every threat colour and every light
+  // tone: the drop is bone, the lightest colour a rider may wear.
+  {
+    id: 'icon-cry',
+    name: 'Cry icon',
+    act: 'conception',
+    role: 'icon',
+    fieldRiding: true,
+    source: 'svg',
+    targetSize: 96,
+    seed: 61052,
+    tests: 'one teardrop with a worried little face, read at 52px on a card and about 36px riding the top of the ring, never a flame, an onion or a ghost',
+    subject: [
+      'one big teardrop seen straight on, the point up and rounded, the belly round below, filling most of the frame',
+      'a faintly worried little face on the belly: two big dark eyes each with one pale glint, brows lifted in the middle, a blush oval under each eye, a small wobbly mouth',
+      'flat pale warm tan (#D2C6AC) drop with one warm grey-brown (#6E6353) shadow along its lower right, blush (#EBA39C) cheeks, warm near-black (#2A2521) eyes, brows and mouth',
+      'no paper white, no red, no gold, no text',
     ].join(', '),
   },
   {
     id: 'icon-chain',
-    name: 'Gossip icon',
+    name: 'Telephone icon',
     act: 'conception',
     role: 'icon',
     fieldRiding: true,
     source: 'svg',
     targetSize: 96,
     seed: 61020,
-    tests: 'one hit passed on to two more, read at 52px on a card and 30px in flight',
+    // G-054: the whispering game, as a toy. The shot itself on the field
+    // (ActScene syncProjectiles, 30px, turned to its heading), so it keeps to
+    // rose, deep, blush, shadow, bone and ink: its glints are bone, since
+    // paper is the player's (law 10). Generic, nothing brand-shaped.
+    tests: 'a toy telephone passing it on, read at 52px on a card and 30px in flight; the handset says telephone, never a car',
     subject: [
-      'three plain round dots joined by one bent line, like a diagram of who told whom',
-      'the first dot larger with a pale mark at its centre where it landed, the other two equal',
-      'flat muted dusty rose dots on a pale warm line, no tails on any dot',
+      'a toy telephone on two little round wheels, seen straight on: a plump dome of a body with a fat curved handset lying across its top, each end of the handset resting on a shoulder of the body',
+      'a pleased face on the body: two big dark eyes with one small pale glint each, a blush oval under each eye, a small smile',
+      'the body in flat muted dusty rose (#A86A63) with one deep wine (#6B3A44) shadow along its right side and underneath and one small pale warm (#D2C6AC) glint high on its left',
+      'the handset in flat soft blush pink (#EBA39C) with one small pale warm glint, the wheels warm grey-brown (#6E6353) with pale warm hubs, eyes and smile warm near-black (#2A2521)',
+      'no dial on its front, no eyes on stalks, no cord, no text, no brand, no rectangle',
     ].join(', '),
   },
   {
@@ -925,69 +1004,71 @@ export const ITEM_ICONS: AssetSpec[] = [
       'no text, no numbers, no figure, no clock, no purple',
     ].join(', '),
   },
-  // Personal Space (G-044) is drawn. Its icon also rides the aura ring on the
-  // field (about 32px), so it keeps to rose, bone and ink as Grudge does.
+  // Cooties (G-054; personal-space) is drawn. Its icon also rides the aura
+  // ring on the field (about 32px), so it keeps to rose, deep, blush, bone
+  // and ink: its glint is bone, since paper is the player's (law 10).
   {
     id: 'icon-aura',
-    name: 'Personal Space icon',
+    name: 'Cooties icon',
     act: 'conception',
     role: 'icon',
     fieldRiding: true,
     source: 'svg',
     targetSize: 96,
     seed: 61025,
-    tests: 'a rope barrier that says keep your distance, read at 52px on a card and 32px riding the ring',
+    tests: 'the playground cootie shot, circle, circle, dot, dot, read at 52px on a card and 32px riding the ring',
     subject: [
-      'a velvet rope barrier seen straight on: two short stanchion posts, each with a round ball finial on a cap and a flat round base',
-      'one thick rope hooked to the inner face of each post just under the cap, drooping between them in a single sag',
-      'pale warm posts, finials, bases and rope ends, flat muted dusty rose rope, dark interior lines under the finials and caps, at the bases and where the rope meets each post',
-      'nothing else: no sign, no carpet, no queue, no figure, no text',
+      'the playground cootie shot seen flat: one fat round ring with two big round dots inside it, and the two dots are the eyes of a pleased little face',
+      'each dot with one small pale glint, a blush oval under each, a small smile under them',
+      'the ring in flat muted dusty rose (#A86A63) with one small pale warm (#D2C6AC) glint at its upper left and one deep wine (#6B3A44) shadow along its lower right',
+      'inside the ring flat pale warm (#D2C6AC), dots and smile warm near-black (#2A2521), cheeks soft blush pink (#EBA39C)',
+      'nothing else: no bug, no arm, no pen, no text',
     ].join(', '),
   },
-  // Judgement (G-044) is drawn too. Its gavel also comes down on the target
-  // during the telegraph and sits at the impact point (~36px), so it keeps to
-  // rose, bone and ink like Grudge, Gossip and Snooze.
+  // Tattle (G-054; judgement) is drawn too. Its bubble comes down on the
+  // target during the telegraph (36px) and sits at the impact point (40px),
+  // never turned, so it keeps to blush, rose, bone and ink: its glint is
+  // bone, since paper is the player's (law 10). No face: Adolescence's group
+  // chat is the speech bubble with a face.
   {
     id: 'icon-bolt',
-    name: 'Judgement icon',
+    name: 'Tattle icon',
     act: 'conception',
     role: 'icon',
     fieldRiding: true,
     source: 'svg',
     targetSize: 96,
     seed: 61027,
-    tests: 'a gavel about to land, read at 52px on a card and 36px dropping onto the field, never a hammer',
+    tests: 'somebody telling on somebody, read upright at 52px on a card and 36px dropping onto the field',
     subject: [
-      'a gavel seen from the side, its head a thick horizontal cylinder with a flat pale face at each end, no claw',
-      'a short handle leaving the middle of the head and running down-left at about forty degrees, a round knob at its end',
-      'held just above a small round sound block seen at a slight angle, its near rim one dark line',
-      'three tiny flat impact ticks fanned up off the block in the gap under the head',
-      'flat muted dusty rose head and handle, pale warm end faces, block and ticks, dark lines where the head meets the handle and the faces meet the head',
+      'one round speech bubble seen flat and upright, with one small tail at its lower left pointing down at whoever it is about',
+      'one fat exclamation mark in the middle of it, a tapering bar and a round dot, and nothing else written',
+      'the bubble in flat soft blush pink (#EBA39C) with one small pale warm (#D2C6AC) glint at its upper left and one dusty rose (#A86A63) shadow along its lower right',
+      'the exclamation mark warm near-black (#2A2521)',
+      'no face, no words, no letters, no second bubble, no phone',
     ].join(', '),
   },
-  // Backhand (G-044, mode sweep) is drawn like the five above. Its icon also
-  // rides the leading edge of each sweep on the field (~36px, rotated to the
-  // sweep's angle), so it keeps to rose, bone and ink as Grudge does. It is a
-  // hand with a cuff, as Reflex's manicule is, so everything else about it
-  // differs: leaning diagonally where that one lies level, every finger out
-  // where that one points one, and moving where that one aims.
+  // Rattle (G-054; backhand, mode sweep) is drawn like the five above. Its
+  // icon also rides each sweep across its arc on the field (~36px, turned to
+  // the swing's radial angle), so it lies along +x with the handle toward the
+  // player and the head swinging out, and keeps to rose, deep, blush, bone
+  // and ink: its glint is bone, since paper is the player's (law 10).
   {
     id: 'icon-sweep',
-    name: 'Backhand icon',
+    name: 'Rattle icon',
     act: 'conception',
     role: 'icon',
     fieldRiding: true,
     source: 'svg',
     targetSize: 96,
     seed: 61026,
-    tests: 'a backhand mid-swing, unmistakably a slap and never the manicule, read at 52px on a card and 36px on the field',
+    tests: 'a baby rattle swung at the crowd, read at 52px on a card and 36px turning through the sweep, head out and handle in',
     subject: [
-      'an open hand seen from the back, four fingers held together and only slightly fanned, the thumb out on the leading side',
-      'leaning well over into a swing to the right, as if caught halfway through it',
-      'three short flat motion arcs trailing off its heel, pieces of the swing\'s own curve, none at the fingertips',
-      'a simple shirt cuff with one button at the wrist, as on the printed pointing hand, and no forearm past it',
-      'no finger pointing, no palm showing, never a wave',
-      'flat muted dusty rose hand, pale warm cuff and motion arcs, dark interior lines between the fingers',
+      'a baby rattle lying on its side: a big round head on the right, a short fat handle running left from a little collar, and a round ring on the end of the handle',
+      'a pleased face on the head: two big dark eyes with one small pale glint each, a blush oval under each eye, a small smile',
+      'the head in flat muted dusty rose (#A86A63) with one small pale warm (#D2C6AC) glint at its upper left and one deep wine (#6B3A44) shadow along its lower right',
+      'the handle and ring flat pale warm (#D2C6AC), the collar soft blush pink (#EBA39C), eyes and smile warm near-black (#2A2521)',
+      'kid proportions, stubby handle, no hand holding it, no motion lines, no text',
     ].join(', '),
   },
   // G-046's five evolutions, each an object from the life that the weapon
@@ -1310,17 +1391,17 @@ export const ADOLESCENCE_ROSTER: AssetSpec[] = [
     name: 'The player — thirteen',
     act: 'adolescence',
     role: 'player',
-    tests: 'G-003 at thirteen: the same face and cowlick, one frame, no taller',
+    tests: 'G-003 and G-053 at thirteen: the same head, no taller, in a round hoodie with both hands in its pocket',
     source: 'svg',
     targetSize: 112,
     seed: 22022,
     // ADOLESCENCE-ROSTER §6 leaves the player at thirteen undesigned beyond
     // G-003. Taller is Growth Spurt's joke, and Growth Spurt is not in the pool.
     subject: [
-      'the player at thirteen: the same small round-headed figure as at school age, standing, no taller',
-      'the same face as every act: two flat eyes and one short flat line for a mouth',
-      'the same single asymmetric cowlick sticking up above the left eye, one tuft and no other hair',
-      'paper coloured (#EFE7D6) head and body, warm grey-brown (#6E6353) as the only second tone',
+      'the player at thirteen: the same chubby child as at school age, standing, no taller, with the same head, face and cowlick',
+      'a big round head three fifths of the height with two big dark eyes, each with one small light glint at its upper left, a rosy oval (#EBA39C) on each cheek and a small content smile',
+      'a plain round hoodie with the hood rolled down behind the neck and two short drawstrings, elbows out and both hands stuffed in the front pocket',
+      'paper coloured (#EFE7D6) head, legs and drawstrings, the hoodie in warm grey-brown (#6E6353) edged in warm near-black (#2A2521), one small light glint on the hoodie',
       'no threat colour anywhere, no phone, no accessories, no gear',
     ].join(', '),
   },
@@ -1462,18 +1543,17 @@ export const COLLEGE_ROSTER: AssetSpec[] = [
     name: 'The player — eighteen',
     act: 'college',
     role: 'player',
-    tests: 'G-003 at eighteen: the same face and cowlick, one frame, a lanyard and a paper cup',
+    tests: 'G-003 and G-053 at eighteen: the same head, no taller, the same hoodie, a lanyard and a takeaway cup',
     source: 'svg',
     targetSize: 112,
     seed: 29029,
     // COLLEGE-ROSTER §5: the face at eighteen, a lanyard, a paper cup. No taller
     // (Growth Spurt's joke is Growth Spurt's).
     subject: [
-      'the player at eighteen: the same small round-headed figure as every act, standing, no taller',
-      'the same face as every act: two flat eyes and one short flat line for a mouth',
-      'the same single asymmetric cowlick sticking up above the left eye, one tuft and no other hair',
-      'a thin lanyard loop around the neck with a small blank card at its end, and a small paper cup held in one hand',
-      'paper coloured (#EFE7D6) head and body, warm grey-brown (#6E6353) as the only second tone',
+      'the player at eighteen: the same chubby child as every act, standing, no taller, with the same head, face and cowlick',
+      'a big round head three fifths of the height with two big dark eyes, each with one small light glint at its upper left, a rosy oval (#EBA39C) on each cheek and a small content smile',
+      'the same round hoodie, a lanyard around the neck ending in a small blank card, one hand in the pocket and the other holding up a small takeaway cup with a lid and a sleeve',
+      'paper coloured (#EFE7D6) head, legs, hand and card, the hoodie in warm grey-brown (#6E6353), the cup in muted tan (#D2C6AC) with a warm grey-brown lid and sleeve',
       'no threat colour anywhere, no phone, no backpack, no lettering on the card',
     ].join(', '),
   },
@@ -1582,16 +1662,15 @@ export const OFFICE_ROSTER: AssetSpec[] = [
     name: 'The player — twenty-two',
     act: 'office',
     role: 'player',
-    tests: 'G-003 at twenty-two: the same face and cowlick, one frame, a tie and a mug',
+    tests: 'G-003 and G-053 at twenty-two, a kid in a tie: the same head, no taller, a shirt with a round collar, a tie, a belt and a mug',
     source: 'svg',
     targetSize: 112,
     seed: 35035,
     subject: [
-      'the player at twenty-two: the same small round-headed figure as every act, standing, no taller',
-      'the same face as every act: two flat eyes and one short flat line for a mouth',
-      'the same single asymmetric cowlick sticking up above the left eye, one tuft and no other hair',
-      'a short flat tie down the front and a small mug held in one hand',
-      'paper coloured (#EFE7D6) head and body, warm grey-brown (#6E6353) as the only second tone',
+      'the player at twenty-two: the same chubby child as every act, standing, no taller, with the same head, face and cowlick',
+      'a big round head three fifths of the height with two big dark eyes, each with one small light glint at its upper left, a rosy oval (#EBA39C) on each cheek and a small content smile',
+      'a plain shirt with a round collar, a short tie and a belt, one arm down at its side and the other hand holding up a small mug',
+      'paper coloured (#EFE7D6) head, shirt, collar, legs and hands, the tie and the mug in warm grey-brown (#6E6353), the belt in warm near-black (#2A2521)',
       'no threat colour anywhere, no lanyard, no phone, no lettering',
     ].join(', '),
   },
@@ -1798,16 +1877,15 @@ export const FAMILY_ROSTER: AssetSpec[] = [
     name: 'The player — thirty-four',
     act: 'family',
     role: 'player',
-    tests: 'G-003 at thirty-four: the same face and cowlick, one frame, a tote bag and a set of keys',
+    tests: 'G-003 and G-053 at thirty-four: the same head, no taller, the shirt without the tie, a tote bag and a ring of keys',
     source: 'svg',
     targetSize: 112,
     seed: 47047,
     subject: [
-      'the player at thirty-four: the same small round-headed figure as every act, standing, no taller',
-      'the same face as every act: two flat eyes and one short flat line for a mouth',
-      'the same single asymmetric cowlick sticking up above the left eye, one tuft and no other hair',
-      'a flat tote bag hanging from one shoulder and a small ring of keys held in the other hand',
-      'paper coloured (#EFE7D6) head and body, warm grey-brown (#6E6353) as the only second tone',
+      'the player at thirty-four: the same chubby child as every act, standing, no taller, with the same head, face and cowlick',
+      'a big round head three fifths of the height with two big dark eyes, each with one small light glint at its upper left, a rosy oval (#EBA39C) on each cheek and a small content smile',
+      'the same shirt, round collar and belt with the tie gone, a round-cornered tote bag hanging from one shoulder and a ring of two keys dangling from the other hand, held up',
+      'paper coloured (#EFE7D6) head, shirt, collar, legs and hands, the bag in warm grey-brown (#6E6353), the keys in muted tan (#D2C6AC)',
       'no threat colour anywhere, no tie, no mug, no lettering',
     ].join(', '),
   },
@@ -1953,16 +2031,15 @@ export const DECLINE_ROSTER: AssetSpec[] = [
     name: 'The player — fifty-five',
     act: 'decline',
     role: 'player',
-    tests: 'G-003 at fifty-five: the same face and cowlick, one frame, a cardigan and a cane',
+    tests: 'G-003 and G-053 at fifty-five: the same head, no taller, a cardigan and a cane; the kid is the kid at the end too',
     source: 'svg',
     targetSize: 112,
     seed: 56056,
     subject: [
-      'the player at fifty-five: the same small round-headed figure as every act, standing, no taller',
-      'the same face as every act: two flat eyes and one short flat line for a mouth',
-      'the same single asymmetric cowlick sticking up above the left eye, one tuft and no other hair',
-      'a buttoned cardigan down the front and a plain cane held in one hand, its tip on the floor',
-      'paper coloured (#EFE7D6) head and body, warm grey-brown (#6E6353) as the only second tone',
+      'the player at fifty-five: the same chubby child as every act, standing, no taller, with the same head, face and cowlick',
+      'a big round head three fifths of the height with two big dark eyes, each with one small light glint at its upper left, a rosy oval (#EBA39C) on each cheek and a small content smile',
+      'an oatmeal cardigan buttoned down the front with three round buttons over the same round shirt collar, one arm down at its side and the other hand on a plain crook-handled cane, its tip on the floor',
+      'paper coloured (#EFE7D6) head, shirt, collar, legs and hands, the cardigan in muted tan (#D2C6AC), its bands, buttons and hem and the cane in warm grey-brown (#6E6353)',
       'no threat colour anywhere, no tote bag, no keys, no glasses, no lettering',
     ].join(', '),
   },

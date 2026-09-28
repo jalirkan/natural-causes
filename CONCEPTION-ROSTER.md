@@ -348,6 +348,8 @@ carry life names (G-039); `src/data/items.ts` holds the current set.
 
 ---
 
+*2026-09-28, G-054:* the items above keep their ids and their mechanics and take the kid's names for the whole life — Lash is **Pointing**, Motility **Spitball**, Acrosome **Spilt Milk** (now with a puddle), Wake **Legos**, Chemotaxis **Candy**; the temperament names of G-039 survive on the passives (Restlessness, Thick Skin, Late Bloomer) and on the evolutions, which are what the kid's things become. **Cry** joins the pool from Conception. The one open question is unchanged: whether a card's picture tells a person what it will do (README, question 22).
+
 ## 5 · Handoff to Claude Code
 
 Design is settled; the following are implementation questions I cannot resolve

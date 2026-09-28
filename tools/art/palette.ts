@@ -41,6 +41,14 @@ export const INK = c('ink', '#2A2521');
 export const SHADOW = c('shadow', '#6E6353');
 export const PAPER = c('paper', '#EFE7D6');
 export const BONE = c('bone', '#D2C6AC');
+/**
+ * BLUSH is the greeting-card register's one warm tone (G-053, D-031): the
+ * cheeks on everything with a face, in every act. Universal, because a cheek
+ * is the same in every act; 0.050 from its nearest neighbour in Oklab
+ * (adolescence-light) against the 0.0353 quantiser tolerance, and under the
+ * enemy value ceiling (bone), so an enemy may wear it.
+ */
+export const BLUSH = c('blush', '#EBA39C');
 
 /**
  * Threat colours (law 6). These overlay the act palette and mean the same
@@ -126,7 +134,7 @@ const ACT_TONES = {
 export type ActId = keyof typeof ACT_TONES;
 export const ACT_IDS = Object.keys(ACT_TONES) as ActId[];
 
-/** The act's background. Deep tone, so an act's screen stays at eleven (D-028). */
+/** The act's background. Deep tone, so an act's screen stays at twelve (D-028, D-031). */
 export function actBackground(act: ActId): Colour {
   return ACT_TONES[act][0];
 }
@@ -154,7 +162,7 @@ export function actLight(act: ActId): Colour {
  * act is most of what makes an act read as a place rather than a colour wheel.
  */
 export function actPalette(act: ActId): Colour[] {
-  return [INK, SHADOW, PAPER, BONE, ...ACT_TONES[act], ...Object.values(THREAT)];
+  return [INK, SHADOW, PAPER, BONE, BLUSH, ...ACT_TONES[act], ...Object.values(THREAT)];
 }
 
 /**
@@ -176,6 +184,7 @@ export function enemyPalette(act: ActId, holdsThreat: ThreatClass[] = []): Colou
     INK,
     SHADOW,
     BONE,
+    BLUSH,
     tones[0],
     tones[1],
     ...holdsThreat.map((cls) => THREAT[cls]),
@@ -183,18 +192,19 @@ export function enemyPalette(act: ActId, holdsThreat: ThreatClass[] = []): Colou
 }
 
 /**
- * The full locked palette: every act's tones plus the shared eleven.
+ * The full locked palette: every act's tones plus the shared colours.
  *
  * D-028: law 3's constraint is what one act puts on screen (`actPalette`, at
- * most eleven), which is asserted per act. This catalogue grows by three tones
- * per act and is bounded at 32: seven acts' tones and the eight shared colours
- * come to 29.
+ * most twelve since D-031 added blush), which is asserted per act. This
+ * catalogue grows by three tones per act and is bounded at 36 (D-031): eight
+ * acts' tones and the nine shared colours come to 33.
  */
 export const FULL_PALETTE: Colour[] = [
   INK,
   SHADOW,
   PAPER,
   BONE,
+  BLUSH,
   ...ACT_IDS.flatMap((a) => [...ACT_TONES[a]]),
   ...Object.values(THREAT),
 ];

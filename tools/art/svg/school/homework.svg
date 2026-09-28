@@ -1,12 +1,48 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
   <title>Homework</title>
-  <desc>A leaning stack of sheets, triangular in profile, with two dots for eyes and no mouth.</desc>
-  <!-- Wide at the bottom, tapering, and tilting right; the sheets never line up. -->
-  <path d="M6 96 L90 96 L88 86 L91 82 L84 70 L86 66 L78 54 L79 50 L72 38 L73 34 L68 16 L58 22 L50 34 L44 40 L36 52 L30 56 L22 68 L18 72 L12 84 L8 86 Z" fill="#D2C6AC"/>
-  <path d="M8 88 L90 86 L89 82 L11 84 Z" fill="#6E6353"/>
-  <path d="M17 72 L86 68 L84 64 L20 68 Z" fill="#6E6353"/>
-  <path d="M29 56 L79 52 L77 48 L32 52 Z" fill="#6E6353"/>
-  <path d="M43 40 L73 37 L72 33 L46 36 Z" fill="#6E6353"/>
-  <ellipse cx="61" cy="26" rx="2.8" ry="4.2" fill="#2A2521"/>
-  <ellipse cx="69" cy="25" rx="2.8" ry="4.2" fill="#2A2521"/>
+  <desc>A chubby leaning stack of sheets, triangular in profile with soft rounded corners, a sheet sticking out on each side, and a content little face on the front: big ink eyes with one bone glint each, blush, a small smile.</desc>
+  <!--
+    Homework (SCHOOL-ROSTER section 3.3), in the greeting-card register
+    (ART-DIRECTION section 2026-09-28, G-053). Law 5: homework has a face.
+
+    Silhouette (law 11): the wedge. A leaning stack, triangular in profile,
+    wide at the floor and tapering to a rounded top that leans right; every
+    corner has a radius of at least an eighth of the stack. Paper that is
+    deliberately not a rectangle (the bright hard rectangle is the
+    substitute's): the sides are long slopes, and one loose sheet pokes out
+    of each side so the sheets never line up.
+
+    No threat colour at all: it does no damage, it takes the room (G-029).
+    The sheets are bone, the strata between them shadow. The face is content,
+    not doing anything to anyone: two big ink eyes with one bone glint each,
+    blush under them, a small pleased mouth. The stack is one bone mass, and
+    a bone glint on bone is no glint, so the mass carries none (glints are
+    bone on an enemy, never paper, law 10).
+    CONFORM adds the outline; there is none here and no strokes.
+    Colours: bone #D2C6AC, shadow #6E6353, ink #2A2521, blush #EBA39C.
+  -->
+  <defs>
+    <clipPath id="stack">
+      <path d="M20,94 L82,94 Q94,94 90.2,82.6 L71,24.9 Q64,4 52.4,22.7 L14.3,83.8 Q8,94 20,94 Z"/>
+    </clipPath>
+  </defs>
+  <!-- loose sheets, one poking out of each side -->
+  <rect x="11" y="63.5" width="26" height="7.5" rx="3.7" transform="rotate(-7 24 67)" fill="#D2C6AC"/>
+  <rect x="64" y="37" width="20" height="7" rx="3.5" transform="rotate(9 74 40.5)" fill="#D2C6AC"/>
+  <!-- the stack -->
+  <path d="M20,94 L82,94 Q94,94 90.2,82.6 L71,24.9 Q64,4 52.4,22.7 L14.3,83.8 Q8,94 20,94 Z" fill="#D2C6AC"/>
+  <!-- strata between the sheets, tilting with the lean -->
+  <g clip-path="url(#stack)" fill="#6E6353">
+    <path d="M0,84.5 L100,81.5 L100,84.7 L0,87.7 Z"/>
+    <path d="M0,73 L100,70 L100,73.2 L0,76.2 Z"/>
+    <path d="M0,34.5 L100,31.5 L100,34.7 L0,37.7 Z"/>
+  </g>
+  <!-- face, on the front of the stack -->
+  <ellipse cx="52.5" cy="50" rx="4.8" ry="5.8" fill="#2A2521"/>
+  <ellipse cx="66.5" cy="50" rx="4.8" ry="5.8" fill="#2A2521"/>
+  <circle cx="50.8" cy="47.6" r="1.9" fill="#D2C6AC"/>
+  <circle cx="64.8" cy="47.6" r="1.9" fill="#D2C6AC"/>
+  <ellipse cx="45.5" cy="59" rx="4.2" ry="2.6" fill="#EBA39C"/>
+  <ellipse cx="73.5" cy="59" rx="4.2" ry="2.6" fill="#EBA39C"/>
+  <path d="M55.6,58.4 Q59.5,64.6 63.4,58.4 Q59.5,61.2 55.6,58.4 Z" fill="#2A2521"/>
 </svg>

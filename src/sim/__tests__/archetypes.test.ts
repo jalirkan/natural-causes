@@ -5,9 +5,10 @@ import { ITEMS, cooldownScale, damageScale, isActive, levelBonus, type ActiveIte
 import { BOSS_RADIUS, STRIKE_DELAY, SWEEP_SECONDS, World, type EnemyState } from '../world';
 
 /**
- * G-044: the three classic archetypes. Personal Space is an aura (always on,
- * each enemy once per cooldown), Backhand a sweep (an arc along the facing on
- * its cooldown), Judgement a strike (a random target in range, a telegraph,
+ * G-044: the three classic archetypes, G-054's kid's things. Cooties (id
+ * personal-space) is an aura (always on, each enemy once per cooldown),
+ * Rattle (id backhand) a sweep (an arc along the facing on its cooldown),
+ * Tattle (id judgement) a strike (a random target in range, a telegraph,
  * then a one-shot area where the target was).
  */
 
@@ -89,7 +90,7 @@ function withBoss(w: World) {
 const DT = 1 / 60;
 const still = { moveX: 0, moveY: 0 };
 
-describe('Personal Space: an aura', () => {
+describe('Cooties (personal-space): an aura', () => {
   it('hurts what stands in its ring and nothing outside it', () => {
     const w = world({ 'personal-space': 1 });
     const near = place(w, 60, 0);
@@ -173,7 +174,7 @@ describe('Personal Space: an aura', () => {
   });
 });
 
-describe('Backhand: a sweep', () => {
+describe('Rattle (backhand): a sweep', () => {
   it('swings along the facing: in front is hit, behind is not', () => {
     const w = world({ backhand: 1 });
     const front = place(w, 80, 0);
@@ -263,7 +264,7 @@ describe('Backhand: a sweep', () => {
   });
 });
 
-describe('Judgement: a strike', () => {
+describe('Tattle (judgement): a strike', () => {
   /** Three pairs, each pair closer together than the bolt's radius, far from the others. */
   function pairs(w: World): EnemyState[][] {
     return [

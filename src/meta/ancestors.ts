@@ -1,5 +1,6 @@
 import type { Certificate } from '../sim/world';
-import { ageYears } from '../scenes/certificate';
+import { RULES, type RuleId } from '../sim/rules';
+import { ageYears, hudRules } from '../scenes/certificate';
 
 /**
  * The ancestor log: every life that ends is remembered, and the title shows
@@ -25,6 +26,13 @@ export interface Ancestor {
    * carry none and print as they always did. Nothing is migrated.
    */
   name?: string;
+  /**
+   * The rules the life was played under (G-055), as the certificate had them.
+   * Kept only for a ruled life: a record without them — every one written
+   * before rules existed, and every plain life since — reads as none. Nothing
+   * is migrated.
+   */
+  rules?: RuleId[];
 }
 
 /** One key, beside `nc-muted`. */
@@ -50,8 +58,18 @@ function isAncestor(a: unknown): a is Ancestor {
     typeof r.age === 'number' &&
     typeof r.cause === 'string' &&
     typeof r.at === 'number' &&
-    (r.name === undefined || typeof r.name === 'string')
+    (r.name === undefined || typeof r.name === 'string') &&
+    (r.rules === undefined || (Array.isArray(r.rules) && r.rules.every(isRule)))
   );
+}
+
+/**
+ * A rule the registry holds. A record naming one it does not (a later build's
+ * rule, a hand-edited key) is unreadable, and so reads as nobody, as any
+ * other malformed entry does: an obituary cannot print a rule it cannot name.
+ */
+function isRule(id: unknown): id is RuleId {
+  return typeof id === 'string' && Object.prototype.hasOwnProperty.call(RULES, id);
 }
 
 /** Oldest first, as stored. Anything unreadable reads as nobody. */
@@ -83,6 +101,8 @@ export function recordLife(cert: Certificate, name?: string): void {
       at: Date.now(),
     };
     if (name?.trim()) life.name = name.trim();
+    // Read defensively: inside this try, a throw would lose the life unseen.
+    if (cert.rules && cert.rules.length > 0) life.rules = [...cert.rules];
     list.push(life);
     s.setItem(ANCESTORS_KEY, JSON.stringify(list.slice(-ANCESTORS_CAP)));
   } catch {
@@ -99,11 +119,14 @@ export function recentLives(n: number): Ancestor[] {
 /**
  * One line on the title, in the certificate's words but as an obituary:
  * "Nobody · Age 9 · School · Homework", or "Justin · Age 12 · natural causes"
- * for the win. A life recorded before names existed prints without one.
+ * for the win. A life recorded before names existed prints without one. A
+ * ruled life (G-055) ends with its rules as the HUD named them:
+ * "Age 9 · School · Homework · couch potato".
  */
 export function obituary(a: Ancestor): string {
   const who = a.name?.trim() ? `${a.name.trim()} · ` : '';
   const age = `${who}Age ${ageYears(a.age)}`;
-  if (a.outcome === 'won') return `${age} · natural causes`;
-  return `${age} · ${a.actName} · ${a.cause}`;
+  const rules = a.rules && a.rules.length > 0 ? ` · ${hudRules(a.rules)}` : '';
+  if (a.outcome === 'won') return `${age} · natural causes${rules}`;
+  return `${age} · ${a.actName} · ${a.cause}${rules}`;
 }

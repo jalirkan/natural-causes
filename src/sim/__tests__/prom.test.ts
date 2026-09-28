@@ -323,6 +323,7 @@ describe('(e) at zero the act ends, the way any act ends', () => {
     age: ADOLESCENCE.age.to,
     causeId: 'natural-causes',
     cause: 'natural causes',
+    rules: [],
   };
 
   it('Adolescence alone: zero is the win, of natural causes, aged 18, on SMILE', () => {

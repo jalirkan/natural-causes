@@ -57,7 +57,9 @@ export type ItemIcon =
   // Born in Family (G-050): the Strongly Worded Letter.
   | 'letter'
   // Born in Decline (G-051): the Nap's armchair, empty.
-  | 'nap';
+  | 'nap'
+  // G-054's new control: Cry's teardrop, held at the top of its ring.
+  | 'cry';
 
 interface ItemBase {
   id: string;
@@ -120,9 +122,11 @@ export interface LevelBonus {
   /** Multiplier on radius: burst, trail, pull, shot size, orbit distance. */
   area?: number;
   /**
-   * Multiplier on how long a trail or attractor lasts. On a `nap` it is how
-   * long the player sleeps, and below 1 is the upgrade: a nap that ends
-   * sooner heals the same amount faster (Power Nap).
+   * Multiplier on how long a trail or attractor lasts, and a burst's puddle
+   * (Spilt Milk, G-054). On a `nap` it is how long the player sleeps, and
+   * below 1 is the upgrade: a nap that ends sooner heals the same amount
+   * faster (Power Nap). On a `cry` it is how long its slow holds (Longer),
+   * never how long the ring takes to spread.
    */
   duration?: number;
   /** A burst repeats once, 0.25s later, wherever the player is then. */
@@ -161,7 +165,7 @@ export interface ItemLevel extends LevelBonus {
 
 /**
  * A branch of a weapon (G-043): a named direction its owner can push it in,
- * offered as its own card ("Grudge · Company") once the weapon has opened
+ * offered as its own card ("Mobile · Lullaby") once the weapon has opened
  * (`PATH_OPENS_AT`), levelled separately from the weapon, and read into the
  * same `LevelBonus` total as the weapon's own levels. Every field is
  * cumulative like a weapon's levels. A path has no `enables`/`tradesAway`:
@@ -223,13 +227,29 @@ export interface ActiveItem extends ItemBase {
    * after a telegraph, lands a one-shot area of `radius` where it was (G-044).
    * `nap` never fires either: it waits for health to fall under its
    * `nap.threshold` and then stops the player (Decline, G-051; world.ts `nap`).
+   * `cry` (G-054) spreads a ring from where the player stands to `radius`
+   * over `range` seconds, on its cooldown; everything its edge crosses is
+   * shoved `knockback` px outward and slowed to `slow` for `slowSeconds`,
+   * once per cry (world.ts `updateCries`, `World.cries`).
    */
-  mode: 'seeking' | 'line' | 'burst' | 'trail' | 'attractor' | 'orbit' | 'field' | 'aura' | 'sweep' | 'strike' | 'nap';
+  mode:
+    | 'seeking'
+    | 'line'
+    | 'burst'
+    | 'trail'
+    | 'attractor'
+    | 'orbit'
+    | 'field'
+    | 'aura'
+    | 'sweep'
+    | 'strike'
+    | 'nap'
+    | 'cry';
   /**
    * Pixels. Meaning depends on mode: travel range, burst radius, pull radius,
    * orbit distance, a sweep's reach, a strike's targeting range. Seconds for
-   * `trail`, `field` and `nap` (how long the player sleeps). Unused by
-   * `aura`, whose ring is `radius`.
+   * `trail`, `field`, `nap` (how long the player sleeps) and `cry` (how long
+   * its ring takes to reach `radius`). Unused by `aura`, whose ring is `radius`.
    */
   range: number;
   /** Pixels per second. For `orbit`, the orbiters' speed along the circle. */
@@ -244,7 +264,10 @@ export interface ActiveItem extends ItemBase {
    * a path's levels into the same bonus total as the weapon's own.
    */
   paths?: ItemPath[];
-  /** Pixels a hit pushes a non-boss enemy away from the player. */
+  /**
+   * Pixels a hit pushes a non-boss enemy away from the player. On a `cry`,
+   * how far its edge shoves what it crosses, away from where it started.
+   */
   knockback?: number;
   /**
    * `sweep` only: the arc's full width, in radians, centred on the direction
@@ -255,9 +278,26 @@ export interface ActiveItem extends ItemBase {
    * `field`: the attractor's area with a hold instead of a pull. Inside it
    * enemies, every projectile and the player move at this fraction of their
    * speed; overlapping fields take the slowest, they do not multiply. On a
-   * `trail` (Rut, G-046) each footprint holds the same way as it hurts.
+   * `trail` (Baggage, G-046's Rut) each footprint holds the same way as it
+   * hurts. On a `cry` (G-054) what its edge crosses moves at this fraction
+   * for `slowSeconds`, by the same rule: the slowest hold on it wins.
    */
   slow?: number;
+  /**
+   * `cry` only (G-054): seconds the ring's `slow` stays on what it crossed,
+   * wherever the shove put it. `duration` (a level's, or the Longer path's)
+   * multiplies it.
+   */
+  slowSeconds?: number;
+  /**
+   * `burst` only (G-054, Spilt Milk and Tantrum): every burst, an echo's
+   * included, also leaves a puddle where it went off: `radius` times the
+   * burst's radius, lasting `seconds` (times `duration`), hurting nothing,
+   * and holding what stands in it at `slow` exactly as Baggage's footprints
+   * and Snooze's field hold (world.ts `slowAt`: the slowest area wins, so
+   * two puddles are one). It never holds the player (`AreaState.owner`).
+   */
+  puddle?: { radius: number; seconds: number; slow: number };
   /**
    * `field` only: the field is a hold on `World.holds` instead of an area —
    * the meeting's edge (OFFICE-ROSTER §3.4) turned inside out, placed by the
@@ -269,8 +309,8 @@ export interface ActiveItem extends ItemBase {
   /**
    * `strike` only: seconds from the pick to the landing. Absent means
    * `STRIKE_DELAY` (world.ts). Zero is no telegraph: the bolt lands on the
-   * step it is fired (Hindsight, G-046). Either way it is divided by the
-   * `speed` bonus (`strikeDelayAt`).
+   * step it is fired (Judgement, G-046's Hindsight). Either way it is
+   * divided by the `speed` bonus (`strikeDelayAt`).
    */
   strikeDelay?: number;
   /**
@@ -281,9 +321,10 @@ export interface ActiveItem extends ItemBase {
   strikeNearest?: boolean;
   /**
    * `strike` only: what the card calls one landing, and more than one
-   * (item-text.ts `strikeNoun`): the Letter's `letter`/`letters`, where the
-   * card would otherwise print Judgement's `bolt`/`bolts` (AUDIT 104). Words
-   * on the card only; the sim never reads it.
+   * (item-text.ts `strikeNoun`): the Letter's `letter`/`letters` and Tattle's
+   * `tattle`/`tattles`, where the card would otherwise print `bolt`/`bolts`
+   * (AUDIT 104), as Judgement's does. Words on the card only; the sim never
+   * reads it.
    */
   noun?: { one: string; many: string };
   /**
@@ -384,7 +425,7 @@ export const ITEMS: Record<string, ItemDef> = {
   // --- 4.1 Weapons ------------------------------------------------------
   lash: {
     id: 'lash',
-    name: 'Reflex',
+    name: 'Pointing',
     kind: 'weapon',
     mode: 'seeking',
     cooldown: 0.55,
@@ -395,17 +436,17 @@ export const ITEMS: Record<string, ItemDef> = {
     pierce: 1,
     maxLevel: 8,
     icon: 'strike',
-    blurb: 'Flinches at whatever is nearest. It got you this far.',
+    blurb: 'Points at whatever is nearest. It got you this far.',
     levels: table(
       [
-        'Flinches at whatever is nearest. It got you this far.',
-        'Flinches harder. It has had practice.',
-        'A second flinch, at the next-nearest thing.',
-        'Flinches straight through one thing into another.',
-        'A third flinch. Nobody nearby is safe.',
-        'Harder still. You do not even notice anymore.',
-        'A fourth flinch. It is basically a personality.',
-        'Every flinch goes through one more of them.',
+        'Points at whatever is nearest. It got you this far.',
+        'Points harder. It has had practice.',
+        'A second finger, at the next-nearest thing.',
+        'Points straight through one thing at another.',
+        'A third finger. You were told it was rude.',
+        'Harder still. You point with your whole arm now.',
+        'A fourth. It is basically a personality now.',
+        'Every point goes through one more. Everyone feels seen.',
       ],
       { 3: { projectiles: 1 }, 4: { pierce: 1 }, 5: { projectiles: 1 }, 7: { projectiles: 1 }, 8: { pierce: 1 } },
     ),
@@ -418,14 +459,14 @@ export const ITEMS: Record<string, ItemDef> = {
     paths: [
       {
         id: 'twitch',
-        name: 'Twitch',
-        blurb: 'Flinches sooner every time. It saw that coming.',
+        name: 'Poke',
+        blurb: 'Points sooner. You were asked to stop poking.',
         maxLevel: 3,
         levels: table(
           [
-            'Flinches sooner. You were already braced.',
-            'Sooner again. You flinch at your own shadow.',
-            'Before anything happens. Jumpy is a lifestyle.',
+            'Sooner. You were asked nicely to stop.',
+            'Sooner again. You were asked less nicely.',
+            'Before anything happens. Poke, poke, poke.',
           ],
           {},
           each(1, 3, { cooldown: 0.85 }),
@@ -433,14 +474,14 @@ export const ITEMS: Record<string, ItemDef> = {
       },
       {
         id: 'overreaction',
-        name: 'Overreaction',
-        blurb: 'Every flinch hits harder than the thing deserved.',
+        name: 'Blame',
+        blurb: 'Hits harder. It was them, and you can prove it.',
         maxLevel: 3,
         levels: table(
           [
-            'Harder than it needed to be. Much harder.',
-            'Harder again. Someone brushed past you.',
-            'Wildly out of proportion. It felt justified.',
+            'Harder. It was definitely them.',
+            'Harder again. You saw them do it.',
+            'As hard as it gets. They started it.',
           ],
           {},
           each(1, 3, { damage: 1.25 }),
@@ -448,13 +489,13 @@ export const ITEMS: Record<string, ItemDef> = {
       },
       {
         id: 'nerves',
-        name: 'Nerves',
-        blurb: 'More flinches at once. Everything is a threat now.',
+        name: 'Both Hands',
+        blurb: 'More fingers at once. Everyone did it.',
         maxLevel: 2,
         levels: table(
           [
-            'One more flinch at once. You are on edge.',
-            'Another. You have not relaxed since conception.',
+            'One more at once. You found your other hand.',
+            'Another. You are using your feet as well.',
           ],
           {},
           each(1, 2, { projectiles: 1 }),
@@ -469,7 +510,7 @@ export const ITEMS: Record<string, ItemDef> = {
 
   motility: {
     id: 'motility',
-    name: 'Stubbornness',
+    name: 'Spitball',
     kind: 'weapon',
     mode: 'line',
     cooldown: 0.9,
@@ -484,27 +525,27 @@ export const ITEMS: Record<string, ItemDef> = {
     levels: table(
       [
         'Forward, harder. The only direction you believe in.',
-        'Harder. You have made your mind up.',
-        'One shot backwards. You hate that it works.',
-        'Harder again. Nobody talks you out of anything.',
-        'Two more, either side of forward. Still forward.',
-        'Harder. The direction has become a principle.',
-        'Wider shots. The line is now a lane.',
-        'At full strength. You were right all along.',
+        'Harder. You chewed it longer.',
+        'One over your shoulder. The teacher was looking.',
+        'Harder again. It hits the board with a slap.',
+        'Two more, either side of forward. A whole page, chewed.',
+        'Harder. They stick where they land.',
+        'Wider shots. You used the whole worksheet.',
+        'At full strength. Detention was worth it.',
       ],
       { 3: { projectiles: 1 }, 5: { projectiles: 2 }, 7: { area: 1.35 } },
     ),
     paths: [
       {
         id: 'conviction',
-        name: 'Conviction',
-        blurb: 'Hits harder. You are not changing your mind.',
+        name: 'Soggy',
+        blurb: 'Hits harder. You chewed it for a whole lesson.',
         maxLevel: 3,
         levels: table(
           [
-            'Harder. You have never once been wrong.',
-            'Harder again. Evidence only makes it worse.',
-            'Unshakeable. You would die on this hill.',
+            'Harder. It is wetter than it needs to be.',
+            'Harder again. You chewed it through lunch.',
+            'As wet as it gets. Nobody will touch it.',
           ],
           {},
           each(1, 3, { damage: 1.25 }),
@@ -512,14 +553,14 @@ export const ITEMS: Record<string, ItemDef> = {
       },
       {
         id: 'momentum',
-        name: 'Momentum',
-        blurb: 'Faster shots. Stopping was never the plan.',
+        name: 'Straw',
+        blurb: 'Faster shots. You found a straw.',
         maxLevel: 3,
         levels: table(
           [
-            'Faster. You decided before you left.',
-            'Faster again. Brakes are for people with doubts.',
-            'Nothing slows it down. Nothing ever has.',
+            'Faster. The straw from lunch.',
+            'Faster again. A bendy straw, straightened.',
+            'Nothing slows it down. It is a pea-shooter now.',
           ],
           {},
           each(1, 3, { speed: 1.3 }),
@@ -527,14 +568,14 @@ export const ITEMS: Record<string, ItemDef> = {
       },
       {
         id: 'broadside',
-        name: 'Broadside',
-        blurb: 'More shots at once. Stubborn in several directions.',
+        name: 'Back Row',
+        blurb: 'More shots at once. The back row is in on it.',
         maxLevel: 3,
         levels: table(
           [
-            'One more shot. Still forward, just more of it.',
-            'Another. You are right in more directions now.',
-            'Another. A whole front of being right.',
+            'One more shot. Your friend has a straw too.',
+            'Another. The whole back row is loaded.',
+            'Another. It is a class activity now.',
           ],
           {},
           each(1, 3, { projectiles: 1 }),
@@ -549,7 +590,7 @@ export const ITEMS: Record<string, ItemDef> = {
 
   acrosome: {
     id: 'acrosome',
-    name: 'Temper',
+    name: 'Spilt Milk',
     kind: 'weapon',
     mode: 'burst',
     cooldown: 1.4,
@@ -558,19 +599,23 @@ export const ITEMS: Record<string, ItemDef> = {
     projectileSpeed: 0,
     radius: 96,
     pierce: 99,
+    // G-054: every burst leaves a puddle that holds what stands in it.
+    // PLACEHOLDER, all three: a person playing Spilt Milk at the link moves
+    // them (Conception's `provisional`, its weapon tables clause).
+    puddle: { radius: 0.8, seconds: 2.5, slow: 0.6 },
     maxLevel: 8,
     icon: 'burst',
-    blurb: 'Hurts everything you touch. You will have to touch them.',
+    blurb: 'Goes everywhere at once. You will have to be near it.',
     levels: table(
       [
-        'Hurts everything you touch. You will have to touch them.',
-        'Reaches a little further. So does your reputation.',
-        'Wider again. People have started to step back.',
-        'Goes off twice. The second one is about the first.',
-        'Wider. Everyone within reach has an opinion now.',
-        'Wider still. It is not you, it is everyone.',
-        'Wider. The room goes quiet when you walk in.',
-        'As wide as it gets. Something has to give.',
+        'Goes everywhere at once. You will have to be near it.',
+        'Spreads a little further. It found the rug.',
+        'Wider again. It is under the fridge now.',
+        'Spills twice. The second glass was to help.',
+        'Wider. There is no use crying over it.',
+        'Wider still. It reached the dog.',
+        'Wider. Everyone lifts their feet.',
+        'As wide as it gets. The floor is mostly milk.',
       ],
       { 4: { echo: true } },
       each(2, 8, { area: 1.1 }),
@@ -578,14 +623,14 @@ export const ITEMS: Record<string, ItemDef> = {
     paths: [
       {
         id: 'short-fuse',
-        name: 'Short Fuse',
-        blurb: 'Goes off sooner. It never took much.',
+        name: 'Butterfingers',
+        blurb: 'Spills sooner. You were holding it wrong.',
         maxLevel: 3,
         levels: table(
           [
-            'Sooner. It does not take much any more.',
-            'Sooner again. Breakfast was enough.',
-            'Goes off at nothing. Everyone walks on eggshells.',
+            'Sooner. You were not looking.',
+            'Sooner again. Both hands, and still.',
+            'Spills at nothing. You get a sippy cup now.',
           ],
           {},
           each(1, 3, { cooldown: 0.85 }),
@@ -593,14 +638,14 @@ export const ITEMS: Record<string, ItemDef> = {
       },
       {
         id: 'blast-radius',
-        name: 'Blast Radius',
-        blurb: 'Wider. The bystanders are involved now.',
+        name: 'Full Carton',
+        blurb: 'Wider. It was a full one.',
         maxLevel: 3,
         levels: table(
           [
-            'Wider. The next table can hear it.',
-            'Wider again. The neighbours can hear it.',
-            'The whole street heard. Nobody mentions it.',
+            'Wider. It was a new carton.',
+            'Wider again. It was the big one.',
+            'The whole kitchen. Nobody mentions it.',
           ],
           {},
           each(1, 3, { area: 1.15 }),
@@ -608,14 +653,14 @@ export const ITEMS: Record<string, ItemDef> = {
       },
       {
         id: 'slammed-door',
-        name: 'Slammed Door',
-        blurb: 'Throws them back. You needed the room anyway.',
+        name: 'Slippery',
+        blurb: 'Throws them back. Nobody keeps their feet.',
         maxLevel: 3,
         levels: table(
           [
-            'Pushes them away. The frame rattles.',
-            'Further. The pictures fall off the wall.',
-            'Further still. The door will not close again.',
+            'Pushes them away. Someone slipped.',
+            'Further. Someone went right over.',
+            'Further still. Nobody is standing up.',
           ],
           {},
           each(1, 3, { knockback: 25 }),
@@ -623,14 +668,14 @@ export const ITEMS: Record<string, ItemDef> = {
       },
     ],
     enables:
-      'A body-check build that wants to be inside the crowd rather than away from it, and the only weapon in the act that scales with how bad the player’s position is. Maxed beside Restlessness, it becomes Tantrum.',
+      'A body-check build that wants to be inside the crowd rather than away from it, and the only weapon in the act that scales with how bad the player’s position is; the puddle it leaves holds whatever walks in after. Maxed beside Restlessness, it becomes Tantrum.',
     tradesAway:
-      'Range, entirely. It cannot touch the spermicide ring, it cannot open on a white cell safely, and every use of it is paid for in contact damage first.',
+      'Range, entirely. It cannot touch the spermicide ring, it cannot open on a white cell safely, and every use of it is paid for in contact damage first. The puddle holds, it never hurts.',
   },
 
   wake: {
     id: 'wake',
-    name: 'Baggage',
+    name: 'Legos',
     kind: 'weapon',
     mode: 'trail',
     cooldown: 0.18,
@@ -645,13 +690,13 @@ export const ITEMS: Record<string, ItemDef> = {
     levels: table(
       [
         'Everything behind you regrets it. Keep moving.',
-        'Lingers longer. You never quite put it down.',
-        'Lingers longer. Some of it is still from school.',
-        'Longer again. It follows you into every room.',
-        'Wider and longer. You take up two seats now.',
-        'Longer. You have stopped noticing the weight.',
-        'Longer. It has its own luggage.',
-        'The widest trail you can carry. Keep moving.',
+        'Lingers longer. Nobody tidies them up.',
+        'Longer again. Some are from last Christmas.',
+        'Longer. They follow you into every room.',
+        'Wider and longer. You got another set for your birthday.',
+        'Longer. You no longer feel them underfoot.',
+        'Longer. They have their own box, which is empty.',
+        'Every piece you own, behind you. Keep moving.',
       ],
       { 5: { area: 1.2 }, 8: { area: 1.2 } },
       each(2, 8, { duration: 1.15 }),
@@ -659,14 +704,14 @@ export const ITEMS: Record<string, ItemDef> = {
     paths: [
       {
         id: 'hoarding',
-        name: 'Hoarding',
-        blurb: 'Lingers longer. You never throw anything away.',
+        name: 'Lost Pieces',
+        blurb: 'Lingers longer. Nobody ever finds the last one.',
         maxLevel: 3,
         levels: table(
           [
-            'Lingers longer. You kept the receipts.',
-            'Longer again. The boxes have boxes.',
-            'It never goes. You might need it someday.',
+            'Longer. One went under the couch.',
+            'Longer again. One is in the vent now.',
+            'It never goes. You will find it in your forties.',
           ],
           {},
           each(1, 3, { duration: 1.25 }),
@@ -674,14 +719,14 @@ export const ITEMS: Record<string, ItemDef> = {
       },
       {
         id: 'dead-weight',
-        name: 'Dead Weight',
-        blurb: 'Hurts more. Some of it was always heavy.',
+        name: 'Corner Up',
+        blurb: 'Hurts more. Every one of them lands corner up.',
         maxLevel: 3,
         levels: table(
           [
-            'Heavier. It hurts whoever steps in it.',
-            'Heavier again. You feel it in your back.',
-            'The heaviest thing you own. You still own it.',
+            'Sharper. It landed corner up.',
+            'Sharper again. You heard someone yell.',
+            'The sharpest one you own. Always found barefoot.',
           ],
           {},
           each(1, 3, { damage: 1.25 }),
@@ -689,14 +734,14 @@ export const ITEMS: Record<string, ItemDef> = {
       },
       {
         id: 'sprawl',
-        name: 'Sprawl',
-        blurb: 'A wider trail. Your things are everywhere.',
+        name: 'Big Set',
+        blurb: 'A wider trail. You tipped out the big set.',
         maxLevel: 3,
         levels: table(
           [
-            'Wider. It spills into the next lane.',
-            'Wider again. It needs a room of its own.',
-            'Wider still. It takes up the whole hallway.',
+            'Wider. It has a castle in it.',
+            'Wider again. It has a spaceship too.',
+            'Wider still. It covers the whole hallway.',
           ],
           {},
           each(1, 3, { area: 1.15 }),
@@ -715,8 +760,8 @@ export const ITEMS: Record<string, ItemDef> = {
     name: 'Tantrum',
     kind: 'weapon',
     mode: 'burst',
-    // PLACEHOLDER: bigger and faster than a maxed Temper, and nothing more
-    // considered than that.
+    // PLACEHOLDER: bigger and faster than a maxed Spilt Milk, and nothing
+    // more considered than that.
     cooldown: 0.8,
     damage: 7,
     range: 210,
@@ -724,20 +769,23 @@ export const ITEMS: Record<string, ItemDef> = {
     radius: 210,
     pierce: 99,
     knockback: 70,
+    // G-054: Spilt Milk's puddle, kept through the evolution. PLACEHOLDER,
+    // all three, as Spilt Milk's are.
+    puddle: { radius: 0.8, seconds: 2.5, slow: 0.6 },
     maxLevel: 1,
     icon: 'burst',
     blurb: 'Everything nearby, at once, and then further away.',
     levels: table(['Everything nearby, at once, and then further away.']),
     evolvesFrom: { weapon: 'acrosome', with: 'midpiece' },
     enables:
-      'The Temper build finished: the burst that needed the player inside the crowd now throws the crowd back out of it, so standing in the middle stops being the price of the weapon.',
+      'The Spilt Milk build finished: the burst that needed the player inside the crowd now throws the crowd back out of it, so standing in the middle stops being the price of the weapon.',
     tradesAway:
-      'Temper, which it replaces, and the choosing: it is offered alone the moment it is possible. The knockback also scatters a crowd that Charisma or Baggage wanted kept together.',
+      'Spilt Milk, which it replaces, and the choosing: it is offered alone the moment it is possible. The knockback also scatters a crowd that Candy or Legos wanted kept together.',
   },
 
   grudge: {
     id: 'grudge',
-    name: 'Grudge',
+    name: 'Mobile',
     kind: 'weapon',
     mode: 'orbit',
     // Orbit never activates; this is how often one orbiter may hit one enemy.
@@ -753,27 +801,27 @@ export const ITEMS: Record<string, ItemDef> = {
     levels: table(
       [
         'You keep it close. It keeps going round.',
-        'Hits harder. You have been rehearsing it.',
-        'A second grudge. They keep each other company.',
-        'Held a little further out. Still close.',
-        'A third. You have a rotation now.',
-        'Harder. You remember exactly what they said.',
-        'A fourth. You never forgot a single one.',
-        'The widest circle of grievance. Keep it turning.',
+        'Hits harder. It is wound up tighter.',
+        'A second thing on a string. A little moon.',
+        'Hung a little further out. Still close.',
+        'A third. There is a star now.',
+        'Harder. It clonks whoever leans in.',
+        'A fourth. A duck, for some reason.',
+        'The widest circle it makes. Keep it turning.',
       ],
       { 3: { projectiles: 1 }, 4: { area: 1.15 }, 5: { projectiles: 1 }, 7: { projectiles: 1 }, 8: { area: 1.15 } },
     ),
     paths: [
       {
         id: 'company',
-        name: 'Company',
-        blurb: 'More fists. A grudge loves company.',
+        name: 'The Farm',
+        blurb: 'More things on strings. The farm came too.',
         maxLevel: 3,
         levels: table(
           [
-            'One more fist. It found an old friend.',
-            'Another. They meet on Thursdays.',
-            'Another. It is a support group now.',
+            'One more hanging. A cow, on a string.',
+            'Another. The pig was always going to be next.',
+            'Another. It is a whole farm up there.',
           ],
           {},
           each(1, 3, { projectiles: 1 }),
@@ -781,14 +829,14 @@ export const ITEMS: Record<string, ItemDef> = {
       },
       {
         id: 'spiralling',
-        name: 'Spiralling',
-        blurb: 'Faster round. You cannot stop thinking about it.',
+        name: 'Lullaby',
+        blurb: 'Faster round. The tune keeps going.',
         maxLevel: 3,
         levels: table(
           [
-            'Faster. You went over it again last night.',
-            'Faster again. You replay it in the shower.',
-            'It never stops. You win the argument every time.',
+            'Faster. The tune is stuck in your head.',
+            'Faster again. You hum it at night.',
+            'It never stops. You will hum it at your wedding.',
           ],
           {},
           each(1, 3, { speed: 1.3 }),
@@ -796,14 +844,14 @@ export const ITEMS: Record<string, ItemDef> = {
       },
       {
         id: 'weight',
-        name: 'Weight',
-        blurb: 'Hits harder. It gets heavier every year.',
+        name: 'Wooden Ones',
+        blurb: 'Hits harder. Somebody hung the wooden ones.',
         maxLevel: 3,
         levels: table(
           [
-            'Heavier. You add to it every day.',
-            'Heavier again. It is accruing interest.',
-            'It weighs a ton. You would never put it down.',
+            'Heavier. The felt ones were swapped out.',
+            'Heavier again. There is a brass bell.',
+            'It weighs a ton. The ceiling hook is worried.',
           ],
           {},
           each(1, 3, { damage: 1.3 }),
@@ -811,16 +859,17 @@ export const ITEMS: Record<string, ItemDef> = {
       },
     ],
     enables:
-      'A build that stands its ground: the orbiters work at a fixed short distance whatever the player does, so it pairs with anything that brings the crowd close — Charisma, Thick Skin, Temper.',
+      'A build that stands its ground: the orbiters work at a fixed short distance whatever the player does, so it pairs with anything that brings the crowd close — Candy, Thick Skin, Spilt Milk.',
     tradesAway:
       'Reach. It never touches anything further than one orbit away, a fast enemy slips through the gap between orbiters, and it cannot aim at anything at all.',
   },
 
-  // G-041: the weapon is Gossip. Group Chat is the Adolescence enemy
-  // (ADOLESCENCE-ROSTER §3.5); the id stays so nothing that keys on it moves.
+  // G-054: the weapon is Telephone, the kids' game (G-041 had named it
+  // Gossip, because Group Chat is the Adolescence enemy, ADOLESCENCE-ROSTER
+  // §3.5). The id stays so nothing that keys on it moves.
   'group-chat': {
     id: 'group-chat',
-    name: 'Gossip',
+    name: 'Telephone',
     kind: 'weapon',
     mode: 'seeking',
     cooldown: 1.1,
@@ -831,31 +880,31 @@ export const ITEMS: Record<string, ItemDef> = {
     pierce: 1,
     maxLevel: 8,
     icon: 'chain',
-    blurb: 'Hits one, and then everyone it knows.',
+    blurb: 'Tells one, and then everyone it knows.',
     levels: table(
       [
-        'Hits one, and then everyone it knows.',
-        'Hits harder. Somebody screenshotted it.',
-        'Sends sooner. Someone is always typing.',
-        'Reaches one more person. It was not meant to.',
-        'Harder. Now it is a thread.',
-        'Sooner again. Everyone has notifications on.',
-        'Reaches one more. Nobody has left the chat.',
-        'At full volume. The whole school has seen it.',
+        'Tells one, and then everyone it knows.',
+        'Hits harder. It changed a little on the way.',
+        'Sooner. Someone is already whispering.',
+        'Reaches one more. It was not meant to.',
+        'Harder. It is not what you said any more.',
+        'Sooner again. Everyone leans in.',
+        'Reaches one more. The line goes round the room.',
+        'At full volume. The whole school heard it wrong.',
       ],
       { 1: { chain: 2 }, 4: { chain: 1 }, 7: { chain: 1 } },
     ),
     paths: [
       {
         id: 'mutuals',
-        name: 'Mutuals',
-        blurb: 'Jumps to more of them. Everyone knows someone.',
+        name: 'Pass It On',
+        blurb: 'Jumps to more of them. Pass it on.',
         maxLevel: 3,
         levels: table(
           [
-            'Reaches one more. You have a friend in common.',
-            'Another. They were in the same year.',
-            'Another. Nobody here is a stranger.',
+            'Reaches one more. Pass it on.',
+            'Another. Everyone passes it on.',
+            'Another. Nobody is left out of it.',
           ],
           {},
           each(1, 3, { chain: 1 }),
@@ -863,14 +912,14 @@ export const ITEMS: Record<string, ItemDef> = {
       },
       {
         id: 'screenshots',
-        name: 'Screenshots',
-        blurb: 'Hits harder. There is proof, and it is cropped.',
+        name: 'Garbled',
+        blurb: 'Hits harder. It got worse every time it was told.',
         maxLevel: 3,
         levels: table(
           [
-            'Harder. Somebody took a screenshot.',
-            'Harder again. It was cropped for context.',
-            'It will outlive you. Nothing is ever deleted.',
+            'Harder. A word changed.',
+            'Harder again. Most of the words changed.',
+            'It will outlive you. Nobody remembers the first one.',
           ],
           {},
           each(1, 3, { damage: 1.25 }),
@@ -878,14 +927,14 @@ export const ITEMS: Record<string, ItemDef> = {
       },
       {
         id: 'notifications',
-        name: 'Notifications',
-        blurb: 'Sends sooner. Nobody has their phone on silent.',
+        name: 'Cupped Hands',
+        blurb: 'Sends sooner. It only takes a whisper.',
         maxLevel: 3,
         levels: table(
           [
-            'Sooner. Someone is always typing.',
-            'Sooner again. The badge never clears.',
-            'Constant. You check it in your sleep.',
+            'Sooner. You barely had to whisper.',
+            'Sooner again. It went before you finished.',
+            'Constant. It is always going round.',
           ],
           {},
           each(1, 3, { cooldown: 0.85 }),
@@ -893,7 +942,7 @@ export const ITEMS: Record<string, ItemDef> = {
       },
     ],
     enables:
-      'A crowd-clearing build for a seeking player: one shot becomes three in a dense crowd, so it scales with exactly the density that ends a Reflex run.',
+      'A crowd-clearing build for a seeking player: one shot becomes three in a dense crowd, so it scales with exactly the density that ends a Pointing run.',
     tradesAway:
       'Anything alone. Against a single target — a white cell, the boss — the chain has nowhere to go and it is a slow, ordinary shot on a long cooldown.',
   },
@@ -901,7 +950,7 @@ export const ITEMS: Record<string, ItemDef> = {
   // --- 4.2 Control ------------------------------------------------------
   chemotaxis: {
     id: 'chemotaxis',
-    name: 'Charisma',
+    name: 'Candy',
     kind: 'control',
     mode: 'attractor',
     cooldown: 5.5,
@@ -912,14 +961,14 @@ export const ITEMS: Record<string, ItemDef> = {
     pierce: 0,
     maxLevel: 6,
     icon: 'pull',
-    blurb: 'Everything finds you attractive.',
+    blurb: 'Everything finds it. Everything finds you.',
     levels: table(
       [
-        'Everything finds you attractive.',
-        'Pulls from further. Your reputation precedes you.',
-        'Further. People cross rooms for this.',
-        'Further again. Strangers know your name.',
-        'Further. It is a problem, honestly.',
+        'Everything finds it. Everything finds you.',
+        'Pulls from further. It is the good kind.',
+        'Further. Word got round the playground.',
+        'Further again. You brought enough for everyone.',
+        'Further. You did not bring enough for everyone.',
         'As far as it goes. Everyone is coming over.',
       ],
       {},
@@ -933,14 +982,14 @@ export const ITEMS: Record<string, ItemDef> = {
     paths: [
       {
         id: 'magnetism',
-        name: 'Magnetism',
-        blurb: 'Pulls from further. They heard about you first.',
+        name: 'Wrapper',
+        blurb: 'Pulls from further. They heard the wrapper.',
         maxLevel: 3,
         levels: table(
           [
-            'Further. You come up at parties you missed.',
-            'Further again. Friends of friends have opinions.',
-            'From across town. Nobody remembers meeting you.',
+            'Further. They heard it from the next room.',
+            'Further again. They heard it from outside.',
+            'From across town. Nobody knows how.',
           ],
           {},
           each(1, 3, { area: 1.15 }),
@@ -948,14 +997,14 @@ export const ITEMS: Record<string, ItemDef> = {
       },
       {
         id: 'staying-power',
-        name: 'Staying Power',
-        blurb: 'The pull lasts longer. Nobody wants to leave first.',
+        name: 'Lollipop',
+        blurb: 'The pull lasts longer. It takes ages to finish.',
         maxLevel: 3,
         levels: table(
           [
-            'Longer. They stay for one more story.',
-            'Longer again. Somebody missed the last bus.',
-            'Nobody leaves. The party is wherever you are.',
+            'Longer. You are only halfway through it.',
+            'Longer again. It is stuck to your hair.',
+            'Nobody leaves. It is mostly stick now.',
           ],
           {},
           each(1, 3, { duration: 1.25 }),
@@ -963,14 +1012,14 @@ export const ITEMS: Record<string, ItemDef> = {
       },
       {
         id: 'small-talk',
-        name: 'Small Talk',
-        blurb: 'Pulls sooner. You never run out of things to say.',
+        name: 'Pocketful',
+        blurb: 'Pulls sooner. You never run out.',
         maxLevel: 3,
         levels: table(
           [
-            'Sooner. You remember everyone by name.',
-            'Sooner again. You ask about their weekend.',
-            'Sooner still. Even the wallflowers come over.',
+            'Sooner. You had another in your pocket.',
+            'Sooner again. Both pockets, and a sock.',
+            'Sooner still. You are mostly pockets now.',
           ],
           {},
           each(1, 3, { cooldown: 0.85 }),
@@ -978,7 +1027,7 @@ export const ITEMS: Record<string, ItemDef> = {
       },
     ],
     enables:
-      'Every area weapon in the act at once, by choosing where the crowd will be instead of reacting to it. It is the item that makes Temper and Baggage into builds rather than options.',
+      'Every area weapon in the act at once, by choosing where the crowd will be instead of reacting to it. It is the item that makes Spilt Milk and Legos into builds rather than options.',
     // Extended 2026-08-01 after Run 5 (§10.2). Chemotaxis is the largest
     // measured driver of antibody stacks in the act — r=+0.462, 6.7 against
     // 3.3 — and its text did not mention them. The mechanic is intended
@@ -986,6 +1035,105 @@ export const ITEMS: Record<string, ItemDef> = {
     // perceive is not a trade.
     tradesAway:
       'Its own damage, which is zero, and its safety margin: pulling a crowd into a tight point is exactly how a run ends for a player who has nothing to clear it with. It does not discriminate either, so it gathers the antibodies too, which are the one thing in the act that cannot be cleared at all.',
+  },
+
+  // G-054: Cry, the panic button, a kid's thing like the weapons and in the
+  // pool from conception. On its cooldown a ring spreads from where the
+  // player stands (`World.cries`, world.ts `updateCries`); everything its
+  // edge crosses is shoved outward, as a hit's knockback shoves (arena and
+  // meeting walls respected, the boss never moved), and slowed for a moment
+  // by the slowest-wins rule every hold uses. Once per enemy per cry; a
+  // hostile shot is untouched. It hurts nothing.
+  //
+  // PLACEHOLDER NUMBERS, every one, under Conception's `provisional` (its
+  // weapon tables clause): the cooldown, the ring's seconds and radius, the
+  // shove, the slow and its seconds, each level's bonus and every path value
+  // were written to make it playable, not measured. Nobody has played it; a
+  // person playing it at the link is what moves them. The copy carries no
+  // figures (G-043): the card prints them from these fields.
+  cry: {
+    id: 'cry',
+    name: 'Cry',
+    kind: 'control',
+    mode: 'cry',
+    cooldown: 12,
+    damage: 0,
+    // Seconds the ring takes to reach its edge.
+    range: 0.6,
+    projectileSpeed: 0,
+    // The ring's edge at its widest, px.
+    radius: 260,
+    pierce: 0,
+    // How far the edge shoves what it crosses, px, away from where it started.
+    knockback: 120,
+    // What it crosses moves at this fraction of its speed...
+    slow: 0.5,
+    // ...for this many seconds, wherever the shove put it.
+    slowSeconds: 1.2,
+    maxLevel: 5,
+    icon: 'cry',
+    blurb: 'Everything stops and looks. It is not about them.',
+    levels: table(
+      [
+        'Everything stops and looks. It is not about them.',
+        'Further. It carries to the next aisle.',
+        'They stay put longer. Everyone is staring.',
+        'Sooner. It takes less and less to start.',
+        'Further and longer. The whole shop has stopped.',
+      ],
+      { 2: { area: 1.1 }, 3: { duration: 1.2 }, 4: { cooldown: 0.9 }, 5: { area: 1.1, duration: 1.2 } },
+    ),
+    paths: [
+      {
+        id: 'louder',
+        name: 'Louder',
+        blurb: 'A wider ring. You found another octave.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Louder. The car alarm joined in.',
+            'Louder again. The dogs have opinions.',
+            'As loud as it gets. The windows hum.',
+          ],
+          {},
+          each(1, 3, { area: 1.15 }),
+        ),
+      },
+      {
+        id: 'longer',
+        name: 'Longer',
+        blurb: 'The stare lasts longer. You held the note.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Longer. You held your breath first.',
+            'Longer again. It outlasted the ice cream.',
+            'It never ends. Someone offers to carry you.',
+          ],
+          {},
+          each(1, 3, { duration: 1.25 }),
+        ),
+      },
+      {
+        id: 'again',
+        name: 'Again',
+        blurb: 'Sooner. You had one more left in you.',
+        maxLevel: 3,
+        levels: table(
+          [
+            'Sooner. It starts back up with no warning.',
+            'Sooner again. You were only resting.',
+            'Sooner still. Nobody remembers it stopping.',
+          ],
+          {},
+          each(1, 3, { cooldown: 0.85 }),
+        ),
+      },
+    ],
+    enables:
+      'A panic button for any build: every so often everything within reach is shoved back out of it and held while it turns round, so a cornered player gets a gap to walk through, and a trail, a strike or a sweep gets a crowd that arrives late.',
+    tradesAway:
+      'Damage, which is none, and choosing when: it goes off on its cooldown whether or not anything is close, a hostile shot flies straight through it, and it pushes the crowd out of reach of every close weapon the player holds — Cooties, Spilt Milk and Mobile most of all.',
   },
 
   // --- 4.3 Passives -----------------------------------------------------
@@ -1006,7 +1154,7 @@ export const ITEMS: Record<string, ItemDef> = {
     icon: 'speed',
     blurb: 'Faster, and your hands never stop.',
     enables:
-      'Every build that depends on not being touched, and every weapon at once through the cooldown. It is also what turns a maxed Temper into Tantrum.',
+      'Every build that depends on not being touched, and every weapon at once through the cooldown. It is also what turns a maxed Spilt Milk into Tantrum.',
     // G-038: it used to cost health (G-014). Its limit is now its shape.
     tradesAway:
       'Nothing on the stat line. Its limit is that it only multiplies: speed and cadence make a working build better, and a run with nothing worth repeating just fails sooner.',
@@ -1029,7 +1177,7 @@ export const ITEMS: Record<string, ItemDef> = {
     icon: 'guard',
     blurb: 'Things still hurt. Less.',
     enables:
-      'Standing inside the crowd on purpose, which is the precondition for the Temper build and the only way to farm the rival wave rather than outrun it.',
+      'Standing inside the crowd on purpose, which is the precondition for the Spilt Milk build and the only way to farm the rival wave rather than outrun it.',
     // G-038: it used to cost speed (G-014). The 2026-08-01 note (§10.3) still
     // holds — item text describes an item, not a policy — so the limit named
     // here is what the item does not do, not a loop it might feed.
@@ -1201,7 +1349,7 @@ export const ITEMS: Record<string, ItemDef> = {
       },
     ],
     enables:
-      'Builds that want the crowd held where it is: Baggage lays more trail over a crowd that crosses it at half speed, Temper and Grudge get twice as long with everything inside, and an aimed shot through the field arrives late enough to step round.',
+      'Builds that want the crowd held where it is: Legos lays more trail over a crowd that crosses it at half speed, Spilt Milk and Mobile get twice as long with everything inside, and an aimed shot through the field arrives late enough to step round.',
     tradesAway:
       'Escaping. The field is dropped where the player stands and holds the player too, so the one thing it cannot do is get anyone out of a crowd; a player caught inside it walks out at half speed with everything else.',
   },
@@ -1298,7 +1446,7 @@ export const ITEMS: Record<string, ItemDef> = {
       },
     ],
     enables:
-      'A breather build: for as long as it lasts nothing outside can reach the player and nothing inside can leave, so a cornered player gets a room with a fixed number of things in it, which is exactly what Temper, Personal Space and Grudge want.',
+      'A breather build: for as long as it lasts nothing outside can reach the player and nothing inside can leave, so a cornered player gets a room with a fixed number of things in it, which is exactly what Spilt Milk, Cooties and Mobile want.',
     tradesAway:
       'Anything but the walk: it deals nothing, slows nothing and stops no shot either way. It stays where it was put, it keeps whatever was already inside in there with the player, and a commute or a patrol walks straight through it.',
   },
@@ -1395,9 +1543,9 @@ export const ITEMS: Record<string, ItemDef> = {
       },
     ],
     enables:
-      'A build for everything else the player holds: whatever it marks takes more from every weapon, area, orbit, sweep and strike for a few seconds, so it multiplies Judgement, Temper and Grudge instead of competing with them, and it marks the boss as readily as the crowd.',
+      'A build for everything else the player holds: whatever it marks takes more from every weapon, area, orbit, sweep and strike for a few seconds, so it multiplies Tattle, Spilt Milk and Mobile instead of competing with them, and it marks the boss as readily as the crowd.',
     tradesAway:
-      'Damage of its own, which is barely any, and anything alone: held with nothing else it marks things nobody then hits, and like Reflex it marks whatever is nearest rather than whatever matters.',
+      'Damage of its own, which is barely any, and anything alone: held with nothing else it marks things nobody then hits, and like Pointing it marks whatever is nearest rather than whatever matters.',
   },
 
   // --- 4.5 The classic three (G-044) --------------------------------------
@@ -1412,7 +1560,7 @@ export const ITEMS: Record<string, ItemDef> = {
 
   'personal-space': {
     id: 'personal-space',
-    name: 'Personal Space',
+    name: 'Cooties',
     kind: 'weapon',
     mode: 'aura',
     // Aura never activates; this is how often one enemy inside may be hit again.
@@ -1425,16 +1573,16 @@ export const ITEMS: Record<string, ItemDef> = {
     pierce: 99,
     maxLevel: 8,
     icon: 'aura',
-    blurb: 'Whatever stands too close gets hurt. You did ask nicely.',
+    blurb: 'Whatever stands too close gets them. Circle, circle, dot, dot.',
     levels: table(
       [
-        'Whatever stands too close gets hurt. You did ask nicely.',
-        'A little more room. You need it.',
-        'More room again. People have started to notice.',
-        'It hurts more to be near you now.',
-        'Wider. You take both armrests.',
-        'Wider. Strangers cross the road.',
-        'It hurts more. Hugging is off the table.',
+        'Whatever stands too close gets them. Circle, circle, dot, dot.',
+        'A little more room. Nobody wants to catch it.',
+        'More room again. A note went round about it.',
+        'It hurts more to be near you. It is a bad case.',
+        'Wider. You get the whole bus seat.',
+        'Wider. The other class has heard.',
+        'It hurts more. There is no cootie shot for this.',
         'As much room as it gets. Nobody sits next to you.',
       ],
       { 2: { area: 1.1 }, 3: { area: 1.1 }, 4: { damage: 1.2 }, 5: { area: 1.1 }, 6: { area: 1.1 }, 7: { damage: 1.2 }, 8: { area: 1.1 } },
@@ -1442,14 +1590,14 @@ export const ITEMS: Record<string, ItemDef> = {
     paths: [
       {
         id: 'boundaries',
-        name: 'Boundaries',
-        blurb: 'A wider ring. You have been reading about this.',
+        name: 'Contagious',
+        blurb: 'A wider ring. It spreads if you breathe on them.',
         maxLevel: 3,
         levels: table(
           [
-            'Wider. You said it out loud this time.',
-            'Wider again. You have a therapist now.',
-            'As wide as it goes. It is healthy, apparently.',
+            'Wider. Someone sneezed.',
+            'Wider again. The whole row has it.',
+            'As wide as it goes. It is going round the school.',
           ],
           {},
           each(1, 3, { area: 1.15 }),
@@ -1457,14 +1605,14 @@ export const ITEMS: Record<string, ItemDef> = {
       },
       {
         id: 'cold-shoulder',
-        name: 'Cold Shoulder',
-        blurb: 'It hurts more to be near you. You do not look up.',
+        name: 'No Take-Backs',
+        blurb: 'It hurts more to be near you. No take-backs.',
         maxLevel: 3,
         levels: table(
           [
-            'Hurts more. You answer in single words.',
-            'Hurts more again. You have stopped answering.',
-            'It hurts to be in the same room as you.',
+            'Hurts more. Double cooties.',
+            'Hurts more again. Triple cooties.',
+            'It hurts to be in the same room. Cooties forever.',
           ],
           {},
           each(1, 3, { damage: 1.3 }),
@@ -1472,14 +1620,14 @@ export const ITEMS: Record<string, ItemDef> = {
       },
       {
         id: 'hovering',
-        name: 'Hovering',
-        blurb: 'They hover. It costs them sooner every time.',
+        name: 'Tag',
+        blurb: 'They keep coming back. They keep getting it again.',
         maxLevel: 3,
         levels: table(
           [
-            'Sooner. They are still standing there.',
-            'Sooner again. They read over your shoulder.',
-            'Sooner still. They have not taken the hint.',
+            'Sooner. They came back for more.',
+            'Sooner again. You are it, and so are they.',
+            'Sooner still. Nobody is safe at recess.',
           ],
           {},
           each(1, 3, { cooldown: 0.85 }),
@@ -1487,14 +1635,14 @@ export const ITEMS: Record<string, ItemDef> = {
       },
     ],
     enables:
-      'A build that never aims and never stops: the ring hurts whatever stands in it, so it rewards being inside the crowd for exactly as long as the player can afford it, and pairs with Thick Skin, Charisma and Grudge.',
+      'A build that never aims and never stops: the ring hurts whatever stands in it, so it rewards being inside the crowd for exactly as long as the player can afford it, and pairs with Thick Skin, Candy and Mobile.',
     tradesAway:
       'Reach and burst. It touches nothing further than arm’s length, it deals little to any one thing at a time, and a crowd it cannot kill fast enough is standing exactly where it also hurts the player.',
   },
 
   backhand: {
     id: 'backhand',
-    name: 'Backhand',
+    name: 'Rattle',
     kind: 'weapon',
     mode: 'sweep',
     cooldown: 1.0,
@@ -1508,30 +1656,30 @@ export const ITEMS: Record<string, ItemDef> = {
     arc: (100 * Math.PI) / 180,
     maxLevel: 8,
     icon: 'sweep',
-    blurb: 'Swats whatever is in front of you. It was a compliment.',
+    blurb: 'Swats whatever is in front of you. It was a toy.',
     levels: table(
       [
-        'Swats whatever is in front of you. It was a compliment.',
-        'Harder. You are only being honest.',
-        'One behind you as well. You had eyes back there.',
-        'Longer reach. You mean it in the nicest way.',
-        'Harder. It is not a criticism, it is a note.',
-        'Longer reach again. It lands from across the room.',
-        'One to your left. That hand has opinions too.',
-        'Knocks them further. They will think about it later.',
+        'Swats whatever is in front of you. It was a toy.',
+        'Harder. You have figured out the handle.',
+        'One behind you as well. You shake it both ways.',
+        'Longer reach. You grew a little.',
+        'Harder. The beads inside are louder.',
+        'Longer reach again. You let go of it once.',
+        'One to your left. The other hand wants a go.',
+        'Knocks them further. Nobody takes it off you now.',
       ],
       { 3: { projectiles: 1 }, 4: { area: 1.15 }, 5: { damage: 1.2 }, 6: { area: 1.15 }, 7: { projectiles: 1 }, 8: { knockback: 20 } },
     ),
     paths: [
       {
         id: 'wingspan',
-        name: 'Wingspan',
-        blurb: 'Longer reach. You were always going to grow into it.',
+        name: 'Long Handle',
+        blurb: 'Longer reach. The handle is longer than you.',
         maxLevel: 3,
         levels: table(
           [
-            'Longer. Your arms caught up with your opinions.',
-            'Longer again. You can reach the top shelf.',
+            'Longer. You hold it by the very end.',
+            'Longer again. It reaches the top shelf.',
             'As long as it gets. Nobody is out of range.',
           ],
           {},
@@ -1540,14 +1688,14 @@ export const ITEMS: Record<string, ItemDef> = {
       },
       {
         id: 'follow-through',
-        name: 'Follow-Through',
-        blurb: 'Sends them further. You always finish the thought.',
+        name: 'Throw',
+        blurb: 'Sends them further. Sometimes it leaves your hand.',
         maxLevel: 3,
         levels: table(
           [
-            'Further. You meant every word.',
-            'Further again. You said it louder.',
-            'As far as it goes. They will not be back soon.',
+            'Further. It got away from you.',
+            'Further again. It went over the side of the crib.',
+            'As far as it goes. Someone has to fetch it.',
           ],
           {},
           each(1, 3, { knockback: 25 }),
@@ -1555,14 +1703,14 @@ export const ITEMS: Record<string, ItemDef> = {
       },
       {
         id: 'snap',
-        name: 'Snap',
-        blurb: 'Swats sooner. You have stopped counting first.',
+        name: 'Shake',
+        blurb: 'Swats sooner. You never stop shaking it.',
         maxLevel: 3,
         levels: table(
           [
-            'Sooner. You did not let them finish.',
-            'Sooner again. You started before they did.',
-            'Sooner still. There is no pause to regret it in.',
+            'Sooner. It never stops rattling.',
+            'Sooner again. You shake it in your sleep.',
+            'Sooner still. Nobody can hear themselves think.',
           ],
           {},
           each(1, 3, { cooldown: 0.85 }),
@@ -1570,14 +1718,14 @@ export const ITEMS: Record<string, ItemDef> = {
       },
     ],
     enables:
-      'A melee build that aims by walking: the arc hits everything in front of the player at once and shoves it back, so it rewards facing the crowd and pushing into it, and it clears the flanks a Stubbornness line leaves open.',
+      'A melee build that aims by walking: the arc hits everything in front of the player at once and shoves it back, so it rewards facing the crowd and pushing into it, and it clears the flanks a Spitball line leaves open.',
     tradesAway:
       'Everything behind and beside the player until the extra swats arrive, and anything past arm’s reach. It swings on its cooldown whether or not anything is there, so a player walking away from the crowd is swatting the air.',
   },
 
   judgement: {
     id: 'judgement',
-    name: 'Judgement',
+    name: 'Tattle',
     kind: 'weapon',
     mode: 'strike',
     cooldown: 1.6,
@@ -1585,36 +1733,39 @@ export const ITEMS: Record<string, ItemDef> = {
     // How far away a target may be picked, in pixels.
     range: 300,
     projectileSpeed: 0,
-    // What the bolt hits where it lands.
+    // What the tattle hits where it lands.
     radius: 48,
     pierce: 99,
+    // The card's "+1 tattle", "3 tattles" (AUDIT 104's `noun`): what comes
+    // down is being told on, not a bolt. Its evolution, Judgement, keeps bolts.
+    noun: { one: 'tattle', many: 'tattles' },
     maxLevel: 8,
     icon: 'bolt',
-    blurb: 'Something up there has opinions. It comes down on one of them.',
+    blurb: 'You told. It comes down on one of them.',
     levels: table(
       [
-        'Something up there has opinions. It comes down on one of them.',
-        'Harder. The opinions have hardened into views.',
-        'A second one, on someone else. There is a list.',
-        'Wider. It takes the neighbours with it.',
-        'Harder. It has read your file.',
+        'You told. It comes down on one of them.',
+        'Harder. You told it with feeling.',
+        'A second one, on someone else. You kept a list.',
+        'Wider. Everyone near them gets told off too.',
+        'Harder. You told them what you saw.',
         'A third, on someone else again. The list is long.',
-        'Sooner. It no longer waits for all the facts.',
-        'As wide as it gets. Everyone nearby is implicated.',
+        'Sooner. You no longer wait to be sure.',
+        'As wide as it gets. The whole table loses recess.',
       ],
       { 3: { projectiles: 1 }, 4: { area: 1.2 }, 5: { damage: 1.2 }, 6: { projectiles: 1 }, 7: { cooldown: 0.85 }, 8: { area: 1.2 } },
     ),
     paths: [
       {
         id: 'verdict',
-        name: 'Verdict',
-        blurb: 'Lands harder. The deliberation was brief.',
+        name: 'Grown-Up',
+        blurb: 'Lands harder. You went straight to a grown-up.',
         maxLevel: 3,
         levels: table(
           [
-            'Harder. Nobody else was consulted.',
-            'Harder again. The appeal was denied.',
-            'As hard as it gets. The ruling is not reviewed.',
+            'Harder. A teacher heard.',
+            'Harder again. It went to the principal.',
+            'As hard as it gets. Your parents were called.',
           ],
           {},
           each(1, 3, { damage: 1.3 }),
@@ -1622,7 +1773,7 @@ export const ITEMS: Record<string, ItemDef> = {
       },
       {
         id: 'docket',
-        name: 'Docket',
+        name: 'The List',
         blurb: 'One more name on the list, every time.',
         maxLevel: 2,
         levels: table(
@@ -1633,14 +1784,14 @@ export const ITEMS: Record<string, ItemDef> = {
       },
       {
         id: 'summary',
-        name: 'Summary',
-        blurb: 'Sooner. Nobody has time for a full hearing.',
+        name: 'Nobody Asked',
+        blurb: 'Sooner. Nobody asked, and you told anyway.',
         maxLevel: 3,
         levels: table(
           [
-            'Sooner. The hearing was a formality.',
-            'Sooner again. It skips the hearing.',
-            'Sooner still. It decided before you arrived.',
+            'Sooner. You did not wait to be asked.',
+            'Sooner again. You told before it happened.',
+            'Sooner still. You tell on people in your sleep.',
           ],
           {},
           each(1, 3, { cooldown: 0.85 }),
@@ -1677,7 +1828,7 @@ export const ITEMS: Record<string, ItemDef> = {
 
   vendetta: {
     id: 'vendetta',
-    name: 'Vendetta',
+    name: 'Grudge',
     kind: 'weapon',
     mode: 'orbit',
     // Orbit never activates; this is how often one fist may hit one enemy.
@@ -1687,7 +1838,7 @@ export const ITEMS: Record<string, ItemDef> = {
     projectileSpeed: 260,
     radius: 16,
     pierce: 99,
-    // Orbit hits push only when this is set (updateOrbiters).
+    // Orbit hits push only when this is set (updateOrbiters). Mobile has none.
     knockback: 40,
     maxLevel: 1,
     icon: 'vendetta',
@@ -1695,9 +1846,9 @@ export const ITEMS: Record<string, ItemDef> = {
     levels: table(['Nobody remembers what started it. Everyone gets shoved.'], { 1: { projectiles: 3 } }),
     evolvesFrom: { weapon: 'grudge', with: 'membrane' },
     enables:
-      'The Grudge build finished: every fist now shoves what it hits outward, so the orbit clears its own ring and keeps the crowd off a player who was standing in it on Thick Skin anyway.',
+      'The Mobile build finished: what went round now comes round as fists that shove what they hit outward, so the orbit clears its own ring and keeps the crowd off a player who was standing in it on Thick Skin anyway.',
     tradesAway:
-      'Grudge, which it replaces with any path taken on it, and the choosing: it is dealt alone the moment it is possible. The shove also leaves what it hits just outside the circle, where no fist reaches it until it walks back in.',
+      'Mobile, which it replaces with any path taken on it, and the choosing: it is dealt alone the moment it is possible. The shove also leaves what it hits just outside the circle, where no fist reaches it until it walks back in.',
   },
 
   jumpiness: {
@@ -1717,14 +1868,14 @@ export const ITEMS: Record<string, ItemDef> = {
     levels: table(['Flinches at everything, all the time. It is not a phase.'], { 1: { projectiles: 2 } }),
     evolvesFrom: { weapon: 'lash', with: 'midpiece' },
     enables:
-      'The Reflex build finished: more flinches a second than a maxed Reflex, from further away and faster, so the weapon every life starts with fills the air around a player Restlessness already keeps on the move.',
+      'The Pointing build finished: more flinches a second than a maxed Pointing, from further away and faster, so the weapon every life starts with fills the air around a player Restlessness already keeps on the move.',
     tradesAway:
-      'Reflex, which it replaces with any path taken on it, and the choosing. It still fires at whatever is nearest rather than what matters, every flinch stops in the first thing it hits, and it has no area at all.',
+      'Pointing, which it replaces with any path taken on it, and the choosing. It still fires at whatever is nearest rather than what matters, every flinch stops in the first thing it hits, and it has no area at all.',
   },
 
   reach: {
     id: 'reach',
-    name: 'Reach',
+    name: 'Backhand',
     kind: 'weapon',
     mode: 'sweep',
     cooldown: 1,
@@ -1743,14 +1894,14 @@ export const ITEMS: Record<string, ItemDef> = {
     levels: table(['You grew into it. There is no behind you any more.']),
     evolvesFrom: { weapon: 'backhand', with: 'growth-spurt' },
     enables:
-      'The Backhand build finished: the swat goes all the way round, so the melee build that had to face the crowd no longer has a back to be caught from, and Growth Spurt carries the circle further out.',
+      'The Rattle build finished: the swat goes all the way round, so the melee build that had to face the crowd no longer has a back to be caught from, and Growth Spurt carries the circle further out.',
     tradesAway:
-      'Backhand, which it replaces with any path taken on it, and the choosing. It swings less often than the hand it replaced, it still touches nothing past arm’s length, and the shove scatters a crowd an area weapon wanted kept close.',
+      'Rattle, which it replaces with any path taken on it, and the choosing. It swings less often than the rattle it replaced, it still touches nothing past arm’s length, and the shove scatters a crowd an area weapon wanted kept close.',
   },
 
   hindsight: {
     id: 'hindsight',
-    name: 'Hindsight',
+    name: 'Judgement',
     kind: 'weapon',
     mode: 'strike',
     cooldown: 1.3,
@@ -1769,14 +1920,14 @@ export const ITEMS: Record<string, ItemDef> = {
     levels: table(['No warning. It was obvious afterwards.'], { 1: { projectiles: 2 } }),
     evolvesFrom: { weapon: 'judgement', with: 'capacitation' },
     enables:
-      'The Judgement build finished: the bolts come down the moment they are picked, so nothing fast gets out from under them, and Late Bloomer’s late-act damage lands on exactly the spot it was aimed at.',
+      'The Tattle build finished: the bolts come down the moment they are picked, so nothing fast gets out from under them, and Late Bloomer’s late-act damage lands on exactly the spot it was aimed at.',
     tradesAway:
-      'Judgement, which it replaces with any path taken on it, and the choosing. It still picks at random rather than what is dangerous, it still ignores what is touching the player, and with no warning nobody can read where the next one falls.',
+      'Tattle, which it replaces with any path taken on it, and the choosing. It still picks at random rather than what is dangerous, it still ignores what is touching the player, and with no warning nobody can read where the next one falls.',
   },
 
   rut: {
     id: 'rut',
-    name: 'Rut',
+    name: 'Baggage',
     kind: 'weapon',
     mode: 'trail',
     cooldown: 0.18,
@@ -1794,9 +1945,9 @@ export const ITEMS: Record<string, ItemDef> = {
     levels: table(['Everything behind you gets stuck in it. You keep going.'], { 1: { duration: 1.2 } }),
     evolvesFrom: { weapon: 'wake', with: 'snooze' },
     enables:
-      'The Baggage build finished: whatever follows the player across the trail is held in it while it hurts, so a chasing crowd spends longer in the footprints and arrives later.',
+      'The Legos build finished: whatever follows the player across the trail is held in it while it hurts, so a chasing crowd spends longer in the footprints and arrives later.',
     tradesAway:
-      'Baggage, which it replaces with any path taken on it, and the choosing. It holds only what follows: the player walks their own trail at full speed, and a cornered player is still holding a weapon that has stopped existing.',
+      'Legos, which it replaces with any path taken on it, and the choosing. It holds only what follows: the player walks their own trail at full speed, and a cornered player is still holding a weapon that has stopped existing.',
   },
 
   // --- 4.7 Born at thirty-four: Family (G-050) ----------------------------
@@ -1806,7 +1957,7 @@ export const ITEMS: Record<string, ItemDef> = {
   // strike that marks the NEAREST problem where it stands now
   // (`strikeNearest`, no dice) and lands on that spot long after
   // (`strikeDelay`), whether or not the problem is still there. It holds its
-  // mark as Judgement's bolt does: a strike's area is placed at the pick and
+  // mark as Tattle's does: a strike's area is placed at the pick and
   // never follows the target. Its Registered path is a `speed` path because a
   // strike's delay divides by `speed` (`strikeDelayAt`).
   //
@@ -1897,7 +2048,7 @@ export const ITEMS: Record<string, ItemDef> = {
       },
     ],
     enables:
-      'A build that brings the problem back to the mark: Charisma’s pull or Snooze’s hold keeps a crowd standing where the letter was aimed, and then the heaviest single landing in the life comes down on all of it at once.',
+      'A build that brings the problem back to the mark: Candy’s pull or Snooze’s hold keeps a crowd standing where the letter was aimed, and then the heaviest single landing in the life comes down on all of it at once.',
     tradesAway:
       'Timing, entirely. It lands where the problem stood when the letter was sent, long after, so anything that moves has usually left; it never favours what is touching the player, and nothing it marks is hurt until it arrives.',
   },
@@ -1998,7 +2149,7 @@ export const ITEMS: Record<string, ItemDef> = {
       },
     ],
     enables:
-      'A second wind for a build that stands in the crowd until it cannot: once health runs low the crowd’s touches stop landing for a moment and part of the maximum comes back, so Thick Skin, Personal Space and Temper get up again instead of getting a certificate.',
+      'A second wind for a build that stands in the crowd until it cannot: once health runs low the crowd’s touches stop landing for a moment and part of the maximum comes back, so Thick Skin, Cooties and Spilt Milk get up again instead of getting a certificate.',
     tradesAway:
       'Anything above the threshold, and anything soon after the last one: it waits for health to run low and then for its cooldown. Asleep, the player cannot move and a hostile shot still lands, and whatever walked up meanwhile is still there on waking.',
   },

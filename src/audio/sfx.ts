@@ -533,9 +533,15 @@ class Sfx {
    * arrive the whole act, 0.7 a second from the start and 1.6 by the end, so
    * the rattle is near-constant: the quietest thing in the act and floored at
    * a second, as the doorbell is — a pharmacy shelf, never maracas.
+   *
+   * The Rattle's swing (G-054) is this same sound at the other end of the
+   * life, and passes its own `floorMs`: it swings every second or sooner, and
+   * a second's floor against a second's cooldown drops about every other
+   * swing on frame jitter alone. One floor between them either way, so a
+   * swing and a dose on the same beat are one shake.
    */
-  rattle(): void {
-    if (!this.due('rattle', 1000)) return;
+  rattle(floorMs = 1000): void {
+    if (!this.due('rattle', floorMs)) return;
     const first = 3400 + Math.random() * 500;
     const second = 2800 + Math.random() * 500;
     this.noise({ gain: 0.016, decay: 0.012, cutoff: first, band: { q: 2.5, glideTo: first * 0.85 } });
@@ -615,6 +621,35 @@ class Sfx {
     this.noise({ gain: 0.04, decay: 0.006, cutoff: 5000 });
     this.tone(175, { gain: 0.11, attack: 0.002, decay: 0.08, glideTo: 110 });
     this.tone(640, { wave: 'triangle', gain: 0.03, attack: 0.001, decay: 0.03, glideTo: 560 });
+  }
+
+  // --- G-054's kid's things ----------------------------------------------
+
+  /**
+   * The Cry: a short falling "waah". Two triangles a few hertz apart, so they
+   * beat into a wail, opening up a little on the "w", holding, then sliding
+   * down most of a fifth; a slow quaver on both for the sob. ~0.5s, and
+   * quieter together than `bossShot`'s one note — a panic button, not an
+   * alarm. PLACEHOLDER: every number here, untried at the link.
+   */
+  cry(): void {
+    if (!this.due('cry', 400)) return;
+    const env = { wave: 'triangle' as const, attack: 0.06, hold: 0.08, decay: 0.36, wobble: { rate: 6.5, depth: 9 } };
+    this.tone(520, { ...env, gain: 0.028, bend: 620, glideTo: 410 });
+    this.tone(527, { ...env, gain: 0.02, bend: 629, glideTo: 402, delay: 0.012 });
+  }
+
+  /**
+   * Spilt Milk bursting: the splat. A low sine plop falling out from under a
+   * wide band of noise that slides down as the spill spreads, then one small
+   * drop landing just after; ~150ms, wet where the stamp and DENIED are dry.
+   * PLACEHOLDER: every number here, untried at the link.
+   */
+  splat(): void {
+    if (!this.due('splat', 150)) return;
+    this.tone(130, { gain: 0.055, attack: 0.003, decay: 0.09, glideTo: 62 });
+    this.noise({ gain: 0.03, attack: 0.004, decay: 0.13, cutoff: 1700, band: { q: 1.2, glideTo: 420 } });
+    this.tone(430, { gain: 0.014, attack: 0.002, decay: 0.045, glideTo: 270, delay: 0.07 });
   }
 
   /**

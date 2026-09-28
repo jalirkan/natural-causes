@@ -1,54 +1,78 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
-  <title>Wake icon</title>
-  <desc>One bare footprint seen from directly above, toes up: a sole narrow at the arch and wide at the ball, with five round toe dots in an arc above it.</desc>
+  <title>Legos icon</title>
+  <desc>One chunky plastic toy building brick, two studs by two, seen from low and a little to one side so all four round studs stand up along its top: the front face lit, the side face in shadow, one glint on the front. No face, no text, no logo.</desc>
   <!--
-    Baggage (items.ts, icon "trail"; Wake before G-039). A card icon, and
-    also the stamp Baggage leaves behind the player on the field (G-036,
-    ActScene syncAreas: 26px, 0.6 alpha, rotated along the path, alternate
-    stamps flipped into the other foot), so it keeps off the field's reserved
-    colours: no threat colour, no paper, no conception-light. The generated
-    print it replaces was contact red over the whole sole, and the player's
-    own trail read as a threat.
-    A right foot, as on a beach sign: big toe and arch on the left.
-    A bare foot and never footwear: Rut's slippers (icon-rut) take this
-    stamp's place when Baggage evolves, so this one has toes and nothing on.
-    At 26px one unit here is about a quarter of a pixel. All five toes are
-    kept, none merged: the smallest is still nine units across, so it stays
-    a dot and not a speck. The gaps between toes shrink to about one ink
-    pixel there, and if they close the five read as one scalloped arc,
-    which is still a footprint. The gap that has to survive is the one
-    between the toes and the ball, so it is the widest in the drawing.
-    Pressed in sand: the ball and heel press deepest, the inner arch not at
-    all. The bone mark is that hollow, and the ink line over it is the rim
-    of the ball where it meets the arch.
-    CONFORM adds the outer outline; the rim line is drawn here.
-    Colours: conception-mid #A86A63, bone #D2C6AC, ink #2A2521.
+    Legos (G-054; items.ts `wake`, icon "trail"). A card icon, and also the
+    trail on the field: every second area the player leaves behind is stamped
+    with this brick, about 26px, turned along the path and flipped on
+    alternate stamps (ActScene syncAreas), so it keeps off the field's
+    reserved colours: no threat colour (the toy's red is contact red, so it is
+    rose), no paper, no act's light tone. The glint is bone, not paper.
+    The joke is the one every parent knows: whatever steps on it regrets it.
+    Low and to the side so the studs are the silhouette: four bumps along the
+    top edge are what says "brick" at 26px; seen from above it is a tile.
+    Corners rounded (G-053), sides straight, as a toy is. No face: a brick is
+    a thing underfoot, not a character.
+    CONFORM adds the outer outline. The ink between the faces and round each
+    stud is drawn here, clipped to the silhouette so the outer edge keeps the
+    pipeline's one outline (law 1).
+    Colours: conception-mid #A86A63, conception-deep #6B3A44, bone #D2C6AC,
+    ink #2A2521.
   -->
   <defs>
-    <clipPath id="sole">
-      <path d="M 48 25 C 58 24.5, 68 27, 71 36 C 73.5 44, 71.5 52, 69 60 C 67 67, 67.5 75, 66.5 82
-               C 65 91, 58.5 96, 51.5 96 C 44 96, 38.5 90.5, 38.5 83 C 38.5 75, 43 70, 42 62
-               C 41 53, 29.5 50, 29 42 C 28.5 33, 36 25.5, 48 25 Z"/>
+    <clipPath id="whole">
+      <path d="M 16.00 80.00 Q 10.00 80.00 10.00 74.00 L 10.00 54.00 Q 10.00 48.00 15.03 44.73 L 24.97 38.27 Q 30.00 35.00 36.00 35.00 L 74.00 35.00 Q 80.00 35.00 80.00 41.00 L 80.00 61.00 Q 80.00 67.00 74.97 70.27 L 65.03 76.73 Q 60.00 80.00 54.00 80.00 Z"/>
+      <path d="M 29.9 32.6 L 29.9 38.6 A 8 4 0 0 0 45.9 38.6 L 45.9 32.6 Z"/>
+      <ellipse cx="37.9" cy="32.6" rx="8" ry="4"/>
+      <path d="M 52.9 32.6 L 52.9 38.6 A 8 4 0 0 0 68.9 38.6 L 68.9 32.6 Z"/>
+      <ellipse cx="60.9" cy="32.6" rx="8" ry="4"/>
+      <path d="M 21.1 38.4 L 21.1 44.4 A 8 4 0 0 0 37.1 44.4 L 37.1 38.4 Z"/>
+      <ellipse cx="29.1" cy="38.4" rx="8" ry="4"/>
+      <path d="M 44.1 38.4 L 44.1 44.4 A 8 4 0 0 0 60.1 44.4 L 60.1 38.4 Z"/>
+      <ellipse cx="52.1" cy="38.4" rx="8" ry="4"/>
+    </clipPath>
+    <clipPath id="brick">
+      <path d="M 16.00 80.00 Q 10.00 80.00 10.00 74.00 L 10.00 54.00 Q 10.00 48.00 15.03 44.73 L 24.97 38.27 Q 30.00 35.00 36.00 35.00 L 74.00 35.00 Q 80.00 35.00 80.00 41.00 L 80.00 61.00 Q 80.00 67.00 74.97 70.27 L 65.03 76.73 Q 60.00 80.00 54.00 80.00 Z"/>
     </clipPath>
   </defs>
   <g shape-rendering="crispEdges">
-    <!-- the sole -->
-    <path d="M 48 25 C 58 24.5, 68 27, 71 36 C 73.5 44, 71.5 52, 69 60 C 67 67, 67.5 75, 66.5 82
-             C 65 91, 58.5 96, 51.5 96 C 44 96, 38.5 90.5, 38.5 83 C 38.5 75, 43 70, 42 62
-             C 41 53, 29.5 50, 29 42 C 28.5 33, 36 25.5, 48 25 Z" fill="#A86A63"/>
-    <g clip-path="url(#sole)">
-      <!-- the hollow of the inner arch, where the foot did not press -->
-      <path d="M 28 45.5 C 34 52.5, 41 54.5, 46 55 C 48.5 61, 47 69, 40 77 L 20 77 L 20 45.5 Z" fill="#D2C6AC"/>
-      <!-- the rim of the ball, where it meets the arch -->
-      <path d="M 28 45.5 C 34 52.5, 45 55, 53 52.5" fill="none" stroke="#2A2521" stroke-width="2.6" stroke-linecap="round"/>
+    <!-- the brick: top, front and side faces, clipped to the rounded silhouette -->
+    <g clip-path="url(#brick)">
+      <polygon fill="#A86A63" points="10,48 60,48 80,35 30,35"/>
+      <polygon fill="#A86A63" points="10,48 60,48 60,80 10,80"/>
+      <polygon fill="#6B3A44" points="60,48 80,35 80,67 60,80"/>
+      <!-- the edges where the faces meet -->
+      <polygon fill="#2A2521" points="8,47.2 60.6,47.2 60.6,49.6 8,49.6"/>
+      <polygon fill="#2A2521" points="59.2,47.4 60.8,47.4 60.8,82 59.2,82"/>
+      <polygon fill="#2A2521" points="59.4,47.2 80.4,33.5 81.6,35.2 60.6,48.8"/>
     </g>
-    <!-- the toes, big to small, in an arc over the ball -->
-    <g fill="#A86A63">
-      <ellipse cx="35" cy="14" rx="7.5" ry="8.5"/>
-      <ellipse cx="48.5" cy="9" rx="5.5" ry="6"/>
-      <ellipse cx="60.5" cy="11" rx="5" ry="5.5"/>
-      <ellipse cx="69.5" cy="17" rx="4.6" ry="5"/>
-      <ellipse cx="75.5" cy="25.5" rx="4.5" ry="4.5"/>
+
+    <!-- the four studs, back row first: ink round each, and the front rim of its cap;
+         clipped to the whole silhouette, so the ink shows only where a stud meets the brick or another stud -->
+    <g clip-path="url(#whole)">
+    <g id="stud-back-left">
+      <path fill="#2A2521" d="M 28.3 32.6 L 28.3 38.6 A 9.6 5.6 0 0 0 47.5 38.6 L 47.5 32.6 A 9.6 5.6 0 0 0 28.3 32.6 Z"/>
+      <path fill="#A86A63" d="M 29.9 32.6 L 29.9 38.6 A 8 4 0 0 0 45.9 38.6 L 45.9 32.6 A 8 4 0 0 0 29.9 32.6 Z"/>
+      <path fill="#2A2521" d="M 29.9 32.6 A 8 4 0 0 0 45.9 32.6 A 8 2.5 0 0 1 29.9 32.6 Z"/>
     </g>
+    <g id="stud-back-right">
+      <path fill="#2A2521" d="M 51.3 32.6 L 51.3 38.6 A 9.6 5.6 0 0 0 70.5 38.6 L 70.5 32.6 A 9.6 5.6 0 0 0 51.3 32.6 Z"/>
+      <path fill="#A86A63" d="M 52.9 32.6 L 52.9 38.6 A 8 4 0 0 0 68.9 38.6 L 68.9 32.6 A 8 4 0 0 0 52.9 32.6 Z"/>
+      <path fill="#2A2521" d="M 52.9 32.6 A 8 4 0 0 0 68.9 32.6 A 8 2.5 0 0 1 52.9 32.6 Z"/>
+    </g>
+    <g id="stud-front-left">
+      <path fill="#2A2521" d="M 19.5 38.4 L 19.5 44.4 A 9.6 5.6 0 0 0 38.7 44.4 L 38.7 38.4 A 9.6 5.6 0 0 0 19.5 38.4 Z"/>
+      <path fill="#A86A63" d="M 21.1 38.4 L 21.1 44.4 A 8 4 0 0 0 37.1 44.4 L 37.1 38.4 A 8 4 0 0 0 21.1 38.4 Z"/>
+      <path fill="#2A2521" d="M 21.1 38.4 A 8 4 0 0 0 37.1 38.4 A 8 2.5 0 0 1 21.1 38.4 Z"/>
+    </g>
+    <g id="stud-front-right">
+      <path fill="#2A2521" d="M 42.5 38.4 L 42.5 44.4 A 9.6 5.6 0 0 0 61.7 44.4 L 61.7 38.4 A 9.6 5.6 0 0 0 42.5 38.4 Z"/>
+      <path fill="#A86A63" d="M 44.1 38.4 L 44.1 44.4 A 8 4 0 0 0 60.1 44.4 L 60.1 38.4 A 8 4 0 0 0 44.1 38.4 Z"/>
+      <path fill="#2A2521" d="M 44.1 38.4 A 8 4 0 0 0 60.1 38.4 A 8 2.5 0 0 1 44.1 38.4 Z"/>
+    </g>
+    </g>
+
+    <!-- the one glint, upper-left on the front face -->
+    <ellipse cx="18.5" cy="56" rx="3.4" ry="2.4" transform="rotate(-20 18.5 56)" fill="#D2C6AC"/>
   </g>
 </svg>
