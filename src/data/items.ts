@@ -646,7 +646,7 @@ export const ITEMS: Record<string, ItemDef> = {
     // PLACEHOLDER: bigger and faster than a maxed Temper, and nothing more
     // considered than that.
     cooldown: 0.8,
-    damage: 14,
+    damage: 7,
     range: 210,
     projectileSpeed: 0,
     radius: 210,
@@ -1283,7 +1283,13 @@ export const ITEMS: Record<string, ItemDef> = {
       'Choice and timing. It picks at random rather than what is dangerous, it lands where the target was a moment ago so anything fast has already left, and it never favours what is touching the player.',
   },
 
-  // --- 4.6 Evolutions (G-046) ---------------------------------------------
+  // --- 4.6 Evolutions (G-046) ---
+  //
+  // G-047: an evolution is PAID AT ITS WEAPON'S MAX LEVEL — the generic
+  // per-level damage and cooldown scaling (damageScale/cooldownScale) runs at
+  // the weapon's maxLevel, not at the evolution's own level 1 — so its base
+  // numbers below are written beside the weapon's base, a little above it,
+  // and the card that replaces a maxed weapon is never a downgrade.------------------------------------------
   //
   // Five more, dealt as Tantrum is: never rolled, one card alone the level
   // after the weapon is maxed beside its partner (`readyEvolution`, which
@@ -1306,7 +1312,7 @@ export const ITEMS: Record<string, ItemDef> = {
     mode: 'orbit',
     // Orbit never activates; this is how often one fist may hit one enemy.
     cooldown: 0.4,
-    damage: 6,
+    damage: 4,
     range: 90,
     projectileSpeed: 260,
     radius: 16,
@@ -1331,8 +1337,8 @@ export const ITEMS: Record<string, ItemDef> = {
     name: 'Jumpiness',
     kind: 'weapon',
     mode: 'seeking',
-    cooldown: 0.15,
-    damage: 3,
+    cooldown: 0.35,
+    damage: 2.5,
     range: 460,
     projectileSpeed: 520,
     radius: 7,
@@ -1355,8 +1361,8 @@ export const ITEMS: Record<string, ItemDef> = {
     name: 'Reach',
     kind: 'weapon',
     mode: 'sweep',
-    cooldown: 1.1,
-    damage: 8,
+    cooldown: 1,
+    damage: 7,
     // The circle's reach, in pixels.
     range: 150,
     projectileSpeed: 0,
@@ -1383,8 +1389,8 @@ export const ITEMS: Record<string, ItemDef> = {
     name: 'Hindsight',
     kind: 'weapon',
     mode: 'strike',
-    cooldown: 1.4,
-    damage: 12,
+    cooldown: 1.3,
+    damage: 10,
     // How far away a target may be picked, in pixels.
     range: 340,
     projectileSpeed: 0,
@@ -1412,7 +1418,7 @@ export const ITEMS: Record<string, ItemDef> = {
     kind: 'weapon',
     mode: 'trail',
     cooldown: 0.18,
-    damage: 3,
+    damage: 2.5,
     // Seconds each footprint lasts.
     range: 3,
     projectileSpeed: 0,
@@ -1424,13 +1430,13 @@ export const ITEMS: Record<string, ItemDef> = {
     icon: 'rut',
     iconPending:
       'Drawn in a later wave as tools/art/svg/conception/icon-rut.svg; its frame in the icon atlas retires this placeholder.',
-    blurb: 'Everything behind you gets stuck in it. So do you.',
-    levels: table(['Everything behind you gets stuck in it. So do you.'], { 1: { duration: 1.2 } }),
+    blurb: 'Everything behind you gets stuck in it. You keep going.',
+    levels: table(['Everything behind you gets stuck in it. You keep going.'], { 1: { duration: 1.2 } }),
     evolvesFrom: { weapon: 'wake', with: 'snooze' },
     enables:
       'The Baggage build finished: whatever follows the player across the trail is held in it while it hurts, so a chasing crowd spends longer in the footprints and arrives later.',
     tradesAway:
-      'Baggage, which it replaces with any path taken on it, and the choosing. The trail is laid where the player stands, so it holds the player too for as long as they keep moving, and a cornered player is still holding a weapon that has stopped existing.',
+      'Baggage, which it replaces with any path taken on it, and the choosing. It holds only what follows: the player walks their own trail at full speed, and a cornered player is still holding a weapon that has stopped existing.',
   },
 };
 

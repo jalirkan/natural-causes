@@ -1235,3 +1235,19 @@ dies with it, as Temper's do (G-043's placeholder decision, kept). Every
 number is a placeholder.
 Rejected: one evolution per weapon by rule — the archetype pairs above are the ones with a joke in the pairing; a table filled for symmetry ships five names with nothing in them.
 Rejected: evolutions that keep the weapon's paths — then Vendetta is Grudge with a hat, and what you became was a bonus, not a change.
+
+## G-047 · 2026-09-28 · An evolution is paid at its weapon's max level
+Building G-046 measured every evolution, Tantrum included, at a fraction of
+the maxed weapon it replaced: an evolution is a level-1 item, so it lost the
+generic per-level damage and cooldown scaling its weapon had earned at 8. So
+the rule: the generic scaling (`damageScale`, `cooldownScale`) reads an
+evolution at its weapon's max level (`scalingLevel`, world.ts), and an
+evolution's base numbers sit beside its weapon's base, a little above, so the
+one card the life deals without asking is never a downgrade. Its own levels
+table and paths still read its own level. Rut's hold exempts its owner (the
+trail is laid where the player stands; a weapon that slowed its holder for
+as long as they moved was a stat penalty, not a shape, G-038). Placeholders.
+Rejected: raise every evolution's base numbers to a maxed weapon's — then the
+same fact lives in six places and drifts, which is the AUDIT class of bug.
+Rejected: let evolutions level to 8 too — then they are weapons with a hat,
+and what you became (G-039) goes back to being something you grind.

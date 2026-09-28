@@ -218,7 +218,13 @@ function newActiveTerms(def: ActiveItem): Array<string | null> {
       terms = [hits, every, within];
       break;
     case 'trail':
-      terms = [hits && `${hits} per tick`, lasts, within];
+      // Rut (G-046): a trail that also holds what crosses it.
+      terms = [
+        hits && `${hits} per tick`,
+        lasts,
+        within,
+        def.slow !== undefined && finite(def.slow) ? `slows to ${Math.round(def.slow * 100)}%` : null,
+      ];
       break;
     case 'orbit':
       terms = [hits, finite(count) ? `${Math.round(count)} orbiting` : null, rehits];

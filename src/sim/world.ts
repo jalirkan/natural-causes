@@ -145,6 +145,19 @@ export const ANTIBODY_LEAD = 320;
  * not. Expect the bots to move it again.
  */
 export const BOSS_HP = 320;
+
+/**
+ * G-047: an evolution is paid at its weapon's max level. The generic
+ * per-level scaling (damageScale, cooldownScale) reads this instead of the
+ * item's own level, so Tantrum at level 1 keeps what Temper had at 8 and the
+ * card that replaces a maxed weapon is never a downgrade. Everything else
+ * (the levels table, paths) reads the item's own level.
+ */
+export function scalingLevel(def: ItemDef, level: number): number {
+  if (!isActive(def) || !def.evolvesFrom) return level;
+  const weapon = ITEMS[def.evolvesFrom.weapon];
+  return weapon ? level + weapon.maxLevel - 1 : level;
+}
 /**
  * The Egg's light, which Prom borrows whole (ADOLESCENCE-ROSTER §4): seconds
  * in each phase of its machine, and the shot it fires. Named so Prom reads
@@ -928,7 +941,22 @@ export class World {
   }
 
   get speed(): number {
-    return this.baseSpeed * (this.engulfTimer > 0 ? this.engulfSlow : 1) * this.slowAt(this.x, this.y);
+    return this.baseSpeed * (this.engulfTimer > 0 ? this.engulfSlow : 1) * this.slowAtPlayer();
+  }
+
+  /**
+   * The player's own hold: every field that holds them (Snooze's) but never
+   * a damaging trail (Rut's, G-046), which is laid where the player stands
+   * and would otherwise hold them for as long as they kept moving. A trail
+   * holds what follows; the player walks it at full speed.
+   */
+  private slowAtPlayer(): number {
+    let k = 1;
+    for (const f of this.areas) {
+      if (f.slow === undefined || f.slow >= k || f.damage > 0) continue;
+      if ((this.x - f.x) ** 2 + (this.y - f.y) ** 2 <= f.radius * f.radius) k = f.slow;
+    }
+    return k;
   }
 
   /**
@@ -997,12 +1025,14 @@ export class World {
 
   private activeDamage(def: ItemDef, level: number): number {
     if (!isActive(def)) return 0;
-    return def.damage * damageScale(level) * this.bonusFor(def, level).damage * this.damageDealt;
+    return def.damage * damageScale(scalingLevel(def, level)) * this.bonusFor(def, level).damage * this.damageDealt;
   }
 
   private activeCooldown(def: ItemDef, level: number): number {
     if (!isActive(def)) return Infinity;
-    return def.cooldown * cooldownScale(level) * this.bonusFor(def, level).cooldown * this.cooldownFactor;
+    return (
+      def.cooldown * cooldownScale(scalingLevel(def, level)) * this.bonusFor(def, level).cooldown * this.cooldownFactor
+    );
   }
 
   /**

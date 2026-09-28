@@ -12,7 +12,7 @@ import {
   offerIdFor,
   type ActiveItem,
 } from '../../data/items';
-import { World, type EnemyState } from '../world';
+import { World, scalingLevel, type EnemyState } from '../world';
 
 /**
  * G-046: five more evolutions, dealt as Tantrum is — one card alone once the
@@ -89,7 +89,8 @@ function world(items: Record<string, number>, seed = 1): World {
 /** What one hit is worth, from the same formula the sim pays (no Late Bloomer held). */
 function hit(id: string, level: number): number {
   const def = weapon(id);
-  return def.damage * damageScale(level) * levelBonus(def, level).damage;
+  // G-047: an evolution is paid at its weapon's max level.
+  return def.damage * damageScale(scalingLevel(def, level)) * levelBonus(def, level).damage;
 }
 
 /** The act a partner is first in the pool in: an evolution is only ever ready from there. */
@@ -287,13 +288,14 @@ describe('Rut: the trail holds', () => {
     expect(e.hp).toBeLessThan(DUMMY.hp);
   });
 
-  it('holds the player too, as G-046 specifies it: the trail is laid where the player stands', () => {
-    // Recorded, not endorsed: `slowAt` reads every area with a `slow`, and
-    // the player is always on the newest footprint while moving. Exempting
-    // the player is a design decision; this test flips with it.
+  it('never holds the player: the trail is laid where they stand, and they walk it at full speed', () => {
+    // `slowAt` reads every area with a `slow` for enemies and shots; the
+    // player's own hold (`speed`) skips a damaging trail, or Rut would hold
+    // its owner for as long as they kept moving.
     const w = world({ rut: 1 });
     for (let i = 0; i < 60; i++) w.step(DT, { moveX: 1, moveY: 0 });
-    expect(w.speed / w.baseSpeed).toBeCloseTo(weapon('rut').slow!, 9);
+    expect(w.areas.some((a) => a.slow !== undefined && a.damage > 0)).toBe(true);
+    expect(w.speed / w.baseSpeed).toBeCloseTo(1, 9);
   });
 
   it("Baggage's footprints still hold nothing", () => {
@@ -367,5 +369,24 @@ describe('the registry holds its evolutions to the rules (content)', () => {
     }
     expect(weapon('judgement').strikeDelay).toBeUndefined();
     expect(weapon('hindsight').strikeDelay).toBe(0);
+  });
+});
+
+describe('G-047: an evolution is paid at its weapon\'s max level', () => {
+  it('Tantrum at level 1 scales as Temper did at 8', () => {
+    expect(scalingLevel(ITEMS['tantrum']!, 1)).toBe(ITEMS['acrosome']!.maxLevel);
+    expect(scalingLevel(ITEMS['acrosome']!, 3)).toBe(3);
+  });
+
+  it('a dealt Vendetta hits at least as hard per fist as the maxed Grudge it replaced', () => {
+    const before = world({ grudge: 8 });
+    const after = world({ vendetta: 1 });
+    const hit = (w: World, id: string): number => {
+      const e = place(w, weapon(id).range, 0);
+      const hp = e.hp;
+      for (let i = 0; i < 120 && e.hp === hp; i++) w.step(DT, still);
+      return hp - e.hp;
+    };
+    expect(hit(after, 'vendetta')).toBeGreaterThanOrEqual(hit(before, 'grudge'));
   });
 });
