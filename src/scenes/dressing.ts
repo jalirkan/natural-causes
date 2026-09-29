@@ -129,6 +129,36 @@ export function ensureGemTexture(scene: Phaser.Scene, colour: number): string {
   return key;
 }
 
+/**
+ * The drop shadow under everything that stands (ActScene `DROP`): one soft
+ * ellipse, three wide to one tall, drawn once as four concentric ellipses at
+ * rising alpha toward the middle — a soft edge in four flat steps, not a
+ * gradient. Ink, the palette's dark: the palette's SHADOW tone is lighter
+ * than every act's floor, and under a body it read as a glow, not a shadow.
+ * Opaque at its middle; the scene sets how dark it lies.
+ */
+export function ensureShadowTexture(scene: Phaser.Scene): string {
+  const key = 'nc-shadow';
+  if (!scene.textures.exists(key)) {
+    const w = 96;
+    const h = 32;
+    const g = scene.make.graphics({ x: 0, y: 0 }, false);
+    // Each step over the last, so the middle stacks up to about 0.95.
+    for (const [share, alpha] of [
+      [1, 0.3],
+      [0.82, 0.4],
+      [0.64, 0.5],
+      [0.46, 0.65],
+    ] as const) {
+      g.fillStyle(INK, alpha);
+      g.fillEllipse(w / 2, h / 2, w * share, h * share, 48);
+    }
+    g.generateTexture(key, w, h);
+    g.destroy();
+  }
+  return key;
+}
+
 /** Player shots: a small paper dash that flies point-first, not a circle. */
 export function ensureShotTextures(scene: Phaser.Scene, hostileColour: number): void {
   if (scene.textures.exists('nc-shot')) return;
