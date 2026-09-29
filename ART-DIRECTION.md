@@ -1,5 +1,14 @@
 # Art direction
 
+> **Status, 2026-09-29: superseded as a look.** Both registers below (the
+> mid-century pamphlet and the greeting card) were built by agents drawing
+> SVG by hand and were judged cheap by Justin. The look is now chosen from
+> generated concept boards (`tools/art/boards/PROMPTS.md`, `boards.py`), and
+> character sprites are generated, never hand-drawn. What survives of this
+> file is the pipeline's craft: the checks (outline weight, palette
+> conformance, readable at 48px, one job per colour, the reservations) still
+> run on every generated sprite. Read the rest as history.
+>
 > **Status: BINDING as of 2026-08-01.** Promoted from draft after the six-asset
 > test batch was generated and judged. The laws below are enforced
 > mechanically by `tools/art/` — an asset that breaks one is regenerated, not
@@ -54,8 +63,10 @@ blaming the model.
 Enforced in code. The check that enforces each one is named.
 
 1. **One outline weight across the whole game**, scaled proportionally with
-   sprite size, never varied for effect. `OUTLINE_RATIO`, 2/96, in a warm
-   near-black — never pure black.
+   sprite size, never varied for effect. `OUTLINE_RATIO`, 1/96 since
+   2026-09-29 (2/96 read as a sticker border), in a warm near-black — never
+   pure black; a sprite under 48px gets none. The four Reorg frames fail
+   contrast at 1/96 and keep 2/96 until the Reorg is regenerated.
 2. **Flat fills.** No gradients, no rendered lighting, no ambient occlusion.
    Shadow is a second flat tone at most. Alpha is binarised, so no soft edge
    survives.

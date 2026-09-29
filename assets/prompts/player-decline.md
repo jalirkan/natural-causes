@@ -6,8 +6,8 @@
 - **Source:** authored SVG, `tools/art/svg/decline/player-decline.svg`
 - **SVG sha256:** `c0ff9939cf8252498775bf7dad9cfef3db5901eecb6b87caf9c9c4c6489b6eaf`
 - **Rasteriser:** sharp 0.34.5 (libvips 8.17.3, librsvg 2.61.2)
-- **Render:** 317.762 dpi, 4× supersampled and area-averaged
-- **Rendered:** 2026-09-28T23:04:37.295Z
+- **Render:** 322.560 dpi, 4× supersampled and area-averaged
+- **Rendered:** 2026-09-29T02:41:14.559Z
 - **Sprite size:** 112px
 - **Tests:** G-003 and G-053 at fifty-five: the same head, no taller, a cardigan and a cane; the kid is the kid at the end too
 
@@ -19,12 +19,12 @@ the player at fifty-five: the same chubby child as every act, standing, no talle
 
 | Check | Result | Measured | Expected |
 |---|---|---|---|
-| silhouette-area | pass | 0.4632 | 0.12–0.82 of canvas |
+| silhouette-area | pass | 0.4452 | 0.12–0.82 of canvas |
 | background-contrast | pass | 0.5624 | >= 0.12 median Oklab L from decline-deep |
-| background-contrast-coverage | pass | 0.2074 | <= 0.4 of sprite may vanish into decline-deep |
+| background-contrast-coverage | pass | 0.1529 | <= 0.4 of sprite may vanish into decline-deep |
 | palette-conformance | pass | 0 | <= 0.0353 Oklab from a palette entry |
 | palette-variety | pass | 5 | >= 2 distinct palette colours |
-| palette-dominance | pass | 0.5674 | no colour above 0.97 of the sprite |
-| readable-48px-silhouette | pass | 0.4709 | >= 0.084 coverage at 48px |
+| palette-dominance | pass | 0.6097 | no colour above 0.97 of the sprite |
+| readable-48px-silhouette | pass | 0.454 | >= 0.084 coverage at 48px |
 | readable-48px-structure | pass | 6 | >= 2 palette colours still visible at 48px |
-| readable-48px-detail | pass | 0.4266 | >= 0.06 edge density at 48px |
+| readable-48px-detail | pass | 0.4039 | >= 0.06 edge density at 48px |

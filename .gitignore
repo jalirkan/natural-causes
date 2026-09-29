@@ -38,3 +38,7 @@ tools/smoke/out/
 
 # Playtest output — regenerable, and the raw runs are large.
 tools/playtest/runs/
+
+# Python
+__pycache__/
+.venv/

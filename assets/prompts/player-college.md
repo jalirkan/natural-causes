@@ -6,8 +6,8 @@
 - **Source:** authored SVG, `tools/art/svg/college/player-college.svg`
 - **SVG sha256:** `db3770f87db3d3f9ed9397dc425fc4543a26708a6b54e390fc2f4d1685400065`
 - **Rasteriser:** sharp 0.34.5 (libvips 8.17.3, librsvg 2.61.2)
-- **Render:** 317.762 dpi, 4× supersampled and area-averaged
-- **Rendered:** 2026-09-28T23:04:32.009Z
+- **Render:** 322.560 dpi, 4× supersampled and area-averaged
+- **Rendered:** 2026-09-29T02:41:10.138Z
 - **Sprite size:** 112px
 - **Tests:** G-003 and G-053 at eighteen: the same head, no taller, the same hoodie, a lanyard and a takeaway cup
 
@@ -19,12 +19,12 @@ the player at eighteen: the same chubby child as every act, standing, no taller,
 
 | Check | Result | Measured | Expected |
 |---|---|---|---|
-| silhouette-area | pass | 0.4556 | 0.12–0.82 of canvas |
+| silhouette-area | pass | 0.4416 | 0.12–0.82 of canvas |
 | background-contrast | pass | 0.6098 | >= 0.12 median Oklab L from college-deep |
-| background-contrast-coverage | pass | 0.2495 | <= 0.4 of sprite may vanish into college-deep |
+| background-contrast-coverage | pass | 0.1955 | <= 0.4 of sprite may vanish into college-deep |
 | palette-conformance | pass | 0 | <= 0.0353 Oklab from a palette entry |
 | palette-variety | pass | 5 | >= 2 distinct palette colours |
-| palette-dominance | pass | 0.5622 | no colour above 0.97 of the sprite |
-| readable-48px-silhouette | pass | 0.4622 | >= 0.084 coverage at 48px |
-| readable-48px-structure | pass | 5 | >= 2 palette colours still visible at 48px |
-| readable-48px-detail | pass | 0.4467 | >= 0.06 edge density at 48px |
+| palette-dominance | pass | 0.6019 | no colour above 0.97 of the sprite |
+| readable-48px-silhouette | pass | 0.4492 | >= 0.084 coverage at 48px |
+| readable-48px-structure | pass | 7 | >= 2 palette colours still visible at 48px |
+| readable-48px-detail | pass | 0.4176 | >= 0.06 edge density at 48px |

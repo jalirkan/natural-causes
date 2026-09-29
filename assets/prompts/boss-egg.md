@@ -6,8 +6,8 @@
 - **Source:** authored SVG, `tools/art/svg/conception/boss-egg.svg`
 - **SVG sha256:** `3c687ada52ef510ce5ccb9b34ccf1188329dbe0c7d1436c2f1aaa1baff8160af`
 - **Rasteriser:** sharp 0.34.5 (libvips 8.17.3, librsvg 2.61.2)
-- **Render:** 1076.278 dpi, 4× supersampled and area-averaged
-- **Rendered:** 2026-09-28T23:28:58.473Z
+- **Render:** 1099.699 dpi, 4× supersampled and area-averaged
+- **Rendered:** 2026-09-29T02:41:04.431Z
 - **Sprite size:** 384px
 - **Tests:** does scale hold up; is a boss impressive; does a cute face still read as already decided
 
@@ -21,13 +21,13 @@ an enormous smooth round cream egg filling the frame, in the greeting-card regis
 
 | Check | Result | Measured | Expected |
 |---|---|---|---|
-| silhouette-area | pass | 0.6167 | 0.25–0.95 of canvas |
-| background-contrast | pass | 0.4015 | >= 0.12 median Oklab L from conception-deep |
-| background-contrast-coverage | pass | 0.1809 | <= 0.4 of sprite may vanish into conception-deep |
+| silhouette-area | pass | 0.5955 | 0.25–0.95 of canvas |
+| background-contrast | pass | 0.4078 | >= 0.12 median Oklab L from conception-deep |
+| background-contrast-coverage | pass | 0.1936 | <= 0.4 of sprite may vanish into conception-deep |
 | palette-conformance | pass | 0.0293 | <= 0.0353 Oklab from a palette entry |
 | palette-variety | pass | 5 | >= 3 distinct palette colours |
-| palette-dominance | pass | 0.532 | no colour above 0.9 of the sprite |
-| readable-48px-silhouette | pass | 0.628 | >= 0.175 coverage at 48px |
+| palette-dominance | pass | 0.5748 | no colour above 0.9 of the sprite |
+| readable-48px-silhouette | pass | 0.6072 | >= 0.175 coverage at 48px |
 | readable-48px-structure | pass | 7 | >= 3 palette colours still visible at 48px |
 | enemy-value-ceiling | pass | 0.8512 | <= 0.856 Oklab L (bone); paper belongs to the player |
-| readable-48px-detail | pass | 0.3373 | >= 0.06 edge density at 48px |
+| readable-48px-detail | pass | 0.284 | >= 0.06 edge density at 48px |

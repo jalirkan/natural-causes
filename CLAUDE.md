@@ -5,13 +5,51 @@ repo from different machines (a Windows desktop, a Linux box, cloud
 sessions), so: **pull before starting, push when green, and trust the repo
 over any one machine's memory.**
 
+## Read this before anything else — 2026-09-29, after the art failed twice
+
+Justin played the whole life and said it looks like a cheap Flash game. He was
+right, and the cause was this file and the documents it points at. Rules a
+past session wrote were treated as the truth of the project by every later
+session, and the person who owns the game was treated as a source of
+"reactions" to fit inside them. That ends here. In order of importance:
+
+1. **Justin's judgement outranks every document in this repo**, including the
+   ones marked binding. When he says something is bad, the answer is what
+   changes *structurally*, never a variation of the same thing. A rule that
+   stands between his reaction and the fix is the thing to delete.
+2. **Character sprites are made by an image model, never drawn by hand as
+   SVG.** An agent drawing with ellipses cannot reach the bar; three rounds
+   proved it. Floors, effects, UI and props may be code. Characters, bosses
+   and card art come from a generator (Stable Diffusion / SDXL on Justin's
+   desktop GPU, or a Hugging Face model on a cloud session where
+   `huggingface.co` is allowed) through the existing pipeline
+   (`tools/art/generate.ts` and the boards script `tools/art/boards.py`).
+   The look is chosen from generated boards (`tools/art/boards/PROMPTS.md`),
+   not from prose.
+3. **Say what you cannot do on day one, in one line, with the one route that
+   works.** Missing capability (no image generation, a blocked host) is
+   stated once with the exact setting, never repeated, never turned into a
+   menu of options he did not ask for. This cloud environment needs
+   `huggingface.co` and `cdn-lfs.huggingface.co` allowed (done 2026-09-29);
+   a fresh session picks the policy up, a running one does not — spawn a
+   child session for the job rather than asking him again.
+4. **Talk like a person.** No decision-record voice in chat, no rosters,
+   no AUDIT rows read aloud, no twenty questions. Answer the question he
+   asked. He wants a workstation, not a configuration exercise.
+5. **What makes the game good is feel before pictures**: shadows, floors,
+   camera, hit and kill feedback, numbers, sound. Every session that touches
+   the screen should leave it feeling better at the link, not documented
+   better in the repo.
+6. The records below (decisions, AUDIT, rosters) are optional and short.
+   They never gate a change and are never the reason to keep a bad one.
+
 ## Read first, in this order
 
 1. `PLAN.md` — the premise, the act list, the six mechanisms, the content
    rule, and the **2026-09-27 reorientation** at the end, which governs how
    work is done now
 2. `DECISIONS.md` (technical) and `DESIGN-DECISIONS.md` (creative, G-numbers)
-3. `ART-DIRECTION.md` — BINDING. The eleven laws
+3. `ART-DIRECTION.md` — the pipeline's craft laws (outline, palette, readable at 48px, one job per colour) still run as checks on generated sprites; its registers are history, superseded by the boards
 4. `AUDIT.md` — defect history and the class of bug this project breeds
 5. The act rosters (`CONCEPTION-ROSTER.md`, `SCHOOL-ROSTER.md`) and open
    briefs (`ITEMS-BRIEF.md`, `PLAYTEST-FINDINGS.md`) as the work demands
@@ -62,8 +100,10 @@ One session holds the judgement and delegates the bounded work.
   pieces do not share files.
 - **Sonnet or Haiku subagents:** read-only searches and summaries.
 
-No cloud fan-out: spawned cloud sessions prompt Justin for every permission.
-Parallelism is in-session subagents and workflows only.
+Parallelism is in-session subagents. A cloud child session is for one case:
+a job that needs a network policy or a machine this container lacks (the
+image generator), started with the whole job in its prompt and never asked to
+report back through Justin.
 
 A subagent gets the files it needs by path, the rule it must not break, and
 the test that says it is done. It does not get "improve the game".
@@ -129,9 +169,10 @@ per machine. Never add it to CI.
   a lazily loaded chunk, mounted only with the flag).
 - **The art pipeline rejects, it never corrects** (G-032). Consistency is
   imposed by CONFORM/CHECK, not asked of the generator. Every asset commits
-  its provenance (`assets/prompts/` records it; `tools/art/svg/` is the source of drawn art,
-  D-025); law 11 (`tools/art/reservations.ts`) gates both doors. Prefer
-  drawing: it needs no key and states the shape exactly.
+  its provenance (`assets/prompts/` records it). **Characters come from a
+  generator, never from hand-drawn SVG** (see the top of this file); the SVG
+  path (`tools/art/svg/`) remains for floors, props, icons of objects and
+  UI only.
 - **One registry per kind of content** (CONCEPTION-ROSTER §5.3). A sibling
   collection is a rule that silently stops applying.
 
@@ -146,7 +187,9 @@ per machine. Never add it to CI.
 
 ## Working with Justin
 
-Concise and direct; don't recap work he just watched. Hand him a link and a
-reaction question, not a document and a number question. When a design
-conversation genuinely needs to happen out loud, put the substance in a repo
-doc and give him a one-line prompt saying what to read.
+Plain talk. Answer what he asked. Hand him a link. If he says it looks bad,
+believe him and change the thing, not the wording. Never ask him to change a
+setting unless it is the only route, and then once, with the exact clicks.
+Never present a menu when he asked for a thing. Own the outcome: the goal is a
+fun, addictive roguelite that plays on the American life script, and every
+hour should move the link toward that, even by an inch.

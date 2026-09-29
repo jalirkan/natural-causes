@@ -6,8 +6,8 @@
 - **Source:** authored SVG, `tools/art/svg/college/registrar.svg`
 - **SVG sha256:** `244c45f8b032c7fefc7dc4d755fc35b47e4c0254978adab07b1772a0a6724256`
 - **Rasteriser:** sharp 0.34.5 (libvips 8.17.3, librsvg 2.61.2)
-- **Render:** 45.375 dpi, 4× supersampled and area-averaged
-- **Rendered:** 2026-09-28T04:10:07.741Z
+- **Render:** 46.575 dpi, 4× supersampled and area-averaged
+- **Rendered:** 2026-09-29T02:41:09.543Z
 - **Sprite size:** 80px
 - **Tests:** the counter — the only architecture in the act, read by its bell; nobody behind it
 
@@ -21,13 +21,13 @@ a low service counter seen straight on, a wide front panel under a ledge, a slot
 
 | Check | Result | Measured | Expected |
 |---|---|---|---|
-| silhouette-area | pass | 0.6158 | 0.12–0.82 of canvas |
+| silhouette-area | pass | 0.5953 | 0.12–0.82 of canvas |
 | background-contrast | pass | 0.1855 | >= 0.12 median Oklab L from college-deep |
-| background-contrast-coverage | pass | 0.205 | <= 0.4 of sprite may vanish into college-deep |
+| background-contrast-coverage | pass | 0.1488 | <= 0.4 of sprite may vanish into college-deep |
 | palette-conformance | pass | 0 | <= 0.0353 Oklab from a palette entry |
 | palette-variety | pass | 3 | >= 2 distinct palette colours |
-| palette-dominance | pass | 0.5915 | no colour above 0.97 of the sprite |
-| readable-48px-silhouette | pass | 0.6267 | >= 0.084 coverage at 48px |
+| palette-dominance | pass | 0.6556 | no colour above 0.97 of the sprite |
+| readable-48px-silhouette | pass | 0.6102 | >= 0.084 coverage at 48px |
 | readable-48px-structure | pass | 5 | >= 2 palette colours still visible at 48px |
 | enemy-value-ceiling | pass | 0.8295 | <= 0.856 Oklab L (bone); paper belongs to the player |
-| readable-48px-detail | pass | 0.3213 | >= 0.06 edge density at 48px |
+| readable-48px-detail | pass | 0.3153 | >= 0.06 edge density at 48px |

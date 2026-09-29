@@ -29,6 +29,8 @@ export interface AtlasJson {
 export interface ActVisuals {
   /** Act background, from the locked palette (ART-DIRECTION law 3). */
   background: number;
+  /** The act's mid tone: the floor's structure over the background (src/scenes/floors.ts). */
+  mid: number;
   /**
    * The atlas JSON is typed by its frame names so a test can ask whether a
    * frame an act draws is actually in it, without a browser.
@@ -114,6 +116,7 @@ export const ACT_VISUALS: Record<string, ActVisuals> = {
   conception: {
     // conception-deep.
     background: 0x6b3a44,
+    mid: 0xa86a63,
     atlas: { key: 'conception', png: conceptionAtlasPng, json: conceptionAtlasJson },
     playerFrame: 'player-sperm.png',
     attachFrame: 'antibody.png',
@@ -126,6 +129,7 @@ export const ACT_VISUALS: Record<string, ActVisuals> = {
   school: {
     // school-deep.
     background: 0x3d5148,
+    mid: 0x6b7f53,
     atlas: { key: 'school', png: schoolAtlasPng, json: schoolAtlasJson },
     playerFrame: 'player-school.png',
     // The Gym Teacher's frame on the Egg's behaviour: the sim has one boss
@@ -137,6 +141,7 @@ export const ACT_VISUALS: Record<string, ActVisuals> = {
   adolescence: {
     // adolescence-deep: night, the darkest ground in the life.
     background: 0x2e3453,
+    mid: 0x5e95c3,
     atlas: { key: 'adolescence', png: adolescenceAtlasPng, json: adolescenceAtlasJson },
     playerFrame: 'player-adolescence.png',
     // Prom's picture on the Egg's behaviour until Prom's own kind exists
@@ -151,6 +156,7 @@ export const ACT_VISUALS: Record<string, ActVisuals> = {
   college: {
     // college-deep: burgundy.
     background: 0x4e2233,
+    mid: 0x8e4a5c,
     atlas: { key: 'college', png: collegeAtlasPng, json: collegeAtlasJson },
     playerFrame: 'player-college.png',
     bossFrame: 'boss-loan.png',
@@ -168,6 +174,7 @@ export const ACT_VISUALS: Record<string, ActVisuals> = {
   office: {
     // office-deep: the carpet (OFFICE-ROSTER §1).
     background: 0x3a4a5c,
+    mid: 0x6b8299,
     atlas: { key: 'office', png: officeAtlasPng, json: officeAtlasJson },
     playerFrame: 'player-office.png',
     // The org chart, standing (OFFICE-ROSTER §4, G-004).
@@ -187,6 +194,7 @@ export const ACT_VISUALS: Record<string, ActVisuals> = {
   family: {
     // family-deep: umber, the carpet (FAMILY-ROSTER §1).
     background: 0x4d3a1f,
+    mid: 0xa3812f,
     atlas: { key: 'family', png: familyAtlasPng, json: familyAtlasJson },
     // The same figure, a tote bag over one shoulder and keys in hand (§5).
     playerFrame: 'player-family.png',
@@ -210,6 +218,7 @@ export const ACT_VISUALS: Record<string, ActVisuals> = {
   decline: {
     // decline-deep: the ward's floor (DECLINE-ROSTER §1).
     background: 0x34433c,
+    mid: 0x7e9b8e,
     atlas: { key: 'decline', png: declineAtlasPng, json: declineAtlasJson },
     // The same figure, a cardigan and a cane (§5).
     playerFrame: 'player-decline.png',
