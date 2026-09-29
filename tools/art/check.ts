@@ -46,6 +46,14 @@ export interface CheckResult {
    * Carried into the failure line, so a rejection says what to redraw.
    */
   detail?: string;
+  /**
+   * The check did not run: it does not apply to this sprite's finish (a
+   * render keeps its own colours, so the palette checks are not asked of
+   * it). Listed rather than left out so provenance says what was not
+   * checked. Never a pass — `pass` is false and `measured` is NaN — and
+   * never a failure: `failures` leaves it out.
+   */
+  skipped?: true;
 }
 
 export interface CheckReport {
@@ -234,11 +242,29 @@ function edgeDensity(bmp: Bitmap): number {
   return counted === 0 ? 0 : edges / counted;
 }
 
+/**
+ * What a sprite is, for CHECK. `'flat'` runs everything. `'render'` — a
+ * rendered character (`AssetSpec.finish`) — runs silhouette area, background
+ * contrast and its coverage, and the three 48px readability checks, and lists
+ * palette conformance, variety and dominance, the enemy value ceiling and
+ * field colours as skipped: they measure distance from a flat palette, which
+ * a render by construction is not.
+ */
+export type Finish = 'flat' | 'render';
+
+const RENDER_SKIP_NOTE = "not run for finish: 'render' — a rendered sprite keeps its own colours";
+
+function skipped(name: string, expected: string): CheckResult {
+  return { name, pass: false, measured: NaN, expected, note: RENDER_SKIP_NOTE, skipped: true };
+}
+
 export async function check(
   bmp: Bitmap,
   act: ActId,
   thresholds: CheckThresholds = DEFAULT_THRESHOLDS,
+  finish: Finish = 'flat',
 ): Promise<CheckReport> {
+  const render = finish === 'render';
   const results: CheckResult[] = [];
   const total = bmp.width * bmp.height;
   const opaque = opaqueCount(bmp);
@@ -291,36 +317,42 @@ export async function check(
 
   // 3. Palette conformance. Tolerant of exactly the grain amplitude and no
   //    more, so TEXTURE stays legal and a rogue colour still fails.
-  const palette = actPalette(act);
   const tolerance = distanceToleranceFor(GRAIN_AMPLITUDE);
-  let worst = 0;
-  for (let i = 0; i < bmp.data.length; i += CHANNELS) {
-    if (bmp.data[i + 3] === 0) continue;
-    const d = distanceToPalette(palette, bmp.data[i]!, bmp.data[i + 1]!, bmp.data[i + 2]!);
-    if (d > worst) worst = d;
+  if (render) {
+    results.push(skipped('palette-conformance', `<= ${tolerance.toFixed(4)} Oklab from a palette entry`));
+    results.push(skipped('palette-variety', `>= ${thresholds.minDistinctColours} distinct palette colours`));
+    results.push(skipped('palette-dominance', `no colour above ${thresholds.maxSingleColourShare} of the sprite`));
+  } else {
+    const palette = actPalette(act);
+    let worst = 0;
+    for (let i = 0; i < bmp.data.length; i += CHANNELS) {
+      if (bmp.data[i + 3] === 0) continue;
+      const d = distanceToPalette(palette, bmp.data[i]!, bmp.data[i + 1]!, bmp.data[i + 2]!);
+      if (d > worst) worst = d;
+    }
+    results.push({
+      name: 'palette-conformance',
+      pass: worst <= tolerance,
+      measured: +worst.toFixed(4),
+      expected: `<= ${tolerance.toFixed(4)} Oklab from a palette entry`,
+    });
+
+    const hist = paletteHistogram(bmp, act);
+    results.push({
+      name: 'palette-variety',
+      pass: hist.size >= thresholds.minDistinctColours,
+      measured: hist.size,
+      expected: `>= ${thresholds.minDistinctColours} distinct palette colours`,
+    });
+
+    const dominant = Math.max(0, ...hist.values()) / Math.max(1, opaque);
+    results.push({
+      name: 'palette-dominance',
+      pass: dominant <= thresholds.maxSingleColourShare,
+      measured: +dominant.toFixed(4),
+      expected: `no colour above ${thresholds.maxSingleColourShare} of the sprite`,
+    });
   }
-  results.push({
-    name: 'palette-conformance',
-    pass: worst <= tolerance,
-    measured: +worst.toFixed(4),
-    expected: `<= ${tolerance.toFixed(4)} Oklab from a palette entry`,
-  });
-
-  const hist = paletteHistogram(bmp, act);
-  results.push({
-    name: 'palette-variety',
-    pass: hist.size >= thresholds.minDistinctColours,
-    measured: hist.size,
-    expected: `>= ${thresholds.minDistinctColours} distinct palette colours`,
-  });
-
-  const dominant = Math.max(0, ...hist.values()) / Math.max(1, opaque);
-  results.push({
-    name: 'palette-dominance',
-    pass: dominant <= thresholds.maxSingleColourShare,
-    measured: +dominant.toFixed(4),
-    expected: `no colour above ${thresholds.maxSingleColourShare} of the sprite`,
-  });
 
   // 4. Readability at gameplay size.
   const small = await resizeSmooth(bmp, GAMEPLAY_PX, GAMEPLAY_PX);
@@ -351,20 +383,26 @@ export async function check(
   //    a GPU multiply is invisible to every other check in this function.
   //    Field art only — the ceiling exists so the player is the lightest
   //    thing on the FIELD, and card art never reaches the field.
+  //    A render lists it as skipped where it would have run.
   if (thresholds.surface !== 'card' && thresholds.valueCeiling !== false) {
-  let brightest = 0;
-  for (let i = 0; i < bmp.data.length; i += CHANNELS) {
-    if (bmp.data[i + 3] === 0) continue;
-    const L = rgbToOklab(bmp.data[i]!, bmp.data[i + 1]!, bmp.data[i + 2]!).L;
-    if (L > brightest) brightest = L;
-  }
-  results.push({
-    name: 'enemy-value-ceiling',
-    pass: brightest <= MAX_ENEMY_LIGHTNESS,
-    measured: +brightest.toFixed(4),
-    expected: `<= ${MAX_ENEMY_LIGHTNESS.toFixed(3)} Oklab L (bone); paper belongs to the player`,
-    note: 'law 10 — the player is the lightest thing on screen',
-  });
+    const expected = `<= ${MAX_ENEMY_LIGHTNESS.toFixed(3)} Oklab L (bone); paper belongs to the player`;
+    if (render) {
+      results.push(skipped('enemy-value-ceiling', expected));
+    } else {
+      let brightest = 0;
+      for (let i = 0; i < bmp.data.length; i += CHANNELS) {
+        if (bmp.data[i + 3] === 0) continue;
+        const L = rgbToOklab(bmp.data[i]!, bmp.data[i + 1]!, bmp.data[i + 2]!).L;
+        if (L > brightest) brightest = L;
+      }
+      results.push({
+        name: 'enemy-value-ceiling',
+        pass: brightest <= MAX_ENEMY_LIGHTNESS,
+        measured: +brightest.toFixed(4),
+        expected,
+        note: 'law 10 — the player is the lightest thing on screen',
+      });
+    }
   }
 
   const density = edgeDensity(small);
@@ -383,19 +421,23 @@ export async function check(
   //    which holds paper and every threat colour, and nothing here moves a
   //    pixel off them. The drawing is fixed by whoever drew it.
   if (thresholds.fieldRiding) {
-    const worn = fieldColourViolations(bmp);
-    results.push({
-      name: 'field-colours',
-      pass: worn.pixels === 0,
-      measured: worn.pixels,
-      expected: FIELD_COLOURS_EXPECTED,
-      note: fieldColoursBlindSpot(),
-      ...(worn.colours.length > 0 ? { detail: `wears ${worn.colours.join(', ')}` } : {}),
-    });
+    if (render) {
+      results.push(skipped('field-colours', FIELD_COLOURS_EXPECTED));
+    } else {
+      const worn = fieldColourViolations(bmp);
+      results.push({
+        name: 'field-colours',
+        pass: worn.pixels === 0,
+        measured: worn.pixels,
+        expected: FIELD_COLOURS_EXPECTED,
+        note: fieldColoursBlindSpot(),
+        ...(worn.colours.length > 0 ? { detail: `wears ${worn.colours.join(', ')}` } : {}),
+      });
+    }
   }
 
   const failures = results
-    .filter((r) => !r.pass)
+    .filter((r) => !r.pass && !r.skipped)
     .map((r) => `${r.name} (${r.measured}${r.detail ? `: ${r.detail}` : ''})`);
   return { pass: failures.length === 0, results, failures };
 }

@@ -268,7 +268,8 @@ export const TEST_BATCH: AssetSpec[] = [
     name: 'Substitute teacher',
     act: 'school',
     role: 'swarm',
-    source: 'svg',
+    source: 'render',
+    finish: 'render',
     tests: 'the bright hard rectangle in the greeting-card register: a clipboard with rounded corners and straight sides, carried by a cute figure that is still the role',
     targetSize: 96,
     seed: 4004,
@@ -509,8 +510,14 @@ export const CONCEPTION_ROSTER: AssetSpec[] = [
  * The School roster (SCHOOL-ROSTER.md §3). Four swarm-tier assets; the fifth,
  * `substitute-teacher`, is in the test batch above and already passed, and the
  * roster was written around it rather than over it. All five swarm assets,
- * the school-age player and the Gym Teacher are authored SVG (G-038,
- * `art:svg`), redrawn in the greeting-card register (G-053).
+ * the school-age player and the Gym Teacher were authored SVG (G-038) and
+ * redrawn in the greeting-card register (G-053); since 2026-09-29 they are
+ * rendered (`source: 'render'`, `finish: 'render'`): an image model draws
+ * them outside this repo, an external tool cuts them out, and
+ * `pnpm art:intake` takes them in. The subjects below stay as the written
+ * description D-007 runs on; the prompt that made each sprite is in its
+ * sidecar and its provenance. The SVG sprites stay in assets/sprites until
+ * intake replaces them.
  *
  * Every silhouette here is what it is because the clipboard took the bright
  * hard rectangle (§1). Homework is a wedge and the hall monitor's sash runs
@@ -538,7 +545,8 @@ export const SCHOOL_ROSTER: AssetSpec[] = [
     tests: 'the cluster — one enemy that must not read as four, the same cute face four times',
     targetSize: 88,
     seed: 10010,
-    source: 'svg',
+    source: 'render',
+    finish: 'render',
     whyThisStage:
       'School is the first place that has an inside, and the player finds out where they are by walking into the edge of it.',
     // The failure this prompt is written against: four separate figures
@@ -567,7 +575,8 @@ export const SCHOOL_ROSTER: AssetSpec[] = [
     tests: 'the circle — the only perfect circle in the act, cute and still contact red',
     targetSize: 44,
     seed: 11011,
-    source: 'svg',
+    source: 'render',
+    finish: 'render',
     whyThisStage:
       'School is where the player is first hurt by something that was aimed at the room rather than at them.',
     // A perfect circle at 44px carries nothing but its own edge, so nothing
@@ -598,7 +607,8 @@ export const SCHOOL_ROSTER: AssetSpec[] = [
     tests: 'the wedge — paper that is deliberately not a rectangle, with a face (law 5)',
     targetSize: 72,
     seed: 12012,
-    source: 'svg',
+    source: 'render',
+    finish: 'render',
     whyThisStage:
       'School is the first stage that follows the player home and takes up the part of the day nobody was counting.',
     // §1: the bright hard rectangle is the substitute's and School is full of
@@ -631,7 +641,8 @@ export const SCHOOL_ROSTER: AssetSpec[] = [
     tests: 'the sash — one hard diagonal that must not read as a badge, on a cute round figure',
     targetSize: 88,
     seed: 13013,
-    source: 'svg',
+    source: 'render',
+    finish: 'render',
     whyThisStage:
       'School is where authority is first handed to someone with no more standing than the player, and it works anyway.',
     // Law 9, and §1 twice over. The sash IS the character: at 48px the body
@@ -651,16 +662,17 @@ export const SCHOOL_ROSTER: AssetSpec[] = [
       'no yellow, no gold, no olive green anywhere on the figure',
     ].join(', '),
   },
-  // G-038: the player and the boss for School are authored SVG from the
-  // start. Neither was ever generated, so neither has a prompt history; the
-  // subject is the drawing's written description, D-007 runs on it, and law
-  // 11 gates the rasteriser exactly as it gated fal.
+  // G-038: the player and the boss for School were authored SVG from the
+  // start and are rendered now (above). The subject is the written
+  // description, D-007 runs on it, and law 11 gates intake exactly as it
+  // gated the rasteriser and fal.
   {
     id: 'player-school',
     name: 'The player — school age',
     act: 'school',
     role: 'player',
-    source: 'svg',
+    source: 'render',
+    finish: 'render',
     targetSize: 112,
     seed: 14014,
     tests: 'G-003 and G-053 at five: the base drawing, whose head every act copies verbatim, and the figure every act is the same size as',
@@ -681,7 +693,8 @@ export const SCHOOL_ROSTER: AssetSpec[] = [
     name: 'The Gym Teacher',
     act: 'school',
     role: 'boss',
-    source: 'svg',
+    source: 'render',
+    finish: 'render',
     targetSize: 384,
     seed: 15015,
     whyThisStage:

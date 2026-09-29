@@ -47,8 +47,24 @@ export interface AssetSpec {
    * CONFORM and CHECK, and law 11 and D-007 gate it the same way. For an svg
    * asset `subject` is the written description, never sent anywhere — the
    * content rule still runs on it.
+   *
+   * `'render'`: a character rendered by an image model outside this repo
+   * (Stable Diffusion / SDXL; `tools/art/figure.py`, `tools/art/boards.py`),
+   * cut out with a real alpha channel by an external tool, and brought in by
+   * `pnpm art:intake` from `assets/raw/<id>.png` with its provenance in
+   * `assets/raw/<id>.json`. Characters are rendered, never drawn as SVG
+   * (CLAUDE.md, 2026-09-29). Neither `art:batch` nor `art:svg` touches one.
    */
-  source?: 'svg';
+  source?: 'svg' | 'render';
+  /**
+   * What CONFORM and CHECK do to the pixels. `'flat'` (default): quantise to
+   * the act palette, binarise alpha, draw the ink outline, grain, and the
+   * palette checks — right for flat art. `'render'`: a rendered sprite keeps
+   * its own shading and soft edge — crop, smooth resample to `targetSize`,
+   * centre, nothing else — and CHECK runs only the silhouette, contrast and
+   * 48px readability checks, listing the palette ones as skipped.
+   */
+  finish?: 'flat' | 'render';
   /**
    * Icons only. This icon is also drawn on the field — a shot, an orbiter, a
    * stamp, a rider (G-036) — so besides the card checks it keeps off the
@@ -69,6 +85,6 @@ export interface GenerationRecord {
   styleSuffix: string;
   attempt: number;
   rejected: Array<{ seed: number; failures: string[] }>;
-  checks: Array<{ name: string; pass: boolean; measured: number; expected: string }>;
+  checks: Array<{ name: string; pass: boolean; measured: number; expected: string; skipped?: true }>;
   generatedAt: string;
 }
