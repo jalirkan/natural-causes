@@ -18,6 +18,7 @@ import {
   THREAT as ART_THREAT,
   actBackground,
   actLight,
+  actMid,
 } from '../../../tools/art/palette';
 
 /**
@@ -400,6 +401,8 @@ describe('the locked palette', () => {
       expect(visuals, `act "${act.id}" has no visuals`).toBeDefined();
       const expected = actBackground(act.id as 'conception').hex.toUpperCase();
       expect(hex(visuals!.background), `act "${act.id}"`).toBe(expected);
+      // The floor draws its structure in the mid tone (src/scenes/floors.ts).
+      expect(hex(visuals!.mid), `act "${act.id}" mid`).toBe(actMid(act.id as 'conception').hex.toUpperCase());
     }
   });
 

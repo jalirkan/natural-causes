@@ -14,17 +14,28 @@ import { INK, PAPER, SHADOW } from '../config';
  * and nobody had read it back).
  */
 
-/** A soft elliptical darkening toward the corners. Screen-fixed. */
+const rgb = (c: number) => `${(c >> 16) & 0xff},${(c >> 8) & 0xff},${c & 0xff}`;
+
+/**
+ * A soft elliptical darkening toward the corners. Screen-fixed.
+ *
+ * Shadow, multiplied: every act's ground is darker than shadow, so shadow
+ * laid over it normally would lighten the corners; multiplied, it darkens
+ * them and warms them, in every act alike.
+ */
 export function addVignette(scene: Phaser.Scene, viewW: number, viewH: number, depth: number): void {
-  const key = 'nc-vignette';
+  const key = 'nc-vignette-shadow';
   if (!scene.textures.exists(key)) {
     const size = 512;
     const canvas = scene.textures.createCanvas(key, size, size);
     if (!canvas) return;
     const ctx = canvas.getContext();
-    const grad = ctx.createRadialGradient(size / 2, size / 2, size * 0.3, size / 2, size / 2, size * 0.52);
-    grad.addColorStop(0, 'rgba(18,16,12,0)');
-    grad.addColorStop(1, 'rgba(18,16,12,0.40)');
+    const c = size / 2;
+    const grad = ctx.createRadialGradient(c, c, size * 0.22, c, c, size * 0.72);
+    grad.addColorStop(0, `rgba(${rgb(SHADOW)},0)`);
+    grad.addColorStop(0.3, `rgba(${rgb(SHADOW)},0.22)`);
+    grad.addColorStop(0.62, `rgba(${rgb(SHADOW)},0.62)`);
+    grad.addColorStop(1, `rgba(${rgb(SHADOW)},0.95)`);
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, size, size);
     canvas.refresh();
@@ -33,7 +44,42 @@ export function addVignette(scene: Phaser.Scene, viewW: number, viewH: number, d
     .image(viewW / 2, viewH / 2, key)
     .setDisplaySize(viewW * 1.03, viewH * 1.03)
     .setScrollFactor(0)
+    .setBlendMode(Phaser.BlendModes.MULTIPLY)
     .setDepth(depth);
+}
+
+/**
+ * How far the player's light reaches across the floor, in world px. Kept to
+ * what reads: software WebGL (the CI smoke's renderer) pays for every pixel
+ * of the quad, and the outer fifth of its radius is under 1%.
+ */
+const LIGHT_DIAMETER = 720;
+
+/**
+ * A pool of light on the floor around the player: paper, faint, over the
+ * floor and under every sprite. The texture holds the whole falloff at full
+ * alpha and the image is drawn faint, so the ramp keeps its precision and
+ * does not band on a dark ground.
+ */
+export function addPlayerLight(scene: Phaser.Scene, depth: number): Phaser.GameObjects.Image {
+  const key = 'nc-light';
+  if (!scene.textures.exists(key)) {
+    const size = 256;
+    const canvas = scene.textures.createCanvas(key, size, size);
+    if (canvas) {
+      const ctx = canvas.getContext();
+      const c = size / 2;
+      const grad = ctx.createRadialGradient(c, c, 0, c, c, c);
+      for (let i = 0; i <= 16; i++) {
+        const r = i / 16;
+        grad.addColorStop(r, `rgba(${rgb(PAPER)},${((1 - r * r) ** 2).toFixed(4)})`);
+      }
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, size, size);
+      canvas.refresh();
+    }
+  }
+  return scene.add.image(0, 0, key).setDisplaySize(LIGHT_DIAMETER, LIGHT_DIAMETER).setAlpha(0.08).setDepth(depth);
 }
 
 /**

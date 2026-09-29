@@ -6,7 +6,8 @@ import { ITEMS, isActive, itemDef, type ItemIcon } from '../data/items';
 import { neutralDevState, type DevState } from '../dev/state';
 import { reviewedLife, reviewMode, taintBadge } from '../dev/review';
 import type { ActDocument } from '../data/documents';
-import { addVignette, ensureFieldTile, ensureGemTexture, ensureShotTextures } from './dressing';
+import { addPlayerLight, addVignette, ensureGemTexture, ensureShotTextures } from './dressing';
+import { bakeFloor } from './floors';
 import { ITEM_ICON_ATLAS, itemIconFrame } from '../data/item-visuals';
 import { parseOfferId } from '../data/items';
 import { offerPips, offerTitle, statLines } from '../data/item-text';
@@ -323,6 +324,9 @@ export class ActScene extends Phaser.Scene {
   private cryIcons: Phaser.GameObjects.Image[] = [];
   /** Spilt Milk's puddles (G-054), redrawn every frame under everything but the floor. */
   private puddleFx!: Phaser.GameObjects.Graphics;
+  /** The act's floor, baked (./floors), and the light the player carries over it. */
+  private floor!: Phaser.GameObjects.Image;
+  private light!: Phaser.GameObjects.Image;
   private attachedSprites: Phaser.GameObjects.Image[] = [];
   private bossSprite?: Phaser.GameObjects.Image;
   /** Prom's dance floor, drawn as a ring at floorRadius; only while its boss stands. */
@@ -719,6 +723,7 @@ export class ActScene extends Phaser.Scene {
     this.shownAct = this.world.actIndex;
     this.visuals = actVisuals(this.world.act.id);
     this.cameras.main.setBackgroundColor(this.visuals.background);
+    this.relayField();
     this.gemKey = ensureGemTexture(this, this.visuals.pickup);
     for (const g of this.gemSprites) g.destroy();
     this.gemSprites = [];
@@ -1171,13 +1176,20 @@ export class ActScene extends Phaser.Scene {
   }
 
   /**
-   * A flat field of one colour gives no motion cue — the player moves and
-   * nothing appears to happen. A sparse tiled mark fixes that for the cost of
-   * one texture, and reads as paper tooth, which is the register.
+   * The act's floor (./floors): a flat field of one colour gives no motion
+   * cue and no place. One baked image, and the player's light over it and
+   * under every sprite.
    */
   private createField(): void {
-    const key = ensureFieldTile(this);
-    this.add.tileSprite(0, 0, WORLD_WIDTH, WORLD_HEIGHT, key).setOrigin(0, 0).setDepth(0);
+    const floor = bakeFloor(this, this.world.act.id, WORLD_WIDTH, WORLD_HEIGHT);
+    this.floor = this.add.image(0, 0, floor).setOrigin(0, 0).setDepth(0);
+    this.light = addPlayerLight(this, 0.5).setPosition(this.world.x, this.world.y);
+  }
+
+  /** The crossing: the next act's floor under the same light. */
+  private relayField(): void {
+    // In one statement: the bake released the last act's floor, which the image still shows.
+    this.floor.setTexture(bakeFloor(this, this.world.act.id, WORLD_WIDTH, WORLD_HEIGHT));
   }
 
   private createHud(): void {
@@ -1632,6 +1644,7 @@ export class ActScene extends Phaser.Scene {
 
   private syncPlayer(): void {
     this.player.setPosition(this.world.x, this.world.y);
+    this.light.setPosition(this.world.x, this.world.y);
     if (this.world.facingX !== 0) this.player.setFlipX(this.world.facingX < 0);
     this.player.setAlpha(this.world.invulnerable > 0 ? 0.55 : 1);
     // Stopped dead by the hall monitor (§3.4): flattened, wiggle held, for as
