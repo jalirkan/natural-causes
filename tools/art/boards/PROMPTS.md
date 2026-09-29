@@ -22,6 +22,11 @@ The three scenes are the same in every direction so the boards compare:
 - **C. The certificate** — the last screen: a death certificate on a desk,
   "Natural causes. Age 84." typed on it, the kid's cowlick just visible at
   the bottom edge of the frame.
+- **D. Conception** — the race: the sperm with a cowlick among hundreds,
+  toward the Egg.
+- **E. The Office** — cubicle carpet, emails and pings swarming, The Reorg's
+  org chart with its empty top box.
+- **F. The title** — the kid, the name, a warm floor.
 
 Append the scene text to the direction's style line.
 
@@ -31,6 +36,9 @@ Append the scene text to the direction's style line.
 - A: `— a small kid with one cowlick at the centre of a school gym floor, dozens of red dodgeballs and homework stacks with faces swarming in from all sides, a gym teacher with a whistle at the edge`
 - B: `— a small figure in a shirt and tie at the centre of a living-room floor, a house with a face and twelve notches on its roof beside them, dozens of bills with faces swarming in, a ringing telephone`
 - C: `— the game's ending screen, a death certificate on a desk that reads Natural causes, age 84, the kid's cowlick just visible at the bottom edge`
+- D: `— a tiny sperm with one cowlick racing hundreds of rival sperm across a warm pink cellular landscape toward a huge glowing egg at the top, white blood cells drifting in`
+- E: `— a small figure in a shirt and tie at the centre of a grey office carpet, cubicle walls around, dozens of emails and calendar pings with faces swarming in, a huge org chart boss with a smiling empty top box`
+- F: `— the game's title screen, a small kid with one cowlick standing at the centre, the words NATURAL CAUSES above, a warm floor, a soft vignette`
 
 ## 2 · The pop-up book
 
@@ -40,6 +48,9 @@ Append the scene text to the direction's style line.
 - A: `— a small kid with one cowlick at the centre of a school gym floor, dozens of red dodgeballs and homework stacks with faces swarming in from all sides, a gym teacher with a whistle at the edge`
 - B: `— a small figure in a shirt and tie at the centre of a living-room floor, a house with a face and twelve notches on its roof beside them, dozens of bills with faces swarming in, a ringing telephone`
 - C: `— the game's ending screen, a death certificate on a desk that reads Natural causes, age 84, the kid's cowlick just visible at the bottom edge`
+- D: `— a tiny sperm with one cowlick racing hundreds of rival sperm across a warm pink cellular landscape toward a huge glowing egg at the top, white blood cells drifting in`
+- E: `— a small figure in a shirt and tie at the centre of a grey office carpet, cubicle walls around, dozens of emails and calendar pings with faces swarming in, a huge org chart boss with a smiling empty top box`
+- F: `— the game's title screen, a small kid with one cowlick standing at the centre, the words NATURAL CAUSES above, a warm floor, a soft vignette`
 
 ## 3 · The New Yorker cartoon
 
@@ -49,6 +60,9 @@ Append the scene text to the direction's style line.
 - A: `— a small kid with one cowlick at the centre of a school gym floor, dozens of red dodgeballs and homework stacks with faces swarming in from all sides, a gym teacher with a whistle at the edge`
 - B: `— a small figure in a shirt and tie at the centre of a living-room floor, a house with a face and twelve notches on its roof beside them, dozens of bills with faces swarming in, a ringing telephone`
 - C: `— the game's ending screen, a death certificate on a desk that reads Natural causes, age 84, the kid's cowlick just visible at the bottom edge`
+- D: `— a tiny sperm with one cowlick racing hundreds of rival sperm across a warm pink cellular landscape toward a huge glowing egg at the top, white blood cells drifting in`
+- E: `— a small figure in a shirt and tie at the centre of a grey office carpet, cubicle walls around, dozens of emails and calendar pings with faces swarming in, a huge org chart boss with a smiling empty top box`
+- F: `— the game's title screen, a small kid with one cowlick standing at the centre, the words NATURAL CAUSES above, a warm floor, a soft vignette`
 
 ## 4 · The painted picture book
 
@@ -58,6 +72,9 @@ Append the scene text to the direction's style line.
 - A: `— a small kid with one cowlick at the centre of a school gym floor, dozens of red dodgeballs and homework stacks with faces swarming in from all sides, a gym teacher with a whistle at the edge`
 - B: `— a small figure in a shirt and tie at the centre of a living-room floor, a house with a face and twelve notches on its roof beside them, dozens of bills with faces swarming in, a ringing telephone`
 - C: `— the game's ending screen, a death certificate on a desk that reads Natural causes, age 84, the kid's cowlick just visible at the bottom edge`
+- D: `— a tiny sperm with one cowlick racing hundreds of rival sperm across a warm pink cellular landscape toward a huge glowing egg at the top, white blood cells drifting in`
+- E: `— a small figure in a shirt and tie at the centre of a grey office carpet, cubicle walls around, dozens of emails and calendar pings with faces swarming in, a huge org chart boss with a smiling empty top box`
+- F: `— the game's title screen, a small kid with one cowlick standing at the centre, the words NATURAL CAUSES above, a warm floor, a soft vignette`
 
 ## 5 · The tabletop
 
@@ -67,6 +84,9 @@ Append the scene text to the direction's style line.
 - A: `— a small kid with one cowlick at the centre of a school gym floor, dozens of red dodgeballs and homework stacks with faces swarming in from all sides, a gym teacher with a whistle at the edge`
 - B: `— a small figure in a shirt and tie at the centre of a living-room floor, a house with a face and twelve notches on its roof beside them, dozens of bills with faces swarming in, a ringing telephone`
 - C: `— the game's ending screen, a death certificate on a desk that reads Natural causes, age 84, the kid's cowlick just visible at the bottom edge`
+- D: `— a tiny sperm with one cowlick racing hundreds of rival sperm across a warm pink cellular landscape toward a huge glowing egg at the top, white blood cells drifting in`
+- E: `— a small figure in a shirt and tie at the centre of a grey office carpet, cubicle walls around, dozens of emails and calendar pings with faces swarming in, a huge org chart boss with a smiling empty top box`
+- F: `— the game's title screen, a small kid with one cowlick standing at the centre, the words NATURAL CAUSES above, a warm floor, a soft vignette`
 ## Running them locally
 
 A local Stable Diffusion or Flux runner (diffusers) takes each line as the
