@@ -50,7 +50,7 @@ def parse(md: str) -> dict[str, tuple[str, str, dict[str, str]]]:
         if style_line and not style:
             out[current] = (name, style_line.group(1).strip(), scenes)
             continue
-        scene = re.match(r'^- ([A-F]): `— (.+)`\s*$', line)
+        scene = re.match(r'^- ([A-Z]): `— (.+)`\s*$', line)
         if scene:
             scenes[scene.group(1)] = scene.group(2).strip()
     return {k: v for k, v in out.items() if v[1] and v[2]}
@@ -63,17 +63,18 @@ def prompt_for(style: str, scene: str) -> str:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('-d', '--directions', default='1,2,3,4,5', help='comma list, e.g. 1,3')
-    ap.add_argument('-s', '--scenes', default='A,B,C', help='comma list of A–F')
+    ap.add_argument('-s', '--scenes', default='A,B,C', help='comma list of scene letters')
     ap.add_argument('--seeds', default='1', help='comma list of seeds')
     ap.add_argument('--model', default='sdxl-turbo', choices=sorted(MODELS))
     ap.add_argument('--steps', type=int, default=None, help="override the model's step count")
     ap.add_argument('--out', default=str(ROOT.parent.parent / 'boards'))
     ap.add_argument('--dry', action='store_true', help='print the prompts and stop')
+    ap.add_argument('--prompts', default=str(PROMPTS), help='a prompts file in PROMPTS.md\'s format')
     args = ap.parse_args()
 
-    boards = parse(PROMPTS.read_text(encoding='utf-8'))
+    boards = parse(Path(args.prompts).read_text(encoding='utf-8'))
     if not boards:
-        print(f'no directions parsed from {PROMPTS}', file=sys.stderr)
+        print(f'no directions parsed from {args.prompts}', file=sys.stderr)
         return 2
     directions = [d.strip() for d in args.directions.split(',') if d.strip()]
     scenes = [s.strip().upper() for s in args.scenes.split(',') if s.strip()]
