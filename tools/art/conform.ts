@@ -1,4 +1,14 @@
-import { CHANNELS, blank, index, opaqueBounds, crop, centreOn, resize, type Bitmap } from './bitmap';
+import {
+  CHANNELS,
+  blank,
+  index,
+  opaqueBounds,
+  crop,
+  centreOn,
+  resize,
+  resizeSmooth,
+  type Bitmap,
+} from './bitmap';
 import {
   INK,
   actPalette,
@@ -152,14 +162,56 @@ export interface ConformOptions {
   forEnemy?: boolean;
   /** Threat colours this asset is allowed to wear. */
   holdsThreat?: ThreatClass[];
+  /**
+   * `'flat'` or omitted: quantise, binarise, outline — the path below,
+   * unchanged. `'render'`: a rendered character, `conformRender`.
+   */
+  finish?: 'flat' | 'render';
+}
+
+/**
+ * Alpha under this is noise from the cutter, not edge, and is zeroed after
+ * the resample; the soft edge a render arrives with is kept as it is. The
+ * crop uses the same number (`opaqueBounds` keeps what lies above it).
+ */
+export const RENDER_ALPHA_FLOOR = 8;
+
+/**
+ * CONFORM for a rendered character (`finish: 'render'`). A 3D toy render is
+ * made of soft shading and many colours, and it arrives already cut out with
+ * a real alpha channel; the flat corrections would destroy exactly what it
+ * is. So: crop to the subject, scale its long side to `targetSize` with a
+ * smooth resampler (lanczos3 — nearest-neighbour would stair-step every
+ * gradient), and centre it on the square. No quantise, no outline, no
+ * binarised alpha. Only alpha under `RENDER_ALPHA_FLOOR` is cleared, so a
+ * faint halo from the cutter does not count as silhouette.
+ */
+export async function conformRender(input: Bitmap, targetSize: number): Promise<Bitmap> {
+  const bounds = opaqueBounds(input, RENDER_ALPHA_FLOOR);
+  if (!bounds) throw new Error('conform received an empty bitmap');
+  const subject = crop(input, bounds);
+
+  const scale = targetSize / Math.max(subject.width, subject.height);
+  const scaled = await resizeSmooth(
+    subject,
+    Math.max(1, Math.min(targetSize, Math.round(subject.width * scale))),
+    Math.max(1, Math.min(targetSize, Math.round(subject.height * scale))),
+  );
+
+  for (let i = 0; i < scaled.data.length; i += CHANNELS) {
+    if (scaled.data[i + 3]! < RENDER_ALPHA_FLOOR) scaled.data.fill(0, i, i + CHANNELS);
+  }
+  return centreOn(scaled, targetSize);
 }
 
 /**
  * Full CONFORM stage. Order matters: scale first so the outline is applied at
  * final resolution and comes out crisp and uniform, rather than being resized
- * afterwards into a different weight per asset.
+ * afterwards into a different weight per asset. A render (`finish: 'render'`)
+ * takes none of this: see `conformRender`.
  */
 export async function conform(input: Bitmap, options: ConformOptions): Promise<Bitmap> {
+  if (options.finish === 'render') return conformRender(input, options.targetSize);
   const { act, targetSize } = options;
   const outline = outlineWidthFor(targetSize);
 

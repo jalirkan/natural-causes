@@ -48,7 +48,11 @@ const BLOB = `
   <circle cx="58" cy="50" r="4" fill="#2A2521"/>
 `;
 
-const hallMonitor = ALL_ASSETS.find((s) => s.id === 'hall-monitor')!;
+// The hall monitor is rendered now (source: 'render'); these tests need an
+// authored asset with a reservation in a lifted act, so they use the spec as
+// it was when it was drawn.
+const hallMonitorRendered = ALL_ASSETS.find((s) => s.id === 'hall-monitor')!;
+const hallMonitor: AssetSpec = { ...hallMonitorRendered, source: 'svg', finish: 'flat' };
 
 describe('the SVG stage rasterises to the size CONFORM wants', () => {
   it('the trimmed content lands exactly on targetSize − 2·outline', async () => {
@@ -160,6 +164,25 @@ describe('the SVG stage is gated like generation was', () => {
 
   it('the generator refuses an authored asset', async () => {
     await expect(runAsset(hallMonitor, { root: tmp, maxAttempts: 1 })).rejects.toThrow(/art:svg/);
+  });
+
+  it('the generator refuses a rendered asset', async () => {
+    await expect(runAsset(hallMonitorRendered, { root: tmp, maxAttempts: 1 })).rejects.toThrow(/art:intake/);
+  });
+});
+
+describe('a stale SVG never overwrites a render', () => {
+  it('runSvgAsset refuses a rendered asset even when a drawing is on disk, and writes nothing', async () => {
+    const root = mkdtempSync(join(tmp, 'stale-'));
+    const file = svgFile('stale.svg', BLOB);
+    await expect(runSvgAsset(hallMonitorRendered, { root, svgPath: file })).rejects.toThrow(/art:intake/);
+    expect(existsSync(resolve(root, 'assets'))).toBe(false);
+  });
+
+  it('no rendered asset has a drawing left in tools/art/svg', () => {
+    for (const spec of ALL_ASSETS.filter((s) => s.source === 'render')) {
+      expect(existsSync(svgPathFor(spec)), `${spec.id}: delete its superseded SVG`).toBe(false);
+    }
   });
 });
 

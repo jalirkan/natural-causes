@@ -3,31 +3,44 @@
 - **Asset id:** `homework`
 - **Act:** school
 - **Role:** swarm
-- **Source:** authored SVG, `tools/art/svg/school/homework.svg`
-- **SVG sha256:** `b35be210626263e8d8349bfe67f14a01629281228094959e1efb39b773e5fb73`
-- **Rasteriser:** sharp 0.34.5 (libvips 8.17.3, librsvg 2.61.2)
-- **Render:** 249.999 dpi, 4× supersampled and area-averaged
-- **Rendered:** 2026-09-29T02:41:07.776Z
+- **Source:** rendered and cut out outside this repo, taken in by `pnpm art:intake` from `assets/raw/homework.png`
+- **Model:** `Lykon/dreamshaper-xl-v2-turbo`
+- **Seed:** `1`
+- **Steps / guidance:** 7 / 2
+- **Render size:** 768×768px
+- **Generated:** 2026-09-29T04:50:36+00:00
+- **Cutter:** rembg isnet-general-use
+- **Raw sha256:** `0b80fe91bacf167ffba119413177297b4a2fb44102b62a5e380cd73ffe2be284`
+- **Finish:** render
+- **Taken in:** 2026-09-29T04:59:50.968Z
 - **Sprite size:** 72px
 - **Tests:** the wedge — paper that is deliberately not a rectangle, with a face (law 5)
 
 **Why this life stage.** School is the first stage that follows the player home and takes up the part of the day nobody was counting.
 
-## Description
+## Prompt
 
-a leaning stack of paper sheets seen from the side, triangular in profile, wide at the bottom and tapering to a soft rounded top that leans to one side, drawn in the greeting-card register, every corner rounded, the sheets in flat muted tan (#D2C6AC) with three warm grey-brown (#6E6353) strata between them, tilting with the lean, one loose sheet poking out of each side so the sheets never line up, no straight rectangle, not a neat block, not a squared-off slab, not a folder, not a book, a content little face on the front of the stack: two big dark eyes with one small tan glint each, a soft pink blush (#EBA39C) under each eye, a small pleased smile, no glint on the stack itself, because a tan glint on tan paper is no glint, doing nothing to anyone, not looking at anything, no text, no handwriting, no ruled lines, no yellow, no gold, no olive green, never white
+```
+3D rendered toy-like stack of paper homework sheets with a grumpy cartoon face, an object, no people, soft global illumination, clean matte plastic materials, cute, Pixar-like, plain neutral grey background, centered, full body
+```
+
+Negative:
+
+```
+text, watermark, blurry, deformed, extra limbs, logo, crowd, photo, realistic
+```
 
 ## Mechanical checks
 
 | Check | Result | Measured | Expected |
 |---|---|---|---|
-| silhouette-area | pass | 0.6165 | 0.12–0.82 of canvas |
-| background-contrast | pass | 0.4144 | >= 0.12 median Oklab L from school-deep |
-| background-contrast-coverage | pass | 0.1302 | <= 0.4 of sprite may vanish into school-deep |
-| palette-conformance | pass | 0 | <= 0.0353 Oklab from a palette entry |
-| palette-variety | pass | 4 | >= 2 distinct palette colours |
-| palette-dominance | pass | 0.7453 | no colour above 0.97 of the sprite |
-| readable-48px-silhouette | pass | 0.6194 | >= 0.084 coverage at 48px |
+| silhouette-area | pass | 0.5939 | 0.12–0.82 of canvas |
+| background-contrast | pass | 0.2317 | >= 0.12 median Oklab L from school-deep |
+| background-contrast-coverage | skipped | — | <= 0.4 of sprite may vanish into school-deep |
+| palette-conformance | skipped | — | <= 0.0353 Oklab from a palette entry |
+| palette-variety | skipped | — | >= 2 distinct palette colours |
+| palette-dominance | skipped | — | no colour above 0.97 of the sprite |
+| readable-48px-silhouette | pass | 0.5681 | >= 0.084 coverage at 48px |
 | readable-48px-structure | pass | 7 | >= 2 palette colours still visible at 48px |
-| enemy-value-ceiling | pass | 0.8295 | <= 0.856 Oklab L (bone); paper belongs to the player |
-| readable-48px-detail | pass | 0.4032 | >= 0.06 edge density at 48px |
+| enemy-value-ceiling | skipped | — | <= 0.856 Oklab L (bone); paper belongs to the player |
+| readable-48px-detail | pass | 0.3653 | >= 0.06 edge density at 48px |

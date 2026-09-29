@@ -1,4 +1,5 @@
 import type Phaser from 'phaser';
+import schoolFloorPng from '../../assets/floors/school.png';
 import { INK, SHADOW } from '../config';
 import { actVisuals } from '../data/act-visuals';
 
@@ -15,6 +16,13 @@ import { actVisuals } from '../data/act-visuals';
  * with a sprite. Law 10: paper is the player's and the light tone is the
  * pickups', so neither appears here (floors.test.ts holds it). No lozenges:
  * the pickup holds that shape game-wide (law 11).
+ *
+ * An act may instead take its tile from a generated picture (`image`, loaded
+ * by `preloadFloors`; its provenance in assets/prompts/floor-<act>.md): a
+ * real texture reaches what rectangles drawn at low alpha cannot. The
+ * Graphics tile stays as the fallback for when the picture is not loaded,
+ * and the landmarks are still drawn here, over whichever tile is laid, so a
+ * court does not repeat with the tile.
  */
 
 type G = Phaser.GameObjects.Graphics;
@@ -29,7 +37,22 @@ interface Tones {
 }
 
 interface Floor {
-  /** The repeating tile, drawn into a TILE square; a mark that crosses an edge is drawn wrapped. */
+  /**
+   * The repeating tile as a generated picture: its URL, imported so Vite
+   * hashes and copies it on build (as the atlases are, src/data/act-visuals.ts).
+   * Laid in place of `tile` whenever it has loaded.
+   */
+  image?: string;
+  /**
+   * How much smaller than its pixels the picture repeats at (1 = as is). A
+   * generated tile is drawn for a whole frame; a plank the width of the kid
+   * is a picture of a floor, not a floor.
+   */
+  imageScale?: number;
+  /**
+   * The repeating tile, drawn into a TILE square; a mark that crosses an edge is drawn wrapped.
+   * With an `image`, the fallback for when the picture has not loaded.
+   */
   tile(g: G, t: Tones, rnd: Rnd): void;
   /** The landmarks, in world coordinates. */
   marks?(g: G, t: Tones, rnd: Rnd, w: number, h: number): void;
@@ -240,14 +263,16 @@ const FLOORS: Record<string, Floor> = {
     },
   },
 
-  /** The gym: maple strip in long rows, and one court painted over it. */
+  /** The gym: maple strip in long rows (a generated varnished plank), and one court painted over it. */
   school: {
+    image: schoolFloorPng,
+    imageScale: 0.45,
     tile(g, t, rnd) {
       g.fillStyle(t.deep, 1);
       g.fillRect(0, 0, TILE, TILE);
       boards(g, t, rnd, { width: 16, minLen: 120, maxLen: 330, seam: 0.16, knots: 0 });
     },
-    marks(g, t, _rnd, w, h) {
+    marks(g, _t, _rnd, w, h) {
       const cw = 2300;
       const ch = 1400;
       // Left of centre, so the player spawns by the centre circle and not inside it.
@@ -257,11 +282,12 @@ const FLOORS: Record<string, Floor> = {
       const y0 = cy - ch / 2;
       const key = { len: 560, half: 230 };
       // The keys and the jump circle are painted in, faintly, as a gym's are.
-      g.fillStyle(t.mid, 0.07);
+      // Ink, not the mid tone: the gym floor is a light varnished picture now.
+      g.fillStyle(INK, 0.06);
       g.fillRect(x0, cy - key.half, key.len, key.half * 2);
       g.fillRect(x0 + cw - key.len, cy - key.half, key.len, key.half * 2);
       g.fillCircle(cx, cy, 70);
-      g.lineStyle(6, t.mid, 0.25);
+      g.lineStyle(8, INK, 0.25);
       g.strokeRect(x0, y0, cw, ch);
       g.lineBetween(cx, y0, cx, y0 + ch);
       g.strokeCircle(cx, cy, 180);
@@ -563,6 +589,31 @@ const FLOORS: Record<string, Floor> = {
   },
 };
 
+/**
+ * The acts whose tile is a generated picture, by act id: that picture's URL.
+ * Read from FLOORS, so a floor's picture is registered in one place, beside
+ * its fallback tile and its landmarks.
+ */
+export const FLOOR_IMAGES: Readonly<Record<string, string>> = Object.fromEntries(
+  Object.entries(FLOORS).flatMap(([id, f]) => (f.image ? [[id, f.image]] : [])),
+);
+
+/** The texture key an act's floor picture is loaded under. */
+export const floorImageKey = (actId: string): string => `nc-floor-img-${actId}`;
+
+/**
+ * Queues the floor picture of every act in `actIds` that has one, for a
+ * scene's `preload`: the crossing happens mid-run and must not wait on a
+ * load. A picture that fails to load leaves its act on the Graphics tile.
+ */
+export function preloadFloors(scene: Phaser.Scene, actIds: readonly string[]): void {
+  for (const id of actIds) {
+    const url = FLOOR_IMAGES[id];
+    const key = floorImageKey(id);
+    if (url && !scene.textures.exists(key)) scene.load.image(key, url);
+  }
+}
+
 function floorFor(actId: string): Floor {
   const f = FLOORS[actId];
   if (!f) throw new Error(`No floor registered for act "${actId}"`);
@@ -584,8 +635,13 @@ export function drawFloorMarks(g: G, actId: string, w: number, h: number): void 
   floorFor(actId).marks?.(g, tones(actId), rng(`${actId}/marks`), w, h);
 }
 
-/** The act's floor tile, generated once per game; returns its texture key. */
+/**
+ * The act's floor tile, returning its texture key: the act's picture when it
+ * has one and it has loaded, else the Graphics tile, generated once per game.
+ */
 export function ensureFloor(scene: Phaser.Scene, actId: string): string {
+  const image = floorImageKey(actId);
+  if (floorFor(actId).image && scene.textures.exists(image)) return image;
   const key = `nc-floor-${actId}`;
   if (!scene.textures.exists(key)) {
     const g = scene.make.graphics({ x: 0, y: 0 }, false);
@@ -620,6 +676,28 @@ function shadeWalls(ctx: CanvasRenderingContext2D, w: number, h: number): void {
 }
 
 /**
+ * A picture tile at `scale`, laid 2×2 with the right and bottom copies
+ * mirrored, so every edge meets its own reflection: no seam where the
+ * picture repeats, whatever the generator did at its borders.
+ */
+export function mirroredTile(tile: HTMLImageElement | HTMLCanvasElement, scale: number): HTMLCanvasElement {
+  const s = Math.max(1, Math.round(tile.width * scale));
+  const c = document.createElement('canvas');
+  c.width = s * 2;
+  c.height = s * 2;
+  const ctx = c.getContext('2d');
+  if (!ctx) throw new Error('Could not mirror the floor tile');
+  for (const [fx, fy] of [[1, 1], [-1, 1], [1, -1], [-1, -1]] as const) {
+    ctx.save();
+    ctx.translate(fx < 0 ? s * 2 : 0, fy < 0 ? s * 2 : 0);
+    ctx.scale(fx, fy);
+    ctx.drawImage(tile, 0, 0, s, s);
+    ctx.restore();
+  }
+  return c;
+}
+
+/**
  * The whole floor of a `w`×`h` world, baked once into one texture: the tile
  * repeated, the landmarks over it, the shadow at the walls. Drawn as one
  * image, it costs a frame what the paper tooth's tile sprite did; drawn as
@@ -635,7 +713,10 @@ export function bakeFloor(scene: Phaser.Scene, actId: string, w: number, h: numb
     if (k.startsWith('nc-floor-world-') && k !== key) scene.textures.remove(k);
   }
   if (scene.textures.exists(key)) return key;
-  const tile = scene.textures.get(ensureFloor(scene, actId)).getSourceImage() as HTMLCanvasElement;
+  // A loaded picture's source is an <img>, a generated tile's a <canvas>: a pattern takes either.
+  const tileKey = ensureFloor(scene, actId);
+  let tile = scene.textures.get(tileKey).getSourceImage() as HTMLImageElement | HTMLCanvasElement;
+  if (tileKey === floorImageKey(actId)) tile = mirroredTile(tile, floorFor(actId).imageScale ?? 1);
   const tex = scene.textures.createCanvas(key, w, h);
   if (!tex) throw new Error(`Could not create the floor texture "${key}"`);
   const ctx = tex.getContext();

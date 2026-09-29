@@ -130,12 +130,21 @@ pnpm typecheck
 pnpm build
 pnpm playtest -- --runs=40              # the bots, Conception, with intervals
 pnpm playtest -- --runs=16 --act=school # any act with a schedule
-pnpm art:svg                            # every SVG in tools/art/svg through the pipeline (then art:pack)
+pnpm art:svg                            # floors, props, icons drawn as SVG through the pipeline (then art:pack)
 pnpm art:svg -- --id=<id>               # one drawing (iterate on it; --sheet rebuilds the review page)
 pnpm art:batch -- --dry                 # prompts + content rule, no API spend
-pnpm art:batch -- --set=<name>          # generate (needs FAL_KEY; drawing needs nothing)
 pnpm art:pack                           # rebuild atlases from conformed sprites
+
+# Characters (the toy direction, 2026-09-29): render, cut, take in, pack.
+python tools/art/cast.py --cast tools/art/boards/SCHOOL-CAST.md   # one model, one style line, one seed → assets/raw/<id>.png + .json
+pnpm art:intake -- --act=school         # render specs (source 'render') → sprites + provenance, no palette lock, no outline
+pnpm art:pack
 ```
+
+The renderer runs on CPU here (`/home/user/venv-gen`: torch, diffusers,
+rembg; models cached from huggingface.co) at ~40 s a character, and on a
+CUDA desktop in seconds. `tools/art/boards.py`, `restyle.py` and `figure.py`
+are the concept-board tools the direction was chosen with.
 
 CI (`.github/workflows/ci.yml`, ubuntu) runs typecheck, test, build, the
 browser smoke (`pnpm smoke`) and the dry art run on every push and PR to

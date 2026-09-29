@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { dirname, relative, resolve } from 'node:path';
 import { fromPng, toPng } from './bitmap';
 import { ALL_ASSETS, CONCEPTION_ROSTER, ITEM_ICONS, TEST_BATCH } from './batch';
 import { pack, type PackEntry } from './pack';
@@ -16,7 +16,9 @@ import type { AssetSpec } from './types';
  *   pnpm art:batch -- --dry print the prompts, run D-007 and law 11, no API
  *   pnpm art:batch -- --dry --only=school   one act's prompts and verdicts
  *   pnpm art:svg            rasterise authored SVGs through CONFORM and CHECK (G-038)
- *   pnpm art:svg -- --id=clique | --act=school | --sheet
+ *   pnpm art:svg -- --id=icon-strike | --act=decline | --sheet
+ *   pnpm art:intake -- --act=school   take rendered characters in from assets/raw
+ *   pnpm art:intake -- --id=<id> | --dir=<path>
  *   pnpm art:pack           pack conformed sprites into per-act atlases
  *   pnpm art:sheet          rebuild the review page from what is on disk
  */
@@ -70,12 +72,17 @@ async function cmdBatch(argv: string[]): Promise<number> {
   const matched: AssetSpec[] = only
     ? source.filter((s) => s.id === only || s.act === only)
     : source;
-  // G-038: authored SVG assets are never generated. The dry run still puts
-  // them through D-007 and law 11 (below); the paid run leaves them out.
+  // G-038: authored SVG assets are never generated, and neither are rendered
+  // ones (taken in by `art:intake`). The dry run still puts them through
+  // D-007 and law 11 (below); the paid run leaves them out.
   const authored = matched.filter((s) => s.source === 'svg');
-  const specs = dry ? matched : matched.filter((s) => s.source !== 'svg');
+  const rendered = matched.filter((s) => s.source === 'render');
+  const specs = dry ? matched : matched.filter((s) => s.source === undefined);
   if (!dry && authored.length > 0) {
     log(`Skipping ${authored.length} authored SVG asset(s) — run \`pnpm art:svg\`: ${authored.map((s) => s.id).join(', ')}`);
+  }
+  if (!dry && rendered.length > 0) {
+    log(`Skipping ${rendered.length} rendered asset(s) — run \`pnpm art:intake\`: ${rendered.map((s) => s.id).join(', ')}`);
   }
 
   if (matched.length === 0) {
@@ -134,6 +141,11 @@ async function cmdBatch(argv: string[]): Promise<number> {
         // content rule just ran on.
         log(`authored SVG (G-038) — tools/art/svg/${spec.act}/${spec.id}.svg — not generated`);
         log(spec.subject);
+      } else if (spec.source === 'render') {
+        // Rendered outside this repo; the prompt that made it is in its
+        // sidecar, checked by intake. The description is what D-007 ran on.
+        log(`rendered — taken in by \`pnpm art:intake\` from assets/raw/${spec.id}.png — not generated`);
+        log(spec.subject);
       } else {
         log(fullPrompt(spec));
       }
@@ -185,13 +197,19 @@ async function cmdSvg(argv: string[]): Promise<number> {
   const id = argv.find((a) => a.startsWith('--id='))?.slice('--id='.length);
   const act = argv.find((a) => a.startsWith('--act='))?.slice('--act='.length);
 
-  const candidates = ALL_ASSETS.filter(
-    (s) => s.source === 'svg' && (!id || s.id === id) && (!act || s.act === act),
-  );
-  if ((id || act) && candidates.length === 0) {
-    log(`No authored SVG assets matched${id ? ` --id=${id}` : ''}${act ? ` --act=${act}` : ''}.`);
+  const matched = ALL_ASSETS.filter((s) => (!id || s.id === id) && (!act || s.act === act));
+  if ((id || act) && matched.length === 0) {
+    log(`No assets matched${id ? ` --id=${id}` : ''}${act ? ` --act=${act}` : ''}.`);
     return 1;
   }
+  // Only authored assets are rasterised. A rendered or generated sprite is
+  // never overwritten from an SVG, stale or otherwise.
+  for (const s of matched.filter((m) => m.source !== 'svg')) {
+    log(
+      `  skip ${s.id}: not authored SVG (${s.source === 'render' ? 'rendered — `pnpm art:intake`' : 'generated — `pnpm art:batch`'})`,
+    );
+  }
+  const candidates = matched.filter((s) => s.source === 'svg');
   const present = candidates.filter((s) => existsSync(svgPathFor(s, root)));
   const missing = candidates.filter((s) => !present.includes(s));
   if (missing.length > 0) {
@@ -227,6 +245,76 @@ async function cmdSvg(argv: string[]): Promise<number> {
   log(`\n${present.length - failed}/${present.length} authored asset(s) passed.`);
   if (failed === 0) log('Run `pnpm art:pack` to rebuild the atlases.');
   if (argv.includes('--sheet')) await cmdSheet();
+  return failed === 0 ? 0 : 1;
+}
+
+/**
+ * `pnpm art:intake` — take rendered characters in: `<dir>/<id>.png` (cut out,
+ * with a real alpha channel) and `<dir>/<id>.json` (its provenance), through
+ * CONFORM and CHECK for the spec's finish. `--act=<act>` or `--id=<id>`
+ * narrows it; `--dir=<path>` defaults to `assets/raw`. An asset whose PNG is
+ * not there yet is one line and not an error. A refusal (no sidecar, no
+ * alpha, D-007) or a failed CHECK writes nothing and fails the run. Pack
+ * with `pnpm art:pack`.
+ */
+async function cmdIntake(argv: string[]): Promise<number> {
+  const { IntakeRefusal, intakePaths, runIntakeAsset } = await import('./pipeline');
+  const id = argv.find((a) => a.startsWith('--id='))?.slice('--id='.length);
+  const act = argv.find((a) => a.startsWith('--act='))?.slice('--act='.length);
+  const dirArg = argv.find((a) => a.startsWith('--dir='))?.slice('--dir='.length) ?? 'assets/raw';
+  const dir = resolve(root, dirArg);
+
+  const candidates = ALL_ASSETS.filter(
+    (s) => s.source === 'render' && (!id || s.id === id) && (!act || s.act === act),
+  );
+  if (candidates.length === 0) {
+    log(`No rendered assets matched${id ? ` --id=${id}` : ''}${act ? ` --act=${act}` : ''}.`);
+    return 1;
+  }
+
+  let taken = 0;
+  let failed = 0;
+  let absent = 0;
+  for (const spec of candidates) {
+    const { png } = intakePaths(spec, dir);
+    if (!existsSync(png)) {
+      absent++;
+      log(`  ${spec.id}: no file — expected ${relative(root, png) || png}`);
+      continue;
+    }
+    try {
+      const o = await runIntakeAsset(spec, { root, dir, onProgress: log });
+      if (o.ok) {
+        taken++;
+        continue;
+      }
+      failed++;
+      for (const r of o.report?.results ?? []) {
+        if (!r.pass && !r.skipped) {
+          log(
+            `      ${r.name}: measured ${r.measured}${r.detail ? ` (${r.detail})` : ''}, ` +
+              `expected ${r.expected}`,
+          );
+        }
+      }
+    } catch (err) {
+      // No sidecar, no alpha, a D-007 or law 11 refusal: nothing written,
+      // and none of them is retried.
+      failed++;
+      const refusal =
+        err instanceof IntakeRefusal ||
+        (err instanceof Error && (err.name === 'ContentRuleViolation' || err.name === 'ReservationError'));
+      log(`  ${spec.id}: ${refusal ? 'REFUSED' : 'ERROR'} — ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+  const present = candidates.length - absent;
+  const where = relative(root, dir) || dir;
+  log(
+    present === 0
+      ? `\nNothing to take in: no rendered PNG in ${where} yet.`
+      : `\n${taken}/${present} rendered asset(s) taken in${absent > 0 ? `; ${absent} with no file in ${where}` : ''}.`,
+  );
+  if (taken > 0 && failed === 0) log('Run `pnpm art:pack` to rebuild the atlases.');
   return failed === 0 ? 0 : 1;
 }
 
@@ -308,8 +396,10 @@ async function main(): Promise<number> {
       return cmdSheet();
     case 'svg':
       return cmdSvg(argv);
+    case 'intake':
+      return cmdIntake(argv);
     default:
-      log(`Unknown command "${cmd}". Try: batch | svg | pack | sheet`);
+      log(`Unknown command "${cmd}". Try: batch | svg | intake | pack | sheet`);
       return 1;
   }
 }
