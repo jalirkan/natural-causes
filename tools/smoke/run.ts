@@ -364,6 +364,9 @@ const PROBE = String.raw`(() => {
       if (v.atlas.key !== w.act.id) bad.push('dress: act ' + w.act.id + ' is drawn from atlas ' + v.atlas.key);
       if (s.cameras.main.backgroundColor.color !== v.background)
         bad.push('dress: background ' + s.cameras.main.backgroundColor.color.toString(16) + ', act wants ' + v.background.toString(16));
+      // The floor is baked per act (src/scenes/floors.ts) and swapped at the crossing.
+      if (s.floor.texture.key !== 'nc-floor-world-' + w.act.id)
+        bad.push('dress: floor ' + s.floor.texture.key + ', act is ' + w.act.id);
       if (s.player.texture.key !== v.atlas.key || s.player.frame.name !== v.playerFrame)
         bad.push('dress: player drawn as ' + s.player.texture.key + '/' + s.player.frame.name + ', act wants ' + v.atlas.key + '/' + v.playerFrame);
     }

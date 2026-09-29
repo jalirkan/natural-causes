@@ -139,6 +139,11 @@ export function actBackground(act: ActId): Colour {
   return ACT_TONES[act][0];
 }
 
+/** The act's mid tone. On the floor it is the structure over the background. */
+export function actMid(act: ActId): Colour {
+  return ACT_TONES[act][1];
+}
+
 /**
  * The act's light tone, which law 10 assigns to pickups (G-030).
  *
