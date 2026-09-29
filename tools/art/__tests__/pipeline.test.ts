@@ -1,9 +1,11 @@
+import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { blank, centreOn, crop, index, opaqueBounds, opaqueCount, type Bitmap } from '../bitmap';
 import { cut, despeckle, detectBackground, keyOutBackground } from '../cut';
 import {
   applyOutline,
   binariseAlpha,
+  conform,
   outlineWidthFor,
   parseOutlineRatio,
   quantise,
@@ -12,7 +14,7 @@ import {
 import { check, distanceToleranceFor, DEFAULT_THRESHOLDS } from '../check';
 import { GRAIN_AMPLITUDE, grainTile, texture } from '../texture';
 import { pack } from '../pack';
-import { mutateSeed, thresholdsFor } from '../pipeline';
+import { conformAndCheck, mutateSeed, thresholdsFor } from '../pipeline';
 import {
   ACT_IDS,
   BONE,
@@ -349,6 +351,75 @@ describe('conform', () => {
     expect([...out.data.subarray(ring, ring + 3)]).toEqual([INK.rgb[0], INK.rgb[1], INK.rgb[2]]);
     // Beyond the radius, still transparent.
     expect(out.data[index(out, 15, 10) + 3]).toBe(0);
+  });
+
+  /**
+   * `finish: 'render'` came in beside the flat path, and the flat path must
+   * not have moved a byte. The hashes were taken from the code before
+   * `finish` existed, on this exact bitmap: a soft-edged radial gradient
+   * that is off every palette, so quantise, binarise, the outline and (at
+   * boss size) the grain all have work to do. The 48px checks resample with
+   * lanczos, whose last bit is the platform's, so those are compared between
+   * the default and an explicit 'flat' rather than hashed.
+   */
+  it("a flat spec conforms and checks byte for byte as it did before 'finish' existed", async () => {
+    const sha = (b: Buffer | string) => createHash('sha256').update(b).digest('hex');
+    const blob = (): Bitmap => {
+      const size = 160;
+      const bmp = blank(size, size);
+      const c = size / 2;
+      const r = size * 0.4;
+      for (let y = 0; y < size; y++) {
+        for (let x = 0; x < size; x++) {
+          const d = Math.hypot(x - c, y - c);
+          const t = Math.min(1, d / r);
+          const i = index(bmp, x, y);
+          bmp.data[i] = Math.round(210 - 150 * t);
+          bmp.data[i + 1] = Math.round(90 + 70 * t);
+          bmp.data[i + 2] = Math.round(70 + 120 * t);
+          bmp.data[i + 3] = Math.round(Math.max(0, Math.min(1, (r + 2 - d) / 10)) * 255);
+        }
+      }
+      return bmp;
+    };
+    const fullSize = (rs: Array<{ name: string }>) =>
+      sha(JSON.stringify(rs.filter((r) => !r.name.startsWith('readable-48px'))));
+
+    const out = await conform(blob(), { act: 'school', targetSize: 88, forEnemy: true, holdsThreat: [] });
+    expect(sha(out.data)).toBe('39cbf6611c0d352352a9c5271a01b18383acbf1499255b00d6c90639085df28e');
+    const explicit = await conform(blob(), {
+      act: 'school',
+      targetSize: 88,
+      forEnemy: true,
+      holdsThreat: [],
+      finish: 'flat',
+    });
+    expect(explicit.data.equals(out.data)).toBe(true);
+
+    const base = { name: 'x', act: 'school', subject: 'x', seed: 1 } as const;
+    const swarm: AssetSpec = { ...base, id: 'hall-monitor', role: 'swarm', targetSize: 88 };
+    const boss: AssetSpec = { ...base, id: 'boss-gym-teacher', role: 'boss', targetSize: 384 };
+    const golden = {
+      [swarm.id]: {
+        sprite: '39cbf6611c0d352352a9c5271a01b18383acbf1499255b00d6c90639085df28e',
+        checks: '15cf20ffacd37c3fb24ebe38a7ca0a3f7efd7da8d79a892069af4f03a5f1af19',
+      },
+      [boss.id]: {
+        sprite: 'b0afb1fb885ee95e8d5d372bc95978c433bc7c19d551dcb761456b20d15f4559',
+        checks: '65742197e8b01cb1784c728545c8fa13cc1b3f72d9d0d8ecbe6b0f414da0126f',
+      },
+    };
+    for (const spec of [swarm, boss]) {
+      const a = await conformAndCheck(spec, blob());
+      expect(sha(a.sprite.data), `${spec.id} sprite`).toBe(golden[spec.id]!.sprite);
+      expect(fullSize(a.report.results), `${spec.id} checks`).toBe(golden[spec.id]!.checks);
+      expect(a.report.results.some((r) => r.skipped), `${spec.id}: a flat check was skipped`).toBe(false);
+      const b = await conformAndCheck({ ...spec, finish: 'flat' }, blob());
+      expect(b.sprite.data.equals(a.sprite.data)).toBe(true);
+      expect(b.report).toEqual(a.report);
+      // check()'s old three-argument call is the flat check.
+      expect(await check(a.sprite, spec.act, thresholdsFor(spec))).toEqual(a.report);
+    }
   });
 });
 

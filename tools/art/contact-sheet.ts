@@ -59,8 +59,10 @@ function readChecks(root: string, id: string): string {
     .map((l) => {
       const [, name, result, measured, expected] = l.split('|').map((c) => c.trim());
       const ok = result === 'pass';
-      return `<tr class="${ok ? 'ok' : 'bad'}"><td>${escapeHtml(name ?? '')}</td><td>${
-        ok ? '✓' : '✕'
+      // A check a render did not run is neither: shown, dimmed, not a cross.
+      const skip = result === 'skipped';
+      return `<tr class="${ok ? 'ok' : skip ? 'skip' : 'bad'}"><td>${escapeHtml(name ?? '')}</td><td>${
+        ok ? '✓' : skip ? '–' : '✕'
       }</td><td>${escapeHtml(measured ?? '')}</td><td>${escapeHtml(expected ?? '')}</td></tr>`;
     })
     .join('');
@@ -172,7 +174,7 @@ export async function buildContactSheet(root: string, specs: AssetSpec[]): Promi
   .checks td:nth-child(2) { text-align:center; width:1.6rem; }
   .checks td:nth-child(3) { text-align:right; font-variant-numeric:tabular-nums; width:4.5rem; }
   .checks td:nth-child(4) { color:var(--dim); }
-  tr.bad td { color:#c0392b; } tr.ok td:nth-child(2) { color:#2f8f4e; }
+  tr.bad td { color:#c0392b; } tr.ok td:nth-child(2) { color:#2f8f4e; } tr.skip td { color:var(--dim); }
   details { margin-top:.7rem; font-size:.8rem; } summary { cursor:pointer; color:var(--dim); }
   pre { white-space:pre-wrap; font-size:.72rem; background:var(--bg); padding:.6rem; border-radius:6px;
         border:1px solid var(--bd); overflow-x:auto; }

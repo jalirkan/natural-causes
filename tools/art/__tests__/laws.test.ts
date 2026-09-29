@@ -68,7 +68,13 @@ describe('law 10 — the player never wears a threat colour', () => {
 });
 
 describe('G-032 — the sprite arrives dark; nothing is corrected on the GPU', () => {
-  const enemySprites = ALL_ASSETS.filter((s) => s.role === 'swarm' || s.role === 'boss');
+  // A rendered sprite (finish: 'render') keeps its own shading, and CHECK
+  // skips the value ceiling and the palette scans for it; this second reading
+  // of the same law skips it for the same reason, or the first render intake
+  // writes would fail here.
+  const enemySprites = ALL_ASSETS.filter(
+    (s) => (s.role === 'swarm' || s.role === 'boss') && s.finish !== 'render',
+  );
 
   for (const spec of enemySprites) {
     it(`${spec.id} is no lighter than bone, and wears nothing reserved`, async () => {

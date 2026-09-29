@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { dirname, relative, resolve, sep } from 'node:path';
 import { fromPng, toPng, type Bitmap } from './bitmap';
 import { DETAIL_THRESHOLD_PX, fullPrompt, styleSuffixFor } from './batch';
 import {
@@ -69,11 +69,30 @@ function write(file: string, data: Buffer | string): void {
   writeFileSync(file, data);
 }
 
-/** The mechanical-checks table body. The contact sheet parses this format. */
+/**
+ * The mechanical-checks table body. The contact sheet parses this format. A
+ * check a render did not run reads `skipped`, with no measurement: never
+ * `pass`, so the table does not claim what nobody measured.
+ */
 export function checkRows(checks: GenerationRecord['checks']): string {
   return checks
-    .map((c) => `| ${c.name} | ${c.pass ? 'pass' : 'FAIL'} | ${c.measured} | ${c.expected} |`)
+    .map((c) =>
+      c.skipped
+        ? `| ${c.name} | skipped | — | ${c.expected} |`
+        : `| ${c.name} | ${c.pass ? 'pass' : 'FAIL'} | ${c.measured} | ${c.expected} |`,
+    )
     .join('\n');
+}
+
+/** A CHECK report as provenance records it. */
+export function recordedChecks(report: CheckReport): GenerationRecord['checks'] {
+  return report.results.map((r) => ({
+    name: r.name,
+    pass: r.pass,
+    measured: r.measured,
+    expected: r.expected,
+    ...(r.skipped ? { skipped: true as const } : {}),
+  }));
 }
 
 export function thresholdsFor(spec: AssetSpec): CheckThresholds {
@@ -98,14 +117,24 @@ export function heldThreats(spec: Pick<AssetSpec, 'act' | 'id'>): ThreatClass[] 
 }
 
 /**
- * CONFORM → TEXTURE → CHECK, shared by both sources. Whatever produced the
- * bitmap — a generator or an author — everything after this point is the
- * same code, which is what lets a rule in CONFORM or CHECK bind both.
+ * CONFORM → TEXTURE → CHECK, shared by every source. Whatever produced the
+ * bitmap — a generator, an author or a renderer — everything after this
+ * point is the same code, which is what lets a rule in CONFORM or CHECK bind
+ * them all. What differs is the spec's `finish`: a render skips the flat
+ * corrections, the grain and the palette checks.
  */
 export async function conformAndCheck(
   spec: AssetSpec,
   bmp: Bitmap,
 ): Promise<{ sprite: Bitmap; report: CheckReport }> {
+  const finish = spec.finish ?? 'flat';
+  if (finish === 'render') {
+    // A render keeps its own shading: no palette, no outline, no grain (the
+    // grain is the flat register's paper, and on a render it is only noise).
+    const sprite = await conform(bmp, { act: spec.act, targetSize: spec.targetSize, finish });
+    const report = await check(sprite, spec.act, thresholdsFor(spec), finish);
+    return { sprite, report };
+  }
   const isEnemy = spec.role === 'swarm' || spec.role === 'boss';
   const conformed = await conform(bmp, {
     act: spec.act,
@@ -182,6 +211,11 @@ export async function runAsset(
     // spending money to overwrite a drawing.
     throw new Error(`asset "${spec.id}" is authored SVG; run \`pnpm art:svg\`, not the generator`);
   }
+  if (spec.source === 'render') {
+    // Rendered outside this repo and brought in by intake; fal never
+    // overwrites it.
+    throw new Error(`asset "${spec.id}" is rendered; bring it in with \`pnpm art:intake\`, not the generator`);
+  }
   const root = options.root ?? process.cwd();
   const maxAttempts = options.maxAttempts ?? 4;
   const log = options.onProgress ?? (() => {});
@@ -213,12 +247,7 @@ export async function runAsset(
 
       record.attempt = attempt + 1;
       record.seed = seed;
-      record.checks = report.results.map((r) => ({
-        name: r.name,
-        pass: r.pass,
-        measured: r.measured,
-        expected: r.expected,
-      }));
+      record.checks = recordedChecks(report);
 
       if (report.pass) {
         write(resolve(root, `assets/sprites/${spec.act}/${spec.id}.png`), await toPng(sprite));
@@ -337,7 +366,12 @@ ${checkRows(p.checks)}
  */
 export async function runSvgAsset(spec: AssetSpec, options: SvgOptions = {}): Promise<SvgOutcome> {
   if (spec.source !== 'svg') {
-    throw new Error(`asset "${spec.id}" is not an authored SVG asset`);
+    // A stale drawing must never overwrite a render (or a generation).
+    throw new Error(
+      spec.source === 'render'
+        ? `asset "${spec.id}" is rendered, not an authored SVG asset; bring it in with \`pnpm art:intake\``
+        : `asset "${spec.id}" is not an authored SVG asset`,
+    );
   }
   const root = options.root ?? process.cwd();
   const log = options.onProgress ?? (() => {});
@@ -375,14 +409,235 @@ export async function runSvgAsset(spec: AssetSpec, options: SvgOptions = {}): Pr
       density: raster.density,
       fitted: raster.fitted,
       renderedAt: new Date().toISOString(),
-      checks: report.results.map((r) => ({
-        name: r.name,
-        pass: r.pass,
-        measured: r.measured,
-        expected: r.expected,
-      })),
+      checks: recordedChecks(report),
     }),
   );
   log(`  ${spec.id}: PASS${raster.fitted ? '' : ' (render not exactly fitted)'}`);
   return { spec, ok: true, sprite, report, svgSha256, failures: [] };
+}
+
+// ---------------------------------------------------------------------------
+// The render path: RENDER and CUT happen outside this repo; INTAKE →
+// CONFORM → CHECK happen here (`pnpm art:intake`).
+// ---------------------------------------------------------------------------
+
+/**
+ * What the renderer writes beside each cut-out PNG, `<dir>/<id>.json`. Every
+ * field is required: it is the whole provenance of a rendered sprite (D-010),
+ * and a sprite whose seed or model nobody wrote down cannot be made again.
+ */
+export interface RenderSidecar {
+  model: string;
+  seed: number;
+  steps: number;
+  guidance: number;
+  width: number;
+  height: number;
+  prompt: string;
+  negative: string;
+  cutter: string;
+  generatedAt: string;
+}
+
+const SIDECAR_FIELDS: Record<keyof RenderSidecar, 'string' | 'number'> = {
+  model: 'string',
+  seed: 'number',
+  steps: 'number',
+  guidance: 'number',
+  width: 'number',
+  height: 'number',
+  prompt: 'string',
+  negative: 'string',
+  cutter: 'string',
+  generatedAt: 'string',
+};
+
+/**
+ * Intake would not take this asset in: no file, no provenance, no alpha to
+ * cut by. Nothing is written. (A D-007 violation in the sidecar refuses too,
+ * as the content rule's own `ContentRuleViolation`.)
+ */
+export class IntakeRefusal extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'IntakeRefusal';
+  }
+}
+
+/** Where intake reads an asset from: `<dir>/<id>.png` and `<dir>/<id>.json`. */
+export function intakePaths(spec: Pick<AssetSpec, 'id'>, dir: string): { png: string; sidecar: string } {
+  return { png: resolve(dir, `${spec.id}.png`), sidecar: resolve(dir, `${spec.id}.json`) };
+}
+
+/** Parse and validate a sidecar. Refuses, naming every missing or mistyped field. */
+export function parseSidecar(text: string, where: string): RenderSidecar {
+  let raw: unknown;
+  try {
+    raw = JSON.parse(text);
+  } catch (err) {
+    throw new IntakeRefusal(`${where} is not JSON: ${err instanceof Error ? err.message : String(err)}`);
+  }
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+    throw new IntakeRefusal(`${where} is not a JSON object`);
+  }
+  const obj = raw as Record<string, unknown>;
+  const bad = (Object.entries(SIDECAR_FIELDS) as Array<[keyof RenderSidecar, string]>)
+    .filter(([key, type]) => typeof obj[key] !== type || (type === 'number' && !Number.isFinite(obj[key])))
+    .map(([key, type]) => `${key} (${type})`);
+  if (bad.length > 0) {
+    throw new IntakeRefusal(`${where} is missing or mistypes ${bad.join(', ')}`);
+  }
+  return obj as unknown as RenderSidecar;
+}
+
+export interface IntakeOptions {
+  /** Repo root. Output paths are resolved against it. */
+  root?: string;
+  /** Where the cut-out PNGs and sidecars are, relative to root; default `assets/raw`. */
+  dir?: string;
+  onProgress?: (message: string) => void;
+}
+
+export interface IntakeOutcome {
+  spec: AssetSpec;
+  ok: boolean;
+  sprite?: Bitmap;
+  report?: CheckReport;
+  /** sha256 of the PNG bytes taken in. */
+  rawSha256: string;
+  failures: string[];
+}
+
+export interface IntakeProvenance {
+  sidecar: RenderSidecar;
+  /** The PNG taken in, as a path relative to the root. */
+  rawPath: string;
+  rawSha256: string;
+  takenInAt: string;
+  checks: GenerationRecord['checks'];
+}
+
+function repoRelative(root: string, file: string): string {
+  return relative(root, file).split(sep).join('/');
+}
+
+/**
+ * D-010 for a rendered asset: the model, the seed and both halves of the
+ * prompt from the renderer's sidecar, the cutter, the hash of the PNG that
+ * was taken in, and the checks — the skipped ones reading `skipped`.
+ */
+export function intakeProvenanceMarkdown(spec: AssetSpec, p: IntakeProvenance): string {
+  const s = p.sidecar;
+  return `# ${spec.name}
+
+- **Asset id:** \`${spec.id}\`
+- **Act:** ${spec.act}
+- **Role:** ${spec.role}
+- **Source:** rendered and cut out outside this repo, taken in by \`pnpm art:intake\` from \`${p.rawPath}\`
+- **Model:** \`${s.model}\`
+- **Seed:** \`${s.seed}\`
+- **Steps / guidance:** ${s.steps} / ${s.guidance}
+- **Render size:** ${s.width}×${s.height}px
+- **Generated:** ${s.generatedAt}
+- **Cutter:** ${s.cutter}
+- **Raw sha256:** \`${p.rawSha256}\`
+- **Finish:** ${spec.finish ?? 'flat'}
+- **Taken in:** ${p.takenInAt}
+- **Sprite size:** ${spec.targetSize}px
+${spec.tests ? `- **Tests:** ${spec.tests}\n` : ''}${spec.whyThisStage ? `\n**Why this life stage.** ${spec.whyThisStage}\n` : ''}
+## Prompt
+
+\`\`\`
+${s.prompt}
+\`\`\`
+
+Negative:
+
+\`\`\`
+${s.negative}
+\`\`\`
+
+## Mechanical checks
+
+| Check | Result | Measured | Expected |
+|---|---|---|---|
+${checkRows(p.checks)}
+`;
+}
+
+/** True when every pixel is fully opaque: nothing was cut out. */
+function fullyOpaque(bmp: Bitmap): boolean {
+  for (let i = 3; i < bmp.data.length; i += 4) {
+    if (bmp.data[i] !== 255) return false;
+  }
+  return true;
+}
+
+/**
+ * Take in one rendered asset. The spec is gated first (law 11, and D-007 on
+ * its own words), then its provenance (the sidecar must exist, be complete,
+ * and pass D-007 on the prompt and the negative), then its pixels (a real
+ * alpha channel — intake never removes a background: `cut()` is built for
+ * flat art on magenta and would eat a render's shading). Then CONFORM and
+ * CHECK for the spec's finish. On pass it writes the sprite and its
+ * provenance; on any refusal or failure it writes nothing, so a sprite
+ * already on disk keeps the provenance it was written with.
+ */
+export async function runIntakeAsset(spec: AssetSpec, options: IntakeOptions = {}): Promise<IntakeOutcome> {
+  if (spec.source !== 'render') {
+    throw new Error(`asset "${spec.id}" is not a rendered asset; intake takes source: 'render' only`);
+  }
+  const root = options.root ?? process.cwd();
+  const dir = resolve(root, options.dir ?? 'assets/raw');
+  const log = options.onProgress ?? (() => {});
+
+  assertReserved(spec.act, [spec.id], spec.role);
+  assertContentRule(`asset "${spec.id}"`, {
+    name: spec.name,
+    subject: spec.subject,
+    whyThisStage: spec.whyThisStage,
+  });
+
+  const { png, sidecar } = intakePaths(spec, dir);
+  if (!existsSync(png)) throw new IntakeRefusal(`asset "${spec.id}": no file at ${png}`);
+  if (!existsSync(sidecar)) {
+    throw new IntakeRefusal(
+      `asset "${spec.id}": no sidecar at ${sidecar} — a render without its model, seed and prompt does not ship (D-010)`,
+    );
+  }
+  const meta = parseSidecar(readFileSync(sidecar, 'utf8'), sidecar);
+  assertContentRule(`asset "${spec.id}" (${repoRelative(root, sidecar)})`, {
+    prompt: meta.prompt,
+    negative: meta.negative,
+  });
+
+  const bytes = readFileSync(png);
+  const bmp = await fromPng(bytes);
+  if (fullyOpaque(bmp)) {
+    throw new IntakeRefusal(
+      `asset "${spec.id}": ${png} has no alpha — every pixel is opaque. Cut it out first; ` +
+        'intake does not remove backgrounds.',
+    );
+  }
+  const rawSha256 = sha256(bytes);
+
+  const { sprite, report } = await conformAndCheck(spec, bmp);
+  if (!report.pass) {
+    log(`  ${spec.id}: FAIL — ${report.failures.join(', ')}`);
+    return { spec, ok: false, sprite, report, rawSha256, failures: report.failures };
+  }
+
+  write(resolve(root, `assets/sprites/${spec.act}/${spec.id}.png`), await toPng(sprite));
+  write(
+    resolve(root, `assets/prompts/${spec.id}.md`),
+    intakeProvenanceMarkdown(spec, {
+      sidecar: meta,
+      rawPath: repoRelative(root, png),
+      rawSha256,
+      takenInAt: new Date().toISOString(),
+      checks: recordedChecks(report),
+    }),
+  );
+  log(`  ${spec.id}: PASS`);
+  return { spec, ok: true, sprite, report, rawSha256, failures: [] };
 }
