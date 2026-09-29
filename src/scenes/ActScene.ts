@@ -7,7 +7,7 @@ import { neutralDevState, type DevState } from '../dev/state';
 import { reviewedLife, reviewMode, taintBadge } from '../dev/review';
 import type { ActDocument } from '../data/documents';
 import { addPlayerLight, addVignette, ensureGemTexture, ensureShadowTexture, ensureShotTextures } from './dressing';
-import { bakeFloor } from './floors';
+import { bakeFloor, preloadFloors } from './floors';
 import { ITEM_ICON_ATLAS, itemIconFrame } from '../data/item-visuals';
 import { parseOfferId } from '../data/items';
 import { offerPips, offerTitle, statLines } from '../data/item-text';
@@ -644,6 +644,8 @@ export class ActScene extends Phaser.Scene {
       const v = actVisuals(act.id);
       if (!this.textures.exists(v.atlas.key)) this.load.atlas(v.atlas.key, v.atlas.png, v.atlas.json);
     }
+    // The same for the acts whose floor tile is a generated picture (./floors).
+    preloadFloors(this, this.life.map((act) => act.id));
     this.load.atlas(ITEM_ICON_ATLAS.key, ITEM_ICON_ATLAS.png, ITEM_ICON_ATLAS.json);
   }
 

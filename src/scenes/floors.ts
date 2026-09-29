@@ -1,4 +1,5 @@
 import type Phaser from 'phaser';
+import schoolFloorPng from '../../assets/floors/school.png';
 import { INK, SHADOW } from '../config';
 import { actVisuals } from '../data/act-visuals';
 
@@ -15,6 +16,13 @@ import { actVisuals } from '../data/act-visuals';
  * with a sprite. Law 10: paper is the player's and the light tone is the
  * pickups', so neither appears here (floors.test.ts holds it). No lozenges:
  * the pickup holds that shape game-wide (law 11).
+ *
+ * An act may instead take its tile from a generated picture (`image`, loaded
+ * by `preloadFloors`; its provenance in assets/prompts/floor-<act>.md): a
+ * real texture reaches what rectangles drawn at low alpha cannot. The
+ * Graphics tile stays as the fallback for when the picture is not loaded,
+ * and the landmarks are still drawn here, over whichever tile is laid, so a
+ * court does not repeat with the tile.
  */
 
 type G = Phaser.GameObjects.Graphics;
@@ -29,7 +37,16 @@ interface Tones {
 }
 
 interface Floor {
-  /** The repeating tile, drawn into a TILE square; a mark that crosses an edge is drawn wrapped. */
+  /**
+   * The repeating tile as a generated picture: its URL, imported so Vite
+   * hashes and copies it on build (as the atlases are, src/data/act-visuals.ts).
+   * Laid in place of `tile` whenever it has loaded.
+   */
+  image?: string;
+  /**
+   * The repeating tile, drawn into a TILE square; a mark that crosses an edge is drawn wrapped.
+   * With an `image`, the fallback for when the picture has not loaded.
+   */
   tile(g: G, t: Tones, rnd: Rnd): void;
   /** The landmarks, in world coordinates. */
   marks?(g: G, t: Tones, rnd: Rnd, w: number, h: number): void;
@@ -240,8 +257,9 @@ const FLOORS: Record<string, Floor> = {
     },
   },
 
-  /** The gym: maple strip in long rows, and one court painted over it. */
+  /** The gym: maple strip in long rows (a generated varnished plank), and one court painted over it. */
   school: {
+    image: schoolFloorPng,
     tile(g, t, rnd) {
       g.fillStyle(t.deep, 1);
       g.fillRect(0, 0, TILE, TILE);
@@ -563,6 +581,31 @@ const FLOORS: Record<string, Floor> = {
   },
 };
 
+/**
+ * The acts whose tile is a generated picture, by act id: that picture's URL.
+ * Read from FLOORS, so a floor's picture is registered in one place, beside
+ * its fallback tile and its landmarks.
+ */
+export const FLOOR_IMAGES: Readonly<Record<string, string>> = Object.fromEntries(
+  Object.entries(FLOORS).flatMap(([id, f]) => (f.image ? [[id, f.image]] : [])),
+);
+
+/** The texture key an act's floor picture is loaded under. */
+export const floorImageKey = (actId: string): string => `nc-floor-img-${actId}`;
+
+/**
+ * Queues the floor picture of every act in `actIds` that has one, for a
+ * scene's `preload`: the crossing happens mid-run and must not wait on a
+ * load. A picture that fails to load leaves its act on the Graphics tile.
+ */
+export function preloadFloors(scene: Phaser.Scene, actIds: readonly string[]): void {
+  for (const id of actIds) {
+    const url = FLOOR_IMAGES[id];
+    const key = floorImageKey(id);
+    if (url && !scene.textures.exists(key)) scene.load.image(key, url);
+  }
+}
+
 function floorFor(actId: string): Floor {
   const f = FLOORS[actId];
   if (!f) throw new Error(`No floor registered for act "${actId}"`);
@@ -584,8 +627,13 @@ export function drawFloorMarks(g: G, actId: string, w: number, h: number): void 
   floorFor(actId).marks?.(g, tones(actId), rng(`${actId}/marks`), w, h);
 }
 
-/** The act's floor tile, generated once per game; returns its texture key. */
+/**
+ * The act's floor tile, returning its texture key: the act's picture when it
+ * has one and it has loaded, else the Graphics tile, generated once per game.
+ */
 export function ensureFloor(scene: Phaser.Scene, actId: string): string {
+  const image = floorImageKey(actId);
+  if (floorFor(actId).image && scene.textures.exists(image)) return image;
   const key = `nc-floor-${actId}`;
   if (!scene.textures.exists(key)) {
     const g = scene.make.graphics({ x: 0, y: 0 }, false);
@@ -635,7 +683,8 @@ export function bakeFloor(scene: Phaser.Scene, actId: string, w: number, h: numb
     if (k.startsWith('nc-floor-world-') && k !== key) scene.textures.remove(k);
   }
   if (scene.textures.exists(key)) return key;
-  const tile = scene.textures.get(ensureFloor(scene, actId)).getSourceImage() as HTMLCanvasElement;
+  // A loaded picture's source is an <img>, a generated tile's a <canvas>: a pattern takes either.
+  const tile = scene.textures.get(ensureFloor(scene, actId)).getSourceImage() as HTMLImageElement | HTMLCanvasElement;
   const tex = scene.textures.createCanvas(key, w, h);
   if (!tex) throw new Error(`Could not create the floor texture "${key}"`);
   const ctx = tex.getContext();
