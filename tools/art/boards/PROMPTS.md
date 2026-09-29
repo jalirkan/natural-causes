@@ -1,6 +1,7 @@
 # Concept boards — what the game could look like
 
-Five directions, three scenes each, written to be pasted into any image model
+Five directions, three scenes each, every one framed as a screenshot of the
+game (top-down, the kid at the centre, the swarm, a HUD), written to be pasted into any image model
 (Flux, SDXL, SD 1.5 all take them as-is). Each style line plus scene line stays
 under CLIP's 77 tokens, or the model silently drops the end of the prompt. Generate at 1024×576 or 1280×720,
 landscape, so a board reads like a screenshot. Nothing here is a sprite: these
@@ -26,46 +27,46 @@ Append the scene text to the direction's style line.
 
 ## 1 · The shoebox diorama
 
-`claymation shoebox diorama seen from above, clay figures with thumbprints, felt and cardboard set, warm tungsten light, soft shadows, shallow depth of field —`
-- A: `— a school gym with a wood floor and court lines, a small kid with one cowlick in the centre, red dodgeballs rolling in, stacks of homework with faces, a gym teacher with a whistle at the edge`
-- B: `— a living room, a house with a face in the centre with twelve notches on its roof, rooms growing around it, bills with faces chasing a small figure in a shirt and tie, a ringing telephone`
-- C: `— a desk with a death certificate that reads Natural causes, age 84, a small figure's cowlick just visible at the bottom edge`
+`screenshot of a top-down 2D horde survival video game in claymation style, clay characters with thumbprints, felt floor, warm light, soft shadows, small game HUD —`
+- A: `— a small kid with one cowlick at the centre of a school gym floor, dozens of red dodgeballs and homework stacks with faces swarming in from all sides, a gym teacher with a whistle at the edge`
+- B: `— a small figure in a shirt and tie at the centre of a living-room floor, a house with a face and twelve notches on its roof beside them, dozens of bills with faces swarming in, a ringing telephone`
+- C: `— the game's ending screen, a death certificate on a desk that reads Natural causes, age 84, the kid's cowlick just visible at the bottom edge`
 
 ## 2 · The pop-up book
 
 ## 2 · The pop-up book
 
-`pop-up book page seen from above, cut paper layers with real cast shadows, gouache on cardstock, visible cut edges, paper grain, warm light —`
-- A: `— a school gym with a wood floor and court lines, a small kid with one cowlick in the centre, red dodgeballs rolling in, stacks of homework with faces, a gym teacher with a whistle at the edge`
-- B: `— a living room, a house with a face in the centre with twelve notches on its roof, rooms growing around it, bills with faces chasing a small figure in a shirt and tie, a ringing telephone`
-- C: `— a desk with a death certificate that reads Natural causes, age 84, a small figure's cowlick just visible at the bottom edge`
+`screenshot of a top-down 2D horde survival video game in cut-paper pop-up book style, paper layers with cast shadows, gouache on cardstock, small game HUD —`
+- A: `— a small kid with one cowlick at the centre of a school gym floor, dozens of red dodgeballs and homework stacks with faces swarming in from all sides, a gym teacher with a whistle at the edge`
+- B: `— a small figure in a shirt and tie at the centre of a living-room floor, a house with a face and twelve notches on its roof beside them, dozens of bills with faces swarming in, a ringing telephone`
+- C: `— the game's ending screen, a death certificate on a desk that reads Natural causes, age 84, the kid's cowlick just visible at the bottom edge`
 
 ## 3 · The New Yorker cartoon
 
 ## 3 · The New Yorker cartoon
 
-`New Yorker style pen and ink cartoon with grey wash, seen from above, cross-hatching, off-white paper, one spot colour, deadpan —`
-- A: `— a school gym with a wood floor and court lines, a small kid with one cowlick in the centre, red dodgeballs rolling in, stacks of homework with faces, a gym teacher with a whistle at the edge`
-- B: `— a living room, a house with a face in the centre with twelve notches on its roof, rooms growing around it, bills with faces chasing a small figure in a shirt and tie, a ringing telephone`
-- C: `— a desk with a death certificate that reads Natural causes, age 84, a small figure's cowlick just visible at the bottom edge`
+`screenshot of a top-down 2D horde survival video game drawn as a New Yorker pen and ink cartoon, cross-hatching, off-white paper, one spot colour, small game HUD —`
+- A: `— a small kid with one cowlick at the centre of a school gym floor, dozens of red dodgeballs and homework stacks with faces swarming in from all sides, a gym teacher with a whistle at the edge`
+- B: `— a small figure in a shirt and tie at the centre of a living-room floor, a house with a face and twelve notches on its roof beside them, dozens of bills with faces swarming in, a ringing telephone`
+- C: `— the game's ending screen, a death certificate on a desk that reads Natural causes, age 84, the kid's cowlick just visible at the bottom edge`
 
 ## 4 · The painted picture book
 
 ## 4 · The painted picture book
 
-`gouache picture book illustration seen from above, visible brush texture, painted highlights, soft shadows, no outlines, 1950s Little Golden Book palette —`
-- A: `— a school gym with a wood floor and court lines, a small kid with one cowlick in the centre, red dodgeballs rolling in, stacks of homework with faces, a gym teacher with a whistle at the edge`
-- B: `— a living room, a house with a face in the centre with twelve notches on its roof, rooms growing around it, bills with faces chasing a small figure in a shirt and tie, a ringing telephone`
-- C: `— a desk with a death certificate that reads Natural causes, age 84, a small figure's cowlick just visible at the bottom edge`
+`screenshot of a top-down 2D horde survival video game painted in gouache picture-book style, visible brush texture, painted highlights, no outlines, small game HUD —`
+- A: `— a small kid with one cowlick at the centre of a school gym floor, dozens of red dodgeballs and homework stacks with faces swarming in from all sides, a gym teacher with a whistle at the edge`
+- B: `— a small figure in a shirt and tie at the centre of a living-room floor, a house with a face and twelve notches on its roof beside them, dozens of bills with faces swarming in, a ringing telephone`
+- C: `— the game's ending screen, a death certificate on a desk that reads Natural causes, age 84, the kid's cowlick just visible at the bottom edge`
 
 ## 5 · The tabletop
 
 ## 5 · The tabletop
 
-`tilt-shift photo of a toy set on a kitchen table seen from above, plastic toy figures, real window light, shallow depth of field, miniature, slightly worn toys —`
-- A: `— a school gym with a wood floor and court lines, a small kid with one cowlick in the centre, red dodgeballs rolling in, stacks of homework with faces, a gym teacher with a whistle at the edge`
-- B: `— a living room, a house with a face in the centre with twelve notches on its roof, rooms growing around it, bills with faces chasing a small figure in a shirt and tie, a ringing telephone`
-- C: `— a desk with a death certificate that reads Natural causes, age 84, a small figure's cowlick just visible at the bottom edge`
+`screenshot of a top-down 2D horde survival video game that looks like a tilt-shift photo of plastic toys on a kitchen table, real window light, small game HUD —`
+- A: `— a small kid with one cowlick at the centre of a school gym floor, dozens of red dodgeballs and homework stacks with faces swarming in from all sides, a gym teacher with a whistle at the edge`
+- B: `— a small figure in a shirt and tie at the centre of a living-room floor, a house with a face and twelve notches on its roof beside them, dozens of bills with faces swarming in, a ringing telephone`
+- C: `— the game's ending screen, a death certificate on a desk that reads Natural causes, age 84, the kid's cowlick just visible at the bottom edge`
 ## Running them locally
 
 A local Stable Diffusion or Flux runner (diffusers) takes each line as the
