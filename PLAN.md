@@ -258,3 +258,17 @@ A run is one life (D-024), and G-038 retires a batch of claims above. Read
 against those: the phases table's "one act" and "act by act" describe build
 order, not what a run is; mechanism 5's ~30-item cap is retired; and the act
 list's Boss column names each act's threshold, not the end of the game.
+
+### 2026-09-29 · The art, honestly
+
+Justin's verdict on the seven-act link: it looks like a cheap Flash game. It
+did. The cause is on record in `CLAUDE.md`'s first section: sprites were
+hand-drawn as SVG by agents from 2026-09-27 on, and every session after that
+optimised inside the rules that choice wrote. The plan above had it right on
+day one — "Art generation: Flux via API" — and the mistake was retiring the
+generator instead of fixing its prompts. From here: the look is chosen from
+generated boards, characters are generated through the pipeline, and the
+game's feel (shadows, floors, camera, feedback) is built first because it is
+what the genre runs on. The game underneath — seven acts, winnable, tested,
+deployed — is the part that worked.
+

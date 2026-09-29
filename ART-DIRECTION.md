@@ -1,5 +1,14 @@
 # Art direction
 
+> **Status, 2026-09-29: superseded as a look.** Both registers below (the
+> mid-century pamphlet and the greeting card) were built by agents drawing
+> SVG by hand and were judged cheap by Justin. The look is now chosen from
+> generated concept boards (`tools/art/boards/PROMPTS.md`, `boards.py`), and
+> character sprites are generated, never hand-drawn. What survives of this
+> file is the pipeline's craft: the checks (outline weight, palette
+> conformance, readable at 48px, one job per colour, the reservations) still
+> run on every generated sprite. Read the rest as history.
+>
 > **Status: BINDING as of 2026-08-01.** Promoted from draft after the six-asset
 > test batch was generated and judged. The laws below are enforced
 > mechanically by `tools/art/` — an asset that breaks one is regenerated, not
