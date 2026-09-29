@@ -44,6 +44,12 @@ interface Floor {
    */
   image?: string;
   /**
+   * How much smaller than its pixels the picture repeats at (1 = as is). A
+   * generated tile is drawn for a whole frame; a plank the width of the kid
+   * is a picture of a floor, not a floor.
+   */
+  imageScale?: number;
+  /**
    * The repeating tile, drawn into a TILE square; a mark that crosses an edge is drawn wrapped.
    * With an `image`, the fallback for when the picture has not loaded.
    */
@@ -260,12 +266,13 @@ const FLOORS: Record<string, Floor> = {
   /** The gym: maple strip in long rows (a generated varnished plank), and one court painted over it. */
   school: {
     image: schoolFloorPng,
+    imageScale: 0.45,
     tile(g, t, rnd) {
       g.fillStyle(t.deep, 1);
       g.fillRect(0, 0, TILE, TILE);
       boards(g, t, rnd, { width: 16, minLen: 120, maxLen: 330, seam: 0.16, knots: 0 });
     },
-    marks(g, t, _rnd, w, h) {
+    marks(g, _t, _rnd, w, h) {
       const cw = 2300;
       const ch = 1400;
       // Left of centre, so the player spawns by the centre circle and not inside it.
@@ -275,11 +282,12 @@ const FLOORS: Record<string, Floor> = {
       const y0 = cy - ch / 2;
       const key = { len: 560, half: 230 };
       // The keys and the jump circle are painted in, faintly, as a gym's are.
-      g.fillStyle(t.mid, 0.07);
+      // Ink, not the mid tone: the gym floor is a light varnished picture now.
+      g.fillStyle(INK, 0.06);
       g.fillRect(x0, cy - key.half, key.len, key.half * 2);
       g.fillRect(x0 + cw - key.len, cy - key.half, key.len, key.half * 2);
       g.fillCircle(cx, cy, 70);
-      g.lineStyle(6, t.mid, 0.25);
+      g.lineStyle(8, INK, 0.25);
       g.strokeRect(x0, y0, cw, ch);
       g.lineBetween(cx, y0, cx, y0 + ch);
       g.strokeCircle(cx, cy, 180);
@@ -668,6 +676,28 @@ function shadeWalls(ctx: CanvasRenderingContext2D, w: number, h: number): void {
 }
 
 /**
+ * A picture tile at `scale`, laid 2×2 with the right and bottom copies
+ * mirrored, so every edge meets its own reflection: no seam where the
+ * picture repeats, whatever the generator did at its borders.
+ */
+export function mirroredTile(tile: HTMLImageElement | HTMLCanvasElement, scale: number): HTMLCanvasElement {
+  const s = Math.max(1, Math.round(tile.width * scale));
+  const c = document.createElement('canvas');
+  c.width = s * 2;
+  c.height = s * 2;
+  const ctx = c.getContext('2d');
+  if (!ctx) throw new Error('Could not mirror the floor tile');
+  for (const [fx, fy] of [[1, 1], [-1, 1], [1, -1], [-1, -1]] as const) {
+    ctx.save();
+    ctx.translate(fx < 0 ? s * 2 : 0, fy < 0 ? s * 2 : 0);
+    ctx.scale(fx, fy);
+    ctx.drawImage(tile, 0, 0, s, s);
+    ctx.restore();
+  }
+  return c;
+}
+
+/**
  * The whole floor of a `w`×`h` world, baked once into one texture: the tile
  * repeated, the landmarks over it, the shadow at the walls. Drawn as one
  * image, it costs a frame what the paper tooth's tile sprite did; drawn as
@@ -684,7 +714,9 @@ export function bakeFloor(scene: Phaser.Scene, actId: string, w: number, h: numb
   }
   if (scene.textures.exists(key)) return key;
   // A loaded picture's source is an <img>, a generated tile's a <canvas>: a pattern takes either.
-  const tile = scene.textures.get(ensureFloor(scene, actId)).getSourceImage() as HTMLImageElement | HTMLCanvasElement;
+  const tileKey = ensureFloor(scene, actId);
+  let tile = scene.textures.get(tileKey).getSourceImage() as HTMLImageElement | HTMLCanvasElement;
+  if (tileKey === floorImageKey(actId)) tile = mirroredTile(tile, floorFor(actId).imageScale ?? 1);
   const tex = scene.textures.createCanvas(key, w, h);
   if (!tex) throw new Error(`Could not create the floor texture "${key}"`);
   const ctx = tex.getContext();
