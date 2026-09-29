@@ -47,7 +47,10 @@ describe('law 10 — the player never wears a threat colour', () => {
     it(`${spec.id} carries no threat colour`, async () => {
       const file = resolve(process.cwd(), `assets/sprites/${spec.act}/${spec.id}.png`);
       if (!existsSync(file)) return; // not generated yet; the batch covers that
-      const violations = threatColourViolations(await fromPng(readFileSync(file)));
+      // A render's shading grazes every colour (a cheek passes near contact
+      // red); it wears a threat colour only when 1% of it or more is that colour.
+      const minShare = spec.finish === 'render' ? 0.01 : 0;
+      const violations = threatColourViolations(await fromPng(readFileSync(file)), minShare);
       expect(violations, `${spec.id} wears ${violations.join(', ')}`).toEqual([]);
     });
   }

@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite';
+import { configDefaults, defineConfig } from 'vitest/config';
 import { snapshotPlugin } from './tools/dev/snapshot-plugin';
 
 export default defineConfig({
@@ -15,5 +15,10 @@ export default defineConfig({
     target: 'es2022',
     outDir: 'dist',
     sourcemap: true,
+  },
+  test: {
+    // Agent worktrees live under .claude/worktrees; their copies of the
+    // suite must not run as this tree's.
+    exclude: [...configDefaults.exclude, '**/.claude/**'],
   },
 });

@@ -95,11 +95,16 @@ function inkRimPixels(bmp: Bitmap): number {
   return n;
 }
 
-const PALETTE_CHECKS = ['palette-conformance', 'palette-variety', 'palette-dominance', 'enemy-value-ceiling'];
-const RENDER_CHECKS = [
-  'silhouette-area',
+const PALETTE_CHECKS = [
+  'palette-conformance',
+  'palette-variety',
+  'palette-dominance',
+  'enemy-value-ceiling',
   'background-contrast',
   'background-contrast-coverage',
+];
+const RENDER_CHECKS = [
+  'silhouette-area',
   'readable-48px-silhouette',
   'readable-48px-structure',
   'readable-48px-detail',
