@@ -12,6 +12,15 @@ export const VIEW_WIDTH = 1280;
 export const VIEW_HEIGHT = 720;
 
 /**
+ * The world camera's resting zoom: world px per screen px. At 1 the camera
+ * sat far enough back that the field read as a map rather than a place; at
+ * 1.3 the view holds 985×554 of the world. The HUD has its own camera at 1
+ * (ActScene `hudCam`), so this moves the world and never the chrome. The
+ * boss's lean-in is taken from here, and every crossing comes back to it.
+ */
+export const WORLD_ZOOM = 1.3;
+
+/**
  * The playfield. Larger than the viewport; the camera follows the player.
  *
  * Re-exported from the simulation, which is where the boss needs them. Two

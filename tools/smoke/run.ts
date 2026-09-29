@@ -5,6 +5,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 import { chromium, type Browser, type Page } from 'playwright-core';
 import { createServer, type ViteDevServer } from 'vite';
+import { WORLD_ZOOM } from '../../src/config';
 
 /**
  * CLI: `pnpm smoke`
@@ -40,14 +41,15 @@ import { createServer, type ViteDevServer } from 'vite';
  * console error, no page error, no failed request, no Phaser texture
  * warning, nothing visible drawn from `__MISSING`, no NaN/undefined in any
  * text on screen, and after the crossing the screen dressed for the act the
- * world is in, with the camera back at zoom 1.
+ * world is in, with the camera back at its resting zoom (`WORLD_ZOOM`).
  * Screenshots go to tools/smoke/out/ (gitignored).
  *
  * Each kill is played at 1x. The absorb and the crossing are what a player
  * sees, and under 4x they are not that: the absorb's 1.8s runs in 0.45s,
  * inside the Egg's 1500ms lean-in, and Phaser drops a `zoomTo` issued while
- * one is running — so the crossing's zoom back to 1 never happens and School
- * plays at 1.1x with the HUD clipped. That is dev-speed only (at 1x the
+ * one is running — so the crossing's zoom back to rest never happens and
+ * School plays leaned in (at 1.1x, with the HUD clipped, before the HUD had
+ * a camera of its own). That is dev-speed only (at 1x the
  * lean-in ends first), so the smoke steps around it rather than failing on it.
  * Time is not killed: its clock is waited out at 4x, because that is the win
  * path, and no crossing follows the last act for the lean-in to spoil.
@@ -618,7 +620,7 @@ async function main(): Promise<void> {
     p,
     `${actLine(p)}  eyes closed ${egg.closing ? 'seen' : 'not polled'}, corona parted ${egg.parted ? 'seen' : 'not polled'}`,
   );
-  p = await waitFor('school', (q) => q.act?.index === 1 && q.act.shown === 1 && q.act.zoom === 1 && hudAge(q));
+  p = await waitFor('school', (q) => q.act?.index === 1 && q.act.shown === 1 && q.act.zoom === WORLD_ZOOM && hudAge(q));
   await press('school', '4x');
   p = await waitFor('school', (q) => q.act?.index === 1 && q.act.timeScale === 4 && populated(q));
   await milestone('school', p, actLine(p));
@@ -629,7 +631,7 @@ async function main(): Promise<void> {
 
   await press('school-boss', '1x');
   await press('school-boss', 'kill');
-  p = await waitFor('adolescence', (q) => q.act?.index === 2 && q.act.shown === 2 && q.act.zoom === 1 && hudAge(q));
+  p = await waitFor('adolescence', (q) => q.act?.index === 2 && q.act.shown === 2 && q.act.zoom === WORLD_ZOOM && hudAge(q));
   await press('adolescence', '4x');
   p = await waitFor('adolescence', (q) => q.act?.index === 2 && q.act.timeScale === 4 && populated(q));
   await milestone('adolescence', p, actLine(p));
@@ -640,7 +642,7 @@ async function main(): Promise<void> {
 
   await press('adolescence-boss', '1x');
   await press('adolescence-boss', 'kill');
-  p = await waitFor('college', (q) => q.act?.index === 3 && q.act.shown === 3 && q.act.zoom === 1 && hudAge(q));
+  p = await waitFor('college', (q) => q.act?.index === 3 && q.act.shown === 3 && q.act.zoom === WORLD_ZOOM && hudAge(q));
   await press('college', '4x');
   p = await waitFor('college', (q) => q.act?.index === 3 && q.act.timeScale === 4 && populated(q));
   await milestone('college', p, actLine(p));
@@ -690,7 +692,7 @@ async function main(): Promise<void> {
 
   await press('college-boss', '1x');
   await press('college-boss', 'kill');
-  p = await waitFor('office', (q) => q.act?.index === 4 && q.act.shown === 4 && q.act.zoom === 1 && hudAge(q));
+  p = await waitFor('office', (q) => q.act?.index === 4 && q.act.shown === 4 && q.act.zoom === WORLD_ZOOM && hudAge(q));
   await press('office', '4x');
   // Tuition persists (COLLEGE-ROSTER §3.3) and the invoices worn in College
   // cross with the player: in The Office they must still draw as tuition from
@@ -813,7 +815,7 @@ async function main(): Promise<void> {
   await press('office-reorg', 'kill');
   p = await waitFor('family', (q) => {
     readPaper(q);
-    return q.act?.index === 5 && q.act.shown === 5 && q.act.zoom === 1 && hudAge(q);
+    return q.act?.index === 5 && q.act.shown === 5 && q.act.zoom === WORLD_ZOOM && hudAge(q);
   });
   await press('family', '4x');
   p = await waitFor('family', (q) => {
@@ -910,7 +912,7 @@ async function main(): Promise<void> {
   p = await waitFor('decline', (q) => {
     family.door ||= q.act?.boss?.door ?? false;
     readStatement(q);
-    return q.act?.index === 6 && q.act.shown === 6 && q.act.zoom === 1 && hudAge(q);
+    return q.act?.index === 6 && q.act.shown === 6 && q.act.zoom === WORLD_ZOOM && hudAge(q);
   });
   if (!family.door) throw new SmokeFailure('decline', 'The Mortgage fell and was never drawn in its open frame', p);
   await press('decline', '4x');

@@ -6,7 +6,7 @@ import { ITEMS, isActive, itemDef, type ItemIcon } from '../data/items';
 import { neutralDevState, type DevState } from '../dev/state';
 import { reviewedLife, reviewMode, taintBadge } from '../dev/review';
 import type { ActDocument } from '../data/documents';
-import { addVignette, ensureFieldTile, ensureGemTexture, ensureShotTextures } from './dressing';
+import { addVignette, ensureFieldTile, ensureGemTexture, ensureShadowTexture, ensureShotTextures } from './dressing';
 import { ITEM_ICON_ATLAS, itemIconFrame } from '../data/item-visuals';
 import { parseOfferId } from '../data/items';
 import { offerPips, offerTitle, statLines } from '../data/item-text';
@@ -88,6 +88,7 @@ import {
   VIEW_WIDTH,
   WORLD_HEIGHT,
   WORLD_WIDTH,
+  WORLD_ZOOM,
 } from '../config';
 
 /**
@@ -105,6 +106,64 @@ import {
 
 const PLAYER_DISPLAY = 56;
 const GEM_SIZE = 9;
+/**
+ * Drop shadows: everything that stands on the field (each enemy, the player,
+ * the boss, each gem) has a soft ellipse on the floor under it, `nc-shadow`
+ * (dressing.ts), pooled like the sprites and moved with them every frame.
+ * `width` of the drawing as it stands across (its squash included), `height`
+ * of that tall, centred on the drawing's base (its lowest opaque row,
+ * `footOf`) and lifted `tuck` of its own height, so it shows below and
+ * beside the base and the rest is behind the body; `alpha` under a body,
+ * `boss` under the boss. At `depth`: over the floor's paint (the milk 1.5,
+ * every ring 2), under every body (gems and chairs 3, the crowd 5). Holds,
+ * rings and walls lie flat on the floor and cast none. PLACEHOLDER, every
+ * number, watched by nobody yet.
+ */
+const DROP = { width: 0.9, height: 1 / 3, tuck: 0.15, alpha: 0.3, boss: 0.4, depth: 2.5 };
+/**
+ * Squash and stretch on the crowd, computed each frame from the enemy's own
+ * clock and the scene's, never tweened on a pooled sprite (the pool's slots
+ * change bodies every frame). An enemy pops in over its first `SPAWN_POP`
+ * seconds of age from `from` of its size to whole, overshooting a little
+ * (easeOutBack). A hit squashes it `HIT_SQUASH` wider and shorter, held
+ * `HIT_SQUASH_MS` and let go over `HIT_RELEASE_MS`, and flashes it solid
+ * `HIT_FLASH` for `HIT_FLASH_MS`: a flash of value, which law 10 allows where
+ * it refuses a tint of colour (the multiply G-032 retired). Paper is the
+ * player's colour in law 10's table, and in Conception a flashed rival is the
+ * player's shape in it for those frames: bone is the law-clean alternative,
+ * one constant away. A body under a steady hit (a trail's tick lands every
+ * step) shows it again at most every `HIT_REARM_MS`, so a crowd in a trail
+ * blinks instead of going white. A death pops where the body last stood,
+ * `DEATH_POP` of its size and gone over `DEATH_POP_MS`, drawn by a pooled
+ * ghost because the sim has already taken the body away. PLACEHOLDER, every
+ * number, watched by nobody yet.
+ */
+const SPAWN_POP = { seconds: 0.12, from: 0.6 };
+const HIT_SQUASH = 0.15;
+const HIT_SQUASH_MS = 80;
+const HIT_RELEASE_MS = 60;
+const HIT_FLASH = PAPER;
+const HIT_FLASH_MS = 60;
+const HIT_REARM_MS = 200;
+const DEATH_POP = 1.25;
+const DEATH_POP_MS = 140;
+/**
+ * Gems bob `GEM_BOB` px off the floor and shimmer between `GEM_SHIMMER` and
+ * full alpha, each on its own phase (kept per gem, `gemPhase`), so a pickup
+ * reads as alive without turning. PLACEHOLDER, watched by nobody yet.
+ */
+const GEM_BOB = 2.5;
+const GEM_SHIMMER = 0.85;
+/**
+ * The camera leads the player by `CAMERA_LEAD` world px along the way they
+ * are moving, eased in and out at `LEAD_RATE` per second of world time, so
+ * more of the field ahead is in view; standing still, it settles back on
+ * them. A move under `LEAD_MIN_SPEED` px/s (a shove, a pile's push) is not a
+ * heading. PLACEHOLDER, watched by nobody yet.
+ */
+const CAMERA_LEAD = 24;
+const LEAD_RATE = 3;
+const LEAD_MIN_SPEED = 40;
 /** Attached Y-shapes drawn on the player. Stacks keep counting past this. */
 const MAX_ATTACHED_SPRITES = 16;
 /**
@@ -230,6 +289,37 @@ const css = (n: number) => `#${n.toString(16).padStart(6, '0')}`;
 const CERT_INK = css(INK);
 const CERT_PRINT = css(SHADOW);
 
+/**
+ * What `syncEnemies` keeps per enemy, by identity, from one frame to the next:
+ * the frame it was last drawn on, its `hitFlash` then (a value that did not
+ * fall while the world stepped is a new hit), when a hit was last shown on
+ * it, and how it was last drawn (atlas, flip, turn), for its death pop.
+ */
+interface Body {
+  seen: number;
+  flash: number;
+  hitAt: number;
+  atlas: string;
+  flipX: boolean;
+  rotation: number;
+}
+
+/**
+ * Where a frame's drawing stands, as shares of the frame: `base`, the row
+ * under its lowest opaque pixel, and `width`, its opaque extent across.
+ */
+interface Foot {
+  base: number;
+  width: number;
+}
+
+/** easeOutBack: 0 to 1 with a small overshoot past 1 before it settles. */
+function easeOutBack(p: number): number {
+  const c = 1.70158;
+  const q = p - 1;
+  return 1 + (c + 1) * q * q * q + c * q * q;
+}
+
 /** An enemy kind waiting its frame to be named: its first instance, and where that was when seen. */
 interface Arrival {
   name: string;
@@ -293,6 +383,39 @@ export class ActScene extends Phaser.Scene {
   private wasd!: Record<'W' | 'A' | 'S' | 'D', Phaser.Input.Keyboard.Key>;
 
   private enemySprites: Phaser.GameObjects.Image[] = [];
+  /** The crowd's drop shadows, slot for slot with `enemySprites`; the gems' with `gemSprites`. */
+  private enemyShadows: Phaser.GameObjects.Image[] = [];
+  private gemShadows: Phaser.GameObjects.Image[] = [];
+  private playerShadow!: Phaser.GameObjects.Image;
+  private bossShadow?: Phaser.GameObjects.Image;
+  /** Each enemy's `Body`, by the enemy object; `bodyList` holds the same keys, to walk without an iterator. */
+  private bodies = new Map<EnemyState, Body>();
+  private bodyList: EnemyState[] = [];
+  private spareBodies: Body[] = [];
+  /** `syncEnemies`' frame count, and the world clock it last saw. */
+  private bodyFrame = 0;
+  private bodyTime = 0;
+  /** Death pops not in flight, for reuse. */
+  private ghosts: Phaser.GameObjects.Image[] = [];
+  /** `footOf`'s measurements, by frame: taken once, from the frame's pixels. */
+  private feet = new Map<Phaser.Textures.Frame, Foot>();
+  /** Each gem's bob and shimmer phase, set when first drawn; a gem is a new object per drop. */
+  private gemPhase = new WeakMap<GemState, number>();
+  private gemSerial = 0;
+  /**
+   * What the world camera follows: the player plus `lead`, the eased look
+   * ahead (`syncCamera`). The boss's entrance moves the follow offset on top.
+   */
+  private look = new Phaser.Math.Vector2();
+  private lead = new Phaser.Math.Vector2();
+  private leadFrom = { x: 0, y: 0, time: 0 };
+  /**
+   * The HUD's camera: zoom 1, never scrolled, drawing only what has scroll
+   * factor 0; the main camera draws everything else (`splitCameras`). A
+   * scroll-factor-0 object still takes its camera's zoom, so on the main
+   * camera at `WORLD_ZOOM` the HUD, the cards and the papers would all scale.
+   */
+  private hudCam!: Phaser.Cameras.Scene2D.Camera;
   private projectileSprites: Phaser.GameObjects.Image[] = [];
   /**
    * Shots drawn as words (`shotWord`): the substitute's, the player's name
@@ -529,6 +652,16 @@ export class ActScene extends Phaser.Scene {
     this.actBegan = this.world.time - this.world.actTime;
 
     this.enemySprites = [];
+    this.enemyShadows = [];
+    this.gemShadows = [];
+    delete this.bossShadow;
+    this.bodies = new Map();
+    this.bodyList = [];
+    this.spareBodies = [];
+    this.bodyFrame = 0;
+    this.bodyTime = this.world.time;
+    this.ghosts = [];
+    this.gemPhase = new WeakMap();
     this.projectileSprites = [];
     this.nameShotTexts = [];
     this.playerName = readPlayerName() ?? DEFAULT_NAME;
@@ -559,10 +692,11 @@ export class ActScene extends Phaser.Scene {
     this.areaIcons = [];
     this.prevGemCount = 0;
     this.absorbZoomed = false;
-    this.cameras.main.setZoom(1);
+    this.cameras.main.setZoom(WORLD_ZOOM);
 
     this.cameras.main.setBackgroundColor(this.visuals.background);
     ensureShotTextures(this, THREAT_RANGED);
+    ensureShadowTexture(this);
     this.gemKey = ensureGemTexture(this, this.visuals.pickup);
     this.createField();
     // Corners that fall away instead of ending. Above the field and the
@@ -579,13 +713,24 @@ export class ActScene extends Phaser.Scene {
     // Over the crowd, so a marked enemy's hit flash does not dim its band, and
     // under the boss (6), whose band lies under its drawing (`syncMarks`).
     this.markFx = this.add.graphics().setDepth(5.5);
+    this.playerShadow = this.addShadow();
     this.player = this.add
       .image(this.world.x, this.world.y, this.visuals.atlas.key, this.visuals.playerFrame)
       .setDepth(10);
     this.player.setDisplaySize(PLAYER_DISPLAY, PLAYER_DISPLAY);
 
-    this.cameras.main.startFollow(this.player, true, 0.12, 0.12);
+    // The camera follows the look point (`syncCamera`), which starts on the player.
+    this.lead.set(0, 0);
+    this.leadFrom = { x: this.world.x, y: this.world.y, time: this.world.time };
+    this.look.set(this.world.x, this.world.y);
+    this.cameras.main.startFollow(this.look, true, 0.12, 0.12);
     this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+    // The HUD's camera, over the world's (see `hudCam`). A restart's shutdown
+    // destroyed the last one with every other camera; the listener outlives it.
+    this.hudCam = this.cameras.add(0, 0, this.cameras.main.width, this.cameras.main.height, false, 'hud');
+    this.hudCam.setRoundPixels(true);
+    this.events.off(Phaser.Scenes.Events.PRE_RENDER, this.splitCameras, this);
+    this.events.on(Phaser.Scenes.Events.PRE_RENDER, this.splitCameras, this);
 
     const keyboard = this.input.keyboard;
     if (!keyboard) throw new Error('No keyboard input available.');
@@ -723,6 +868,12 @@ export class ActScene extends Phaser.Scene {
     this.attachedSprites = [];
     this.bossSprite?.destroy();
     delete this.bossSprite;
+    this.bossShadow?.setVisible(false);
+    // The last act's crowd is gone with it, killed in the crossing's step or
+    // not: no death of theirs pops over the new act's paper.
+    for (const body of this.bodies.values()) this.spareBodies.push(body);
+    this.bodies.clear();
+    this.bodyList.length = 0;
     this.bossHand?.destroy();
     delete this.bossHand;
     this.endBossEntrance();
@@ -731,8 +882,9 @@ export class ActScene extends Phaser.Scene {
     this.absorbZoomed = false;
     // `force`: the Egg's 1.5s lean-in may still be tweening at the crossing
     // (it always is at dev speed), and Phaser drops a zoomTo while one runs.
-    // Found by the smoke test: School played zoomed in with the HUD clipped.
-    this.cameras.main.zoomTo(1, 600, 'Sine.easeInOut', true);
+    // Found by the smoke test: School played zoomed in with the HUD clipped
+    // (before the HUD had its own camera; the world stayed leaned in).
+    this.cameras.main.zoomTo(WORLD_ZOOM, 600, 'Sine.easeInOut', true);
     this.player
       .setTexture(this.visuals.atlas.key, this.visuals.playerFrame)
       .setDisplaySize(PLAYER_DISPLAY, PLAYER_DISPLAY);
@@ -841,9 +993,9 @@ export class ActScene extends Phaser.Scene {
     const view = shape ?? { width: cam.width, height: cam.height };
     const W = shape ? NARROW_WIDTH - 40 : PAPER_SHEET.width;
     const M = shape ? 40 : PAPER_SHEET.margin;
-    // As showCertificate: an absorb's lean-in ends under the paper, which takes the zoom too.
+    // As showCertificate: an absorb's lean-in ends under the paper.
     cam.zoomEffect.reset();
-    cam.setZoom(1);
+    cam.setZoom(WORLD_ZOOM);
     const parts: Phaser.GameObjects.GameObject[] = [];
     const text = (x: number, y: number, s: string, size: number, colour: string, spacing = 0) => {
       const t = this.add.text(x, y, s, { fontFamily: 'monospace', fontSize: `${size}px`, color: colour, letterSpacing: spacing });
@@ -911,7 +1063,7 @@ export class ActScene extends Phaser.Scene {
     if (shape) {
       this.scale.setGameSize(shape.width, shape.height);
       // The follow would glide to the new view's centre; the world is still, so snap.
-      cam.centerOn(this.player.x, this.player.y);
+      cam.centerOn(this.look.x, this.look.y);
       this.events.off('shutdown', this.restoreCanvas, this).once('shutdown', this.restoreCanvas, this);
       this.paperNarrow = true;
       this.anchorHud(shape.width);
@@ -933,7 +1085,7 @@ export class ActScene extends Phaser.Scene {
       this.paperNarrow = false;
       paper.destroy();
       if (this.restoreCanvas()) this.events.off('shutdown', this.restoreCanvas, this);
-      this.cameras.main.centerOn(this.player.x, this.player.y);
+      this.cameras.main.centerOn(this.look.x, this.look.y);
       this.anchorHud(VIEW_WIDTH);
       this.devBadge.setPosition(VIEW_WIDTH - 14, 58);
     } else {
@@ -1020,12 +1172,14 @@ export class ActScene extends Phaser.Scene {
       top: TOAST_TOP + card.height / 2,
       bottom: cam.height - TOAST_EDGE - card.height / 2,
     };
-    // Screen space for a scroll-factor-0 object is world minus scroll at any
-    // zoom: Phaser zooms both about the same centre.
+    // The toast is on the HUD's camera, at zoom 1, and the body on the
+    // world's: its screen point is its offset from the view's centre, zoomed
+    // about that centre (Camera.preRender's matrix), and so is its size.
+    const zoom = cam.zoom;
     const at = toastPoint(
-      (e?.x ?? a.x) - cam.scrollX,
-      (e?.y ?? a.y) - cam.scrollY,
-      (e?.displaySize ?? 48) / 2 + 12,
+      ((e?.x ?? a.x) - cam.scrollX - cam.width / 2) * zoom + cam.width / 2,
+      ((e?.y ?? a.y) - cam.scrollY - cam.height / 2) * zoom + cam.height / 2,
+      ((e?.displaySize ?? 48) / 2) * zoom + 12,
       cam,
       box,
     );
@@ -1335,6 +1489,7 @@ export class ActScene extends Phaser.Scene {
     this.hearWorld();
     this.syncArrivals();
     this.syncPlayer();
+    this.syncCamera();
     this.syncEnemies();
     this.syncMarks();
     this.syncProjectiles();
@@ -1653,6 +1808,9 @@ export class ActScene extends Phaser.Scene {
       PLAYER_DISPLAY * grown * (1 + stun + grab),
       PLAYER_DISPLAY * grown * (1 - stun - grab),
     );
+    // On the floor at the body's foot, as wide as the squash makes it. The
+    // i-frames dim the body and not the shadow: the player is still there.
+    this.groundSprite(this.playerShadow, this.player);
     // The swim: quick small wiggle. It is the player character in an act
     // where the whole field is alive; a rigid sprite reads as a cursor. Its
     // phase follows the world clock (a held world holds it still), slowed by
@@ -1697,6 +1855,153 @@ export class ActScene extends Phaser.Scene {
     }
   }
 
+  /**
+   * The look ahead (`CAMERA_LEAD`): what the player moved since the last
+   * frame, over the world time it took, is their heading when it is quick
+   * enough to be one; the lead eases toward that heading's point, or back to
+   * nothing, on the world clock, so a held world (a card, the pause) holds the
+   * camera where it is. A jump no walk could make (a crossing's carry) is not
+   * a heading: the lead drops and the camera follows the jump.
+   */
+  private syncCamera(): void {
+    const w = this.world;
+    const from = this.leadFrom;
+    const dt = w.time - from.time;
+    if (dt > 0) {
+      const dx = w.x - from.x;
+      const dy = w.y - from.y;
+      const d = Math.hypot(dx, dy);
+      if (d > 200) {
+        this.lead.set(0, 0);
+      } else {
+        const moving = d > LEAD_MIN_SPEED * dt;
+        const tx = moving ? (dx / d) * CAMERA_LEAD : 0;
+        const ty = moving ? (dy / d) * CAMERA_LEAD : 0;
+        const k = 1 - Math.exp(-LEAD_RATE * dt);
+        this.lead.set(this.lead.x + (tx - this.lead.x) * k, this.lead.y + (ty - this.lead.y) * k);
+      }
+    }
+    from.x = w.x;
+    from.y = w.y;
+    from.time = w.time;
+    this.look.set(w.x + this.lead.x, w.y + this.lead.y);
+  }
+
+  /**
+   * Before each render, every top-level object to one camera: scroll factor 0
+   * (the HUD, the cards, the toasts, the papers, the certificate, the pause
+   * sheet, the stick, the vignette) to the HUD's, everything else to the
+   * world's. A filter bit is the camera that skips it. Run on the whole list
+   * each frame rather than at each `add`, so nothing made later — a card, a
+   * toast, a paper — can be missed; a container's children go with it.
+   */
+  private splitCameras(): void {
+    const world = this.cameras.main;
+    const hud = this.hudCam;
+    if (!world || !hud) return;
+    const list = this.children.list;
+    for (let i = 0; i < list.length; i++) {
+      const o = list[i] as Phaser.GameObjects.GameObject & { scrollFactorX?: number };
+      o.cameraFilter = o.scrollFactorX === 0 ? world.id : hud.id;
+    }
+  }
+
+  /** One drop shadow (`DROP`), hidden until something stands on it. */
+  private addShadow(alpha: number = DROP.alpha): Phaser.GameObjects.Image {
+    return this.add.image(0, 0, 'nc-shadow').setDepth(DROP.depth).setAlpha(alpha).setVisible(false);
+  }
+
+  /** Lays `shadow` on the floor under a drawing whose base is at (x, base), `width` px across. */
+  private ground(shadow: Phaser.GameObjects.Image, x: number, base: number, width: number): void {
+    const across = width * DROP.width;
+    const tall = across * DROP.height;
+    shadow
+      .setPosition(x, base - tall * DROP.tuck)
+      .setDisplaySize(across, tall)
+      .setVisible(true);
+  }
+
+  /**
+   * `ground` for a sprite as drawn this frame: its frame's foot (`footOf`) at
+   * its display size, which carries its squash, about its origin. Its turn is
+   * ignored: a shadow lies on the floor.
+   */
+  private groundSprite(shadow: Phaser.GameObjects.Image, s: Phaser.GameObjects.Image): void {
+    const foot = this.footOf(s.frame);
+    this.ground(shadow, s.x, s.y + (foot.base - s.originY) * s.displayHeight, foot.width * s.displayWidth);
+  }
+
+  /**
+   * Where a frame's drawing stands (`Foot`). The atlases are packed untrimmed
+   * and every drawing sits in its square differently (a clique fills its
+   * frame to the floor, a rival swims in the middle of its own), so the
+   * frame's box cannot say where the drawing's base is: its pixels are read,
+   * once per frame, the first time something stands on it. A source that
+   * cannot be read leaves the frame's own box.
+   */
+  private footOf(frame: Phaser.Textures.Frame): Foot {
+    const known = this.feet.get(frame);
+    if (known) return known;
+    let foot: Foot = { base: 1, width: 1 };
+    const w = frame.cutWidth;
+    const h = frame.cutHeight;
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      if (ctx) {
+        ctx.drawImage(frame.source.image as CanvasImageSource, frame.cutX, frame.cutY, w, h, 0, 0, w, h);
+        const alpha = ctx.getImageData(0, 0, w, h).data;
+        let left = w;
+        let right = -1;
+        let bottom = -1;
+        for (let y = 0; y < h; y++) {
+          for (let x = 0; x < w; x++) {
+            if (alpha[(y * w + x) * 4 + 3]! < 128) continue;
+            if (x < left) left = x;
+            if (x > right) right = x;
+            bottom = y;
+          }
+        }
+        if (bottom >= 0) foot = { base: (bottom + 1) / h, width: (right - left + 1) / w };
+      }
+    } catch {
+      // Unreadable (a cross-origin source): the frame's own box stands in.
+    }
+    this.feet.set(frame, foot);
+    return foot;
+  }
+
+  /**
+   * An enemy's death, drawn after the sim has taken it away: a ghost in its
+   * frame, where it last stood and turned as it was last drawn, grows to
+   * `DEATH_POP` of its size and fades out over `DEATH_POP_MS`. One tween per
+   * death, on the death; the ghost goes back to the pool when it ends.
+   */
+  private popGhost(e: EnemyState, body: Body): void {
+    const g = this.ghosts.pop() ?? this.add.image(0, 0, body.atlas).setDepth(5);
+    g.setTexture(body.atlas, e.def.frame)
+      .setPosition(e.x, e.y)
+      .setDisplaySize(e.displaySize, e.displaySize)
+      .setFlipX(body.flipX)
+      .setRotation(body.rotation)
+      .setAlpha(1)
+      .setVisible(true);
+    this.tweens.add({
+      targets: g,
+      scaleX: g.scaleX * DEATH_POP,
+      scaleY: g.scaleY * DEATH_POP,
+      alpha: 0,
+      duration: DEATH_POP_MS,
+      ease: 'Quad.easeOut',
+      onComplete: () => {
+        g.setVisible(false);
+        this.ghosts.push(g);
+      },
+    });
+  }
+
   /** Grows a sprite pool to match a world array, hiding the surplus. */
   private fit<T extends Phaser.GameObjects.GameObject>(
     pool: T[],
@@ -1715,6 +2020,14 @@ export class ActScene extends Phaser.Scene {
     this.fit(this.enemySprites, list.length, () =>
       this.add.image(0, 0, this.visuals.atlas.key).setDepth(5),
     );
+    this.fit(this.enemyShadows, list.length, () => this.addShadow());
+    // Hits and deaths are read off the bodies by identity (`Body`), because
+    // the sprite slots change bodies every frame. `stepped`: hitFlash only
+    // falls between two frames the world stepped through, unless something hit.
+    const frame = ++this.bodyFrame;
+    const stepped = w.time !== this.bodyTime;
+    this.bodyTime = w.time;
+    const now = this.time.now;
     // A hold (FAMILY-ROSTER §3.4): the toddler, 44px against the player's
     // 56, walks onto the player's centre and would be drawn under them for
     // the whole hold. So while a hold runs, the body holding the player
@@ -1732,17 +2045,36 @@ export class ActScene extends Phaser.Scene {
       // Only on a change: a depth set queues a sort of the whole display list.
       const depth = holding ? HOLDER_DEPTH : 5;
       if (s.depth !== depth) s.setDepth(depth);
+      let body = this.bodies.get(e);
+      if (!body) {
+        body = this.spareBodies.pop() ?? { seen: 0, flash: 0, hitAt: 0, atlas: '', flipX: false, rotation: 0 };
+        body.flash = 0;
+        body.hitAt = -Infinity;
+        this.bodies.set(e, body);
+        this.bodyList.push(e);
+      }
+      body.seen = frame;
+      const hit = stepped && e.hitFlash > 0 && e.hitFlash >= body.flash;
+      if (hit && now - body.hitAt >= HIT_REARM_MS) body.hitAt = now;
+      body.flash = e.hitFlash;
+      const sinceHit = now - body.hitAt;
       // G-032: no render tint. The sprite arrives in its final colours and
       // CHECK enforces the value ceiling, because a GPU multiply is invisible
       // to every check in the pipeline and was putting every enemy off-palette
       // by three times the tolerance at draw time.
       //
-      // Hit feedback is value, not tint — law 10's own wording, and the same
-      // reason the player dims rather than flashing red.
+      // Hit feedback is value, not tint — law 10's own wording: a fill of
+      // paper for `HIT_FLASH_MS` (replacing the colour, not multiplying it),
+      // where the sprite used to dim to 0.55 for the whole of `hitFlash`. The
+      // player still dims. Set only on a change: pooled slots keep it.
+      const flash = sinceHit < HIT_FLASH_MS;
+      if (flash !== s.tintFill) {
+        if (flash) s.setTintFill(HIT_FLASH);
+        else s.clearTint();
+      }
       s.setTexture(this.visuals.atlas.key, e.def.frame)
         .setPosition(e.x, e.y)
         .setDisplaySize(e.displaySize, e.displaySize)
-        .setAlpha(e.hitFlash > 0 ? 0.55 : 1)
         .setVisible(true);
       // Reset the flip for non-chasers: pooled sprites inherit state from
       // whatever used the slot last frame, and a drifting antibody was
@@ -1797,6 +2129,36 @@ export class ActScene extends Phaser.Scene {
         default:
           s.setRotation(Math.sin(t * 2 + ph) * 0.08);
       }
+      // Body, over the ambient motion: the spawn pop, then the hit's squash
+      // (wider and shorter, about the centre), and the shadow taking both.
+      const pop =
+        e.age < SPAWN_POP.seconds
+          ? SPAWN_POP.from + (1 - SPAWN_POP.from) * easeOutBack(Math.max(0, e.age) / SPAWN_POP.seconds)
+          : 1;
+      const squash =
+        sinceHit < HIT_SQUASH_MS
+          ? HIT_SQUASH
+          : sinceHit < HIT_SQUASH_MS + HIT_RELEASE_MS
+            ? HIT_SQUASH * (1 - (sinceHit - HIT_SQUASH_MS) / HIT_RELEASE_MS)
+            : 0;
+      if (pop !== 1 || squash !== 0) s.setScale(s.scaleX * pop * (1 + squash), s.scaleY * pop * (1 - squash));
+      body.atlas = s.texture.key;
+      body.flipX = s.flipX;
+      body.rotation = s.rotation;
+      this.groundSprite(this.enemyShadows[i]!, s);
+    }
+    // Gone since the last frame: killed (the sim reaps at hp 0) pops; gone any
+    // other way (walked off, attached, let go, absorbed by the Egg, cleared at
+    // a crossing) just goes, as it always did.
+    for (let i = this.bodyList.length - 1; i >= 0; i--) {
+      const e = this.bodyList[i]!;
+      const body = this.bodies.get(e)!;
+      if (body.seen === frame) continue;
+      if (e.hp <= 0) this.popGhost(e, body);
+      this.bodies.delete(e);
+      this.spareBodies.push(body);
+      const last = this.bodyList.pop()!;
+      if (i < this.bodyList.length) this.bodyList[i] = last;
     }
   }
 
@@ -1809,11 +2171,12 @@ export class ActScene extends Phaser.Scene {
    * target's own `markedUntil` (the boss carries the same field, which
    * `bossTakes` pays); a mark past its time is not drawn, as the sim does not
    * read it. An enemy's band is sized by its body as drawn and lies over the
-   * foot of its sprite, so the hit that marks it, which dims the sprite, does
-   * not dim the band (AUDIT 123). The boss's is sized by its round body (the
-   * sim's) and lies under its drawing, tucked under the foot of its frame
-   * (`bossBody`): a band at its body's foot, as an enemy's is, sat under the
-   * Loan's base and did not show. `markFx`'s depth sits between the two.
+   * foot of its sprite, so the hit that marks it, which flashes the sprite
+   * (it dimmed it then), does not take the band with it (AUDIT 123). The
+   * boss's is sized by its round body (the sim's) and lies under its drawing,
+   * tucked under the foot of its frame (`bossBody`): a band at its body's
+   * foot, as an enemy's is, sat under the Loan's base and did not show.
+   * `markFx`'s depth sits between the two.
    */
   private syncMarks(): void {
     const w = this.world;
@@ -1936,6 +2299,7 @@ export class ActScene extends Phaser.Scene {
     this.fit(this.gemSprites, list.length, () =>
       this.add.image(0, 0, this.gemKey).setDisplaySize(GEM_SIZE * 1.7, GEM_SIZE * 2.1).setDepth(3),
     );
+    this.fit(this.gemShadows, list.length, () => this.addShadow());
     // Kill feedback: a gem appearing IS a death, so the ripple keys off the
     // gems the world just added rather than needing the sim to emit events.
     for (let i = this.prevGemCount; i < list.length; i++) {
@@ -1944,12 +2308,25 @@ export class ActScene extends Phaser.Scene {
     this.prevGemCount = list.length;
     const t = this.world.time;
     for (let i = 0; i < list.length; i++) {
+      const gem = list[i]!;
       const g = this.gemSprites[i]!;
-      g.setPosition(list[i]!.x, list[i]!.y).setVisible(true);
-      // A slow one-by-one glimmer, phase-spread so the field never pulses in
-      // unison. ABSOLUTE size each frame — multiplying the current scale
-      // compounds it, and a gem became a screen-height beam in about a second.
-      g.setDisplaySize(GEM_SIZE * 1.7, GEM_SIZE * 2.1 * (1 + 0.08 * Math.sin(t * 2.1 + i * 1.7)));
+      // Each gem's own phase, so the field never bobs in unison. Kept per gem,
+      // not per slot: the world swap-removes, and a slot's gem changes under it.
+      let ph = this.gemPhase.get(gem);
+      if (ph === undefined) {
+        ph = (this.gemSerial++ * 2.39996) % (Math.PI * 2);
+        this.gemPhase.set(gem, ph);
+      }
+      // A bob off the floor and a shimmer, on the world clock (a held world
+      // holds them). No turn and no stretch: the lozenge keeps its shape.
+      const lift = GEM_BOB * (0.5 + 0.5 * Math.sin(t * 2.4 + ph));
+      g.setPosition(gem.x, gem.y - lift)
+        .setAlpha(GEM_SHIMMER + (1 - GEM_SHIMMER) * (0.5 + 0.5 * Math.sin(t * 3.3 + ph * 1.7)))
+        .setVisible(true);
+      // The shadow stays on the floor, under the lozenge's point at rest, and
+      // narrows as the gem rises.
+      const across = GEM_SIZE * 1.7 * (1 - 0.15 * (lift / GEM_BOB));
+      this.ground(this.gemShadows[i]!, gem.x, gem.y + GEM_SIZE * 1.05, across);
     }
   }
 
@@ -2420,7 +2797,10 @@ export class ActScene extends Phaser.Scene {
 
   private syncBoss(): void {
     const b = this.world.boss;
-    if (!b) return;
+    if (!b) {
+      this.bossShadow?.setVisible(false);
+      return;
+    }
     const kind = this.world.act.boss.kind;
     // The holder, or the variant this state draws (D-029, `bossFrameFor`):
     // Time is made in its face frame, the clock without its long hand.
@@ -2464,7 +2844,7 @@ export class ActScene extends Phaser.Scene {
     if (b.phase === 'absorbing' && !this.absorbZoomed) {
       // The ending leans in. Presentation only — the outcome latched already.
       this.absorbZoomed = true;
-      this.cameras.main.zoomTo(1.1, 1500, 'Sine.easeInOut');
+      this.cameras.main.zoomTo(WORLD_ZOOM * 1.1, 1500, 'Sine.easeInOut');
       // The act's one word, if it has one (ActDef.endWord: PARTICIPATION).
       if (this.world.act.endWord) this.announceWord(this.world.act.endWord);
     }
@@ -2509,9 +2889,22 @@ export class ActScene extends Phaser.Scene {
       .setScale(this.bossScale * (1 - jerk), this.bossScale * (1 + jerk))
       // Value, not tint (G-032, law 10).
       .setAlpha(alpha);
+    this.groundBoss(b, alpha);
     if (kind === 'time') this.syncTimeHand(b, alpha);
     // Behind a card nobody would see the look, so it waits for the choice.
     if (this.bossEntranceOwed && !this.world.offers) this.lookAtBoss(b.phase === 'absorbing');
+  }
+
+  /**
+   * The boss's shadow (`DROP.boss`), at the foot of its drawing as it stands
+   * this frame (`groundSprite`: the Loan's jerk and the Reorg's landing
+   * squash it too), fading with the absorb. The telegraph dims the body and
+   * not the floor.
+   */
+  private groundBoss(b: NonNullable<World['boss']>, alpha: number): void {
+    const shadow = (this.bossShadow ??= this.addShadow(DROP.boss));
+    this.groundSprite(shadow, this.bossSprite!);
+    shadow.setAlpha(DROP.boss * (b.phase === 'absorbing' ? alpha : 1));
   }
 
   /**
@@ -2574,17 +2967,18 @@ export class ActScene extends Phaser.Scene {
     const halfH = cam.height / zoom / 2;
     const left = s.x - s.displayWidth * s.originX;
     const top = s.y - s.displayHeight * s.originY;
+    // The view is centred on the look point, the player plus the lead.
     const dx = shiftToShow(
       left,
       left + s.displayWidth,
-      this.player.x - halfW + TOAST_EDGE / zoom,
-      this.player.x + halfW - TOAST_EDGE / zoom,
+      this.look.x - halfW + TOAST_EDGE / zoom,
+      this.look.x + halfW - TOAST_EDGE / zoom,
     );
     const dy = shiftToShow(
       top,
       top + s.displayHeight,
-      this.player.y - halfH + TOAST_TOP / zoom,
-      this.player.y + halfH - TOAST_EDGE / zoom,
+      this.look.y - halfH + TOAST_TOP / zoom,
+      this.look.y + halfH - TOAST_EDGE / zoom,
     );
     if (dx === 0 && dy === 0) return;
     // The camera looks at the target minus the offset (Camera.preRender).
@@ -3199,7 +3593,7 @@ export class ActScene extends Phaser.Scene {
     if (shape) {
       this.scale.setGameSize(shape.width, shape.height);
       // The follow would glide to the new view's centre; the world is still, so snap.
-      cam.centerOn(this.player.x, this.player.y);
+      cam.centerOn(this.look.x, this.look.y);
       this.events.off('shutdown', this.restoreCanvas, this).once('shutdown', this.restoreCanvas, this);
       this.pauseSheetNarrow = true;
       this.endScrim.setPosition(shape.width / 2, shape.height / 2).setSize(shape.width, shape.height);
@@ -3224,7 +3618,7 @@ export class ActScene extends Phaser.Scene {
     this.pauseSheetNarrow = false;
     if (this.restoreCanvas()) this.events.off('shutdown', this.restoreCanvas, this);
     // Back where the run left it, not gliding there from the phone's view.
-    this.cameras.main.centerOn(this.player.x, this.player.y);
+    this.cameras.main.centerOn(this.look.x, this.look.y);
     this.endScrim.setPosition(VIEW_WIDTH / 2, VIEW_HEIGHT / 2).setSize(VIEW_WIDTH, VIEW_HEIGHT);
     this.anchorHud(VIEW_WIDTH);
     this.devBadge.setPosition(VIEW_WIDTH - 14, 58);
@@ -3266,12 +3660,12 @@ export class ActScene extends Phaser.Scene {
     /** Inner margin, and the tear line between the certificate and its receipt. */
     const M = WIDE_SHEET.margin;
     const PERF = lay.perf;
-    // The last boss's absorb leans the camera in to 1.1 (syncBoss), and a
-    // scroll-factor-0 object still takes the zoom: the sheet would be set at
-    // 1232px and its hint pushed to the bottom edge. The field is dimmed from
-    // this frame, so the lean-in ends here, under the paper.
+    // The last boss's absorb leans the world camera in (syncBoss). The sheet
+    // is on the HUD's camera and does not take that zoom any more (before it
+    // did: set at 1232px, its hint pushed to the bottom edge); the field is
+    // dimmed from this frame, so the lean-in still ends here, under the paper.
     cam.zoomEffect.reset();
-    cam.setZoom(1);
+    cam.setZoom(WORLD_ZOOM);
     const parts: Phaser.GameObjects.GameObject[] = [];
     const text = (x: number, y: number, s: string, size: number, colour: string, spacing = 0) => {
       const t = this.add.text(x, y, s, {
@@ -3383,7 +3777,7 @@ export class ActScene extends Phaser.Scene {
     const right = L + W - M;
     // As showCertificate: the last boss's lean-in ends under the paper.
     cam.zoomEffect.reset();
-    cam.setZoom(1);
+    cam.setZoom(WORLD_ZOOM);
     const parts: Phaser.GameObjects.GameObject[] = [];
     const text = (x: number, y: number, s: string, size: number, colour: string, spacing = 0) => {
       const t = this.add.text(x, y, s, {
