@@ -63,8 +63,10 @@ blaming the model.
 Enforced in code. The check that enforces each one is named.
 
 1. **One outline weight across the whole game**, scaled proportionally with
-   sprite size, never varied for effect. `OUTLINE_RATIO`, 2/96, in a warm
-   near-black — never pure black.
+   sprite size, never varied for effect. `OUTLINE_RATIO`, 1/96 since
+   2026-09-29 (2/96 read as a sticker border), in a warm near-black — never
+   pure black; a sprite under 48px gets none. The four Reorg frames fail
+   contrast at 1/96 and keep 2/96 until the Reorg is regenerated.
 2. **Flat fills.** No gradients, no rendered lighting, no ambient occlusion.
    Shadow is a second flat tone at most. Alpha is binarised, so no soft edge
    survives.
