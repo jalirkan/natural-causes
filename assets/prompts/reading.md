@@ -7,7 +7,7 @@
 - **SVG sha256:** `f69ee3a92922465f59e02f2aa5c331449fd8a3d999cdd64e9dd675a30cdf5a07`
 - **Rasteriser:** sharp 0.34.5 (libvips 8.17.3, librsvg 2.61.2)
 - **Render:** 27.000 dpi, 4× supersampled and area-averaged
-- **Rendered:** 2026-09-28T04:16:33.606Z
+- **Rendered:** 2026-09-29T02:41:09.314Z
 - **Sprite size:** 48px
 - **Tests:** the stack — the only pile in the act, read by its fanned edges
 

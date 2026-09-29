@@ -7,7 +7,7 @@
 - **SVG sha256:** `ff9305c017f687504a18a64a07bf29f98b084cbdfac2c9de274c8e3a410c6ede`
 - **Rasteriser:** sharp 0.34.5 (libvips 8.17.3, librsvg 2.61.2)
 - **Render:** 27.000 dpi, 4× supersampled and area-averaged
-- **Rendered:** 2026-09-28T09:54:47.155Z
+- **Rendered:** 2026-09-29T02:41:10.152Z
 - **Sprite size:** 48px
 - **Tests:** the clipped sheet — the only sheet and the only clip in the act; its children are the same sheet smaller
 

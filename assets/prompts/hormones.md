@@ -7,7 +7,7 @@
 - **SVG sha256:** `44df0a9b6e3acfb26563ebe93643f3df2eedbeb445e0f06772818d834493fb62`
 - **Rasteriser:** sharp 0.34.5 (libvips 8.17.3, librsvg 2.61.2)
 - **Render:** 140.160 dpi, 4× supersampled and area-averaged
-- **Rendered:** 2026-09-27T23:47:54.466Z
+- **Rendered:** 2026-09-29T02:41:08.477Z
 - **Sprite size:** 48px
 - **Tests:** the bolt — the only jagged outline, a squiggle with a face in a horde
 

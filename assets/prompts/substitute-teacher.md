@@ -6,8 +6,8 @@
 - **Source:** authored SVG, `tools/art/svg/school/substitute-teacher.svg`
 - **SVG sha256:** `9c263303b98292d20d2ba7f36ac59adbad7eead4131518512f7bfb415a0847b1`
 - **Rasteriser:** sharp 0.34.5 (libvips 8.17.3, librsvg 2.61.2)
-- **Render:** 54.000 dpi, 4× supersampled and area-averaged
-- **Rendered:** 2026-09-28T23:02:29.860Z
+- **Render:** 55.254 dpi, 4× supersampled and area-averaged
+- **Rendered:** 2026-09-29T02:41:04.514Z
 - **Sprite size:** 96px
 - **Tests:** the bright hard rectangle in the greeting-card register: a clipboard with rounded corners and straight sides, carried by a cute figure that is still the role
 
@@ -21,13 +21,13 @@ a substitute schoolteacher drawn in the greeting-card register, standing and rea
 
 | Check | Result | Measured | Expected |
 |---|---|---|---|
-| silhouette-area | pass | 0.5425 | 0.12–0.82 of canvas |
+| silhouette-area | pass | 0.5281 | 0.12–0.82 of canvas |
 | background-contrast | pass | 0.1535 | >= 0.12 median Oklab L from school-deep |
-| background-contrast-coverage | pass | 0.1818 | <= 0.4 of sprite may vanish into school-deep |
+| background-contrast-coverage | pass | 0.1954 | <= 0.4 of sprite may vanish into school-deep |
 | palette-conformance | pass | 0 | <= 0.0353 Oklab from a palette entry |
 | palette-variety | pass | 5 | >= 2 distinct palette colours |
-| palette-dominance | pass | 0.3274 | no colour above 0.97 of the sprite |
-| readable-48px-silhouette | pass | 0.5516 | >= 0.084 coverage at 48px |
+| palette-dominance | pass | 0.3493 | no colour above 0.97 of the sprite |
+| readable-48px-silhouette | pass | 0.5399 | >= 0.084 coverage at 48px |
 | readable-48px-structure | pass | 6 | >= 2 palette colours still visible at 48px |
 | enemy-value-ceiling | pass | 0.8295 | <= 0.856 Oklab L (bone); paper belongs to the player |
-| readable-48px-detail | pass | 0.4221 | >= 0.06 edge density at 48px |
+| readable-48px-detail | pass | 0.4143 | >= 0.06 edge density at 48px |

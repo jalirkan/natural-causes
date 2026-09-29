@@ -6,8 +6,8 @@
 - **Source:** authored SVG, `tools/art/svg/school/dodgeball.svg`
 - **SVG sha256:** `b4e4c77051611c1d06b5f2a89382d222409ab467732bcbda0bf5863e307c4483`
 - **Rasteriser:** sharp 0.34.5 (libvips 8.17.3, librsvg 2.61.2)
-- **Render:** 126.720 dpi, 4× supersampled and area-averaged
-- **Rendered:** 2026-09-28T23:02:30.005Z
+- **Render:** 131.623 dpi, 4× supersampled and area-averaged
+- **Rendered:** 2026-09-29T02:41:07.736Z
 - **Sprite size:** 44px
 - **Tests:** the circle — the only perfect circle in the act, cute and still contact red
 
@@ -21,13 +21,13 @@ a single perfectly round rubber playground ball seen straight on, one flat circl
 
 | Check | Result | Measured | Expected |
 |---|---|---|---|
-| silhouette-area | pass | 0.7831 | 0.12–0.82 of canvas |
+| silhouette-area | pass | 0.7836 | 0.12–0.82 of canvas |
 | background-contrast | pass | 0.1512 | >= 0.12 median Oklab L from school-deep |
 | background-contrast-coverage | pass | 0 | <= 0.4 of sprite may vanish into school-deep |
 | palette-conformance | pass | 0 | <= 0.0353 Oklab from a palette entry |
 | palette-variety | pass | 4 | >= 2 distinct palette colours |
-| palette-dominance | pass | 0.7949 | no colour above 0.97 of the sprite |
-| readable-48px-silhouette | pass | 0.793 | >= 0.084 coverage at 48px |
-| readable-48px-structure | pass | 4 | >= 2 palette colours still visible at 48px |
+| palette-dominance | pass | 0.8688 | no colour above 0.97 of the sprite |
+| readable-48px-silhouette | pass | 0.7943 | >= 0.084 coverage at 48px |
+| readable-48px-structure | pass | 3 | >= 2 palette colours still visible at 48px |
 | enemy-value-ceiling | pass | 0.8295 | <= 0.856 Oklab L (bone); paper belongs to the player |
-| readable-48px-detail | pass | 0.2245 | >= 0.06 edge density at 48px |
+| readable-48px-detail | pass | 0.1395 | >= 0.06 edge density at 48px |

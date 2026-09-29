@@ -7,7 +7,7 @@
 - **SVG sha256:** `443842628a2172fdc97097fcd8ac0ad420544d1fcefa541c3ccdd63edc06b24d`
 - **Rasteriser:** sharp 0.34.5 (libvips 8.17.3, librsvg 2.61.2)
 - **Render:** 27.000 dpi, 4× supersampled and area-averaged
-- **Rendered:** 2026-09-28T10:53:39.568Z
+- **Rendered:** 2026-09-29T02:41:11.778Z
 - **Sprite size:** 48px
 - **Tests:** the windowed envelope — the only envelope and the only window in the act; a late fee is the same drawing
 

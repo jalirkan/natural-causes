@@ -6,8 +6,8 @@
 - **Source:** authored SVG, `tools/art/svg/school/homework.svg`
 - **SVG sha256:** `b35be210626263e8d8349bfe67f14a01629281228094959e1efb39b773e5fb73`
 - **Rasteriser:** sharp 0.34.5 (libvips 8.17.3, librsvg 2.61.2)
-- **Render:** 242.818 dpi, 4× supersampled and area-averaged
-- **Rendered:** 2026-09-28T23:02:30.066Z
+- **Render:** 249.999 dpi, 4× supersampled and area-averaged
+- **Rendered:** 2026-09-29T02:41:07.776Z
 - **Sprite size:** 72px
 - **Tests:** the wedge — paper that is deliberately not a rectangle, with a face (law 5)
 
@@ -21,13 +21,13 @@ a leaning stack of paper sheets seen from the side, triangular in profile, wide 
 
 | Check | Result | Measured | Expected |
 |---|---|---|---|
-| silhouette-area | pass | 0.6171 | 0.12–0.82 of canvas |
+| silhouette-area | pass | 0.6165 | 0.12–0.82 of canvas |
 | background-contrast | pass | 0.4144 | >= 0.12 median Oklab L from school-deep |
-| background-contrast-coverage | pass | 0.1216 | <= 0.4 of sprite may vanish into school-deep |
+| background-contrast-coverage | pass | 0.1302 | <= 0.4 of sprite may vanish into school-deep |
 | palette-conformance | pass | 0 | <= 0.0353 Oklab from a palette entry |
 | palette-variety | pass | 4 | >= 2 distinct palette colours |
-| palette-dominance | pass | 0.6883 | no colour above 0.97 of the sprite |
-| readable-48px-silhouette | pass | 0.6146 | >= 0.084 coverage at 48px |
-| readable-48px-structure | pass | 6 | >= 2 palette colours still visible at 48px |
+| palette-dominance | pass | 0.7453 | no colour above 0.97 of the sprite |
+| readable-48px-silhouette | pass | 0.6194 | >= 0.084 coverage at 48px |
+| readable-48px-structure | pass | 7 | >= 2 palette colours still visible at 48px |
 | enemy-value-ceiling | pass | 0.8295 | <= 0.856 Oklab L (bone); paper belongs to the player |
-| readable-48px-detail | pass | 0.4508 | >= 0.06 edge density at 48px |
+| readable-48px-detail | pass | 0.4032 | >= 0.06 edge density at 48px |
