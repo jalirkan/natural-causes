@@ -17,6 +17,7 @@ import { combineMoves, stickVector, type Move } from './touch';
 import { healthBar } from './health-bar';
 import { oncePerEvent } from './keys';
 import { bossFrameFor } from './boss-frames';
+import { Juice } from './juice';
 import {
   certificateConditions,
   certificateFields,
@@ -465,7 +466,8 @@ export class ActScene extends Phaser.Scene {
   private areaIcons: Phaser.GameObjects.Image[] = [];
   /** Passive cues drawn around the player: Membrane's ring, Midpiece's streaks. */
   private playerFx!: Phaser.GameObjects.Graphics;
-  private prevGemCount = 0;
+  /** Hits, kills, pickups and levels made visible (./juice). Rebuilt in `create`, destroyed at shutdown. */
+  private juice!: Juice;
   private absorbZoomed = false;
   /**
    * One Trick's opening offer (G-055) is up before the first frame, under the
@@ -557,7 +559,6 @@ export class ActScene extends Phaser.Scene {
 
     this.puffs = [];
     this.areaIcons = [];
-    this.prevGemCount = 0;
     this.absorbZoomed = false;
     this.cameras.main.setZoom(1);
 
@@ -586,6 +587,9 @@ export class ActScene extends Phaser.Scene {
 
     this.cameras.main.startFollow(this.player, true, 0.12, 0.12);
     this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+    // Its field effects at the puffs' depth, 7: over the crowd, under the shots and the player.
+    this.juice = new Juice(this, 7, this.player);
+    this.events.once('shutdown', () => this.juice.destroy());
 
     const keyboard = this.input.keyboard;
     if (!keyboard) throw new Error('No keyboard input available.');
@@ -718,7 +722,6 @@ export class ActScene extends Phaser.Scene {
     this.gemKey = ensureGemTexture(this, this.visuals.pickup);
     for (const g of this.gemSprites) g.destroy();
     this.gemSprites = [];
-    this.prevGemCount = 0;
     for (const a of this.attachedSprites) a.destroy();
     this.attachedSprites = [];
     this.bossSprite?.destroy();
@@ -1348,6 +1351,7 @@ export class ActScene extends Phaser.Scene {
     this.syncCries();
     this.syncBoss();
     this.syncAttached();
+    this.juice.sync(this.world, dt);
     this.drawHud();
   }
 
@@ -1369,11 +1373,8 @@ export class ActScene extends Phaser.Scene {
     if (w.kills > h.kills) sfx.kill();
     // XP rises only on pickup; it falls at a level-up, which is not a pickup.
     if (w.xp > h.xp && w.level === h.level) sfx.gem();
-    if (w.hp < h.hp - 0.01) {
-      sfx.hurt();
-      // Three pixels for ninety milliseconds. Feedback, not an earthquake.
-      this.cameras.main.shake(90, 0.0035);
-    }
+    // The shake is the juice's now (./juice), scaled with the hits and kills.
+    if (w.hp < h.hp - 0.01) sfx.hurt();
     // Every stack worn, not only the ones that drag, read per def off
     // `wornBy`: a ping pings (OFFICE-ROSTER §3.3), and anything else worn —
     // an antibody, acne, a tuition invoice carried into The Office — stamps.
@@ -1936,12 +1937,9 @@ export class ActScene extends Phaser.Scene {
     this.fit(this.gemSprites, list.length, () =>
       this.add.image(0, 0, this.gemKey).setDisplaySize(GEM_SIZE * 1.7, GEM_SIZE * 2.1).setDepth(3),
     );
-    // Kill feedback: a gem appearing IS a death, so the ripple keys off the
-    // gems the world just added rather than needing the sim to emit events.
-    for (let i = this.prevGemCount; i < list.length; i++) {
-      this.spawnPuff(list[i]!.x, list[i]!.y);
-    }
-    this.prevGemCount = list.length;
+    // Kill feedback is the juice's (./juice): its kill ring replaced the
+    // ripple a new gem used to spawn here, which a gem taken on the frame
+    // another dropped hid (the count did not move) and a split never had.
     const t = this.world.time;
     for (let i = 0; i < list.length; i++) {
       const g = this.gemSprites[i]!;
