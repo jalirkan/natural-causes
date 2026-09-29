@@ -6,8 +6,8 @@
 - **Source:** authored SVG, `tools/art/svg/office/commute.svg`
 - **SVG sha256:** `59039c6a7afe95af7209a869b2992d540d980daf22868a84aa7234c0a899bdba`
 - **Rasteriser:** sharp 0.34.5 (libvips 8.17.3, librsvg 2.61.2)
-- **Render:** 58.500 dpi, 4× supersampled and area-averaged
-- **Rendered:** 2026-09-28T09:51:58.230Z
+- **Render:** 59.451 dpi, 4× supersampled and area-averaged
+- **Rendered:** 2026-09-29T02:41:10.187Z
 - **Sprite size:** 104px
 - **Tests:** the carriage — the only wheels in the act, and the widest thing, read side-on crossing fast
 
@@ -21,13 +21,13 @@ a long low commuter rail carriage seen exactly side-on, a rounded box on two sma
 
 | Check | Result | Measured | Expected |
 |---|---|---|---|
-| silhouette-area | pass | 0.364 | 0.12–0.82 of canvas |
+| silhouette-area | pass | 0.352 | 0.12–0.82 of canvas |
 | background-contrast | pass | 0.1635 | >= 0.12 median Oklab L from office-deep |
-| background-contrast-coverage | pass | 0.0097 | <= 0.4 of sprite may vanish into office-deep |
+| background-contrast-coverage | pass | 0.0121 | <= 0.4 of sprite may vanish into office-deep |
 | palette-conformance | pass | 0 | <= 0.0353 Oklab from a palette entry |
 | palette-variety | pass | 4 | >= 2 distinct palette colours |
-| palette-dominance | pass | 0.5243 | no colour above 0.97 of the sprite |
-| readable-48px-silhouette | pass | 0.3763 | >= 0.084 coverage at 48px |
+| palette-dominance | pass | 0.5758 | no colour above 0.97 of the sprite |
+| readable-48px-silhouette | pass | 0.3568 | >= 0.084 coverage at 48px |
 | readable-48px-structure | pass | 5 | >= 2 palette colours still visible at 48px |
 | enemy-value-ceiling | pass | 0.8295 | <= 0.856 Oklab L (bone); paper belongs to the player |
-| readable-48px-detail | pass | 0.4175 | >= 0.06 edge density at 48px |
+| readable-48px-detail | pass | 0.3495 | >= 0.06 edge density at 48px |

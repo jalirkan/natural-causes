@@ -53,9 +53,12 @@ const hallMonitor = ALL_ASSETS.find((s) => s.id === 'hall-monitor')!;
 describe('the SVG stage rasterises to the size CONFORM wants', () => {
   it('the trimmed content lands exactly on targetSize − 2·outline', async () => {
     const file = svgFile('blob.svg', BLOB);
+    // At 1/96: 44px has no outline, 88 and 112 have 1px, 384 has 4px.
+    const expectedInner: Record<number, number> = { 44: 44, 88: 86, 112: 110, 384: 376 };
     for (const targetSize of [44, 88, 112, 384]) {
       const r = await rasteriseSvgBuffer(readFileSync(file), targetSize);
       const inner = targetSize - 2 * outlineWidthFor(targetSize);
+      expect(inner, `${targetSize}px`).toBe(expectedInner[targetSize]);
       expect(r.inner).toBe(inner);
       expect(r.fitted, `${targetSize}px`).toBe(true);
       // CONFORM crops at alpha > 8; its crop must be the whole bitmap, so
@@ -70,7 +73,7 @@ describe('the SVG stage rasterises to the size CONFORM wants', () => {
   it('rasteriseSvg reads a path and returns the fitted bitmap', async () => {
     const file = svgFile('blob2.svg', BLOB);
     const bmp = await rasteriseSvg(file, { targetSize: 88 });
-    expect(Math.max(bmp.width, bmp.height)).toBe(88 - 2 * outlineWidthFor(88));
+    expect(Math.max(bmp.width, bmp.height)).toBe(86);
   });
 
   it('CONFORM still quantises: only palette colours survive, off-palette fills included', async () => {

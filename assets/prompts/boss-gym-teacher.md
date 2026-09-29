@@ -6,8 +6,8 @@
 - **Source:** authored SVG, `tools/art/svg/school/boss-gym-teacher.svg`
 - **SVG sha256:** `cc0139e01165605c7d52f48da7d1eb5dc4a2b9e39f3d3dc48ed5209b04e7330c`
 - **Rasteriser:** sharp 0.34.5 (libvips 8.17.3, librsvg 2.61.2)
-- **Render:** 90.954 dpi, 4× supersampled and area-averaged
-- **Rendered:** 2026-09-28T23:02:30.867Z
+- **Render:** 92.933 dpi, 4× supersampled and area-averaged
+- **Rendered:** 2026-09-29T02:41:08.463Z
 - **Sprite size:** 384px
 
 **Why this life stage.** School is where the player is first organised into a crowd by someone who never touches them, and the whistle is how it is done.
@@ -20,13 +20,13 @@ the tallest thing in the act: a standing figure in gym shorts with a whistle on 
 
 | Check | Result | Measured | Expected |
 |---|---|---|---|
-| silhouette-area | pass | 0.5125 | 0.25–0.95 of canvas |
+| silhouette-area | pass | 0.489 | 0.25–0.95 of canvas |
 | background-contrast | pass | 0.1501 | >= 0.12 median Oklab L from school-deep |
-| background-contrast-coverage | pass | 0.2691 | <= 0.4 of sprite may vanish into school-deep |
+| background-contrast-coverage | pass | 0.2967 | <= 0.4 of sprite may vanish into school-deep |
 | palette-conformance | pass | 0.0293 | <= 0.0353 Oklab from a palette entry |
 | palette-variety | pass | 5 | >= 3 distinct palette colours |
-| palette-dominance | pass | 0.2685 | no colour above 0.9 of the sprite |
-| readable-48px-silhouette | pass | 0.5187 | >= 0.175 coverage at 48px |
+| palette-dominance | pass | 0.2963 | no colour above 0.9 of the sprite |
+| readable-48px-silhouette | pass | 0.5009 | >= 0.175 coverage at 48px |
 | readable-48px-structure | pass | 7 | >= 3 palette colours still visible at 48px |
 | enemy-value-ceiling | pass | 0.8512 | <= 0.856 Oklab L (bone); paper belongs to the player |
-| readable-48px-detail | pass | 0.4351 | >= 0.06 edge density at 48px |
+| readable-48px-detail | pass | 0.3874 | >= 0.06 edge density at 48px |

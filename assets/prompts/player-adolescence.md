@@ -6,8 +6,8 @@
 - **Source:** authored SVG, `tools/art/svg/adolescence/player-adolescence.svg`
 - **SVG sha256:** `ceda6753d6e89efdf0a4abf949774636a71bb5198cdd1fc4a4a043bfc6cab2e2`
 - **Rasteriser:** sharp 0.34.5 (libvips 8.17.3, librsvg 2.61.2)
-- **Render:** 317.762 dpi, 4× supersampled and area-averaged
-- **Rendered:** 2026-09-28T23:04:30.241Z
+- **Render:** 322.560 dpi, 4× supersampled and area-averaged
+- **Rendered:** 2026-09-29T02:41:09.283Z
 - **Sprite size:** 112px
 - **Tests:** G-003 and G-053 at thirteen: the same head, no taller, in a round hoodie with both hands in its pocket
 
@@ -19,12 +19,12 @@ the player at thirteen: the same chubby child as at school age, standing, no tal
 
 | Check | Result | Measured | Expected |
 |---|---|---|---|
-| silhouette-area | pass | 0.4284 | 0.12–0.82 of canvas |
+| silhouette-area | pass | 0.4173 | 0.12–0.82 of canvas |
 | background-contrast | pass | 0.5952 | >= 0.12 median Oklab L from adolescence-deep |
-| background-contrast-coverage | pass | 0.241 | <= 0.4 of sprite may vanish into adolescence-deep |
+| background-contrast-coverage | pass | 0.1926 | <= 0.4 of sprite may vanish into adolescence-deep |
 | palette-conformance | pass | 0 | <= 0.0353 Oklab from a palette entry |
 | palette-variety | pass | 4 | >= 2 distinct palette colours |
-| palette-dominance | pass | 0.5729 | no colour above 0.97 of the sprite |
-| readable-48px-silhouette | pass | 0.4366 | >= 0.084 coverage at 48px |
-| readable-48px-structure | pass | 7 | >= 2 palette colours still visible at 48px |
-| readable-48px-detail | pass | 0.4257 | >= 0.06 edge density at 48px |
+| palette-dominance | pass | 0.608 | no colour above 0.97 of the sprite |
+| readable-48px-silhouette | pass | 0.424 | >= 0.084 coverage at 48px |
+| readable-48px-structure | pass | 6 | >= 2 palette colours still visible at 48px |
+| readable-48px-detail | pass | 0.3861 | >= 0.06 edge density at 48px |

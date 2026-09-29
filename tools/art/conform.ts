@@ -21,13 +21,43 @@ import {
 /**
  * Outline weight as a fraction of the sprite's longest side (law 1: one
  * outline weight across the whole game, scaled proportionally with sprite
- * size, never varied for effect). A 96px swarm enemy gets 3px; a 384px boss
- * gets 12px; both read as the same line.
+ * size, never varied for effect). A 96px swarm enemy gets 1px; a 384px boss
+ * gets 4px; both read as the same line. Under 48px the ratio is under half a
+ * pixel and the sprite gets none (`outlineWidthFor`).
+ *
+ * Was 2/96: at the sizes sprites are seen, a dark ring that heavy over flat
+ * fills was the loudest thing on screen. The ink stays warm (INK, never pure
+ * black) — ART-DIRECTION's "what the first batch got wrong".
  */
-export const OUTLINE_RATIO = 2 / 96;
+export const OUTLINE_RATIO = 1 / 96;
 
-export function outlineWidthFor(size: number): number {
-  return Math.max(1, Math.round(size * OUTLINE_RATIO));
+/**
+ * `NC_OUTLINE_RATIO` overrides the ratio for one process — a comparison
+ * render, `NC_OUTLINE_RATIO=2/96 pnpm art:svg` — and takes a fraction or a
+ * decimal; 0 draws no outline. Nothing records it: provenance does not name
+ * the ratio, so a sprite rendered under the override and committed is a
+ * sprite no default reproduces. Unset, the constant above is the ratio.
+ */
+export function parseOutlineRatio(raw: string | undefined): number | null {
+  if (raw === undefined || raw.trim() === '') return null;
+  const [num, den, extra] = raw.split('/').map((p) => Number(p.trim()));
+  const value = extra !== undefined ? NaN : den === undefined ? num! : num! / den;
+  if (!Number.isFinite(value) || value < 0) {
+    throw new Error(`NC_OUTLINE_RATIO="${raw}" is not a ratio (expected e.g. 1/96, 0.0104 or 0)`);
+  }
+  return value;
+}
+
+/** The ratio this process renders with: the override if set, else OUTLINE_RATIO. */
+export const ACTIVE_OUTLINE_RATIO = parseOutlineRatio(process.env['NC_OUTLINE_RATIO']) ?? OUTLINE_RATIO;
+
+/**
+ * Nearest whole pixel, with no floor: a ratio that gives under half a pixel
+ * at this size draws no outline. A 1px floor would make the ratio a lie at
+ * small sizes — 0.5/96 would draw exactly what 1/96 draws below 144px.
+ */
+export function outlineWidthFor(size: number, ratio: number = ACTIVE_OUTLINE_RATIO): number {
+  return Math.round(size * ratio);
 }
 
 /**

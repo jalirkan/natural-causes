@@ -6,8 +6,8 @@
 - **Source:** authored SVG, `tools/art/svg/family/boss-mortgage.svg`
 - **SVG sha256:** `6385a41c6a0dbcf3acdd375c74008716bfb19f6379b42386d315f00e733d4005`
 - **Rasteriser:** sharp 0.34.5 (libvips 8.17.3, librsvg 2.61.2)
-- **Render:** 224.949 dpi, 4× supersampled and area-averaged
-- **Rendered:** 2026-09-28T10:58:56.726Z
+- **Render:** 229.844 dpi, 4× supersampled and area-averaged
+- **Rendered:** 2026-09-29T02:41:12.829Z
 - **Sprite size:** 384px
 - **Tests:** the house with a face — boss teal at boss scale, a gable, a door and two windows, the only roof in the act
 
@@ -21,13 +21,13 @@ a house front seen straight on at boss scale, a wide rectangular wall under a pl
 
 | Check | Result | Measured | Expected |
 |---|---|---|---|
-| silhouette-area | pass | 0.6945 | 0.25–0.95 of canvas |
+| silhouette-area | pass | 0.683 | 0.25–0.95 of canvas |
 | background-contrast | pass | 0.1454 | >= 0.12 median Oklab L from family-deep |
-| background-contrast-coverage | pass | 0.2392 | <= 0.4 of sprite may vanish into family-deep |
+| background-contrast-coverage | pass | 0.1956 | <= 0.4 of sprite may vanish into family-deep |
 | palette-conformance | pass | 0.0293 | <= 0.0353 Oklab from a palette entry |
-| palette-variety | pass | 5 | >= 3 distinct palette colours |
-| palette-dominance | pass | 0.6492 | no colour above 0.9 of the sprite |
-| readable-48px-silhouette | pass | 0.7101 | >= 0.175 coverage at 48px |
-| readable-48px-structure | pass | 5 | >= 3 palette colours still visible at 48px |
+| palette-variety | pass | 4 | >= 3 distinct palette colours |
+| palette-dominance | pass | 0.6851 | no colour above 0.9 of the sprite |
+| readable-48px-silhouette | pass | 0.7005 | >= 0.175 coverage at 48px |
+| readable-48px-structure | pass | 6 | >= 3 palette colours still visible at 48px |
 | enemy-value-ceiling | pass | 0.8512 | <= 0.856 Oklab L (bone); paper belongs to the player |
-| readable-48px-detail | pass | 0.3561 | >= 0.06 edge density at 48px |
+| readable-48px-detail | pass | 0.3532 | >= 0.06 edge density at 48px |

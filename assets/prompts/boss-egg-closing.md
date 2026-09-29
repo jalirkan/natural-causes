@@ -6,8 +6,8 @@
 - **Source:** authored SVG, `tools/art/svg/conception/boss-egg-closing.svg`
 - **SVG sha256:** `3f3d9d176a00bd313ef1aab68aeab35cba487d7e997ed6f251171eec00988188`
 - **Rasteriser:** sharp 0.34.5 (libvips 8.17.3, librsvg 2.61.2)
-- **Render:** 1076.278 dpi, 4× supersampled and area-averaged
-- **Rendered:** 2026-09-28T23:29:00.019Z
+- **Render:** 1099.699 dpi, 4× supersampled and area-averaged
+- **Rendered:** 2026-09-29T02:41:06.659Z
 - **Sprite size:** 384px
 - **Tests:** the Egg exactly as boss-egg with its eyes closed: two lash lines bowed downward where the half-lidded eyes were, the same smile, the same corona
 
@@ -21,13 +21,13 @@ an enormous smooth round cream egg filling the frame, in the greeting-card regis
 
 | Check | Result | Measured | Expected |
 |---|---|---|---|
-| silhouette-area | pass | 0.6167 | 0.25–0.95 of canvas |
-| background-contrast | pass | 0.4047 | >= 0.12 median Oklab L from conception-deep |
-| background-contrast-coverage | pass | 0.1805 | <= 0.4 of sprite may vanish into conception-deep |
+| silhouette-area | pass | 0.5955 | 0.25–0.95 of canvas |
+| background-contrast | pass | 0.4078 | >= 0.12 median Oklab L from conception-deep |
+| background-contrast-coverage | pass | 0.1932 | <= 0.4 of sprite may vanish into conception-deep |
 | palette-conformance | pass | 0.0293 | <= 0.0353 Oklab from a palette entry |
 | palette-variety | pass | 5 | >= 3 distinct palette colours |
-| palette-dominance | pass | 0.5474 | no colour above 0.9 of the sprite |
-| readable-48px-silhouette | pass | 0.628 | >= 0.175 coverage at 48px |
+| palette-dominance | pass | 0.5914 | no colour above 0.9 of the sprite |
+| readable-48px-silhouette | pass | 0.6072 | >= 0.175 coverage at 48px |
 | readable-48px-structure | pass | 7 | >= 3 palette colours still visible at 48px |
 | enemy-value-ceiling | pass | 0.8512 | <= 0.856 Oklab L (bone); paper belongs to the player |
-| readable-48px-detail | pass | 0.3196 | >= 0.06 edge density at 48px |
+| readable-48px-detail | pass | 0.2687 | >= 0.06 edge density at 48px |

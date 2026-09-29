@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { blank, centreOn, crop, index, opaqueBounds, opaqueCount, type Bitmap } from '../bitmap';
 import { cut, despeckle, detectBackground, keyOutBackground } from '../cut';
-import { applyOutline, binariseAlpha, outlineWidthFor, quantise, OUTLINE_RATIO } from '../conform';
+import {
+  applyOutline,
+  binariseAlpha,
+  outlineWidthFor,
+  parseOutlineRatio,
+  quantise,
+  OUTLINE_RATIO,
+} from '../conform';
 import { check, distanceToleranceFor, DEFAULT_THRESHOLDS } from '../check';
 import { GRAIN_AMPLITUDE, grainTile, texture } from '../texture';
 import { pack } from '../pack';
@@ -270,11 +277,29 @@ describe('cut', () => {
 
 describe('conform', () => {
   it('law 1: outline weight is proportional to sprite size', () => {
-    expect(outlineWidthFor(96)).toBe(2);
-    expect(outlineWidthFor(384)).toBe(8);
+    expect(OUTLINE_RATIO).toBe(1 / 96);
+    expect(outlineWidthFor(96)).toBe(1);
+    expect(outlineWidthFor(384)).toBe(4);
     // The ratio is what is fixed, not the pixel count.
     expect(outlineWidthFor(384) / 384).toBeCloseTo(OUTLINE_RATIO, 5);
     expect(outlineWidthFor(96) / 96).toBeCloseTo(OUTLINE_RATIO, 5);
+    // Nearest whole pixel and no floor: 48px is half a pixel and rounds up,
+    // 44px is under half and gets no outline.
+    expect(outlineWidthFor(48)).toBe(1);
+    expect(outlineWidthFor(44)).toBe(0);
+  });
+
+  it('NC_OUTLINE_RATIO takes a fraction, a decimal or 0, and refuses anything else', () => {
+    expect(parseOutlineRatio(undefined)).toBeNull();
+    expect(parseOutlineRatio('')).toBeNull();
+    expect(parseOutlineRatio('2/96')).toBeCloseTo(2 / 96, 10);
+    expect(parseOutlineRatio('0.0052')).toBe(0.0052);
+    expect(parseOutlineRatio('0')).toBe(0);
+    for (const bad of ['thin', '-1/96', '1/0', '1/96/2']) expect(() => parseOutlineRatio(bad)).toThrow();
+    // Honest rounding at any ratio: 0.5/96 draws 1px from 96px up, none below.
+    expect(outlineWidthFor(96, 0.5 / 96)).toBe(1);
+    expect(outlineWidthFor(88, 0.5 / 96)).toBe(0);
+    expect(outlineWidthFor(384, 0)).toBe(0);
   });
 
   it('law 2: alpha is binarised, so no soft edges survive', () => {
