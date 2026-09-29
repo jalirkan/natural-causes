@@ -103,9 +103,20 @@ def main() -> int:
     from diffusers import AutoPipelineForText2Image
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    dtype = torch.float16 if device == 'cuda' else torch.float32
+    # On a GPU, fp16. On a CPU, bfloat16 where the chip has it (AMX / avx512_bf16
+    # Xeons run it fast and it halves memory), else float32.
+    if device == 'cuda':
+        dtype = torch.float16
+    elif torch.backends.mkldnn.is_available():
+        dtype = torch.bfloat16
+    else:
+        dtype = torch.float32
     print(f'loading {model_id} on {device} ({dtype})…', flush=True)
-    pipe = AutoPipelineForText2Image.from_pretrained(model_id, torch_dtype=dtype, variant='fp16' if device == 'cuda' else None)
+    variant = 'fp16' if dtype != torch.float32 else None
+    try:
+        pipe = AutoPipelineForText2Image.from_pretrained(model_id, torch_dtype=dtype, variant=variant)
+    except Exception:  # the fp16 variant is not always published
+        pipe = AutoPipelineForText2Image.from_pretrained(model_id, torch_dtype=dtype)
     pipe = pipe.to(device)
     if device == 'cpu':
         torch.set_num_threads(max(1, torch.get_num_threads()))
