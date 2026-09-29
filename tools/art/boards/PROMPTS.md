@@ -31,20 +31,28 @@ Append the scene text to the direction's style line.
 - B: `— a living room, a house with a face in the centre with twelve notches on its roof, rooms growing around it, bills with faces chasing a small figure in a shirt and tie, a ringing telephone`
 - C: `— a desk with a death certificate that reads Natural causes, age 84, a small figure's cowlick just visible at the bottom edge`## 2 · The pop-up book
 
+## 2 · The pop-up book
+
 `pop-up book page seen from above, cut paper layers with real cast shadows, gouache on cardstock, visible cut edges, paper grain, warm light —`
 - A: `— a school gym with a wood floor and court lines, a small kid with one cowlick in the centre, red dodgeballs rolling in, stacks of homework with faces, a gym teacher with a whistle at the edge`
 - B: `— a living room, a house with a face in the centre with twelve notches on its roof, rooms growing around it, bills with faces chasing a small figure in a shirt and tie, a ringing telephone`
 - C: `— a desk with a death certificate that reads Natural causes, age 84, a small figure's cowlick just visible at the bottom edge`## 3 · The New Yorker cartoon
+
+## 3 · The New Yorker cartoon
 
 `New Yorker style pen and ink cartoon with grey wash, seen from above, cross-hatching, off-white paper, one spot colour, deadpan —`
 - A: `— a school gym with a wood floor and court lines, a small kid with one cowlick in the centre, red dodgeballs rolling in, stacks of homework with faces, a gym teacher with a whistle at the edge`
 - B: `— a living room, a house with a face in the centre with twelve notches on its roof, rooms growing around it, bills with faces chasing a small figure in a shirt and tie, a ringing telephone`
 - C: `— a desk with a death certificate that reads Natural causes, age 84, a small figure's cowlick just visible at the bottom edge`## 4 · The painted picture book
 
+## 4 · The painted picture book
+
 `gouache picture book illustration seen from above, visible brush texture, painted highlights, soft shadows, no outlines, 1950s Little Golden Book palette —`
 - A: `— a school gym with a wood floor and court lines, a small kid with one cowlick in the centre, red dodgeballs rolling in, stacks of homework with faces, a gym teacher with a whistle at the edge`
 - B: `— a living room, a house with a face in the centre with twelve notches on its roof, rooms growing around it, bills with faces chasing a small figure in a shirt and tie, a ringing telephone`
 - C: `— a desk with a death certificate that reads Natural causes, age 84, a small figure's cowlick just visible at the bottom edge`## 5 · The tabletop
+
+## 5 · The tabletop
 
 `tilt-shift photo of a toy set on a kitchen table seen from above, plastic toy figures, real window light, shallow depth of field, miniature, slightly worn toys —`
 - A: `— a school gym with a wood floor and court lines, a small kid with one cowlick in the centre, red dodgeballs rolling in, stacks of homework with faces, a gym teacher with a whistle at the edge`
